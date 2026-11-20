@@ -1,0 +1,60 @@
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 8,
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": "#000000",
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 6,
+      "children": [
+        { "type": "text", "value": "{{ data.name }}", "size": 14, "weight": "bold", "design": "rounded", "color": "#39FF14", "lineLimit": 1, "minScale": 0.6 },
+        { "type": "spacer" },
+        { "type": "text", "value": "{{ data.streak }}d", "size": 12, "weight": "semibold", "color": "#39FF14" }
+      ]
+    },
+    {
+      "type": "zstack",
+      "align": "center",
+      "frame": { "maxHeight": "infinity" },
+      "children": [
+        {
+          "type": "vstack",
+          "spacing": 3,
+          "children": [
+            {
+              "type": "repeat",
+              "over": "range(5)",
+              "item": "w",
+              "index": "r",
+              "children": [
+                {
+                  "type": "hstack",
+                  "spacing": 3,
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "over": "range(7)",
+                      "item": "c",
+                      "index": "col",
+                      "children": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 2,
+                          "fill": "{{ data.days[(4 - r) * 7 + (6 - col)] ... }}",
+                          "frame": { "maxWidth": "infinity", "height": 10 }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

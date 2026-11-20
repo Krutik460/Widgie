@@ -1,0 +1,556 @@
+{
+  "id": "3-habit-heatmap__J-haiku",
+  "group": "rerun",
+  "job_id": "3-habit-heatmap",
+  "widget": "habit",
+  "user_words": "a heatmap of the last 5 weeks like a code contribution graph, neon green on black",
+  "reference_image": null,
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 7.7,
+    "a-medium": 0,
+    "b-small": 7.7,
+    "b-medium": 0
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [],
+  "state_diff_share": {
+    "small": 0.1193,
+    "medium": 0.1032
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 2906,
+  "gen_seconds_total": 35.31,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/3-habit-heatmap__J-haiku/try1/look.js",
+      "reply": "runs-round2/3-habit-heatmap__J-haiku/try1/reply.txt",
+      "request": "runs-round2/3-habit-heatmap__J-haiku/try1/request.md",
+      "image_sent": null,
+      "bytes": 1728,
+      "gen_seconds": 3.98,
+      "api_seconds": 3.81,
+      "num_turns": 1,
+      "output_tokens": 795,
+      "input_tokens": 7381,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 165,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 7.7,
+              "width": 0
+            },
+            "max": 7.7,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.28227996826172,
+          "ink_share": 0.37978909653515736,
+          "js_eval_ms": 0.3399580121040344,
+          "js_setup_ms": 1.0192919969558716,
+          "nodes": 52,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 54.328125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 51.67062500119209,
+          "tree_footprint_mb": 3.01580810546875,
+          "tree_ms": 1.6461249887943268,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 73.70415496826172,
+          "ink_share": 0.2638629459821513,
+          "js_eval_ms": 0.3936249911785126,
+          "js_setup_ms": 1.097000002861023,
+          "nodes": 94,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.765625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 58.107041984796524,
+          "tree_footprint_mb": 3.06268310546875,
+          "tree_ms": 2.0073750019073486,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 165,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 7.7,
+              "width": 0
+            },
+            "max": 7.7,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.36040496826172,
+          "ink_share": 0.3806848255364196,
+          "js_eval_ms": 0.34745800495147705,
+          "js_setup_ms": 1.1311669945716858,
+          "nodes": 52,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 54.421875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 56.192208021879196,
+          "tree_footprint_mb": 3.0157852172851562,
+          "tree_ms": 1.7709999978542328,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 73.67288208007812,
+          "ink_share": 0.2642402973528801,
+          "js_eval_ms": 0.3547079861164093,
+          "js_setup_ms": 1.0046670138835907,
+          "nodes": 94,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.78125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 61.97387498617172,
+          "tree_footprint_mb": 3.0157623291015625,
+          "tree_ms": 1.763042002916336,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 7.7,
+        "a-medium": 0,
+        "b-small": 7.7,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 7.7,
+        "a-medium": 0,
+        "b-small": 7.7,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 2,
+        "a-medium": 2,
+        "b-small": 2,
+        "b-medium": 2
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/3-habit-heatmap__J-haiku/try2/look.js",
+      "reply": "runs-round2/3-habit-heatmap__J-haiku/try2/reply.txt",
+      "request": "runs-round2/3-habit-heatmap__J-haiku/try2/request.md",
+      "image_sent": null,
+      "bytes": 2906,
+      "gen_seconds": 31.33,
+      "api_seconds": 31.33,
+      "num_turns": 1,
+      "output_tokens": 6834,
+      "input_tokens": 9177,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.59475708007812,
+          "ink_share": 0.2617564431415659,
+          "js_eval_ms": 0.5347909927368164,
+          "js_setup_ms": 1.1710840165615082,
+          "nodes": 57,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 54.765625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 49.94708299636841,
+          "tree_footprint_mb": 3.18768310546875,
+          "tree_ms": 2.025749981403351,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.43852996826172,
+          "ink_share": 0.21154317843059567,
+          "js_eval_ms": 0.5075420141220093,
+          "js_setup_ms": 1.1491250097751617,
+          "nodes": 57,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 57.6875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 61.19800001382828,
+          "tree_footprint_mb": 3.1407852172851562,
+          "tree_ms": 1.9970409870147705,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.62600708007812,
+          "ink_share": 0.2626928870974309,
+          "js_eval_ms": 0.421875,
+          "js_setup_ms": 1.0274159908294678,
+          "nodes": 57,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 55.1875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 52.84333300590515,
+          "tree_footprint_mb": 3.17205810546875,
+          "tree_ms": 1.7443329989910126,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.36038208007812,
+          "ink_share": 0.21201486764400668,
+          "js_eval_ms": 0.469541996717453,
+          "js_setup_ms": 1.0886659920215607,
+          "nodes": 57,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 57.6875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 65.60504099726677,
+          "tree_footprint_mb": 3.1720352172851562,
+          "tree_ms": 1.8645830154418945,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-haiku/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 2,
+        "a-medium": 2,
+        "b-small": 2,
+        "b-medium": 2
+      }
+    }
+  ]
+}

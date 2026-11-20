@@ -1,0 +1,103 @@
+{
+  "groups": ["reference widgets", "look descriptions", "reference images", "new kinds"],
+  "cases": [
+    {
+      "id": "water",
+      "group": "reference widgets",
+      "request": "i keep forgetting to drink water. can you make something where i tap every time i finish a glass and it shows how many i had today? i want to get to 8"
+    },
+    {
+      "id": "todo",
+      "group": "reference widgets",
+      "request": "a to do list for my stuff. i want to add things, tick them off when im done, and get rid of them"
+    },
+    {
+      "id": "habit",
+      "group": "reference widgets",
+      "request": "im trying to meditate every day. i want to tap it after i meditate and see how many days in a row i did it"
+    },
+    {
+      "id": "wotd",
+      "group": "reference widgets",
+      "request": "i want to learn a new word every day. show me a word of the day with what it means and how to use it"
+    },
+    {
+      "id": "water-glass",
+      "group": "look descriptions",
+      "request": "a water tracker that looks like a glass that fills up as I drink, bubbly blue, with a big plus button"
+    },
+    {
+      "id": "water-lcd",
+      "group": "look descriptions",
+      "request": "a water tracker with a retro LCD digital watch look, grey-green screen, one segment per glass"
+    },
+    {
+      "id": "habit-graph",
+      "group": "look descriptions",
+      "request": "a habit tracker that shows the last 5 weeks like a code contribution graph, neon green on black"
+    },
+    {
+      "id": "habit-ring",
+      "group": "look descriptions",
+      "request": "a habit tracker with a ring that goes from red to green as my streak grows, a flame in the middle"
+    },
+    {
+      "id": "todo-sticky",
+      "group": "look descriptions",
+      "request": "a to-do list that looks like a yellow sticky note, slightly tilted, handwriting, finished items crossed out and faded"
+    },
+    {
+      "id": "wotd-magazine",
+      "group": "look descriptions",
+      "request": "a word of the day in elegant magazine typography, serif, a giant first letter, cream and deep red"
+    },
+    {
+      "id": "image-lcd-habit",
+      "group": "reference images",
+      "request": "make my widget look like this. its a habit tracker",
+      "image": "images/R1-lcd-watch.png"
+    },
+    {
+      "id": "image-pass-todo",
+      "group": "reference images",
+      "request": "make my widget look like this. its a to-do list",
+      "image": "images/R2-boarding-pass.png"
+    },
+    {
+      "id": "image-photo-water",
+      "group": "reference images",
+      "request": "make my widget look like this. its a water tracker",
+      "image": "images/R3-photo.jpg"
+    },
+    {
+      "id": "mood",
+      "group": "new kinds",
+      "request": "a mood tracker with five emoji buttons and a week of history"
+    },
+    {
+      "id": "coffee",
+      "group": "new kinds",
+      "request": "a coffee counter with a weekly total"
+    },
+    {
+      "id": "reading",
+      "group": "new kinds",
+      "request": "a reading log where I add pages read and see this week's total"
+    },
+    {
+      "id": "countdown",
+      "group": "new kinds",
+      "request": "a countdown of days until a date I set"
+    },
+    {
+      "id": "affirmation",
+      "group": "new kinds",
+      "request": "a daily affirmation written by AI each morning"
+    },
+    {
+      "id": "gym",
+      "group": "new kinds",
+      "request": "a gym tracker with three buttons for push, pull, and legs days"
+    }
+  ]
+}

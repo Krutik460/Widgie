@@ -1,0 +1,190 @@
+{
+  "id": "2-water-lcd__J-sonnet",
+  "prompt_id": "2-water-lcd",
+  "widget": "water",
+  "variant": "js",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 4057,
+  "output_bytes_first_try": 4057,
+  "gen_seconds": 11.47,
+  "repair_gen_seconds": null,
+  "render_ms": 59.09,
+  "tree_ms": 1.847,
+  "peak_rss_mb": 43.766,
+  "js_setup_ms": 1.143,
+  "js_eval_ms": 0.421,
+  "nodes": 41,
+  "ink_share_min": 0.3377,
+  "overflow_pt": {
+    "a-small": 6,
+    "a-medium": 7,
+    "b-small": 6,
+    "b-medium": 7
+  },
+  "state_diff_share": {
+    "small": 0.0354,
+    "medium": 0.0679
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep2/2-water-lcd__J-sonnet/try1/look.js",
+      "reply": "runs-rep2/2-water-lcd__J-sonnet/try1/reply.txt",
+      "bytes": 4057,
+      "gen_seconds": 11.47,
+      "api_seconds": 11.45,
+      "output_tokens": 1894,
+      "thinking_tokens": 0,
+      "input_tokens": 5448,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 164,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.56339263916016,
+          "ink_share": 0.3628923903749848,
+          "js_eval_ms": 0.9653749763965607,
+          "js_setup_ms": 1.697583019733429,
+          "nodes": 30,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 39.734375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 69.2517499923706,
+          "tree_footprint_mb": 3.0939102172851562,
+          "tree_ms": 3.0313329994678497,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 165,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 70.36026763916016,
+          "ink_share": 0.33771060923378804,
+          "js_eval_ms": 0.4211670160293579,
+          "js_setup_ms": 1.14266699552536,
+          "nodes": 41,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 43.96875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 59.09033301472664,
+          "tree_footprint_mb": 3.14080810546875,
+          "tree_ms": 1.8474160134792328,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 164,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.64151763916016,
+          "ink_share": 0.362118806237531,
+          "js_eval_ms": 0.381291002035141,
+          "js_setup_ms": 1.0707919895648956,
+          "nodes": 30,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 39.8125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 50.495707988739014,
+          "tree_footprint_mb": 3.06268310546875,
+          "tree_ms": 1.6970409750938416,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 165,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 70.39149475097656,
+          "ink_share": 0.3552763155412162,
+          "js_eval_ms": 0.3769580125808716,
+          "js_setup_ms": 0.9870840013027191,
+          "nodes": 41,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 43.765625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 46.044624984264374,
+          "tree_footprint_mb": 3.0782852172851562,
+          "tree_ms": 1.6225830018520355,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

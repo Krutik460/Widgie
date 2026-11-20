@@ -1,0 +1,25 @@
+```json
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 6,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": "#F5EBDD",
+  "children": [
+    {
+      "type": "hstack",
+      "align": "top",
+      "spacing": 8,
+      "children": [
+        {
+          "type": "text",
+          "value": "{{ substr(data.word, 0, 1) }}",
+          "size": 1,
+          "color": "#8B1A1A"
+        }
+      ]
+    }
+  ]
+}
+```

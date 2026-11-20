@@ -1,0 +1,118 @@
+```js
+function formatDate(s) {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const p = String(s || '').split('-');
+  if (p.length < 3) return String(s || '');
+  const m = parseInt(p[1], 10);
+  const d = parseInt(p[2], 10);
+  if (!(m >= 1 && m <= 12) || isNaN(d)) return String(s);
+  return months[m - 1].toUpperCase() + ' ' + d;
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const CREAM = '#F6EEDC';
+  const RED = '#7A1523';
+  const INK = '#3A1A1E';
+
+  const word = String(d.word || '');
+  const first = word.charAt(0).toUpperCase();
+  const rest = word.slice(1);
+  const pos = String(d.partOfSpeech || '').toUpperCase();
+
+  if (medium) {
+    const left = {
+      type: 'vstack',
+      spacing: 2,
+      align: 'center',
+      padding: { vertical: 8, horizontal: 6 },
+      frame: { width: 90, maxHeight: 'infinity', alignment: 'center' },
+      background: RED,
+      children: [
+        { type: 'spacer' },
+        { type: 'text', value: first, size: 76, fontName: 'Didot', weight: 'bold', color: CREAM, lineLimit: 1 },
+        { type: 'text', value: pos, size: 8, design: 'serif', italic: true, kerning: 1, color: '#E6C9CC', lineLimit: 1, minScale: 0.6 },
+        { type: 'text', value: formatDate(d.date), size: 8, design: 'serif', kerning: 1, color: CREAM, lineLimit: 1, minScale: 0.6 },
+        { type: 'spacer' },
+      ],
+    };
+
+    const right = {
+      type: 'vstack',
+      align: 'leading',
+      spacing: 4,
+      padding: { vertical: 12, horizontal: 14 },
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+      children: [
+        { type: 'text', value: word, size: 22, fontName: 'Didot', color: RED, lineLimit: 1, minScale: 0.5 },
+        { type: 'rect', fill: RED, frame: { height: 1 }, opacity: 0.6 },
+        { type: 'text', value: d.definition, size: 11.5, design: 'serif', color: INK },
+        { type: 'text', value: '\u201C' + String(d.example || '') + '\u201D', size: 10, design: 'serif', italic: true, color: '#8A4A50' },
+      ],
+    };
+
+    return {
+      type: 'hstack',
+      spacing: 0,
+      align: 'top',
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+      widgetBackground: CREAM,
+      children: [left, right],
+    };
+  }
+
+  const header = {
+    type: 'hstack',
+    align: 'center',
+    spacing: 6,
+    children: [
+      { type: 'text', value: first, size: 42, fontName: 'Didot', weight: 'bold', color: RED, lineLimit: 1, frame: { height: 50 } },
+      {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 1,
+        children: [
+          { type: 'text', value: rest, size: 16, fontName: 'Didot', color: RED, lineLimit: 1, minScale: 0.5 },
+          { type: 'text', value: pos, size: 8, design: 'serif', italic: true, kerning: 1, color: '#9C5A60', lineLimit: 1, minScale: 0.6 },
+        ],
+      },
+      { type: 'spacer' },
+    ],
+  };
+
+  const body = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 3,
+    padding: { top: 8, horizontal: 12 },
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    children: [
+      header,
+      { type: 'rect', fill: RED, frame: { height: 1 }, opacity: 0.6 },
+      { type: 'text', value: d.definition, size: 10.5, design: 'serif', color: INK },
+    ],
+  };
+
+  const footer = {
+    type: 'text',
+    value: formatDate(d.date),
+    size: 8,
+    design: 'serif',
+    kerning: 1.4,
+    color: CREAM,
+    lineLimit: 1,
+    padding: { vertical: 3 },
+    frame: { maxWidth: 'infinity', alignment: 'center' },
+    background: RED,
+  };
+
+  return {
+    type: 'vstack',
+    spacing: 0,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+    widgetBackground: CREAM,
+    children: [body, footer],
+  };
+}
+```

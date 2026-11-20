@@ -1,0 +1,84 @@
+```js
+function render(ctx) {
+  const d = ctx.data;
+  const items = d.items || [];
+  const small = ctx.family === 'small';
+  const shown = items.slice(0, 4);
+  const INK = '#4A3B12';
+  const FADED = '#8A7A3A';
+  const fs = small ? 13 : 14;
+
+  const rows = shown.map(it => ({
+    type: 'button',
+    action: 'toggleDone',
+    rowId: it.id,
+    children: [
+      {
+        type: 'hstack',
+        spacing: 5,
+        align: 'center',
+        frame: { maxWidth: 'infinity', alignment: 'leading' },
+        opacity: it.done ? 0.55 : 1,
+        children: [
+          it.done
+            ? { type: 'symbol', name: 'checkmark.circle.fill', size: 13, color: FADED }
+            : { type: 'symbol', name: 'circle', size: 13, color: INK },
+          {
+            type: 'text',
+            value: it.title,
+            size: fs,
+            fontName: 'Bradley Hand',
+            weight: 'bold',
+            color: it.done ? FADED : INK,
+            strikethrough: !!it.done,
+            lineLimit: 1,
+            minScale: 0.6,
+          },
+        ],
+      },
+    ],
+  }));
+
+  const note = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 3,
+    padding: { top: 10, bottom: 8, leading: 12, trailing: 10 },
+    frame: { width: small ? 136 : 310, height: small ? 136 : 136, alignment: 'topLeading' },
+    background: { gradient: 'linear', stops: ['#FFE97A', '#FFDB4D'], from: 'top', to: 'bottom' },
+    cornerRadius: 4,
+    shadow: { color: '#00000040', radius: 4, x: 1, y: 2 },
+    rotation: -3,
+    children: [
+      {
+        type: 'hstack',
+        align: 'center',
+        spacing: 6,
+        children: [
+          { type: 'text', value: 'To do', size: 17, fontName: 'Marker Felt', color: INK, lineLimit: 1 },
+          { type: 'spacer' },
+          { type: 'text', value: d.doneCount + '/' + d.total, size: 12, fontName: 'Bradley Hand', weight: 'bold', color: FADED, lineLimit: 1 },
+          {
+            type: 'button',
+            action: 'openAdd',
+            children: [
+              { type: 'symbol', name: 'plus', size: 13, weight: 'bold', color: INK, frame: { width: 20, height: 20 } },
+            ],
+          },
+        ],
+      },
+      { type: 'rect', fill: '#4A3B1233', frame: { height: 1 } },
+      rows,
+      items.length === 0 && { type: 'text', value: 'All clear!', size: 15, fontName: 'Bradley Hand', color: INK },
+      { type: 'spacer' },
+    ],
+  };
+
+  return {
+    type: 'zstack',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: { gradient: 'linear', stops: ['#D9C27A', '#C9AE5E'], from: 'top', to: 'bottom' },
+    children: [note],
+  };
+}
+```

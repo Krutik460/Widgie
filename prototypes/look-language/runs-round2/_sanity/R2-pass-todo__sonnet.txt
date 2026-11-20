@@ -1,0 +1,30 @@
+**Description:** This is a vintage-style boarding pass in teal and cream with a perforated passenger stub on the right, featuring a barcode. A red "BOARDED" stamp overlaps the top of the ticket near the destination, and a red arrow points from SFO to JFK.
+
+**Text in the image:**
+
+Main pass:
+- BOARDING PASS
+- TRANS-COASTAL AIR LINES
+- NAME OF PASSENGER
+- M. HOLLOWAY
+- BOARDED (stamp)
+- FROM
+- SFO
+- TO
+- JFK
+- FLIGHT
+- TC 418
+- GATE
+- B12
+- SEAT
+- 14A
+- DATE
+- 18 NOV
+
+Passenger stub:
+- PASSENGER STUB
+- 0418 7731 2200 6 (under the barcode)
+- SEAT
+- GATE
+- 14A
+- B12

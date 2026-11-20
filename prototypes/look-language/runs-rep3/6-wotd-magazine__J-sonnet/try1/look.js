@@ -1,0 +1,133 @@
+function formatDate(s) {
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const p = String(s || '').split('-');
+  if (p.length !== 3) return String(s || '');
+  const m = parseInt(p[1], 10);
+  const day = parseInt(p[2], 10);
+  if (!(m >= 1 && m <= 12) || isNaN(day)) return String(s);
+  return months[m - 1].toUpperCase() + ' ' + day;
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const word = String(d.word || '');
+  const first = word.charAt(0).toUpperCase();
+  const rest = word.slice(1);
+
+  const CREAM = '#F6EEDC';
+  const RED = '#7A1523';
+  const INK = '#3B1A1E';
+
+  const dropCap = {
+    type: 'text',
+    value: first,
+    size: medium ? 84 : 66,
+    weight: 'bold',
+    design: 'serif',
+    color: RED,
+    lineLimit: 1,
+    frame: { alignment: 'topLeading' },
+    padding: { top: medium ? -14 : -10 },
+  };
+
+  const wordBlock = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 1,
+    children: [
+      {
+        type: 'text',
+        value: rest,
+        size: medium ? 26 : 20,
+        weight: 'semibold',
+        design: 'serif',
+        color: RED,
+        lineLimit: 1,
+        minScale: 0.5,
+      },
+      {
+        type: 'text',
+        value: String(d.partOfSpeech || '').toLowerCase(),
+        size: 12,
+        design: 'serif',
+        italic: true,
+        color: '#9A4A52',
+        lineLimit: 1,
+      },
+    ],
+  };
+
+  const top = {
+    type: 'hstack',
+    align: 'top',
+    spacing: 2,
+    children: [
+      {
+        type: 'hstack',
+        align: 'bottom',
+        spacing: 2,
+        children: [
+          dropCap,
+          { type: 'vstack', align: 'leading', padding: { bottom: medium ? 14 : 10 }, children: [wordBlock] },
+        ],
+      },
+      { type: 'spacer' },
+    ],
+  };
+
+  const rule = {
+    type: 'rect',
+    fill: RED,
+    frame: { height: 1.5, maxWidth: 'infinity' },
+  };
+
+  const definition = {
+    type: 'text',
+    value: d.definition,
+    size: medium ? 13 : 11.5,
+    design: 'serif',
+    color: INK,
+    lineLimit: medium ? 3 : 4,
+    minScale: 0.8,
+  };
+
+  const example = medium && {
+    type: 'text',
+    value: '\u201C' + String(d.example || '') + '\u201D',
+    size: 12,
+    design: 'serif',
+    italic: true,
+    color: '#7A5A55',
+    lineLimit: 2,
+    minScale: 0.85,
+  };
+
+  const footer = {
+    type: 'text',
+    value: formatDate(d.date),
+    size: 8,
+    weight: 'semibold',
+    design: 'serif',
+    kerning: 1.5,
+    color: RED,
+    lineLimit: 1,
+  };
+
+  return {
+    type: 'vstack',
+    align: 'leading',
+    spacing: medium ? 5 : 4,
+    padding: { top: medium ? 14 : 12, bottom: 12, leading: 16, trailing: 16 },
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: CREAM,
+    children: [
+      top,
+      rule,
+      definition,
+      example,
+      { type: 'spacer', minLength: 0 },
+      footer,
+    ],
+  };
+}

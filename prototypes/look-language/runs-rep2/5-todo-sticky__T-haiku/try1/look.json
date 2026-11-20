@@ -1,0 +1,79 @@
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 6,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#FFF59D", "#FFEE58"], "from": "top", "to": "bottom" },
+  "shadow": { "color": "#00000033", "radius": 3, "x": 0, "y": 2 },
+  "rotation": -2,
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 6,
+      "children": [
+        { "type": "text", "value": "To do", "size": 16, "weight": "bold", "design": "rounded", "color": "#5D4037", "lineLimit": 1 },
+        { "type": "spacer" },
+        { "type": "text", "value": "{{ data.doneCount }}/{{ data.total }}", "size": 12, "weight": "semibold", "design": "rounded", "color": "#8D6E63" }
+      ]
+    },
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 4,
+      "children": [
+        {
+          "type": "repeat",
+          "over": "{{ data.items }}",
+          "item": "t",
+          "index": "i",
+          "children": [
+            {
+              "type": "button",
+              "action": "toggleDone",
+              "rowId": "{{ t.id }}",
+              "children": [
+                {
+                  "type": "hstack",
+                  "spacing": 6,
+                  "opacity": "{{ t.done ? 0.45 : 1 }}",
+                  "children": [
+                    { "type": "symbol", "name": "{{ t.done ? 'checkmark.circle.fill' : 'circle' }}", "size": 12, "color": "#5D4037" },
+                    {
+                      "type": "text",
+                      "value": "{{ t.title }}",
+                      "size": 14,
+                      "design": "serif",
+                      "italic": true,
+                      "color": "#3E2723",
+                      "lineLimit": 1,
+                      "minScale": 0.7,
+                      "strikethrough": "{{ t.done }}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    { "type": "spacer" },
+    {
+      "type": "hstack",
+      "children": [
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "openAdd",
+          "children": [
+            {
+              "type": "symbol", "name": "plus", "size": 12, "weight": "bold", "color": "#5D4037",
+              "frame": { "width": 24, "height": 24 }, "background": "#FFFFFF88", "clip": "circle"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "type": "vstack",
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": "#000000",
+  "children": [
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "hstack",
+          "align": "center",
+          "spacing": 12,
+          "frame": { "maxWidth": "infinity", "maxHeight": "infinity" },
+          "children": [
+            {
+              "type": "vstack",
+              "align": "leading",
+              "spacing": 2,
+              "frame": { "maxHeight": "infinity", "alignment": "topLeading" },
+              "children": [
+                { "type": "text", "value": "{{ data.name }}", "size": 20, "weight": "bold", "design": "monospaced", "color": "#39FF14", "lineLimit": 1, "minScale": 0.6 },
+                {
+                  "type": "hstack",
+                  "align": "firstBaseline",
+                  "spacing": 4,
+                  "children": [
+                    { "type": "text", "value": "{{ data.streak }}", "size": 44, "weight": "heavy", "design": "monospaced", "color": "#39FF14", "shadow": { "color": "#39FF14", "radius": 6, "x": 0, "y": 0 } },
+                    { "type": "text", "value": "{{ data.streak == 1 ? 'day' : 'days' }}", "size": 13, "design": "monospaced", "color": "#1F9E0C" }
+                  ]
+                },
+                { "type": "spacer" },
+                {
+                  "type": "button",
+                  "action": "toggleToday",
+                  "children": [
+                    {
+                      "type": "hstack",
+                      "spacing": 6,
+                      "padding": { "horizontal": 12, "vertical": 7 },
+                      "background": "{{ data.doneToday ? '#39FF14' : '#0F2A12' }}",
+                      "clip": "capsule",
+                      "children": [
+                        { "type": "symbol", "name": "{{ data.doneToday ? 'checkmark.circle.fill' : 'circle' }}", "size": 15, "weight": "bold", "color": "{{ data.doneToday ? '#000000' : '#39FF14' }}" },
+                        { "type": "text", "value": "{{ data.doneToday ? 'Done today' : 'Mark done' }}", "size": 13, "weight": "bold", "design": "monospaced", "color": "{{ data.doneToday ? '#000000' : '#39FF14' }}" }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "spacer" },
+            {
+              "type": "hstack",
+              "spacing": 3,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ range(5) }}",
+                  "item": "c",
+                  "children": [
+                    {
+                      "type": "vstack",
+                      "spacing": 3,
+                      "children": [
+                        {
+                          "type": "repeat",
+                          "over": "{{ range(7) }}",
+                          "item": "r",
+                          "children": [
+                            {
+                              "type": "rect",
+                              "cornerRadius": 3,
+                              "fill": "{{ data.days[c * 7 + r].done ? '#39FF14' : '#0F2A12' }}",
+                              "stroke": { "color": "{{ c * 7 + r == 34 ? '#CCFFDD' : '#00000000' }}", "width": 1.5 },
+                              "frame": { "width": 20, "height": 14 },
+                              "shadow": { "color": "{{ data.days[c * 7 + r].done ? '#39FF1488' : '#00000000' }}", "radius": 3, "x": 0, "y": 0 }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "else": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 6,
+          "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+          "children": [
+            {
+              "type": "hstack",
+              "align": "center",
+              "spacing": 6,
+              "children": [
+                {
+                  "type": "vstack",
+                  "align": "leading",
+                  "spacing": 1,
+                  "children": [
+                    { "type": "text", "value": "{{ data.name }}", "size": 13, "weight": "bold", "design": "monospaced", "color": "#39FF14", "lineLimit": 1, "minScale": 0.6 },
+                    {
+                      "type": "hstack",
+                      "spacing": 3,
+                      "children": [
+                        { "type": "symbol", "name": "flame.fill", "size": 11, "color": "#39FF14" },
+                        { "type": "text", "value": "{{ data.streak }}d", "size": 12, "weight": "semibold", "design": "monospaced", "color": "#1F9E0C" }
+                      ]
+                    }
+                  ]
+                },
+                { "type": "spacer" },
+                {
+                  "type": "button",
+                  "action": "toggleToday",
+                  "children": [
+                    {
+                      "type": "symbol",
+                      "name": "{{ data.doneToday ? 'checkmark' : 'plus' }}",
+                      "size": 14,
+                      "weight": "bold",
+                      "color": "{{ data.doneToday ? '#000000' : '#39FF14' }}",
+                      "frame": { "width": 28, "height": 28 },
+                      "background": "{{ data.doneToday ? '#39FF14' : '#0F2A12' }}",
+                      "clip": "circle"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "hstack",
+              "spacing": 3,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ range(5) }}",
+                  "item": "c",
+                  "children": [
+                    {
+                      "type": "vstack",
+                      "spacing": 3,
+                      "children": [
+                        {
+                          "type": "repeat",
+                          "over": "{{ range(7) }}",
+                          "item": "r",
+                          "children": [
+                            {
+                              "type": "rect",
+                              "cornerRadius": 2.5,
+                              "fill": "{{ data.days[c * 7 + r].done ? '#39FF14' : '#0F2A12' }}",
+                              "stroke": { "color": "{{ c * 7 + r == 34 ? '#CCFFDD' : '#00000000' }}", "width": 1.5 },
+                              "frame": { "width": 22, "height": 11 },
+                              "shadow": { "color": "{{ data.days[c * 7 + r].done ? '#39FF1488' : '#00000000' }}", "radius": 3, "x": 0, "y": 0 }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

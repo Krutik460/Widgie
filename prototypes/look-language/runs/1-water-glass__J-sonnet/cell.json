@@ -1,0 +1,190 @@
+{
+  "id": "1-water-glass__J-sonnet",
+  "prompt_id": "1-water-glass",
+  "widget": "water",
+  "variant": "js",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 5224,
+  "output_bytes_first_try": 5224,
+  "gen_seconds": 26.79,
+  "repair_gen_seconds": null,
+  "render_ms": 46.938,
+  "tree_ms": 1.564,
+  "peak_rss_mb": 45.672,
+  "js_setup_ms": 0.894,
+  "js_eval_ms": 0.436,
+  "nodes": 30,
+  "ink_share_min": 0.883,
+  "overflow_pt": {
+    "a-small": 26,
+    "a-medium": 6,
+    "b-small": 26,
+    "b-medium": 6
+  },
+  "state_diff_share": {
+    "small": 0.1323,
+    "medium": 0.1803
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/1-water-glass__J-sonnet/try1/look.js",
+      "reply": "runs/1-water-glass__J-sonnet/try1/reply.txt",
+      "bytes": 5224,
+      "gen_seconds": 26.79,
+      "api_seconds": 26.71,
+      "output_tokens": 3845,
+      "thinking_tokens": 1285,
+      "input_tokens": 5445,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 184,
+          "family": "small",
+          "footprint_mb": 66.75091552734375,
+          "ink_share": 0.883025935426082,
+          "js_eval_ms": 0.43183302879333496,
+          "js_setup_ms": 0.8939999938011169,
+          "nodes": 22,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 40.984375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 46.54762500524521,
+          "tree_footprint_mb": 3.1095123291015625,
+          "tree_ms": 1.5439999997615814,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 164,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 71.03214263916016,
+          "ink_share": 0.9282466368559084,
+          "js_eval_ms": 0.4471670091152191,
+          "js_setup_ms": 0.856124997138977,
+          "nodes": 30,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 45.671875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 46.9383749961853,
+          "tree_footprint_mb": 3.1407852172851562,
+          "tree_ms": 1.542250007390976,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 184,
+          "family": "small",
+          "footprint_mb": 67.00089263916016,
+          "ink_share": 0.883025935426082,
+          "js_eval_ms": 0.43570801615715027,
+          "js_setup_ms": 0.9023749828338623,
+          "nodes": 26,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 41.25,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 43.19716700911522,
+          "tree_footprint_mb": 3.1720352172851562,
+          "tree_ms": 1.5795830190181732,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 164,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 71.28211975097656,
+          "ink_share": 0.9269259070583574,
+          "js_eval_ms": 0.4274579882621765,
+          "js_setup_ms": 0.8730420172214508,
+          "nodes": 34,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 45.84375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 48.40666601061821,
+          "tree_footprint_mb": 3.1564102172851562,
+          "tree_ms": 1.5635839998722076,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

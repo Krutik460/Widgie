@@ -1,0 +1,206 @@
+{
+  "id": "3-habit-heatmap__T-haiku",
+  "prompt_id": "3-habit-heatmap",
+  "widget": "habit",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": false,
+  "valid_after_repair": true,
+  "status": "repaired",
+  "error_first_try": "expected a field name after '.' in expression \" data.days[(4 - r) * 7 + (6 - col)] ... \"",
+  "error_after_repair": null,
+  "output_bytes": 3633,
+  "output_bytes_first_try": 1756,
+  "gen_seconds": 5.14,
+  "repair_gen_seconds": 23.11,
+  "render_ms": 53.909,
+  "tree_ms": 1.415,
+  "peak_rss_mb": 43.344,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 90,
+  "ink_share_min": 0.1161,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.1139,
+    "medium": 0.067
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 2,
+  "attempts": [
+    {
+      "look": "runs/3-habit-heatmap__T-haiku/try1/look.json",
+      "reply": "runs/3-habit-heatmap__T-haiku/try1/reply.txt",
+      "bytes": 1756,
+      "gen_seconds": 5.14,
+      "api_seconds": 5.07,
+      "output_tokens": 630,
+      "thinking_tokens": 0,
+      "input_tokens": 6690,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": false,
+      "first_error": {
+        "error": "expected a field name after '.' in expression \" data.days[(4 - r) * 7 + (6 - col)] ... \"",
+        "state": "a",
+        "family": "small"
+      },
+      "renders": {
+        "a-small": {
+          "ok": false,
+          "error": "expected a field name after '.' in expression \" data.days[(4 - r) * 7 + (6 - col)] ... \""
+        },
+        "a-medium": {
+          "ok": false,
+          "error": "expected a field name after '.' in expression \" data.days[(4 - r) * 7 + (6 - col)] ... \""
+        },
+        "b-small": {
+          "ok": false,
+          "error": "expected a field name after '.' in expression \" data.days[(4 - r) * 7 + (6 - col)] ... \""
+        },
+        "b-medium": {
+          "ok": false,
+          "error": "expected a field name after '.' in expression \" data.days[(4 - r) * 7 + (6 - col)] ... \""
+        }
+      }
+    },
+    {
+      "look": "runs/3-habit-heatmap__T-haiku/try2/look.json",
+      "reply": "runs/3-habit-heatmap__T-haiku/try2/reply.txt",
+      "bytes": 3633,
+      "gen_seconds": 23.11,
+      "api_seconds": 23.17,
+      "output_tokens": 5209,
+      "thinking_tokens": 3947,
+      "input_tokens": 7435,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 65.344482421875,
+          "ink_share": 0.2139978013924514,
+          "nodes": 85,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 39.09375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 53.90937501192093,
+          "tree_footprint_mb": 0.40625,
+          "tree_ms": 1.44650000333786,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-haiku/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.9851303100586,
+          "ink_share": 0.11609214920473199,
+          "nodes": 90,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 43.34375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 75.093416005373,
+          "tree_footprint_mb": 0.40625,
+          "tree_ms": 1.410082995891571,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-haiku/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 65.2507095336914,
+          "ink_share": 0.2149749603029193,
+          "nodes": 85,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 39.046875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 52.21712499856949,
+          "tree_footprint_mb": 0.453125,
+          "tree_ms": 1.3618340194225311,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-haiku/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.9538803100586,
+          "ink_share": 0.11697892492594475,
+          "nodes": 90,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 43.359375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 51.67604199051857,
+          "tree_footprint_mb": 0.40625,
+          "tree_ms": 1.4148339927196503,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-haiku/try2/b-medium.png"
+        }
+      }
+    }
+  ]
+}

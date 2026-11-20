@@ -1,0 +1,184 @@
+{
+  "id": "6-wotd-magazine__T-haiku",
+  "prompt_id": "6-wotd-magazine",
+  "widget": "wotd",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": false,
+  "valid_after_repair": true,
+  "status": "repaired",
+  "error_first_try": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)",
+  "error_after_repair": null,
+  "output_bytes": 1871,
+  "output_bytes_first_try": 477,
+  "gen_seconds": 2.17,
+  "repair_gen_seconds": 11.25,
+  "render_ms": 35.017,
+  "tree_ms": 0.2,
+  "peak_rss_mb": 32.938,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 9,
+  "ink_share_min": 0.0549,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.1151,
+    "medium": 0.0832
+  },
+  "actions_used": [],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 2,
+  "attempts": [
+    {
+      "look": "runs-rep3/6-wotd-magazine__T-haiku/try1/look.json",
+      "reply": "runs-rep3/6-wotd-magazine__T-haiku/try1/reply.txt",
+      "bytes": 477,
+      "gen_seconds": 2.17,
+      "api_seconds": 2.2,
+      "output_tokens": 225,
+      "thinking_tokens": 0,
+      "input_tokens": 5818,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": false,
+      "first_error": {
+        "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)",
+        "state": "a",
+        "family": "small"
+      },
+      "renders": {
+        "a-small": {
+          "ok": false,
+          "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+        },
+        "a-medium": {
+          "ok": false,
+          "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+        },
+        "b-small": {
+          "ok": false,
+          "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+        },
+        "b-medium": {
+          "ok": false,
+          "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+        }
+      }
+    },
+    {
+      "look": "runs-rep3/6-wotd-magazine__T-haiku/try2/look.json",
+      "reply": "runs-rep3/6-wotd-magazine__T-haiku/try2/reply.txt",
+      "bytes": 1871,
+      "gen_seconds": 11.25,
+      "api_seconds": 12.04,
+      "output_tokens": 2307,
+      "thinking_tokens": 1574,
+      "input_tokens": 6176,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.735015869140625,
+          "ink_share": 0.09026505435446441,
+          "nodes": 8,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 29.75,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 47.20874997973442,
+          "tree_footprint_mb": 0.15625,
+          "tree_ms": 0.37700000405311584,
+          "variant": "template",
+          "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 65.78189086914062,
+          "ink_share": 0.054904624441048266,
+          "nodes": 9,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 32.9375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 33.387290984392166,
+          "tree_footprint_mb": 0.171875,
+          "tree_ms": 0.19683298468589783,
+          "variant": "template",
+          "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.71941375732422,
+          "ink_share": 0.08639713366719592,
+          "nodes": 8,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 29.734375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 35.01687499880791,
+          "tree_footprint_mb": 0.171875,
+          "tree_ms": 0.18470799922943115,
+          "variant": "template",
+          "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 65.98503875732422,
+          "ink_share": 0.07954566894964243,
+          "nodes": 9,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 33.140625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 34.391999989748,
+          "tree_footprint_mb": 0.171875,
+          "tree_ms": 0.19979101419448853,
+          "variant": "template",
+          "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/b-medium.png"
+        }
+      }
+    }
+  ]
+}

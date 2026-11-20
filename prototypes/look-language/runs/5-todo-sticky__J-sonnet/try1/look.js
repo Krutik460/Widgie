@@ -1,0 +1,95 @@
+function render(ctx) {
+  const d = ctx.data;
+  const items = d.items || [];
+  const medium = ctx.family === 'medium';
+  const maxRows = 4;
+  const shown = items.slice(0, maxRows);
+  const extra = items.length - shown.length;
+  const INK = '#4A3B12';
+
+  const rows = shown.map(it => ({
+    type: 'button',
+    action: 'toggleDone',
+    rowId: it.id,
+    children: [
+      {
+        type: 'hstack',
+        spacing: 7,
+        align: 'center',
+        frame: { maxWidth: 'infinity', alignment: 'leading' },
+        opacity: it.done ? 0.45 : 1,
+        children: [
+          {
+            type: 'symbol',
+            name: it.done ? 'checkmark.circle.fill' : 'circle',
+            size: 15,
+            weight: 'semibold',
+            color: INK,
+          },
+          {
+            type: 'text',
+            value: it.title,
+            size: medium ? 16 : 14,
+            weight: 'medium',
+            design: 'serif',
+            italic: true,
+            color: INK,
+            lineLimit: 1,
+            minScale: 0.7,
+            strikethrough: !!it.done,
+          },
+          { type: 'spacer' },
+        ],
+      },
+    ],
+  }));
+
+  const header = {
+    type: 'hstack',
+    spacing: 6,
+    align: 'center',
+    children: [
+      { type: 'text', value: 'To do', size: medium ? 20 : 18, weight: 'bold', design: 'serif', italic: true, color: INK },
+      { type: 'spacer' },
+      { type: 'text', value: d.doneCount + '/' + d.total, size: 13, weight: 'semibold', design: 'serif', italic: true, color: '#7A6420' },
+      {
+        type: 'button',
+        action: 'openAdd',
+        children: [
+          {
+            type: 'symbol', name: 'plus', size: 12, weight: 'bold', color: INK,
+            frame: { width: 22, height: 22 }, background: '#F2C94C', clip: 'circle',
+          },
+        ],
+      },
+    ],
+  };
+
+  const note = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 6,
+    padding: { top: 12, bottom: 10, leading: 14, trailing: 14 },
+    frame: { width: medium ? 300 : 138, height: 134, alignment: 'topLeading' },
+    background: { gradient: 'linear', stops: ['#FFE97A', '#FCDB4F'], from: 'top', to: 'bottom' },
+    cornerRadius: 4,
+    shadow: { color: '#00000040', radius: 5, x: 1, y: 3 },
+    rotation: -3,
+    children: [
+      header,
+      { type: 'rect', fill: '#C9A22755', frame: { height: 1 } },
+      rows,
+      items.length === 0 && { type: 'text', value: 'Nothing to do!', size: 14, italic: true, design: 'serif', color: '#7A6420' },
+      extra > 0 && { type: 'text', value: '+' + extra + ' more', size: 11, italic: true, design: 'serif', color: '#7A6420' },
+      { type: 'spacer' },
+    ],
+  };
+
+  return {
+    type: 'zstack',
+    align: 'center',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: { gradient: 'linear', stops: ['#E8D9B0', '#D9C48A'], from: 'top', to: 'bottom' },
+    children: [note],
+  };
+}

@@ -1,0 +1,117 @@
+```json
+{
+  "type": "if",
+  "test": "{{ family == 'medium' }}",
+  "then": [
+    {
+      "type": "hstack",
+      "spacing": 14,
+      "align": "center",
+      "padding": 16,
+      "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "leading" },
+      "widgetBackground": { "gradient": "linear", "stops": ["#F7EEDD", "#EFE0C8"], "from": "top", "to": "bottom" },
+      "children": [
+        {
+          "type": "vstack",
+          "spacing": 2,
+          "align": "center",
+          "frame": { "width": 84, "maxHeight": "infinity" },
+          "children": [
+            {
+              "type": "zstack",
+              "align": "leading",
+              "frame": { "width": 72, "height": 110 },
+              "clip": "rect",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "{{ data.word }}",
+                  "size": 116,
+                  "weight": "bold",
+                  "design": "serif",
+                  "color": "#8B1A1A",
+                  "lineLimit": 1,
+                  "frame": { "width": 900, "alignment": "leading" }
+                }
+              ]
+            },
+            { "type": "text", "value": "{{ data.date }}", "size": 9, "design": "serif", "color": "#8B1A1A99", "kerning": 1 }
+          ]
+        },
+        { "type": "rect", "fill": "#8B1A1A55", "frame": { "width": 1, "maxHeight": "infinity" } },
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 5,
+          "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "leading" },
+          "children": [
+            { "type": "text", "value": "WORD OF THE DAY", "size": 9, "weight": "semibold", "design": "serif", "color": "#8B1A1A", "kerning": 2.5 },
+            {
+              "type": "hstack",
+              "spacing": 8,
+              "align": "firstBaseline",
+              "children": [
+                { "type": "text", "value": "{{ data.word }}", "size": 28, "weight": "bold", "design": "serif", "color": "#2E1512", "lineLimit": 1, "minScale": 0.5 },
+                { "type": "text", "value": "{{ data.partOfSpeech }}", "size": 12, "italic": true, "design": "serif", "color": "#8B1A1A", "lineLimit": 1 }
+              ]
+            },
+            { "type": "rect", "fill": "#8B1A1A", "frame": { "width": 36, "height": 2 } },
+            { "type": "text", "value": "{{ data.definition }}", "size": 13, "design": "serif", "color": "#3A1F1A", "lineLimit": 3, "minScale": 0.8 },
+            { "type": "text", "value": "“{{ data.example }}”", "size": 12, "italic": true, "design": "serif", "color": "#8B1A1A", "lineLimit": 2, "minScale": 0.8 }
+          ]
+        }
+      ]
+    }
+  ],
+  "else": [
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 5,
+      "padding": 14,
+      "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+      "widgetBackground": { "gradient": "linear", "stops": ["#F7EEDD", "#EFE0C8"], "from": "top", "to": "bottom" },
+      "children": [
+        { "type": "text", "value": "WORD OF THE DAY", "size": 8, "weight": "semibold", "design": "serif", "color": "#8B1A1A", "kerning": 2 },
+        {
+          "type": "hstack",
+          "spacing": 6,
+          "align": "center",
+          "children": [
+            {
+              "type": "zstack",
+              "align": "leading",
+              "frame": { "width": 40, "height": 62 },
+              "clip": "rect",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "{{ data.word }}",
+                  "size": 70,
+                  "weight": "bold",
+                  "design": "serif",
+                  "color": "#8B1A1A",
+                  "lineLimit": 1,
+                  "frame": { "width": 700, "alignment": "leading" }
+                }
+              ]
+            },
+            {
+              "type": "vstack",
+              "align": "leading",
+              "spacing": 1,
+              "frame": { "maxWidth": "infinity", "alignment": "leading" },
+              "children": [
+                { "type": "text", "value": "{{ data.word }}", "size": 20, "weight": "bold", "design": "serif", "color": "#2E1512", "lineLimit": 1, "minScale": 0.5 },
+                { "type": "text", "value": "{{ data.partOfSpeech }}", "size": 11, "italic": true, "design": "serif", "color": "#8B1A1A", "lineLimit": 1 }
+              ]
+            }
+          ]
+        },
+        { "type": "rect", "fill": "#8B1A1A", "frame": { "width": 30, "height": 2 } },
+        { "type": "text", "value": "{{ data.definition }}", "size": 11, "design": "serif", "color": "#3A1F1A", "lineLimit": 4, "minScale": 0.8 }
+      ]
+    }
+  ]
+}
+```

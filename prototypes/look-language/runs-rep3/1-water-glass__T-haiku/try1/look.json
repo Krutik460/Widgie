@@ -1,0 +1,118 @@
+{
+  "type": "vstack",
+  "align": "center",
+  "spacing": 6,
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#0B2545", "#13315C"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 0,
+      "children": [
+        {
+          "type": "zstack",
+          "align": "bottom",
+          "frame": { "width": 64, "height": 96 },
+          "children": [
+            {
+              "type": "rect",
+              "fill": "#FFFFFF22",
+              "cornerRadius": 10,
+              "stroke": { "color": "#BFE9FF", "width": 2, "cap": "round" }
+            },
+            {
+              "type": "rect",
+              "cornerRadius": 8,
+              "fill": {
+                "gradient": "linear",
+                "stops": ["#7FD8FF", "#1E90FF"],
+                "from": "top",
+                "to": "bottom"
+              },
+              "frame": {
+                "height": "{{ 92 * clamp(data.todayCount / data.goal, 0, 1) }}"
+              },
+              "padding": { "horizontal": 4 }
+            },
+            {
+              "type": "circle",
+              "fill": "#FFFFFF66",
+              "frame": { "width": 6, "height": 6 },
+              "offset": { "x": -12, "y": "{{ -92 * clamp(data.todayCount / data.goal, 0, 1) + 30 }}" }
+            },
+            {
+              "type": "circle",
+              "fill": "#FFFFFF55",
+              "frame": { "width": 4, "height": 4 },
+              "offset": { "x": 14, "y": "{{ -92 * clamp(data.todayCount / data.goal, 0, 1) + 52 }}" }
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "vstack",
+          "align": "trailing",
+          "spacing": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "{{ data.todayCount }}",
+              "size": 34,
+              "weight": "heavy",
+              "design": "rounded",
+              "color": "#FFFFFF",
+              "minScale": 0.5,
+              "lineLimit": 1
+            },
+            {
+              "type": "text",
+              "value": "of {{ data.goal }} {{ data.unit }}",
+              "size": 11,
+              "weight": "medium",
+              "color": "#9FD8FF",
+              "lineLimit": 1,
+              "minScale": 0.6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "hstack",
+      "spacing": 0,
+      "children": [
+        {
+          "type": "spacer"
+        },
+        {
+          "type": "button",
+          "action": "addGlass",
+          "children": [
+            {
+              "type": "circle",
+              "fill": {
+                "gradient": "linear",
+                "stops": ["#7FD8FF", "#1E90FF"],
+                "from": "topLeading",
+                "to": "bottomTrailing"
+              },
+              "frame": { "width": 44, "height": 44 },
+              "shadow": { "color": "#1E90FF88", "radius": 6, "x": 0, "y": 2 },
+              "overlay": {
+                "type": "symbol",
+                "name": "plus",
+                "size": 20,
+                "weight": "bold",
+                "color": "#FFFFFF"
+              }
+            }
+          ]
+        },
+        {
+          "type": "spacer"
+        }
+      ]
+    }
+  ]
+}

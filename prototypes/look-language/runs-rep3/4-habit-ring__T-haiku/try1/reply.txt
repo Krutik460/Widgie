@@ -1,0 +1,96 @@
+```json
+{
+  "type": "vstack",
+  "align": "center",
+  "spacing": 6,
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#1B2A41", "#0C1821"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 12,
+      "align": "center",
+      "children": [
+        {
+          "type": "zstack",
+          "frame": { "width": "{{ family == 'medium' ? 110 : 110 }}", "height": 110 },
+          "children": [
+            { "type": "circle", "stroke": { "color": "#FFFFFF22", "width": 10, "cap": "round" } },
+            {
+              "type": "circle",
+              "stroke": {
+                "color": "{{ lerpColor('#E63946', '#7AE582', clamp(data.streak / 30, 0, 1)) }}",
+                "width": 10,
+                "cap": "round"
+              },
+              "trimFrom": 0,
+              "trimTo": "{{ max(0.04, clamp(data.streak / 30, 0, 1)) }}",
+              "rotation": -90
+            },
+            {
+              "type": "vstack",
+              "spacing": 0,
+              "children": [
+                { "type": "symbol", "name": "flame.fill", "size": 22, "color": "{{ lerpColor('#E63946', '#7AE582', clamp(data.streak / 30, 0, 1)) }}" },
+                { "type": "text", "value": "{{ str(data.streak) }}", "size": 26, "weight": "heavy", "design": "rounded", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.5 }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "if",
+          "test": "{{ family == 'medium' }}",
+          "then": [
+            {
+              "type": "vstack",
+              "align": "leading",
+              "spacing": 6,
+              "children": [
+                { "type": "text", "value": "{{ data.name }}", "size": 17, "weight": "bold", "design": "rounded", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.6 },
+                { "type": "text", "value": "{{ data.streak }} day streak", "size": 12, "color": "#9FB3C8" },
+                {
+                  "type": "hstack",
+                  "spacing": 3,
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "over": "{{ data.days }}",
+                      "item": "d",
+                      "index": "i",
+                      "children": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 2,
+                          "fill": "{{ d.done ? '#7AE582' : '#FFFFFF22' }}",
+                          "frame": { "width": 6, "height": 14 }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "button",
+                  "action": "toggleToday",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "{{ data.doneToday ? 'Done today' : 'Mark done' }}",
+                      "size": 12,
+                      "weight": "semibold",
+                      "color": "{{ data.doneToday ? '#0C1821' : '#FFFFFF' }}",
+                      "padding": { "horizontal": 10, "vertical": 5 },
+                      "background": "{{ data.doneToday ? '#7AE582' : '#FFFFFF22' }}",
+                      "clip": "capsule"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

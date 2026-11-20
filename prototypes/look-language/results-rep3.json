@@ -1,0 +1,4469 @@
+{
+  "generated_at": "2026-11-18 05:48:22",
+  "prompts": [
+    {
+      "id": "1-water-glass",
+      "widget": "water",
+      "data_driven": true,
+      "text": "a glass that fills up with water as I drink, bubbly blue, with a big plus button",
+      "states": {
+        "a": "2 of 8",
+        "b": "7 of 8"
+      }
+    },
+    {
+      "id": "2-water-lcd",
+      "widget": "water",
+      "data_driven": true,
+      "text": "retro LCD digital watch look, grey-green screen, segmented progress bar with one segment per glass",
+      "states": {
+        "a": "2 of 8",
+        "b": "7 of 8"
+      }
+    },
+    {
+      "id": "3-habit-heatmap",
+      "widget": "habit",
+      "data_driven": true,
+      "text": "a heatmap of the last 5 weeks like a code contribution graph, neon green on black",
+      "states": {
+        "a": "streak 2",
+        "b": "streak 21"
+      }
+    },
+    {
+      "id": "4-habit-ring",
+      "widget": "habit",
+      "data_driven": true,
+      "text": "a ring that goes from red to green as my streak grows, with a flame in the middle and the streak number",
+      "states": {
+        "a": "streak 2",
+        "b": "streak 21"
+      }
+    },
+    {
+      "id": "5-todo-sticky",
+      "widget": "todo",
+      "data_driven": false,
+      "text": "a yellow sticky note, slightly tilted, handwriting feel, finished items crossed out and faded",
+      "states": {
+        "a": "1 of 4 done",
+        "b": "3 of 4 done"
+      }
+    },
+    {
+      "id": "6-wotd-magazine",
+      "widget": "wotd",
+      "data_driven": false,
+      "text": "elegant magazine typography, serif, a giant first letter, cream and deep red",
+      "states": {
+        "a": "petrichor",
+        "b": "sesquipedalian (long)"
+      }
+    }
+  ],
+  "variants": {
+    "template": "T",
+    "js": "J"
+  },
+  "models": [
+    "haiku",
+    "sonnet"
+  ],
+  "cells_expected": 24,
+  "cells": [
+    {
+      "id": "1-water-glass__T-haiku",
+      "prompt_id": "1-water-glass",
+      "widget": "water",
+      "variant": "template",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3335,
+      "output_bytes_first_try": 3335,
+      "gen_seconds": 5.96,
+      "repair_gen_seconds": null,
+      "render_ms": 51.112,
+      "tree_ms": 0.308,
+      "peak_rss_mb": 40.469,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 17,
+      "ink_share_min": 0.7983,
+      "overflow_pt": {
+        "a-small": 12,
+        "a-medium": 12,
+        "b-small": 12,
+        "b-medium": 12
+      },
+      "state_diff_share": {
+        "small": 0.1776,
+        "medium": 0.0832
+      },
+      "actions_used": [
+        "addGlass"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [
+        "undoLast"
+      ],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/1-water-glass__T-haiku/try1/look.json",
+          "reply": "runs-rep3/1-water-glass__T-haiku/try1/reply.txt",
+          "bytes": 3335,
+          "gen_seconds": 5.96,
+          "api_seconds": 5.18,
+          "output_tokens": 1250,
+          "thinking_tokens": 0,
+          "input_tokens": 5864,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 170,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 63.547630310058594,
+              "ink_share": 0.836570172224258,
+              "nodes": 17,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 37.015625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 66.15000000596046,
+              "tree_footprint_mb": 0.234375,
+              "tree_ms": 0.4672499895095825,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 170,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 67.0007553100586,
+              "ink_share": 0.7996830248485878,
+              "nodes": 17,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.484375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 48.176167011260986,
+              "tree_footprint_mb": 0.21875,
+              "tree_ms": 0.30116698145866394,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 170,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 63.578880310058594,
+              "ink_share": 0.8537518830666504,
+              "nodes": 17,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 37.03125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 51.11166599392891,
+              "tree_footprint_mb": 0.203125,
+              "tree_ms": 0.2935419976711273,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 170,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 66.938232421875,
+              "ink_share": 0.7983056923454275,
+              "nodes": 17,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.46875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 48.220916002988815,
+              "tree_footprint_mb": 0.203125,
+              "tree_ms": 0.30824998021125793,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "1-water-glass__T-sonnet",
+      "prompt_id": "1-water-glass",
+      "widget": "water",
+      "variant": "template",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 4306,
+      "output_bytes_first_try": 4306,
+      "gen_seconds": 22.84,
+      "repair_gen_seconds": null,
+      "render_ms": 67.24,
+      "tree_ms": 0.502,
+      "peak_rss_mb": 41.234,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 26,
+      "ink_share_min": 0.919,
+      "overflow_pt": {
+        "a-small": 6,
+        "a-medium": 3,
+        "b-small": 6,
+        "b-medium": 3
+      },
+      "state_diff_share": {
+        "small": 0.2841,
+        "medium": 0.1703
+      },
+      "actions_used": [
+        "addGlass",
+        "undoLast"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/1-water-glass__T-sonnet/try1/look.json",
+          "reply": "runs-rep3/1-water-glass__T-sonnet/try1/reply.txt",
+          "bytes": 4306,
+          "gen_seconds": 22.84,
+          "api_seconds": 22.99,
+          "output_tokens": 3253,
+          "thinking_tokens": 1420,
+          "input_tokens": 5843,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                },
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                }
+              ],
+              "content_height": 161,
+              "content_width": 164,
+              "family": "small",
+              "footprint_mb": 63.953857421875,
+              "ink_share": 0.9190394370806741,
+              "nodes": 16,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 37.515625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 75.44225001335144,
+              "tree_footprint_mb": 0.234375,
+              "tree_ms": 0.34754201769828796,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                },
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                }
+              ],
+              "content_height": 161,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 67.2820053100586,
+              "ink_share": 0.9382589556769885,
+              "nodes": 26,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 41.234375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 67.2397920191288,
+              "tree_footprint_mb": 0.34375,
+              "tree_ms": 0.5024999976158142,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                },
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                }
+              ],
+              "content_height": 161,
+              "content_width": 164,
+              "family": "small",
+              "footprint_mb": 64.0476303100586,
+              "ink_share": 0.9196939944362624,
+              "nodes": 18,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 37.640625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 60.489416003227234,
+              "tree_footprint_mb": 0.234375,
+              "tree_ms": 0.3577499985694885,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                },
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                }
+              ],
+              "content_height": 161,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 67.828857421875,
+              "ink_share": 0.9382779295689132,
+              "nodes": 28,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 41.78125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 61.74604198336601,
+              "tree_footprint_mb": 0.34375,
+              "tree_ms": 0.5467920005321503,
+              "variant": "template",
+              "png": "runs-rep3/1-water-glass__T-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "1-water-glass__J-haiku",
+      "prompt_id": "1-water-glass",
+      "widget": "water",
+      "variant": "js",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 4469,
+      "output_bytes_first_try": 4469,
+      "gen_seconds": 9.79,
+      "repair_gen_seconds": null,
+      "render_ms": 61.194,
+      "tree_ms": 2.193,
+      "peak_rss_mb": 44.406,
+      "js_setup_ms": 1.331,
+      "js_eval_ms": 0.581,
+      "nodes": 26,
+      "ink_share_min": 0.8317,
+      "overflow_pt": {
+        "a-small": 42,
+        "a-medium": 82,
+        "b-small": 42,
+        "b-medium": 82
+      },
+      "state_diff_share": {
+        "small": 0.1982,
+        "medium": 0.0921
+      },
+      "actions_used": [
+        "addGlass",
+        "undoLast"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/1-water-glass__J-haiku/try1/look.js",
+          "reply": "runs-rep3/1-water-glass__J-haiku/try1/reply.txt",
+          "bytes": 4469,
+          "gen_seconds": 9.79,
+          "api_seconds": 8.96,
+          "output_tokens": 2058,
+          "thinking_tokens": 0,
+          "input_tokens": 5471,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 200,
+              "content_width": 187,
+              "family": "small",
+              "footprint_mb": 66.59464263916016,
+              "ink_share": 0.8590041122104148,
+              "js_eval_ms": 0.8926669955253601,
+              "js_setup_ms": 2.466583013534546,
+              "nodes": 26,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.515625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 68.05320900678635,
+              "tree_footprint_mb": 3.2502059936523438,
+              "tree_ms": 3.9095839858055115,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 420,
+              "family": "medium",
+              "footprint_mb": 70.31336975097656,
+              "ink_share": 0.8584932359766797,
+              "js_eval_ms": 0.5805419981479645,
+              "js_setup_ms": 1.3309580087661743,
+              "nodes": 26,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.40625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 61.19412499666214,
+              "tree_footprint_mb": 3.1564102172851562,
+              "tree_ms": 2.192582994699478,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 200,
+              "content_width": 187,
+              "family": "small",
+              "footprint_mb": 66.76654052734375,
+              "ink_share": 0.8317250926265217,
+              "js_eval_ms": 0.5175420045852661,
+              "js_setup_ms": 1.0792919993400574,
+              "nodes": 26,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.703125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 51.030707985162735,
+              "tree_footprint_mb": 3.17205810546875,
+              "tree_ms": 1.8311670124530792,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 420,
+              "family": "medium",
+              "footprint_mb": 70.54776763916016,
+              "ink_share": 0.8578894737835135,
+              "js_eval_ms": 0.4122920036315918,
+              "js_setup_ms": 0.9219579994678497,
+              "nodes": 26,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.609375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 49.60733300447464,
+              "tree_footprint_mb": 3.1251373291015625,
+              "tree_ms": 1.556916981935501,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "1-water-glass__J-sonnet",
+      "prompt_id": "1-water-glass",
+      "widget": "water",
+      "variant": "js",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 5217,
+      "output_bytes_first_try": 5217,
+      "gen_seconds": 25.54,
+      "repair_gen_seconds": null,
+      "render_ms": 52.438,
+      "tree_ms": 1.879,
+      "peak_rss_mb": 43.984,
+      "js_setup_ms": 1.117,
+      "js_eval_ms": 0.475,
+      "nodes": 36,
+      "ink_share_min": 0.9005,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.105,
+        "medium": 0.1368
+      },
+      "actions_used": [
+        "addGlass",
+        "undoLast"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/1-water-glass__J-sonnet/try1/look.js",
+          "reply": "runs-rep3/1-water-glass__J-sonnet/try1/reply.txt",
+          "bytes": 5217,
+          "gen_seconds": 25.54,
+          "api_seconds": 25.16,
+          "output_tokens": 3579,
+          "thinking_tokens": 992,
+          "input_tokens": 5446,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.76651763916016,
+              "ink_share": 0.9007369406783111,
+              "js_eval_ms": 0.6399160027503967,
+              "js_setup_ms": 1.629624992609024,
+              "nodes": 25,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 40.125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 59.939666986465454,
+              "tree_footprint_mb": 3.1564102172851562,
+              "tree_ms": 2.730916976928711,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.59461975097656,
+              "ink_share": 0.9115111035640837,
+              "js_eval_ms": 0.4542500078678131,
+              "js_setup_ms": 1.117125004529953,
+              "nodes": 36,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 44,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 47.64433300495148,
+              "tree_footprint_mb": 3.1564102172851562,
+              "tree_ms": 1.878708004951477,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 67.04776763916016,
+              "ink_share": 0.900533365905297,
+              "js_eval_ms": 0.4751249849796295,
+              "js_setup_ms": 1.0597500205039978,
+              "nodes": 29,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 40.375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 52.43845897912979,
+              "tree_footprint_mb": 3.18768310546875,
+              "tree_ms": 1.8115000128746033,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.65714263916016,
+              "ink_share": 0.9143978415501595,
+              "js_eval_ms": 0.47099998593330383,
+              "js_setup_ms": 1.0216250121593475,
+              "nodes": 36,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 43.984375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 47.24479100108147,
+              "tree_footprint_mb": 3.15643310546875,
+              "tree_ms": 1.7730000019073486,
+              "variant": "js",
+              "png": "runs-rep3/1-water-glass__J-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-water-lcd__T-haiku",
+      "prompt_id": "2-water-lcd",
+      "widget": "water",
+      "variant": "template",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": false,
+      "valid_after_repair": true,
+      "status": "repaired",
+      "error_first_try": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)",
+      "error_after_repair": null,
+      "output_bytes": 3830,
+      "output_bytes_first_try": 3659,
+      "gen_seconds": 6.03,
+      "repair_gen_seconds": 10.08,
+      "render_ms": 48.838,
+      "tree_ms": 0.538,
+      "peak_rss_mb": 32.422,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 46,
+      "ink_share_min": 0.7501,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 35,
+        "b-small": 0,
+        "b-medium": 35
+      },
+      "state_diff_share": {
+        "small": 0.031,
+        "medium": 0.0551
+      },
+      "actions_used": [
+        "addGlass",
+        "undoLast"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 2,
+      "attempts": [
+        {
+          "look": "runs-rep3/2-water-lcd__T-haiku/try1/look.json",
+          "reply": "runs-rep3/2-water-lcd__T-haiku/try1/reply.txt",
+          "bytes": 3659,
+          "gen_seconds": 6.03,
+          "api_seconds": 6.11,
+          "output_tokens": 1509,
+          "thinking_tokens": 0,
+          "input_tokens": 5868,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": false,
+          "first_error": {
+            "error": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)",
+            "state": "a",
+            "family": "small"
+          },
+          "renders": {
+            "a-small": {
+              "ok": false,
+              "error": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+            },
+            "a-medium": {
+              "ok": false,
+              "error": "unknown prop \"stroke\" on \"text\" at root.children[6].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+            },
+            "b-small": {
+              "ok": false,
+              "error": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+            },
+            "b-medium": {
+              "ok": false,
+              "error": "unknown prop \"stroke\" on \"text\" at root.children[6].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+            }
+          }
+        },
+        {
+          "look": "runs-rep3/2-water-lcd__T-haiku/try2/look.json",
+          "reply": "runs-rep3/2-water-lcd__T-haiku/try2/reply.txt",
+          "bytes": 3830,
+          "gen_seconds": 10.08,
+          "api_seconds": 10.04,
+          "output_tokens": 2505,
+          "thinking_tokens": 956,
+          "input_tokens": 7577,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 62.391265869140625,
+              "ink_share": 0.7503766133300761,
+              "nodes": 24,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 28.546875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 57.52987498044968,
+              "tree_footprint_mb": 0.265625,
+              "tree_ms": 0.6402499973773956,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-haiku/try2/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 193,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 66.45376586914062,
+              "ink_share": 0.7652308447010434,
+              "nodes": 46,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 32.4375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 46.443749994039536,
+              "tree_footprint_mb": 0.328125,
+              "tree_ms": 0.5377910137176514,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-haiku/try2/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 62.406890869140625,
+              "ink_share": 0.7500508936932535,
+              "nodes": 24,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 28.578125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 48.83762499690056,
+              "tree_footprint_mb": 0.25,
+              "tree_ms": 0.3679580092430115,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-haiku/try2/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 193,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 66.45378875732422,
+              "ink_share": 0.7716269504348975,
+              "nodes": 46,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 32.421875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 43.261332988739014,
+              "tree_footprint_mb": 0.3125,
+              "tree_ms": 0.4904159903526306,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-haiku/try2/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-water-lcd__T-sonnet",
+      "prompt_id": "2-water-lcd",
+      "widget": "water",
+      "variant": "template",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 4712,
+      "output_bytes_first_try": 4712,
+      "gen_seconds": 19.13,
+      "repair_gen_seconds": null,
+      "render_ms": 59.754,
+      "tree_ms": 0.911,
+      "peak_rss_mb": 40.328,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 38,
+      "ink_share_min": 0.7672,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.0515,
+        "medium": 0.0696
+      },
+      "actions_used": [
+        "addGlass",
+        "undoLast"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/2-water-lcd__T-sonnet/try1/look.json",
+          "reply": "runs-rep3/2-water-lcd__T-sonnet/try1/reply.txt",
+          "bytes": 4712,
+          "gen_seconds": 19.13,
+          "api_seconds": 18.5,
+          "output_tokens": 2752,
+          "thinking_tokens": 933,
+          "input_tokens": 5844,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 63.656982421875,
+              "ink_share": 0.7676397540816742,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 36.546875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 61.78516697883606,
+              "tree_footprint_mb": 0.375,
+              "tree_ms": 1.1196669936180115,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 67.45390319824219,
+              "ink_share": 0.7789475670270372,
+              "nodes": 38,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 40.34375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 59.75399997830391,
+              "tree_footprint_mb": 0.421875,
+              "tree_ms": 0.9111250042915344,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 63.719482421875,
+              "ink_share": 0.7672326045356459,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 36.578125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 53.044959008693695,
+              "tree_footprint_mb": 0.375,
+              "tree_ms": 0.6044999957084656,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 67.610107421875,
+              "ink_share": 0.7873436350257542,
+              "nodes": 38,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 40.328125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 57.80545899271965,
+              "tree_footprint_mb": 0.390625,
+              "tree_ms": 0.7536669969558716,
+              "variant": "template",
+              "png": "runs-rep3/2-water-lcd__T-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-water-lcd__J-haiku",
+      "prompt_id": "2-water-lcd",
+      "widget": "water",
+      "variant": "js",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 4208,
+      "output_bytes_first_try": 4208,
+      "gen_seconds": 6.86,
+      "repair_gen_seconds": null,
+      "render_ms": 54.398,
+      "tree_ms": 1.919,
+      "peak_rss_mb": 36.359,
+      "js_setup_ms": 1.145,
+      "js_eval_ms": 0.476,
+      "nodes": 49,
+      "ink_share_min": 0.1618,
+      "overflow_pt": {
+        "a-small": 14,
+        "a-medium": 0,
+        "b-small": 14,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.0505,
+        "medium": 0.0453
+      },
+      "actions_used": [
+        "addGlass",
+        "undoLast"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/2-water-lcd__J-haiku/try1/look.js",
+          "reply": "runs-rep3/2-water-lcd__J-haiku/try1/reply.txt",
+          "bytes": 4208,
+          "gen_seconds": 6.86,
+          "api_seconds": 6.85,
+          "output_tokens": 1751,
+          "thinking_tokens": 0,
+          "input_tokens": 5474,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 172,
+              "family": "small",
+              "footprint_mb": 66.11017608642578,
+              "ink_share": 0.19722324009608727,
+              "js_eval_ms": 0.9057500064373016,
+              "js_setup_ms": 2.428292006254196,
+              "nodes": 44,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 32.640625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 64.76941600441933,
+              "tree_footprint_mb": 3.1095352172851562,
+              "tree_ms": 3.8490410149097443,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 69.56327819824219,
+              "ink_share": 0.16175166506292338,
+              "js_eval_ms": 0.475583016872406,
+              "js_setup_ms": 1.1452919840812683,
+              "nodes": 49,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 36.5,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 51.349999994039536,
+              "tree_footprint_mb": 3.0939102172851562,
+              "tree_ms": 1.9192090034484863,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 172,
+              "family": "small",
+              "footprint_mb": 66.06330108642578,
+              "ink_share": 0.20239403933064615,
+              "js_eval_ms": 0.4275420010089874,
+              "js_setup_ms": 1.0199170112609863,
+              "nodes": 44,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 32.5625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 54.397875010967255,
+              "tree_footprint_mb": 3.1251602172851562,
+              "tree_ms": 1.7156670093536377,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 69.45390319824219,
+              "ink_share": 0.16290258674364633,
+              "js_eval_ms": 0.3932499885559082,
+              "js_setup_ms": 0.981458991765976,
+              "nodes": 49,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 36.359375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 47.524666994810104,
+              "tree_footprint_mb": 3.15643310546875,
+              "tree_ms": 1.6545409858226776,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "2-water-lcd__J-sonnet",
+      "prompt_id": "2-water-lcd",
+      "widget": "water",
+      "variant": "js",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 4488,
+      "output_bytes_first_try": 4488,
+      "gen_seconds": 22.54,
+      "repair_gen_seconds": null,
+      "render_ms": 46.016,
+      "tree_ms": 1.649,
+      "peak_rss_mb": 43.719,
+      "js_setup_ms": 0.992,
+      "js_eval_ms": 0.423,
+      "nodes": 52,
+      "ink_share_min": 0.7449,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.0462,
+        "medium": 0.0679
+      },
+      "actions_used": [
+        "addGlass",
+        "undoLast"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/2-water-lcd__J-sonnet/try1/look.js",
+          "reply": "runs-rep3/2-water-lcd__J-sonnet/try1/reply.txt",
+          "bytes": 4488,
+          "gen_seconds": 22.54,
+          "api_seconds": 22.19,
+          "output_tokens": 3033,
+          "thinking_tokens": 1021,
+          "input_tokens": 5453,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.39151763916016,
+              "ink_share": 0.7449208094132975,
+              "js_eval_ms": 0.37141600251197815,
+              "js_setup_ms": 0.9986249804496765,
+              "nodes": 27,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 39.71875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 47.85574999451637,
+              "tree_footprint_mb": 3.0001602172851562,
+              "tree_ms": 1.6064580082893372,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.57899475097656,
+              "ink_share": 0.7518726061772419,
+              "js_eval_ms": 0.44408300518989563,
+              "js_setup_ms": 0.977167010307312,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 43.78125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 46.01629200577736,
+              "tree_footprint_mb": 3.15643310546875,
+              "tree_ms": 1.7173340022563934,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.26647186279297,
+              "ink_share": 0.745979398232971,
+              "js_eval_ms": 0.3630419969558716,
+              "js_setup_ms": 0.9916250109672546,
+              "nodes": 27,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 39.625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 43.903667002916336,
+              "tree_footprint_mb": 3.0470352172851562,
+              "tree_ms": 1.5850830078125,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "undoLast",
+                  "rowId": null
+                },
+                {
+                  "action": "addGlass",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.54779052734375,
+              "ink_share": 0.7681930529612648,
+              "js_eval_ms": 0.4231249988079071,
+              "js_setup_ms": 0.9058749973773956,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 43.71875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 44.555749982595444,
+              "tree_footprint_mb": 3.14080810546875,
+              "tree_ms": 1.6489160060882568,
+              "variant": "js",
+              "png": "runs-rep3/2-water-lcd__J-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-habit-heatmap__T-haiku",
+      "prompt_id": "3-habit-heatmap",
+      "widget": "habit",
+      "variant": "template",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 2620,
+      "output_bytes_first_try": 2620,
+      "gen_seconds": 4.6,
+      "repair_gen_seconds": null,
+      "render_ms": 57.515,
+      "tree_ms": 2.634,
+      "peak_rss_mb": 41.438,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 51,
+      "ink_share_min": 0.5127,
+      "overflow_pt": {
+        "a-small": 55,
+        "a-medium": 78,
+        "b-small": 55,
+        "b-medium": 78
+      },
+      "state_diff_share": {
+        "small": 0.2934,
+        "medium": 0.3468
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/3-habit-heatmap__T-haiku/try1/look.json",
+          "reply": "runs-rep3/3-habit-heatmap__T-haiku/try1/reply.txt",
+          "bytes": 2620,
+          "gen_seconds": 4.6,
+          "api_seconds": 4.67,
+          "output_tokens": 1053,
+          "thinking_tokens": 0,
+          "input_tokens": 6697,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 213,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 64.578857421875,
+              "ink_share": 0.512723423313383,
+              "nodes": 50,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 37.828125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 57.51516601443291,
+              "tree_footprint_mb": 0.421875,
+              "tree_ms": 3.6997919976711273,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 236,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 67.844482421875,
+              "ink_share": 0.5886304031999396,
+              "nodes": 51,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 41.4375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 54.55112501978874,
+              "tree_footprint_mb": 0.4375,
+              "tree_ms": 2.63400000333786,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 213,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 64.594482421875,
+              "ink_share": 0.513415577541631,
+              "nodes": 50,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 37.875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 52.43800002336502,
+              "tree_footprint_mb": 0.40625,
+              "tree_ms": 2.5077089965343475,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 236,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 67.860107421875,
+              "ink_share": 0.5184430482443727,
+              "nodes": 51,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 41.5,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 63.77974998950958,
+              "tree_footprint_mb": 0.421875,
+              "tree_ms": 2.4542089998722076,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-habit-heatmap__T-sonnet",
+      "prompt_id": "3-habit-heatmap",
+      "widget": "habit",
+      "variant": "template",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3904,
+      "output_bytes_first_try": 3904,
+      "gen_seconds": 21.84,
+      "repair_gen_seconds": null,
+      "render_ms": 53.784,
+      "tree_ms": 2.155,
+      "peak_rss_mb": 42.594,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 53,
+      "ink_share_min": 0.243,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.1695,
+        "medium": 0.1224
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/3-habit-heatmap__T-sonnet/try1/look.json",
+          "reply": "runs-rep3/3-habit-heatmap__T-sonnet/try1/reply.txt",
+          "bytes": 3904,
+          "gen_seconds": 21.84,
+          "api_seconds": 21.9,
+          "output_tokens": 3141,
+          "thinking_tokens": 1582,
+          "input_tokens": 6673,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 65.563232421875,
+              "ink_share": 0.3420870485729408,
+              "nodes": 53,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 39.328125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 63.49829199910164,
+              "tree_footprint_mb": 0.46875,
+              "tree_ms": 3.4637500047683716,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 68.828857421875,
+              "ink_share": 0.24295768004377272,
+              "nodes": 53,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 42.59375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 49.39920899271965,
+              "tree_footprint_mb": 0.484375,
+              "tree_ms": 2.1551660001277924,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 65.76640319824219,
+              "ink_share": 0.38324986767639757,
+              "nodes": 53,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 39.5,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 53.78404200077057,
+              "tree_footprint_mb": 0.484375,
+              "tree_ms": 2.086707979440689,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 68.9070053100586,
+              "ink_share": 0.27252315994037846,
+              "nodes": 53,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 42.671875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 48.63483300805092,
+              "tree_footprint_mb": 0.484375,
+              "tree_ms": 2.0634170174598694,
+              "variant": "template",
+              "png": "runs-rep3/3-habit-heatmap__T-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-habit-heatmap__J-haiku",
+      "prompt_id": "3-habit-heatmap",
+      "widget": "habit",
+      "variant": "js",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 2154,
+      "output_bytes_first_try": 2154,
+      "gen_seconds": 4.25,
+      "repair_gen_seconds": null,
+      "render_ms": 63.594,
+      "tree_ms": 1.692,
+      "peak_rss_mb": 44.312,
+      "js_setup_ms": 1.063,
+      "js_eval_ms": 0.333,
+      "nodes": 52,
+      "ink_share_min": 0.1812,
+      "overflow_pt": {
+        "a-small": 66,
+        "a-medium": 20,
+        "b-small": 66,
+        "b-medium": 20
+      },
+      "state_diff_share": {
+        "small": 0.2681,
+        "medium": 0.1
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/3-habit-heatmap__J-haiku/try1/look.js",
+          "reply": "runs-rep3/3-habit-heatmap__J-haiku/try1/reply.txt",
+          "bytes": 2154,
+          "gen_seconds": 4.25,
+          "api_seconds": 4.07,
+          "output_tokens": 927,
+          "thinking_tokens": 0,
+          "input_tokens": 6306,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 224,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 67.06339263916016,
+              "ink_share": 0.45478604291356217,
+              "js_eval_ms": 0.29879099130630493,
+              "js_setup_ms": 1.1619170010089874,
+              "nodes": 51,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.25,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 53.24625000357628,
+              "tree_footprint_mb": 3.01580810546875,
+              "tree_ms": 1.7297910153865814,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 178,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.61026763916016,
+              "ink_share": 0.18116639308692284,
+              "js_eval_ms": 0.34450000524520874,
+              "js_setup_ms": 1.0409170091152191,
+              "nodes": 52,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.3125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 49.977540999650955,
+              "tree_footprint_mb": 3.0001602172851562,
+              "tree_ms": 1.6788339912891388,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 224,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.92274475097656,
+              "ink_share": 0.45478604291356217,
+              "js_eval_ms": 0.3334580063819885,
+              "js_setup_ms": 1.0625419914722443,
+              "nodes": 51,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.1875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 63.594499975442886,
+              "tree_footprint_mb": 3.01580810546875,
+              "tree_ms": 1.692374974489212,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 178,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.64149475097656,
+              "ink_share": 0.1815814795947246,
+              "js_eval_ms": 0.3219580054283142,
+              "js_setup_ms": 1.0114170014858246,
+              "nodes": 52,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 68.41191601753235,
+              "tree_footprint_mb": 2.9689102172851562,
+              "tree_ms": 1.627582997083664,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "3-habit-heatmap__J-sonnet",
+      "prompt_id": "3-habit-heatmap",
+      "widget": "habit",
+      "variant": "js",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 2922,
+      "output_bytes_first_try": 2922,
+      "gen_seconds": 22.67,
+      "repair_gen_seconds": null,
+      "render_ms": 48.463,
+      "tree_ms": 1.766,
+      "peak_rss_mb": 46.219,
+      "js_setup_ms": 1.058,
+      "js_eval_ms": 0.369,
+      "nodes": 52,
+      "ink_share_min": 0.2838,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.2359,
+        "medium": 0.1564
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/3-habit-heatmap__J-sonnet/try1/look.js",
+          "reply": "runs-rep3/3-habit-heatmap__J-sonnet/try1/reply.txt",
+          "bytes": 2922,
+          "gen_seconds": 22.67,
+          "api_seconds": 22.99,
+          "output_tokens": 2881,
+          "thinking_tokens": 1594,
+          "input_tokens": 6283,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 68.34459686279297,
+              "ink_share": 0.4423272668050975,
+              "js_eval_ms": 0.5439160168170929,
+              "js_setup_ms": 1.5661250054836273,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 42.75,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 58.467333018779755,
+              "tree_footprint_mb": 3.0470352172851562,
+              "tree_ms": 2.6399999856948853,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 71.70399475097656,
+              "ink_share": 0.28380596592517127,
+              "js_eval_ms": 0.36137500405311584,
+              "js_setup_ms": 1.0579580068588257,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 46.21875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 47.720667004585266,
+              "tree_footprint_mb": 3.0782852172851562,
+              "tree_ms": 1.766042023897171,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 68.32899475097656,
+              "ink_share": 0.5013639509791947,
+              "js_eval_ms": 0.36887499690055847,
+              "js_setup_ms": 0.9030410051345825,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 42.703125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 48.46258297562599,
+              "tree_footprint_mb": 3.0157852172851562,
+              "tree_ms": 1.6382499933242798,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 71.67274475097656,
+              "ink_share": 0.3173902379200393,
+              "js_eval_ms": 0.3627080023288727,
+              "js_setup_ms": 0.9021669924259186,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 46.21875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 47.614750027656555,
+              "tree_footprint_mb": 3.0314102172851562,
+              "tree_ms": 1.6217920184135437,
+              "variant": "js",
+              "png": "runs-rep3/3-habit-heatmap__J-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "4-habit-ring__T-haiku",
+      "prompt_id": "4-habit-ring",
+      "widget": "habit",
+      "variant": "template",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3483,
+      "output_bytes_first_try": 3483,
+      "gen_seconds": 5.54,
+      "repair_gen_seconds": null,
+      "render_ms": 48.3,
+      "tree_ms": 0.581,
+      "peak_rss_mb": 42.062,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 49,
+      "ink_share_min": 0.7878,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 120,
+        "b-small": 0,
+        "b-medium": 120
+      },
+      "state_diff_share": {
+        "small": 0.1182,
+        "medium": 0.0774
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/4-habit-ring__T-haiku/try1/look.json",
+          "reply": "runs-rep3/4-habit-ring__T-haiku/try1/reply.txt",
+          "bytes": 3483,
+          "gen_seconds": 5.54,
+          "api_seconds": 5.58,
+          "output_tokens": 1286,
+          "thinking_tokens": 0,
+          "input_tokens": 6700,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 62.625732421875,
+              "ink_share": 0.7965473718496804,
+              "nodes": 8,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 35.03125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 49.07483398914337,
+              "tree_footprint_mb": 0.15625,
+              "tree_ms": 0.4064580202102661,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 458,
+              "family": "medium",
+              "footprint_mb": 68.3757553100586,
+              "ink_share": 0.7877775891020924,
+              "nodes": 49,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 42.125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 46.00883302092552,
+              "tree_footprint_mb": 0.328125,
+              "tree_ms": 0.6092079877853394,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 62.797630310058594,
+              "ink_share": 0.7968323765319002,
+              "nodes": 8,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 35.1875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 42.00554198026657,
+              "tree_footprint_mb": 0.171875,
+              "tree_ms": 0.3011249899864197,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 458,
+              "family": "medium",
+              "footprint_mb": 68.266357421875,
+              "ink_share": 0.7886454972547687,
+              "nodes": 49,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 42.0625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 48.30012500286102,
+              "tree_footprint_mb": 0.3125,
+              "tree_ms": 0.58058300614357,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "4-habit-ring__T-sonnet",
+      "prompt_id": "4-habit-ring",
+      "widget": "habit",
+      "variant": "template",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3808,
+      "output_bytes_first_try": 3808,
+      "gen_seconds": 16.88,
+      "repair_gen_seconds": null,
+      "render_ms": 46.828,
+      "tree_ms": 1.16,
+      "peak_rss_mb": 41.484,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 52,
+      "ink_share_min": 0.7897,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.1216,
+        "medium": 0.2082
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/4-habit-ring__T-sonnet/try1/look.json",
+          "reply": "runs-rep3/4-habit-ring__T-sonnet/try1/reply.txt",
+          "bytes": 3808,
+          "gen_seconds": 16.88,
+          "api_seconds": 17.6,
+          "output_tokens": 2446,
+          "thinking_tokens": 1083,
+          "input_tokens": 6681,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 63.25077819824219,
+              "ink_share": 0.7897479744310085,
+              "nodes": 10,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 36.546875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 55.99483400583267,
+              "tree_footprint_mb": 0.1875,
+              "tree_ms": 0.5323750078678131,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 68.2507553100586,
+              "ink_share": 0.8187204015018584,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 41.578125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 46.828083992004395,
+              "tree_footprint_mb": 0.484375,
+              "tree_ms": 1.1601659953594208,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 63.281982421875,
+              "ink_share": 0.7899108342494199,
+              "nodes": 10,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 36.640625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 43.23845797777176,
+              "tree_footprint_mb": 0.1875,
+              "tree_ms": 0.3330419957637787,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 68.141357421875,
+              "ink_share": 0.8197581177713629,
+              "nodes": 52,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 41.484375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 43.703125,
+              "tree_footprint_mb": 0.5,
+              "tree_ms": 1.188416987657547,
+              "variant": "template",
+              "png": "runs-rep3/4-habit-ring__T-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "4-habit-ring__J-haiku",
+      "prompt_id": "4-habit-ring",
+      "widget": "habit",
+      "variant": "js",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3700,
+      "output_bytes_first_try": 3700,
+      "gen_seconds": 5.96,
+      "repair_gen_seconds": null,
+      "render_ms": 51.862,
+      "tree_ms": 1.805,
+      "peak_rss_mb": 46.062,
+      "js_setup_ms": 1.093,
+      "js_eval_ms": 0.454,
+      "nodes": 57,
+      "ink_share_min": 0.783,
+      "overflow_pt": {
+        "a-small": 54,
+        "a-medium": 38,
+        "b-small": 54,
+        "b-medium": 38
+      },
+      "state_diff_share": {
+        "small": 0.118,
+        "medium": 0.0901
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/4-habit-ring__J-haiku/try1/look.js",
+          "reply": "runs-rep3/4-habit-ring__J-haiku/try1/reply.txt",
+          "bytes": 3700,
+          "gen_seconds": 5.96,
+          "api_seconds": 6.13,
+          "output_tokens": 1655,
+          "thinking_tokens": 0,
+          "input_tokens": 6304,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 212,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.20401763916016,
+              "ink_share": 0.7946337689833476,
+              "js_eval_ms": 0.4393329918384552,
+              "js_setup_ms": 1.1112920045852661,
+              "nodes": 13,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.234375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 59.47400000691414,
+              "tree_footprint_mb": 3.06268310546875,
+              "tree_ms": 1.7382499873638153,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 196,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 71.73526763916016,
+              "ink_share": 0.7830418293994453,
+              "js_eval_ms": 0.48204198479652405,
+              "js_setup_ms": 1.0930410027503967,
+              "nodes": 57,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 46.0625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 51.86229199171066,
+              "tree_footprint_mb": 3.1251602172851562,
+              "tree_ms": 1.895000010728836,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 212,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.21964263916016,
+              "ink_share": 0.7992752738080697,
+              "js_eval_ms": 0.39008399844169617,
+              "js_setup_ms": 0.9953329861164093,
+              "nodes": 13,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 40.25,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 46.694665998220444,
+              "tree_footprint_mb": 3.07830810546875,
+              "tree_ms": 1.5492919981479645,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 196,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 71.61022186279297,
+              "ink_share": 0.7834757834757835,
+              "js_eval_ms": 0.45420801639556885,
+              "js_setup_ms": 1.0348329842090607,
+              "nodes": 57,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 46.34375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 47.37075001001358,
+              "tree_footprint_mb": 3.1251602172851562,
+              "tree_ms": 1.8050000071525574,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "4-habit-ring__J-sonnet",
+      "prompt_id": "4-habit-ring",
+      "widget": "habit",
+      "variant": "js",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3642,
+      "output_bytes_first_try": 3642,
+      "gen_seconds": 18.02,
+      "repair_gen_seconds": null,
+      "render_ms": 55.597,
+      "tree_ms": 1.682,
+      "peak_rss_mb": 44.219,
+      "js_setup_ms": 0.965,
+      "js_eval_ms": 0.444,
+      "nodes": 52,
+      "ink_share_min": 0.7308,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 7,
+        "b-small": 0,
+        "b-medium": 7
+      },
+      "state_diff_share": {
+        "small": 0.1292,
+        "medium": 0.2945
+      },
+      "actions_used": [
+        "toggleToday"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/4-habit-ring__J-sonnet/try1/look.js",
+          "reply": "runs-rep3/4-habit-ring__J-sonnet/try1/reply.txt",
+          "bytes": 3642,
+          "gen_seconds": 18.02,
+          "api_seconds": 18.22,
+          "output_tokens": 2552,
+          "thinking_tokens": 1001,
+          "input_tokens": 6279,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.03211975097656,
+              "ink_share": 0.7307927201661171,
+              "js_eval_ms": 0.713333010673523,
+              "js_setup_ms": 2.173209011554718,
+              "nodes": 10,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 39.703125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 54.86533400416374,
+              "tree_footprint_mb": 3.0314102172851562,
+              "tree_ms": 3.190750002861023,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 165,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.59464263916016,
+              "ink_share": 0.8017773249561329,
+              "js_eval_ms": 0.4308750033378601,
+              "js_setup_ms": 0.9648750126361847,
+              "nodes": 52,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.265625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 42.81979098916054,
+              "tree_footprint_mb": 3.17205810546875,
+              "tree_ms": 1.682208001613617,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.07901763916016,
+              "ink_share": 0.733602052033712,
+              "js_eval_ms": 0.4442090094089508,
+              "js_setup_ms": 0.9282079935073853,
+              "nodes": 10,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 39.734375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 55.59662500023842,
+              "tree_footprint_mb": 3.0470352172851562,
+              "tree_ms": 1.5199590027332306,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleToday",
+                  "rowId": null
+                }
+              ],
+              "content_height": 165,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.56339263916016,
+              "ink_share": 0.7488726627799476,
+              "js_eval_ms": 0.421207994222641,
+              "js_setup_ms": 0.9570840001106262,
+              "nodes": 52,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.21875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 62.4902920126915,
+              "tree_footprint_mb": 3.1252059936523438,
+              "tree_ms": 1.666291981935501,
+              "variant": "js",
+              "png": "runs-rep3/4-habit-ring__J-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "5-todo-sticky__T-haiku",
+      "prompt_id": "5-todo-sticky",
+      "widget": "todo",
+      "variant": "template",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3103,
+      "output_bytes_first_try": 3103,
+      "gen_seconds": 4.46,
+      "repair_gen_seconds": null,
+      "render_ms": 56.803,
+      "tree_ms": 0.386,
+      "peak_rss_mb": 42.219,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 29,
+      "ink_share_min": 0.2596,
+      "overflow_pt": {
+        "a-small": 10,
+        "a-medium": 10,
+        "b-small": 10,
+        "b-medium": 10
+      },
+      "state_diff_share": {
+        "small": 0.0405,
+        "medium": 0.0193
+      },
+      "actions_used": [
+        "openAdd",
+        "toggleDone"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/5-todo-sticky__T-haiku/try1/look.json",
+          "reply": "runs-rep3/5-todo-sticky__T-haiku/try1/reply.txt",
+          "bytes": 3103,
+          "gen_seconds": 4.46,
+          "api_seconds": 4.41,
+          "output_tokens": 1064,
+          "thinking_tokens": 0,
+          "input_tokens": 5947,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                },
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                }
+              ],
+              "content_height": 168,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.141357421875,
+              "ink_share": 0.3767354749399454,
+              "nodes": 29,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 39.109375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 56.803207993507385,
+              "tree_footprint_mb": 0.296875,
+              "tree_ms": 0.38645797967910767,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                },
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                }
+              ],
+              "content_height": 168,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.750732421875,
+              "ink_share": 0.25959887549291527,
+              "nodes": 29,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 42.25,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 50.943209022283554,
+              "tree_footprint_mb": 0.3125,
+              "tree_ms": 0.37391600012779236,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                },
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                }
+              ],
+              "content_height": 168,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 66.2038803100586,
+              "ink_share": 0.3882985220471479,
+              "nodes": 29,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 39.1875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 50.388792008161545,
+              "tree_footprint_mb": 0.296875,
+              "tree_ms": 0.32258298993110657,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                },
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                }
+              ],
+              "content_height": 168,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 70.7351303100586,
+              "ink_share": 0.26444784060678106,
+              "nodes": 29,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 42.21875,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 57.09399998188019,
+              "tree_footprint_mb": 0.328125,
+              "tree_ms": 0.688291996717453,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "5-todo-sticky__T-sonnet",
+      "prompt_id": "5-todo-sticky",
+      "widget": "todo",
+      "variant": "template",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3971,
+      "output_bytes_first_try": 3971,
+      "gen_seconds": 16.82,
+      "repair_gen_seconds": null,
+      "render_ms": 51.538,
+      "tree_ms": 0.373,
+      "peak_rss_mb": 41.484,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 26,
+      "ink_share_min": 0.864,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.0319,
+        "medium": 0.0334
+      },
+      "actions_used": [
+        "openAdd",
+        "toggleDone"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/5-todo-sticky__T-sonnet/try1/look.json",
+          "reply": "runs-rep3/5-todo-sticky__T-sonnet/try1/reply.txt",
+          "bytes": 3971,
+          "gen_seconds": 16.82,
+          "api_seconds": 16.85,
+          "output_tokens": 2302,
+          "thinking_tokens": 952,
+          "input_tokens": 5927,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 142,
+              "content_width": 142,
+              "family": "small",
+              "footprint_mb": 66.7194595336914,
+              "ink_share": 0.8886038842066691,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 38.875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 51.942124992609024,
+              "tree_footprint_mb": 0.296875,
+              "tree_ms": 0.3915420174598694,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 142,
+              "content_width": 322,
+              "family": "medium",
+              "footprint_mb": 69.875732421875,
+              "ink_share": 0.8652478255127262,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 41.484375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 51.53845801949501,
+              "tree_footprint_mb": 0.3125,
+              "tree_ms": 0.35895898938179016,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 142,
+              "content_width": 142,
+              "family": "small",
+              "footprint_mb": 67.000732421875,
+              "ink_share": 0.8888888888888888,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 38.921875,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 48.000292003154755,
+              "tree_footprint_mb": 0.328125,
+              "tree_ms": 0.3734999895095825,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 142,
+              "content_width": 322,
+              "family": "medium",
+              "footprint_mb": 71.0632553100586,
+              "ink_share": 0.8640025659893209,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 41.65625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 50.3036670088768,
+              "tree_footprint_mb": 0.328125,
+              "tree_ms": 0.35041701793670654,
+              "variant": "template",
+              "png": "runs-rep3/5-todo-sticky__T-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "5-todo-sticky__J-haiku",
+      "prompt_id": "5-todo-sticky",
+      "widget": "todo",
+      "variant": "js",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 3085,
+      "output_bytes_first_try": 3085,
+      "gen_seconds": 6.21,
+      "repair_gen_seconds": null,
+      "render_ms": 53.34,
+      "tree_ms": 1.548,
+      "peak_rss_mb": 44.953,
+      "js_setup_ms": 0.971,
+      "js_eval_ms": 0.352,
+      "nodes": 30,
+      "ink_share_min": 0.8233,
+      "overflow_pt": {
+        "a-small": 6,
+        "a-medium": 17,
+        "b-small": 6,
+        "b-medium": 17
+      },
+      "state_diff_share": {
+        "small": 0.0461,
+        "medium": 0.0247
+      },
+      "actions_used": [
+        "openAdd",
+        "toggleDone"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/5-todo-sticky__J-haiku/try1/look.js",
+          "reply": "runs-rep3/5-todo-sticky__J-haiku/try1/reply.txt",
+          "bytes": 3085,
+          "gen_seconds": 6.21,
+          "api_seconds": 5.74,
+          "output_tokens": 1361,
+          "thinking_tokens": 0,
+          "input_tokens": 5555,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 164,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 68.70404052734375,
+              "ink_share": 0.8268392980741827,
+              "js_eval_ms": 0.6507920026779175,
+              "js_setup_ms": 1.7859579920768738,
+              "nodes": 30,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 41.84375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 61.88816601037979,
+              "tree_footprint_mb": 3.07830810546875,
+              "tree_ms": 2.893417000770569,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 175,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 71.82901763916016,
+              "ink_share": 0.8263806343276542,
+              "js_eval_ms": 0.34424999356269836,
+              "js_setup_ms": 0.9113750159740448,
+              "nodes": 30,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.953125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 45.54466700553894,
+              "tree_footprint_mb": 3.0314102172851562,
+              "tree_ms": 1.4879169762134552,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 164,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 69.07901763916016,
+              "ink_share": 0.8232970970237368,
+              "js_eval_ms": 0.3518750071525574,
+              "js_setup_ms": 0.9707500040531158,
+              "nodes": 30,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 42.109375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 49.35420900583267,
+              "tree_footprint_mb": 3.06268310546875,
+              "tree_ms": 1.5477499961853027,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 175,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 71.73526763916016,
+              "ink_share": 0.8247391558649837,
+              "js_eval_ms": 0.34470900893211365,
+              "js_setup_ms": 0.8932079970836639,
+              "nodes": 30,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 44.984375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 53.33966597914696,
+              "tree_footprint_mb": 3.03143310546875,
+              "tree_ms": 1.4636670053005219,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "5-todo-sticky__J-sonnet",
+      "prompt_id": "5-todo-sticky",
+      "widget": "todo",
+      "variant": "js",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 2784,
+      "output_bytes_first_try": 2784,
+      "gen_seconds": 8.43,
+      "repair_gen_seconds": null,
+      "render_ms": 50.794,
+      "tree_ms": 1.574,
+      "peak_rss_mb": 44.328,
+      "js_setup_ms": 0.988,
+      "js_eval_ms": 0.356,
+      "nodes": 26,
+      "ink_share_min": 0.8689,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.0497,
+        "medium": 0.0177
+      },
+      "actions_used": [
+        "openAdd",
+        "toggleDone"
+      ],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/5-todo-sticky__J-sonnet/try1/look.js",
+          "reply": "runs-rep3/5-todo-sticky__J-sonnet/try1/reply.txt",
+          "bytes": 2784,
+          "gen_seconds": 8.43,
+          "api_seconds": 7.8,
+          "output_tokens": 1221,
+          "thinking_tokens": 0,
+          "input_tokens": 5535,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 69.51651763916016,
+              "ink_share": 0.9092056512356989,
+              "js_eval_ms": 0.3556250035762787,
+              "js_setup_ms": 0.9113749861717224,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 42.03125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 46.75737500190735,
+              "tree_footprint_mb": 3.0626602172851562,
+              "tree_ms": 1.4912910163402557,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 72.57899475097656,
+              "ink_share": 0.8711533744646327,
+              "js_eval_ms": 0.34404098987579346,
+              "js_setup_ms": 0.987625002861023,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 44.328125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 44.48750001192093,
+              "tree_footprint_mb": 3.0626602172851562,
+              "tree_ms": 1.5744999945163727,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 69.82901763916016,
+              "ink_share": 0.9044012865925655,
+              "js_eval_ms": 0.33683300018310547,
+              "js_setup_ms": 0.9440000057220459,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 42.0625,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 50.79387500882149,
+              "tree_footprint_mb": 3.0782852172851562,
+              "tree_ms": 1.5231249928474426,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [
+                {
+                  "action": "openAdd",
+                  "rowId": null
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t1"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t2"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t3"
+                },
+                {
+                  "action": "toggleDone",
+                  "rowId": "t4"
+                }
+              ],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 72.79774475097656,
+              "ink_share": 0.8689081338087961,
+              "js_eval_ms": 0.35749998688697815,
+              "js_setup_ms": 1.0223750174045563,
+              "nodes": 26,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 44.40625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 51.501749992370605,
+              "tree_footprint_mb": 3.10955810546875,
+              "tree_ms": 1.6932500004768372,
+              "variant": "js",
+              "png": "runs-rep3/5-todo-sticky__J-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "6-wotd-magazine__T-haiku",
+      "prompt_id": "6-wotd-magazine",
+      "widget": "wotd",
+      "variant": "template",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": false,
+      "valid_after_repair": true,
+      "status": "repaired",
+      "error_first_try": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)",
+      "error_after_repair": null,
+      "output_bytes": 1871,
+      "output_bytes_first_try": 477,
+      "gen_seconds": 2.17,
+      "repair_gen_seconds": 11.25,
+      "render_ms": 35.017,
+      "tree_ms": 0.2,
+      "peak_rss_mb": 32.938,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 9,
+      "ink_share_min": 0.0549,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.1151,
+        "medium": 0.0832
+      },
+      "actions_used": [],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 2,
+      "attempts": [
+        {
+          "look": "runs-rep3/6-wotd-magazine__T-haiku/try1/look.json",
+          "reply": "runs-rep3/6-wotd-magazine__T-haiku/try1/reply.txt",
+          "bytes": 477,
+          "gen_seconds": 2.17,
+          "api_seconds": 2.2,
+          "output_tokens": 225,
+          "thinking_tokens": 0,
+          "input_tokens": 5818,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": false,
+          "first_error": {
+            "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)",
+            "state": "a",
+            "family": "small"
+          },
+          "renders": {
+            "a-small": {
+              "ok": false,
+              "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+            },
+            "a-medium": {
+              "ok": false,
+              "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+            },
+            "b-small": {
+              "ok": false,
+              "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+            },
+            "b-medium": {
+              "ok": false,
+              "error": "unknown function 'substr' in expression \" substr(data.word, 0, 1) \" (available: min max round floor ceil abs clamp len str lerpColor range)"
+            }
+          }
+        },
+        {
+          "look": "runs-rep3/6-wotd-magazine__T-haiku/try2/look.json",
+          "reply": "runs-rep3/6-wotd-magazine__T-haiku/try2/reply.txt",
+          "bytes": 1871,
+          "gen_seconds": 11.25,
+          "api_seconds": 12.04,
+          "output_tokens": 2307,
+          "thinking_tokens": 1574,
+          "input_tokens": 6176,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 62.735015869140625,
+              "ink_share": 0.09026505435446441,
+              "nodes": 8,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 29.75,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 47.20874997973442,
+              "tree_footprint_mb": 0.15625,
+              "tree_ms": 0.37700000405311584,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/a-small.png"
+            },
+            "a-medium": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 65.78189086914062,
+              "ink_share": 0.054904624441048266,
+              "nodes": 9,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 32.9375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 33.387290984392166,
+              "tree_footprint_mb": 0.171875,
+              "tree_ms": 0.19683298468589783,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/a-medium.png"
+            },
+            "b-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 62.71941375732422,
+              "ink_share": 0.08639713366719592,
+              "nodes": 8,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 29.734375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 35.01687499880791,
+              "tree_footprint_mb": 0.171875,
+              "tree_ms": 0.18470799922943115,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/b-small.png"
+            },
+            "b-medium": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 65.98503875732422,
+              "ink_share": 0.07954566894964243,
+              "nodes": 9,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 33.140625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 34.391999989748,
+              "tree_footprint_mb": 0.171875,
+              "tree_ms": 0.19979101419448853,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-haiku/try2/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "6-wotd-magazine__T-sonnet",
+      "prompt_id": "6-wotd-magazine",
+      "widget": "wotd",
+      "variant": "template",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 4716,
+      "output_bytes_first_try": 4716,
+      "gen_seconds": 22.78,
+      "repair_gen_seconds": null,
+      "render_ms": 55.414,
+      "tree_ms": 0.338,
+      "peak_rss_mb": 33.891,
+      "js_setup_ms": null,
+      "js_eval_ms": null,
+      "nodes": 14,
+      "ink_share_min": 0.7456,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.1251,
+        "medium": 0.1689
+      },
+      "actions_used": [],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/6-wotd-magazine__T-sonnet/try1/look.json",
+          "reply": "runs-rep3/6-wotd-magazine__T-sonnet/try1/reply.txt",
+          "bytes": 4716,
+          "gen_seconds": 22.78,
+          "api_seconds": 22.93,
+          "output_tokens": 3251,
+          "thinking_tokens": 1378,
+          "input_tokens": 5802,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 63.09441375732422,
+              "ink_share": 0.7455722486869427,
+              "nodes": 10,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 30.078125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 62.153249979019165,
+              "tree_footprint_mb": 0.234375,
+              "tree_ms": 0.698500007390976,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 66.64128875732422,
+              "ink_share": 0.7464576140072829,
+              "nodes": 14,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 33.890625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 55.413667023181915,
+              "tree_footprint_mb": 0.1875,
+              "tree_ms": 0.3367910087108612,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 62.89128875732422,
+              "ink_share": 0.7465901225520133,
+              "nodes": 10,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 30.03125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 38.85720902681351,
+              "tree_footprint_mb": 0.21875,
+              "tree_ms": 0.29854100942611694,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 66.89128875732422,
+              "ink_share": 0.7516839304918775,
+              "nodes": 14,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 34.140625,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 52.890333980321884,
+              "tree_footprint_mb": 0.21875,
+              "tree_ms": 0.3382909893989563,
+              "variant": "template",
+              "png": "runs-rep3/6-wotd-magazine__T-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "6-wotd-magazine__J-haiku",
+      "prompt_id": "6-wotd-magazine",
+      "widget": "wotd",
+      "variant": "js",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 2860,
+      "output_bytes_first_try": 2860,
+      "gen_seconds": 5.97,
+      "repair_gen_seconds": null,
+      "render_ms": 48.418,
+      "tree_ms": 1.806,
+      "peak_rss_mb": 37,
+      "js_setup_ms": 1.236,
+      "js_eval_ms": 0.338,
+      "nodes": 16,
+      "ink_share_min": 0.0845,
+      "overflow_pt": {
+        "a-small": 38,
+        "a-medium": 0,
+        "b-small": 38,
+        "b-medium": 0
+      },
+      "state_diff_share": {
+        "small": 0.1495,
+        "medium": 0.1147
+      },
+      "actions_used": [],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/6-wotd-magazine__J-haiku/try1/look.js",
+          "reply": "runs-rep3/6-wotd-magazine__J-haiku/try1/reply.txt",
+          "bytes": 2860,
+          "gen_seconds": 5.97,
+          "api_seconds": 6.06,
+          "output_tokens": 1296,
+          "thinking_tokens": 0,
+          "input_tokens": 5432,
+          "models": [
+            "claude-haiku-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [],
+              "content_height": 196,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 65.64142608642578,
+              "ink_share": 0.09995965753731673,
+              "js_eval_ms": 0.46879202127456665,
+              "js_setup_ms": 1.5347079932689667,
+              "nodes": 16,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 33.125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 51.24016699194908,
+              "tree_footprint_mb": 2.96893310546875,
+              "tree_ms": 2.357666999101639,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-haiku/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 69.4226303100586,
+              "ink_share": 0.08448897190619042,
+              "js_eval_ms": 0.3381669819355011,
+              "js_setup_ms": 1.2355830073356628,
+              "nodes": 15,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 37,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 48.41841599345207,
+              "tree_footprint_mb": 2.9376602172851562,
+              "tree_ms": 1.8057920038700104,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-haiku/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [],
+              "content_height": 196,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 65.81330108642578,
+              "ink_share": 0.12027171017581251,
+              "js_eval_ms": 0.33195799589157104,
+              "js_setup_ms": 1.1712919771671295,
+              "nodes": 16,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 33.359375,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 47.24004200100899,
+              "tree_footprint_mb": 2.96893310546875,
+              "tree_ms": 1.7477089762687683,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-haiku/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 69.71955108642578,
+              "ink_share": 0.08511160166789311,
+              "js_eval_ms": 0.2797499895095825,
+              "js_setup_ms": 0.9184160232543945,
+              "nodes": 15,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 37.25,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 45.37683302164078,
+              "tree_footprint_mb": 2.95330810546875,
+              "tree_ms": 1.3901250064373016,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-haiku/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "6-wotd-magazine__J-sonnet",
+      "prompt_id": "6-wotd-magazine",
+      "widget": "wotd",
+      "variant": "js",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "valid_first_try": true,
+      "valid_after_repair": true,
+      "status": "first try",
+      "error_first_try": null,
+      "error_after_repair": null,
+      "output_bytes": 2977,
+      "output_bytes_first_try": 2977,
+      "gen_seconds": 8.19,
+      "repair_gen_seconds": null,
+      "render_ms": 35.453,
+      "tree_ms": 1.581,
+      "peak_rss_mb": 36.281,
+      "js_setup_ms": 1.024,
+      "js_eval_ms": 0.336,
+      "nodes": 14,
+      "ink_share_min": 0.0798,
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 17,
+        "b-small": 0,
+        "b-medium": 17
+      },
+      "state_diff_share": {
+        "small": 0.11,
+        "medium": 0.0836
+      },
+      "actions_used": [],
+      "actions_unknown": [],
+      "actions_missing": [],
+      "final_attempt": 1,
+      "attempts": [
+        {
+          "look": "runs-rep3/6-wotd-magazine__J-sonnet/try1/look.js",
+          "reply": "runs-rep3/6-wotd-magazine__J-sonnet/try1/reply.txt",
+          "bytes": 2977,
+          "gen_seconds": 8.19,
+          "api_seconds": 8.24,
+          "output_tokens": 1345,
+          "thinking_tokens": 0,
+          "input_tokens": 5413,
+          "models": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5"
+          ],
+          "transport_retries": 0,
+          "fence": {
+            "fenced": true,
+            "blocks": 1,
+            "chars_outside_fence": 0
+          },
+          "valid": true,
+          "first_error": null,
+          "renders": {
+            "a-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 65.76644897460938,
+              "ink_share": 0.09975163877692272,
+              "js_eval_ms": 0.777582973241806,
+              "js_setup_ms": 2.3425420224666595,
+              "nodes": 13,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 33.03125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 49.64570799469948,
+              "tree_footprint_mb": 3.04705810546875,
+              "tree_ms": 3.542915999889374,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-sonnet/try1/a-small.png"
+            },
+            "a-medium": {
+              "actions": [],
+              "content_height": 175,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 68.76642608642578,
+              "ink_share": 0.0797909473406162,
+              "js_eval_ms": 0.3356669843196869,
+              "js_setup_ms": 1.0242500007152557,
+              "nodes": 14,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 36.28125,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 35.452749997377396,
+              "tree_footprint_mb": 3.07830810546875,
+              "tree_ms": 1.5812499821186066,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-sonnet/try1/a-medium.png"
+            },
+            "b-small": {
+              "actions": [],
+              "content_height": 158,
+              "content_width": 158,
+              "family": "small",
+              "footprint_mb": 65.59455108642578,
+              "ink_share": 0.11689263466471234,
+              "js_eval_ms": 0.2800830006599426,
+              "js_setup_ms": 0.9102090001106262,
+              "nodes": 13,
+              "ok": true,
+              "overflow": false,
+              "peak_rss_mb": 33.03125,
+              "pixel_height": 474,
+              "pixel_width": 474,
+              "render_ms": 34.77387499809265,
+              "tree_footprint_mb": 2.98455810546875,
+              "tree_ms": 1.3581660091876984,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-sonnet/try1/b-small.png"
+            },
+            "b-medium": {
+              "actions": [],
+              "content_height": 175,
+              "content_width": 338,
+              "family": "medium",
+              "footprint_mb": 68.98515319824219,
+              "ink_share": 0.08884738023810868,
+              "js_eval_ms": 0.29841700196266174,
+              "js_setup_ms": 0.843500018119812,
+              "nodes": 14,
+              "ok": true,
+              "overflow": true,
+              "peak_rss_mb": 36.59375,
+              "pixel_height": 474,
+              "pixel_width": 1014,
+              "render_ms": 34.40470802783966,
+              "tree_footprint_mb": 3.0314102172851562,
+              "tree_ms": 1.3251670002937317,
+              "variant": "js",
+              "png": "runs-rep3/6-wotd-magazine__J-sonnet/try1/b-medium.png"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

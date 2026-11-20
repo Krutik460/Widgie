@@ -1,0 +1,80 @@
+function render(ctx) {
+  const d = ctx.data;
+  const NEON = '#39FF14';
+  const DIM = '#0F2A0F';
+  const BLACK = '#000000';
+
+  const cols = 5;
+  const rows = 7;
+  const days = d.days.slice(-35);
+
+  const grid = [];
+  for (let c = 0; c < cols; c++) {
+    const column = [];
+    for (let r = 0; r < rows; r++) {
+      const idx = c * rows + r;
+      const day = days[idx];
+      const done = day ? day.done : false;
+      column.push({
+        type: 'rect',
+        cornerRadius: 2,
+        fill: done ? NEON : DIM,
+        frame: { width: ctx.family === 'medium' ? 16 : 18, height: ctx.family === 'medium' ? 16 : 18 },
+      });
+    }
+    grid.push({ type: 'vstack', spacing: 3, children: column });
+  }
+
+  const headerText = {
+    type: 'hstack',
+    spacing: 6,
+    children: [
+      { type: 'text', value: d.name, size: 15, weight: 'bold', color: NEON, lineLimit: 1, minScale: 0.6 },
+      { type: 'spacer' },
+      { type: 'text', value: d.streak + 'd', size: 13, weight: 'semibold', color: NEON },
+    ],
+  };
+
+  const graph = { type: 'hstack', spacing: 3, children: grid };
+
+  const toggle = {
+    type: 'button',
+    action: 'toggleToday',
+    children: [
+      {
+        type: 'text',
+        value: d.doneToday ? 'Done today' : 'Mark done',
+        size: 12,
+        weight: 'semibold',
+        color: d.doneToday ? BLACK : NEON,
+        padding: { horizontal: 10, vertical: 4 },
+        background: d.doneToday ? NEON : DIM,
+        clip: 'capsule',
+      },
+    ],
+  };
+
+  const children = ctx.family === 'medium'
+    ? [
+        headerText,
+        {
+          type: 'hstack',
+          spacing: 14,
+          children: [graph, { type: 'spacer' }, { type: 'vstack', align: 'leading', spacing: 8, children: [
+            { type: 'text', value: d.doneToday ? 'Logged' : 'Not yet', size: 12, color: NEON },
+            toggle,
+          ] }],
+        },
+      ]
+    : [headerText, graph, { type: 'spacer' }, toggle];
+
+  return {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 8,
+    padding: 12,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: BLACK,
+    children,
+  };
+}

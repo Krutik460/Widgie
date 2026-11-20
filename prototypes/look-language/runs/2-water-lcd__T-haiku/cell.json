@@ -1,0 +1,180 @@
+{
+  "id": "2-water-lcd__T-haiku",
+  "prompt_id": "2-water-lcd",
+  "widget": "water",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3771,
+  "output_bytes_first_try": 3771,
+  "gen_seconds": 29.07,
+  "repair_gen_seconds": null,
+  "render_ms": 56.96,
+  "tree_ms": 0.509,
+  "peak_rss_mb": 39.594,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 32,
+  "ink_share_min": 0.7453,
+  "overflow_pt": {
+    "a-small": 11,
+    "a-medium": 0,
+    "b-small": 11,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.1058,
+    "medium": 0.0791
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/2-water-lcd__T-haiku/try1/look.json",
+      "reply": "runs/2-water-lcd__T-haiku/try1/reply.txt",
+      "bytes": 3771,
+      "gen_seconds": 29.07,
+      "api_seconds": 29.18,
+      "output_tokens": 6562,
+      "thinking_tokens": 5084,
+      "input_tokens": 5861,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 169,
+          "family": "small",
+          "footprint_mb": 64.031982421875,
+          "ink_share": 0.7621432352102927,
+          "nodes": 32,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 36.609375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 60.62204200029373,
+          "tree_footprint_mb": 0.375,
+          "tree_ms": 0.4736250042915344,
+          "variant": "template",
+          "png": "runs/2-water-lcd__T-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 67.2195053100586,
+          "ink_share": 0.7482500330182449,
+          "nodes": 32,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 39.59375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 52.60249999165535,
+          "tree_footprint_mb": 0.390625,
+          "tree_ms": 0.6204580068588257,
+          "variant": "template",
+          "png": "runs/2-water-lcd__T-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 169,
+          "family": "small",
+          "footprint_mb": 63.719459533691406,
+          "ink_share": 0.7580310247954074,
+          "nodes": 32,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 36.328125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 56.96033301949501,
+          "tree_footprint_mb": 0.390625,
+          "tree_ms": 0.4808339774608612,
+          "variant": "template",
+          "png": "runs/2-water-lcd__T-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 67.2663803100586,
+          "ink_share": 0.7453255598950963,
+          "nodes": 32,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 39.640625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 56.134832978248596,
+          "tree_footprint_mb": 0.375,
+          "tree_ms": 0.5088749825954437,
+          "variant": "template",
+          "png": "runs/2-water-lcd__T-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

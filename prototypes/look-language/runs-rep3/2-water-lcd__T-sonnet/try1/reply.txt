@@ -1,0 +1,130 @@
+```json
+{
+  "type": "hstack",
+  "spacing": 10,
+  "align": "top",
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#A3B091", "#8E9C7C"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 6,
+      "frame": { "width": "{{ family == 'medium' ? width - 24 - 110 - 10 : width - 24 }}", "maxHeight": "infinity", "alignment": "top" },
+      "children": [
+        {
+          "type": "hstack",
+          "spacing": 4,
+          "children": [
+            { "type": "symbol", "name": "drop.fill", "size": 11, "color": "#26331F" },
+            { "type": "text", "value": "WATER", "size": 11, "weight": "bold", "design": "monospaced", "color": "#26331F", "kerning": 1.5 },
+            { "type": "spacer" },
+            { "type": "text", "value": "{{ data.unit }}", "size": 10, "design": "monospaced", "color": "#26331F99", "lineLimit": 1 }
+          ]
+        },
+        {
+          "type": "hstack",
+          "align": "firstBaseline",
+          "spacing": 2,
+          "children": [
+            { "type": "text", "value": "{{ data.todayCount }}", "size": 44, "weight": "bold", "design": "monospaced", "color": "#26331F", "lineLimit": 1, "minScale": 0.5 },
+            { "type": "text", "value": "/{{ data.goal }}", "size": 18, "weight": "bold", "design": "monospaced", "color": "#26331F99", "lineLimit": 1 }
+          ]
+        },
+        {
+          "type": "hstack",
+          "spacing": 2,
+          "children": [
+            {
+              "type": "repeat",
+              "over": "{{ range(max(data.goal, 1)) }}",
+              "item": "g",
+              "index": "i",
+              "children": [
+                {
+                  "type": "rect",
+                  "cornerRadius": 1,
+                  "fill": "{{ i < data.todayCount ? '#26331F' : '#26331F22' }}",
+                  "frame": { "width": "{{ max(1, ((family == 'medium' ? width - 24 - 110 - 10 : width - 24) - 2 * (max(data.goal, 1) - 1)) / max(data.goal, 1)) }}", "height": 14 }
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer", "minLength": 0 },
+        {
+          "type": "hstack",
+          "spacing": 8,
+          "children": [
+            {
+              "type": "button",
+              "action": "undoLast",
+              "children": [
+                {
+                  "type": "symbol", "name": "minus", "size": 14, "weight": "heavy", "color": "#26331F",
+                  "frame": { "width": 40, "height": 30 },
+                  "background": "#26331F22",
+                  "cornerRadius": 5
+                }
+              ]
+            },
+            {
+              "type": "button",
+              "action": "addGlass",
+              "children": [
+                {
+                  "type": "symbol", "name": "plus", "size": 14, "weight": "heavy", "color": "#A3B091",
+                  "frame": { "width": 40, "height": 30 },
+                  "background": "#26331F",
+                  "cornerRadius": 5
+                }
+              ]
+            },
+            { "type": "spacer" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 6,
+          "frame": { "width": 110, "maxHeight": "infinity", "alignment": "top" },
+          "children": [
+            { "type": "text", "value": "LAST 7 DAYS", "size": 10, "weight": "bold", "design": "monospaced", "color": "#26331F", "kerning": 0.5, "lineLimit": 1 },
+            {
+              "type": "hstack",
+              "align": "bottom",
+              "spacing": 5,
+              "frame": { "height": 90, "alignment": "bottom" },
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ data.last7 }}",
+                  "item": "v",
+                  "index": "k",
+                  "children": [
+                    {
+                      "type": "rect",
+                      "cornerRadius": 1,
+                      "fill": "{{ k == 6 ? '#26331F' : '#26331F77' }}",
+                      "frame": { "width": 10, "height": "{{ 4 + 80 * clamp(v / max(data.goal, 1), 0, 1) }}" }
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "rect", "fill": "#26331F55", "frame": { "height": 1 } },
+            { "type": "text", "value": "TODAY ON RIGHT", "size": 8, "design": "monospaced", "color": "#26331F99", "lineLimit": 1, "minScale": 0.6 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

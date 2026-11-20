@@ -1,0 +1,103 @@
+```json
+{
+  "type": "hstack",
+  "align": "center",
+  "spacing": 10,
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": "#000000",
+  "children": [
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 2,
+      "frame": { "maxHeight": "infinity", "alignment": "topLeading" },
+      "children": [
+        { "type": "text", "value": "{{ data.name }}", "size": 13, "weight": "semibold", "design": "rounded", "color": "#B6FFB0", "lineLimit": 1, "minScale": 0.6 },
+        { "type": "spacer", "minLength": 4 },
+        {
+          "type": "hstack",
+          "spacing": 3,
+          "align": "center",
+          "children": [
+            { "type": "symbol", "name": "flame.fill", "size": 16, "color": "#39FF14" },
+            { "type": "text", "value": "{{ data.streak }}", "size": 32, "weight": "bold", "design": "rounded", "color": "#39FF14", "lineLimit": 1, "minScale": 0.5 }
+          ]
+        },
+        { "type": "text", "value": "{{ data.streak == 1 ? 'day streak' : 'day streak' }}", "size": 10, "weight": "medium", "color": "#2E8B3A", "lineLimit": 1, "minScale": 0.7 },
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "toggleToday",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "{{ data.doneToday ? 'checkmark' : 'plus' }}",
+              "size": 15,
+              "weight": "bold",
+              "color": "{{ data.doneToday ? '#000000' : '#39FF14' }}",
+              "frame": { "width": 32, "height": 32 },
+              "background": "{{ data.doneToday ? '#39FF14' : '#0E2A14' }}",
+              "clip": "circle",
+              "shadow": { "color": "{{ data.doneToday ? '#39FF1499' : '#00000000' }}", "radius": 5, "x": 0, "y": 0 }
+            }
+          ]
+        }
+      ]
+    },
+    { "type": "spacer" },
+    {
+      "type": "hstack",
+      "spacing": 3,
+      "align": "top",
+      "children": [
+        {
+          "type": "repeat",
+          "over": "{{ range(5) }}",
+          "item": "w",
+          "index": "wi",
+          "children": [
+            {
+              "type": "vstack",
+              "spacing": 3,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ range(7) }}",
+                  "item": "r",
+                  "index": "ri",
+                  "children": [
+                    {
+                      "type": "if",
+                      "test": "{{ w * 7 + r == 34 }}",
+                      "then": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 3,
+                          "fill": "{{ data.days[w * 7 + r].done ? '#39FF14' : '#0E2A14' }}",
+                          "stroke": { "color": "#FFFFFF", "width": 1.5 },
+                          "frame": { "width": "{{ family == 'medium' ? 15 : 11 }}", "height": "{{ family == 'medium' ? 15 : 11 }}" },
+                          "shadow": { "color": "{{ data.days[w * 7 + r].done ? '#39FF1499' : '#00000000' }}", "radius": 4, "x": 0, "y": 0 }
+                        }
+                      ],
+                      "else": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 3,
+                          "fill": "{{ data.days[w * 7 + r].done ? lerpColor('#1FA83A', '#39FF14', (w * 7 + r) / 34) : '#0E2A14' }}",
+                          "frame": { "width": "{{ family == 'medium' ? 15 : 11 }}", "height": "{{ family == 'medium' ? 15 : 11 }}" },
+                          "shadow": { "color": "{{ data.days[w * 7 + r].done ? '#39FF1455' : '#00000000' }}", "radius": 3, "x": 0, "y": 0 }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

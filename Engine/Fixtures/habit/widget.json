@@ -1,0 +1,118 @@
+{
+  "format": 1,
+  "name": "Meditate",
+  "tables": {
+    "checkins": {
+      "fields": {}
+    }
+  },
+  "queries": {
+    "streak": {
+      "streak": "checkins"
+    },
+    "today": {
+      "latest": "checkins",
+      "window": "today"
+    },
+    "days": {
+      "daily": "checkins",
+      "days": 35
+    }
+  },
+  "actions": {
+    "check": {
+      "insert": "checkins"
+    },
+    "uncheck": {
+      "delete": "checkins"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "on a roll": {
+      "checkins": [
+        {
+          "daysAgo": 0
+        },
+        {
+          "daysAgo": 1
+        },
+        {
+          "daysAgo": 2
+        },
+        {
+          "daysAgo": 3
+        },
+        {
+          "daysAgo": 4
+        },
+        {
+          "daysAgo": 5
+        },
+        {
+          "daysAgo": 6
+        },
+        {
+          "daysAgo": 7
+        },
+        {
+          "daysAgo": 8
+        },
+        {
+          "daysAgo": 9
+        },
+        {
+          "daysAgo": 10
+        },
+        {
+          "daysAgo": 11
+        },
+        {
+          "daysAgo": 14
+        },
+        {
+          "daysAgo": 15
+        },
+        {
+          "daysAgo": 17
+        },
+        {
+          "daysAgo": 20
+        },
+        {
+          "daysAgo": 26
+        }
+      ]
+    },
+    "missed today": {
+      "checkins": [
+        {
+          "daysAgo": 1
+        },
+        {
+          "daysAgo": 2
+        },
+        {
+          "daysAgo": 3
+        },
+        {
+          "daysAgo": 4
+        },
+        {
+          "daysAgo": 5
+        },
+        {
+          "daysAgo": 8
+        },
+        {
+          "daysAgo": 9
+        },
+        {
+          "daysAgo": 13
+        }
+      ]
+    }
+  },
+  "look": "function render(ctx) {\n  const d = ctx.data;\n  const small = ctx.family === 'small';\n  const days = d.days.slice(small ? -28 : -35);\n  const cell = small ? 14 : 18;\n  const gap = small ? 3 : 4;\n\n  const weeks = [];\n  for (let i = 0; i < days.length; i += 7) {\n    weeks.push({ type: 'hstack', spacing: gap, children: days.slice(i, i + 7).map(day => ({\n      type: 'rect', cornerRadius: cell / 4,\n      fill: day.count > 0 ? '#34C759' : '#FFFFFF1F',\n      stroke: day.date === ctx.today.date ? { color: '#FFFFFF', width: 1.5 } : null,\n      frame: { width: cell, height: cell },\n    })) });\n  }\n\n  const check = d.today\n    ? { type: 'button', action: 'uncheck', rowId: d.today.id, children: [\n        { type: 'symbol', name: 'checkmark.circle.fill', size: 30, color: '#34C759' } ] }\n    : { type: 'button', action: 'check', children: [\n        { type: 'symbol', name: 'circle', size: 30, color: '#FFFFFF99' } ] };\n\n  const header = { type: 'vstack', align: 'leading', spacing: 2, children: [\n    { type: 'text', value: 'Meditate', size: 15, weight: 'bold', color: '#FFFFFF', lineLimit: 1 },\n    { type: 'text', value: d.streak + (d.streak === 1 ? ' day' : ' days'), size: 12,\n      color: '#FFFFFFB3', lineLimit: 1 },\n  ] };\n\n  const grid = { type: 'vstack', spacing: gap, children: weeks };\n  const frame = { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' };\n\n  if (small) {\n    return { type: 'vstack', align: 'leading', spacing: 8, padding: 14, frame, widgetBackground: '#1C1C1E',\n      children: [{ type: 'hstack', children: [header, { type: 'spacer' }, check] }, { type: 'spacer' }, grid] };\n  }\n  return { type: 'hstack', spacing: 16, padding: 14, frame, widgetBackground: '#1C1C1E',\n    children: [\n      { type: 'vstack', align: 'leading', frame: { maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [header, { type: 'spacer' }, check] },\n      { type: 'spacer' },\n      grid,\n    ] };\n}\n"
+}

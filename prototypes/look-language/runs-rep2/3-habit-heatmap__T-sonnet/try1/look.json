@@ -1,0 +1,127 @@
+{
+  "type": "hstack",
+  "spacing": 8,
+  "align": "top",
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": "#000000",
+  "children": [
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 2,
+      "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+      "children": [
+        {
+          "type": "text",
+          "value": "{{ data.name }}",
+          "size": 12,
+          "weight": "semibold",
+          "design": "monospaced",
+          "color": "#39FF14",
+          "lineLimit": 2,
+          "minScale": 0.7
+        },
+        { "type": "spacer" },
+        {
+          "type": "text",
+          "value": "{{ data.streak }}",
+          "size": "{{ family == 'small' ? 30 : 40 }}",
+          "weight": "bold",
+          "design": "monospaced",
+          "color": "#39FF14",
+          "lineLimit": 1,
+          "minScale": 0.5,
+          "shadow": { "color": "#39FF14", "radius": 6, "x": 0, "y": 0 }
+        },
+        {
+          "type": "text",
+          "value": "{{ data.streak == 1 ? 'day streak' : 'day streak' }}",
+          "size": 10,
+          "design": "monospaced",
+          "color": "#39FF1499",
+          "lineLimit": 1,
+          "minScale": 0.7
+        },
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "toggleToday",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "{{ data.doneToday ? 'checkmark' : 'plus' }}",
+              "size": 14,
+              "weight": "bold",
+              "color": "{{ data.doneToday ? '#000000' : '#39FF14' }}",
+              "frame": { "width": 30, "height": 30 },
+              "background": "{{ data.doneToday ? '#39FF14' : '#39FF1422' }}",
+              "clip": "circle"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "hstack",
+      "spacing": "{{ family == 'small' ? 3 : 4 }}",
+      "align": "top",
+      "frame": { "maxHeight": "infinity", "alignment": "center" },
+      "children": [
+        {
+          "type": "repeat",
+          "over": "{{ range(5) }}",
+          "item": "w",
+          "index": "wi",
+          "children": [
+            {
+              "type": "vstack",
+              "spacing": "{{ family == 'small' ? 3 : 4 }}",
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ range(7) }}",
+                  "item": "d",
+                  "index": "di",
+                  "children": [
+                    {
+                      "type": "zstack",
+                      "frame": {
+                        "width": "{{ family == 'small' ? 12 : 15 }}",
+                        "height": "{{ family == 'small' ? 12 : 15 }}"
+                      },
+                      "children": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 3,
+                          "fill": "{{ data.days[w * 7 + d].done ? '#39FF14' : '#39FF1416' }}",
+                          "shadow": {
+                            "color": "{{ data.days[w * 7 + d].done ? '#39FF14AA' : '#00000000' }}",
+                            "radius": 3,
+                            "x": 0,
+                            "y": 0
+                          }
+                        },
+                        {
+                          "type": "if",
+                          "test": "{{ w * 7 + d == 34 }}",
+                          "then": [
+                            {
+                              "type": "rect",
+                              "cornerRadius": 3,
+                              "stroke": { "color": "#CCFFC2", "width": 1.5 }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

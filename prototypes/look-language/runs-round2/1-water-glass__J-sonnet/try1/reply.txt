@@ -1,0 +1,216 @@
+```js
+const GLASS_D = 'M6 4 L94 4 L82 126 L18 126 Z';
+
+function glass(gw, gh, today, goal) {
+  const progress = Math.min(Math.max(today / Math.max(goal, 1), 0), 1);
+  const waterH = gh * progress;
+  const bubbleSpecs = [
+    { x: 0.22, b: 0.10, s: 7 },
+    { x: 0.62, b: 0.22, s: 5 },
+    { x: 0.40, b: 0.38, s: 8 },
+    { x: 0.70, b: 0.52, s: 5 },
+    { x: 0.30, b: 0.64, s: 6 },
+    { x: 0.55, b: 0.80, s: 4 },
+  ];
+  const bubbles = bubbleSpecs.map(b => {
+    const by = gh * b.b;
+    if (by + b.s + 6 >= waterH) return null;
+    return {
+      type: 'circle',
+      stroke: { color: '#FFFFFFCC', width: 1.5 },
+      fill: '#FFFFFF33',
+      frame: { width: b.s, height: b.s },
+      offset: { x: gw * b.x, y: -by },
+    };
+  });
+
+  const water = {
+    type: 'zstack',
+    align: 'bottomLeading',
+    frame: { width: gw, height: gh, alignment: 'bottom' },
+    children: [
+      waterH > 0 && {
+        type: 'rect',
+        fill: { gradient: 'linear', stops: ['#7FDBFF', '#0288D1'], from: 'top', to: 'bottom' },
+        frame: { width: gw, height: waterH },
+      },
+      waterH > 0 && {
+        type: 'capsule',
+        fill: '#FFFFFF66',
+        frame: { width: gw, height: 5 },
+        offset: { x: 0, y: -(waterH - 2) },
+      },
+      bubbles,
+    ],
+    mask: { type: 'path', d: GLASS_D, viewBox: [0, 0, 100, 130], fill: '#000000', frame: { width: gw, height: gh } },
+  };
+
+  return {
+    type: 'zstack',
+    frame: { width: gw, height: gh },
+    children: [
+      { type: 'path', d: GLASS_D, viewBox: [0, 0, 100, 130], fill: '#FFFFFF1F', frame: { width: gw, height: gh } },
+      water,
+      { type: 'path', d: GLASS_D, viewBox: [0, 0, 100, 130], stroke: { color: '#FFFFFFAA', width: 2.5, cap: 'round' }, frame: { width: gw, height: gh } },
+    ],
+  };
+}
+
+function plusButton(size) {
+  return {
+    type: 'button',
+    action: 'addGlass',
+    children: [
+      {
+        type: 'symbol', name: 'plus', size: size * 0.5, weight: 'heavy', color: '#0277BD',
+        frame: { width: size, height: size },
+        background: { gradient: 'linear', stops: ['#FFFFFF', '#CDEFFF'], from: 'top', to: 'bottom' },
+        clip: 'circle',
+        shadow: { color: '#00000055', radius: 6, x: 0, y: 3 },
+      },
+    ],
+  };
+}
+
+function undoButton(size) {
+  return {
+    type: 'button',
+    action: 'undoLast',
+    children: [
+      {
+        type: 'symbol', name: 'arrow.uturn.backward', size: size * 0.5, weight: 'semibold', color: '#FFFFFF',
+        frame: { width: size, height: size },
+        background: '#FFFFFF2E',
+        clip: 'circle',
+      },
+    ],
+  };
+}
+
+function bgBubbles() {
+  const specs = [
+    { x: 120, y: 20, s: 16 }, { x: 140, y: 70, s: 9 }, { x: 20, y: 120, s: 12 },
+    { x: 250, y: 30, s: 12 }, { x: 310, y: 100, s: 18 }, { x: 200, y: 130, s: 8 },
+  ];
+  return specs.map(b => ({
+    type: 'circle',
+    stroke: { color: '#FFFFFF33', width: 1.5 },
+    fill: '#FFFFFF10',
+    frame: { width: b.s, height: b.s },
+    offset: { x: b.x, y: b.y },
+  }));
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const goal = Math.max(d.goal, 1);
+  const today = d.todayCount;
+  const medium = ctx.family === 'medium';
+  const done = today >= goal;
+
+  const background = {
+    type: 'zstack',
+    align: 'topLeading',
+    children: [
+      { type: 'rect', fill: { gradient: 'linear', stops: ['#1E88E5', '#0D47A1'], from: 'top', to: 'bottom' }, frame: { maxWidth: 'infinity', maxHeight: 'infinity' } },
+      bgBubbles(),
+    ],
+  };
+
+  if (!medium) {
+    return {
+      type: 'vstack',
+      align: 'leading',
+      spacing: 6,
+      padding: 12,
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+      widgetBackground: background,
+      children: [
+        {
+          type: 'hstack',
+          align: 'center',
+          spacing: 4,
+          children: [
+            { type: 'text', value: String(today), size: 26, weight: 'heavy', design: 'rounded', color: '#FFFFFF' },
+            { type: 'text', value: '/' + goal, size: 15, weight: 'semibold', design: 'rounded', color: '#BFE6FF' },
+            done && { type: 'symbol', name: 'checkmark.circle.fill', size: 15, color: '#B9F6CA' },
+            { type: 'spacer' },
+            undoButton(26),
+          ],
+        },
+        {
+          type: 'hstack',
+          align: 'center',
+          spacing: 8,
+          children: [
+            glass(60, 78, today, goal),
+            { type: 'spacer' },
+            plusButton(68),
+          ],
+        },
+      ],
+    };
+  }
+
+  const week = Array.isArray(d.last7) ? d.last7 : [];
+  const maxV = Math.max(goal, 1, ...week);
+  const bars = week.map((v, i) => ({
+    type: 'vstack',
+    spacing: 3,
+    align: 'center',
+    children: [
+      {
+        type: 'rect',
+        cornerRadius: 4,
+        fill: i === week.length - 1 ? '#FFFFFF' : (v >= goal ? '#7FDBFF' : '#FFFFFF55'),
+        frame: { width: 14, height: 4 + 36 * Math.min(v, maxV) / maxV },
+      },
+    ],
+  }));
+
+  return {
+    type: 'hstack',
+    align: 'center',
+    spacing: 14,
+    padding: 14,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: background,
+    children: [
+      glass(84, 109, today, goal),
+      {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 6,
+        children: [
+          {
+            type: 'hstack',
+            align: 'firstBaseline',
+            spacing: 3,
+            children: [
+              { type: 'text', value: String(today), size: 40, weight: 'heavy', design: 'rounded', color: '#FFFFFF' },
+              { type: 'text', value: '/' + goal + ' ' + d.unit, size: 14, weight: 'semibold', design: 'rounded', color: '#BFE6FF', lineLimit: 1, minScale: 0.7 },
+            ],
+          },
+          { type: 'text', value: done ? 'Goal reached!' : (goal - today) + ' to go', size: 12, weight: 'medium', design: 'rounded', color: '#D6F0FF' },
+          {
+            type: 'hstack',
+            align: 'bottom',
+            spacing: 5,
+            children: bars,
+          },
+        ],
+      },
+      { type: 'spacer' },
+      {
+        type: 'vstack',
+        align: 'center',
+        spacing: 10,
+        children: [
+          plusButton(88),
+          undoButton(28),
+        ],
+      },
+    ],
+  };
+}
+```

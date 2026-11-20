@@ -1,0 +1,130 @@
+function render(ctx) {
+  const d = ctx.data;
+  const goal = Math.max(d.goal || 1, 1);
+  const progress = Math.min(Math.max(d.todayCount / goal, 0), 1);
+  const done = d.todayCount >= goal;
+  const medium = ctx.family === 'medium';
+  const maxVal = Math.max(goal, Math.max.apply(null, d.last7), 1);
+
+  const days = d.last7.map((v, i) => {
+    const isToday = i === d.last7.length - 1;
+    const hit = v >= goal;
+    return {
+      type: 'vstack',
+      spacing: 3,
+      children: [
+        { type: 'spacer' },
+        {
+          type: 'rect',
+          cornerRadius: 3,
+          fill: isToday ? '#F2C14E' : hit ? '#9BC25A' : '#FFFFFF66',
+          frame: { width: 10, height: 4 + 32 * Math.min(v, maxVal) / maxVal },
+        },
+      ],
+      frame: { height: 38 },
+    };
+  });
+
+  const btn = (action, name, bg, fg) => ({
+    type: 'button',
+    action: action,
+    children: [
+      {
+        type: 'symbol', name: name, size: 15, weight: 'bold', color: fg,
+        frame: { width: 34, height: 34 }, background: bg, clip: 'circle',
+      },
+    ],
+  });
+
+  const ring = {
+    type: 'zstack',
+    children: [
+      { type: 'circle', stroke: { color: '#FFFFFF33', width: 7 } },
+      {
+        type: 'circle',
+        stroke: { color: done ? '#9BC25A' : '#F2C14E', width: 7, cap: 'round' },
+        trimFrom: 0, trimTo: Math.max(progress, 0.001), rotation: -90,
+      },
+      {
+        type: 'vstack', spacing: 0,
+        children: [
+          { type: 'text', value: String(d.todayCount), size: 26, weight: 'bold', design: 'serif', color: '#FFFFFF' },
+          { type: 'text', value: 'of ' + d.goal, size: 10, color: '#FFFFFFCC' },
+        ],
+      },
+    ],
+    frame: { width: medium ? 84 : 78, height: medium ? 84 : 78 },
+  };
+
+  const weekly = {
+    type: 'hstack',
+    spacing: 5,
+    align: 'bottom',
+    children: days,
+  };
+
+  const controls = {
+    type: 'hstack',
+    spacing: 8,
+    children: [
+      btn('undoLast', 'minus', '#FFFFFF33', '#FFFFFF'),
+      btn('addGlass', 'plus', '#F2C14E', '#1E2A14'),
+    ],
+  };
+
+  const header = {
+    type: 'hstack',
+    spacing: 5,
+    children: [
+      { type: 'symbol', name: 'drop.fill', size: 13, color: '#8FD3F4' },
+      { type: 'text', value: done ? 'Goal reached' : 'Hydration', size: 13, weight: 'semibold', design: 'serif', color: '#FFFFFF', lineLimit: 1 },
+      { type: 'spacer' },
+    ],
+  };
+
+  const body = medium
+    ? {
+        type: 'hstack',
+        spacing: 14,
+        align: 'center',
+        children: [
+          ring,
+          {
+            type: 'vstack', align: 'leading', spacing: 8,
+            children: [
+              { type: 'text', value: 'Last 7 days', size: 11, color: '#FFFFFFCC' },
+              weekly,
+            ],
+          },
+          { type: 'spacer' },
+          { type: 'vstack', spacing: 8, children: [btn('addGlass', 'plus', '#F2C14E', '#1E2A14'), btn('undoLast', 'minus', '#FFFFFF33', '#FFFFFF')] },
+        ],
+      }
+    : {
+        type: 'hstack',
+        spacing: 6,
+        align: 'center',
+        children: [ring, { type: 'spacer' }, { type: 'vstack', spacing: 8, children: [btn('addGlass', 'plus', '#F2C14E', '#1E2A14'), btn('undoLast', 'minus', '#FFFFFF33', '#FFFFFF')] }],
+      };
+
+  return {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 8,
+    padding: 14,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: {
+      type: 'zstack',
+      children: [
+        { type: 'image', asset: 'reference', mode: 'fill', crop: medium ? [0.1, 0.25, 0.8, 0.55] : [0.25, 0.3, 0.4, 0.5] },
+        { type: 'rect', fill: { gradient: 'linear', stops: ['#0A1A0E99', '#0A1A0ECC'], from: 'top', to: 'bottom' } },
+      ],
+    },
+    children: [
+      header,
+      { type: 'spacer', minLength: 0 },
+      body,
+      !medium && { type: 'text', value: d.unit, size: 10, color: '#FFFFFFAA' },
+    ],
+  };
+}

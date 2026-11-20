@@ -1,0 +1,110 @@
+{
+  "format": 1,
+  "name": "To-do",
+  "tables": {
+    "items": {
+      "fields": {
+        "title": "text",
+        "done": "bool"
+      }
+    }
+  },
+  "queries": {
+    "open": {
+      "list": "items",
+      "where": {
+        "done": false
+      },
+      "window": "all",
+      "sort": "oldest",
+      "limit": 20
+    },
+    "done": {
+      "list": "items",
+      "where": {
+        "done": true
+      },
+      "window": "all",
+      "sort": "newest",
+      "limit": 20
+    },
+    "left": {
+      "count": "items",
+      "where": {
+        "done": false
+      },
+      "window": "all"
+    },
+    "finished": {
+      "count": "items",
+      "where": {
+        "done": true
+      },
+      "window": "all"
+    }
+  },
+  "actions": {
+    "toggle": {
+      "toggle": "items.done"
+    },
+    "add": {
+      "form": "items",
+      "fields": [
+        "title"
+      ],
+      "prompt": "New to-do"
+    },
+    "remove": {
+      "delete": "items"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "busy": {
+      "items": [
+        {
+          "daysAgo": 3,
+          "title": "Buy oat milk"
+        },
+        {
+          "daysAgo": 2,
+          "title": "Call the dentist",
+          "done": true
+        },
+        {
+          "daysAgo": 1,
+          "title": "Water the plants"
+        },
+        {
+          "daysAgo": 1,
+          "title": "Send rent to landlord"
+        },
+        {
+          "daysAgo": 0,
+          "title": "Book flights for the wedding"
+        },
+        {
+          "daysAgo": 0,
+          "title": "Return library books",
+          "done": true
+        }
+      ]
+    },
+    "all done": {
+      "items": [
+        {
+          "daysAgo": 1,
+          "title": "Pay the electric bill",
+          "done": true
+        },
+        {
+          "daysAgo": 0,
+          "title": "Pick up dry cleaning",
+          "done": true
+        }
+      ]
+    }
+  },
+  "look": "// Small is narrow, so its titles wrap to a second line and it shows one row fewer. Medium keeps one line.\nfunction row(item, lines) {\n  const toggle = { type: 'button', action: 'toggle', rowId: item.id, children: [\n    { type: 'symbol', name: item.done ? 'checkmark.circle.fill' : 'circle', size: 16,\n      color: item.done ? '#7AE582' : '#9FB3C8', frame: { width: 22, height: 22 } } ] };\n\n  const remove = item.done && { type: 'button', action: 'remove', rowId: item.id, children: [\n    { type: 'symbol', name: 'xmark', size: 11, weight: 'bold', color: '#9FB3C8',\n      frame: { width: 22, height: 22 } } ] };\n\n  return { type: 'hstack', spacing: 6, children: [\n    toggle,\n    { type: 'text', value: item.title || 'Untitled', size: lines > 1 ? 12 : 13, lineLimit: lines,\n      color: item.done ? '#9FB3C8' : '#FFFFFF', strikethrough: item.done,\n      frame: { maxWidth: 'infinity', alignment: 'leading' } },\n    remove,\n  ] };\n}\n\nfunction render(ctx) {\n  const d = ctx.data;\n  const small = ctx.family === 'small';\n  const shown = d.open.concat(d.done).slice(0, small ? 3 : 4);\n\n  const total = d.left + d.finished;\n  const header = { type: 'hstack', spacing: 6, children: [\n    { type: 'hstack', spacing: 6, frame: { maxWidth: 'infinity', alignment: 'leading' }, children: [\n      { type: 'text', value: 'To-do', size: 15, weight: 'bold', color: '#FFFFFF', lineLimit: 1 },\n      total > 0 && { type: 'text', value: d.finished + '/' + total, size: 12, color: '#9FB3C8',\n        lineLimit: 1, minScale: 0.7 },\n    ] },\n    { type: 'button', action: 'add', children: [\n      { type: 'symbol', name: 'plus.circle.fill', size: 20, color: '#7AE582' } ] },\n  ] };\n\n  return {\n    type: 'vstack', align: 'leading', spacing: 6, padding: 14,\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n    widgetBackground: '#1E2A3A',\n    children: [\n      header,\n      shown.length === 0 && { type: 'text', value: 'Nothing to do. Tap + to add one.', size: 13, color: '#9FB3C8' },\n      { type: 'vstack', align: 'leading', spacing: small ? 2 : 4, children: shown.map(item => row(item, small ? 2 : 1)) },\n    ],\n  };\n}\n"
+}

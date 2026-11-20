@@ -1,0 +1,21 @@
+1-water-glass__T-haiku: first try  4198 bytes  7.69 s
+1-water-glass__J-haiku: first try  4261 bytes  8.27 s
+3-habit-heatmap__J-haiku: first try  2146 bytes  5.88 s
+3-habit-heatmap__T-sonnet: first try  7134 bytes  24.49 s
+1-water-glass__T-sonnet: first try  5369 bytes  26.84 s
+1-water-glass__J-sonnet: first try  5224 bytes  26.79 s
+3-habit-heatmap__T-haiku: repaired  3633 bytes  5.14 s  first error: expected a field name after '.' in expression " data.days[(4 - r) * 7 + (6 - col)] ... "
+3-habit-heatmap__J-sonnet: first try  4218 bytes  20.12 s
+4-habit-ring__T-haiku: first try  3676 bytes  17.57 s
+4-habit-ring__J-haiku: first try  3654 bytes  6.3 s
+5-todo-sticky__T-haiku: first try  3417 bytes  4.9 s
+4-habit-ring__J-sonnet: first try  3868 bytes  10.66 s
+5-todo-sticky__J-haiku: first try  3470 bytes  6.49 s
+5-todo-sticky__J-sonnet: first try  2904 bytes  8.07 s
+4-habit-ring__T-sonnet: first try  4339 bytes  17.83 s
+6-wotd-magazine__J-haiku: first try  2487 bytes  5.05 s
+5-todo-sticky__T-sonnet: first try  3572 bytes  15.39 s
+6-wotd-magazine__T-haiku: repaired  2008 bytes  4.33 s  first error: cannot index "petrichor" with 0 in expression " data.word == '' ? '' : data.word[0] "
+6-wotd-magazine__J-sonnet: first try  3860 bytes  10.34 s
+6-wotd-magazine__T-sonnet: first try  2507 bytes  20.62 s
+wrote results.json with 24 of 24 cells

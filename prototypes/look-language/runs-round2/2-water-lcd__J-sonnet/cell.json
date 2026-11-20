@@ -1,0 +1,331 @@
+{
+  "id": "2-water-lcd__J-sonnet",
+  "group": "rerun",
+  "job_id": "2-water-lcd",
+  "widget": "water",
+  "user_words": "retro LCD digital watch look, grey-green screen, segmented progress bar with one segment per glass",
+  "reference_image": null,
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": false,
+  "validity_status": "first try",
+  "fit_status": "fits first time",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 1,
+  "overflow_before_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [],
+  "state_diff_share": {
+    "small": 0.0471,
+    "medium": 0.0698
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 3415,
+  "gen_seconds_total": 19.51,
+  "model_calls": 1,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/2-water-lcd__J-sonnet/try1/look.js",
+      "reply": "runs-round2/2-water-lcd__J-sonnet/try1/reply.txt",
+      "request": "runs-round2/2-water-lcd__J-sonnet/try1/request.md",
+      "image_sent": null,
+      "bytes": 3415,
+      "gen_seconds": 19.51,
+      "api_seconds": 19.14,
+      "num_turns": 1,
+      "output_tokens": 2511,
+      "input_tokens": 6534,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 5,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.81352996826172,
+          "ink_share": 0.8669435283579658,
+          "js_eval_ms": 0.5505419969558716,
+          "js_setup_ms": 1.6459580063819885,
+          "nodes": 26,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 53.984375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 60.606959015131,
+          "tree_footprint_mb": 3.0939102172851562,
+          "tree_ms": 2.533832997083664,
+          "variant": "js",
+          "png": "runs-round2/2-water-lcd__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 71.42292785644531,
+          "ink_share": 0.8693043527480614,
+          "js_eval_ms": 0.4277919828891754,
+          "js_setup_ms": 1.1144579946994781,
+          "nodes": 36,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 56.671875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 52.678791999816895,
+          "tree_footprint_mb": 3.07830810546875,
+          "tree_ms": 1.8705420196056366,
+          "variant": "js",
+          "png": "runs-round2/2-water-lcd__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 5,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.90723419189453,
+          "ink_share": 0.8606327103945279,
+          "js_eval_ms": 0.36695900559425354,
+          "js_setup_ms": 0.9437080025672913,
+          "nodes": 26,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 54.078125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 53.93299999833107,
+          "tree_footprint_mb": 3.0001373291015625,
+          "tree_ms": 1.5242500007152557,
+          "variant": "js",
+          "png": "runs-round2/2-water-lcd__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 71.50098419189453,
+          "ink_share": 0.8687005905548952,
+          "js_eval_ms": 0.4249590039253235,
+          "js_setup_ms": 1.003290981054306,
+          "nodes": 36,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 56.734375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 54.98408302664757,
+          "tree_footprint_mb": 3.0157623291015625,
+          "tree_ms": 1.6970830261707306,
+          "variant": "js",
+          "png": "runs-round2/2-water-lcd__J-sonnet/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 5,
+        "a-medium": 6,
+        "b-small": 5,
+        "b-medium": 6
+      }
+    }
+  ]
+}

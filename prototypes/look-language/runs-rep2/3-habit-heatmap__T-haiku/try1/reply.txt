@@ -1,0 +1,56 @@
+```json
+{
+  "type": "hstack",
+  "spacing": 16,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity" },
+  "widgetBackground": "#000000",
+  "children": [
+    {
+      "type": "button",
+      "action": "toggleToday",
+      "children": [
+        {
+          "type": "zstack",
+          "align": "topLeading",
+          "frame": { "width": 130, "height": 92 },
+          "children": [
+            {
+              "type": "repeat",
+              "over": "{{ data.days }}",
+              "item": "d",
+              "index": "i",
+              "children": [
+                {
+                  "type": "rect",
+                  "cornerRadius": 3,
+                  "fill": "{{ i == len(data.days) - 1 ? (d.done ? '#CCFFB3' : '#2A3A2A') : (d.done ? '#39FF14' : '#162016') }}",
+                  "frame": { "width": 16, "height": 16 },
+                  "offset": { "x": "{{ (i % 7) * 19 }}", "y": "{{ floor(i / 7) * 19 }}" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 6,
+          "frame": { "maxWidth": "infinity", "alignment": "leading" },
+          "children": [
+            { "type": "text", "value": "{{ data.name }}", "size": 16, "weight": "bold", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.6 },
+            { "type": "text", "value": "{{ data.streak }} day streak", "size": 13, "weight": "semibold", "color": "#39FF14" },
+            { "type": "text", "value": "{{ data.doneToday ? 'Done today' : 'Not done yet' }}", "size": 12, "color": "#7FBF6A" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

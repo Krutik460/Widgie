@@ -1,0 +1,141 @@
+```json
+{
+  "type": "hstack",
+  "spacing": 14,
+  "align": "center",
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "leading" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#0A3D7A", "#0B1F4D"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "zstack",
+      "align": "bottom",
+      "frame": { "width": 62, "height": 118 },
+      "children": [
+        { "type": "rect", "cornerRadius": 16, "fill": "#FFFFFF1A" },
+        {
+          "type": "rect",
+          "cornerRadius": 12,
+          "fill": { "gradient": "linear", "stops": ["#7FE3FF", "#1E90FF"], "from": "top", "to": "bottom" },
+          "frame": { "width": 54, "height": "{{ 110 * clamp(data.todayCount / max(data.goal, 1), 0, 1) }}" },
+          "padding": { "bottom": 4 }
+        },
+        {
+          "type": "if",
+          "test": "{{ data.todayCount / max(data.goal, 1) > 0.25 }}",
+          "then": [
+            {
+              "type": "circle",
+              "stroke": { "color": "#FFFFFFCC", "width": 1.5 },
+              "frame": { "width": 9, "height": 9 },
+              "offset": { "x": -12, "y": "{{ -(110 * clamp(data.todayCount / max(data.goal, 1), 0, 1) * 0.55) }}" }
+            },
+            {
+              "type": "circle",
+              "stroke": { "color": "#FFFFFFAA", "width": 1.5 },
+              "frame": { "width": 6, "height": 6 },
+              "offset": { "x": 10, "y": "{{ -(110 * clamp(data.todayCount / max(data.goal, 1), 0, 1) * 0.3) }}" }
+            },
+            {
+              "type": "circle",
+              "fill": "#FFFFFF66",
+              "frame": { "width": 5, "height": 5 },
+              "offset": { "x": 4, "y": "{{ -(110 * clamp(data.todayCount / max(data.goal, 1), 0, 1) * 0.75) }}" }
+            }
+          ]
+        },
+        {
+          "type": "rect",
+          "cornerRadius": 16,
+          "stroke": { "color": "#FFFFFFCC", "width": 3 }
+        }
+      ]
+    },
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 4,
+      "frame": { "width": 76 },
+      "children": [
+        {
+          "type": "hstack",
+          "align": "center",
+          "children": [
+            { "type": "text", "value": "{{ data.todayCount }}", "size": 36, "weight": "heavy", "design": "rounded", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.5 },
+            { "type": "spacer" },
+            {
+              "type": "button",
+              "action": "undoLast",
+              "children": [
+                { "type": "symbol", "name": "arrow.uturn.backward", "size": 12, "weight": "bold", "color": "#BFE6FF", "frame": { "width": 24, "height": 24 }, "background": "#FFFFFF22", "clip": "circle" }
+              ]
+            }
+          ]
+        },
+        { "type": "text", "value": "of {{ data.goal }} {{ data.unit }}", "size": 11, "weight": "medium", "color": "#BFE6FF", "lineLimit": 1, "minScale": 0.7 },
+        { "type": "spacer", "minLength": 2 },
+        {
+          "type": "button",
+          "action": "addGlass",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "plus",
+              "size": 34,
+              "weight": "heavy",
+              "color": "#0A3D7A",
+              "frame": { "maxWidth": "infinity", "height": 60 },
+              "background": { "gradient": "linear", "stops": ["#B9F0FF", "#4CC3FF"], "from": "top", "to": "bottom" },
+              "clip": "capsule",
+              "shadow": { "color": "#4CC3FF88", "radius": 8, "x": 0, "y": 2 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 8,
+          "frame": { "maxWidth": "infinity", "maxHeight": "infinity" },
+          "children": [
+            { "type": "text", "value": "Last 7 days", "size": 12, "weight": "semibold", "color": "#BFE6FF" },
+            { "type": "spacer" },
+            {
+              "type": "hstack",
+              "align": "bottom",
+              "spacing": 6,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ data.last7 }}",
+                  "item": "v",
+                  "index": "i",
+                  "children": [
+                    {
+                      "type": "vstack",
+                      "spacing": 0,
+                      "children": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 5,
+                          "fill": "{{ i == 6 ? '#B9F0FF' : '#4CA8E8AA' }}",
+                          "frame": { "width": 18, "height": "{{ 6 + 80 * clamp(v / max(data.goal, 1), 0, 1) }}" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

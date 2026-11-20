@@ -1,0 +1,154 @@
+```js
+const BG = '#A7B69D';
+const INK = '#1F2B1F';
+const OFF = '#8C9E86';
+const BTN = '#93A58C';
+const BAR = '#93A58C';
+
+function button(action, icon) {
+  return {
+    type: 'button',
+    action: action,
+    children: [
+      {
+        type: 'symbol',
+        name: icon,
+        size: 14,
+        weight: 'bold',
+        color: INK,
+        frame: { width: 34, height: 28 },
+        background: BTN,
+        cornerRadius: 6,
+      },
+    ],
+  };
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const med = ctx.family === 'medium';
+
+  const goal = Math.max(1, Math.round(Number(d.goal) || 1));
+  const today = Math.max(0, Math.round(Number(d.todayCount) || 0));
+
+  // One segment per glass when the goal is small; otherwise 16 segments scaled to progress.
+  const segTotal = goal <= 16 ? goal : 16;
+  const litCount = goal <= 16
+    ? Math.min(today, goal)
+    : Math.round(16 * Math.min(today / goal, 1));
+
+  const segs = [];
+  for (let i = 0; i < segTotal; i++) {
+    segs.push({
+      type: 'rect',
+      cornerRadius: 2,
+      fill: i < litCount ? INK : OFF,
+      frame: { height: med ? 16 : 12, maxWidth: 'infinity' },
+    });
+  }
+  const segRow = { type: 'hstack', spacing: 2, children: segs };
+
+  const vals = (Array.isArray(d.last7) ? d.last7 : [])
+    .slice(-7)
+    .map(v => Math.max(0, Number(v) || 0));
+  const top = Math.max(1, goal, ...vals);
+  const barH = med ? 60 : 26;
+  const bars = vals.map((v, i) => ({
+    type: 'rect',
+    cornerRadius: 2,
+    fill: i === vals.length - 1 ? INK : BAR,
+    frame: { height: Math.max(2, barH * v / top), maxWidth: 'infinity' },
+  }));
+  const barRow = { type: 'hstack', spacing: 3, align: 'bottom', frame: { height: barH }, children: bars };
+
+  const label = { type: 'text', value: 'GOAL ' + goal, size: 11, weight: 'bold', design: 'monospaced', color: INK, lineLimit: 1 };
+  const count = {
+    type: 'text',
+    value: String(today),
+    size: med ? 64 : 56,
+    weight: 'bold',
+    design: 'monospaced',
+    color: INK,
+    lineLimit: 1,
+    minScale: 0.4,
+  };
+  const unit = {
+    type: 'text',
+    value: String(d.unit || '').toUpperCase(),
+    size: 12,
+    weight: 'semibold',
+    design: 'monospaced',
+    color: INK,
+    lineLimit: 1,
+  };
+  const controls = {
+    type: 'hstack',
+    spacing: 8,
+    children: [button('undoLast', 'minus'), { type: 'spacer' }, button('addGlass', 'plus')],
+  };
+
+  const overlay = {
+    type: 'rect',
+    cornerRadius: 10,
+    stroke: { color: '#6F8268', width: 3 },
+  };
+
+  if (!med) {
+    return {
+      type: 'vstack',
+      align: 'leading',
+      spacing: 6,
+      padding: 12,
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+      widgetBackground: BG,
+      overlay: overlay,
+      children: [
+        label,
+        count,
+        unit,
+        segRow,
+        barRow,
+        { type: 'spacer' },
+        controls,
+      ],
+    };
+  }
+
+  return {
+    type: 'hstack',
+    align: 'top',
+    spacing: 14,
+    padding: 14,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: BG,
+    overlay: overlay,
+    children: [
+      {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 4,
+        frame: { width: 120 },
+        children: [
+          label,
+          count,
+          unit,
+          { type: 'spacer' },
+          controls,
+        ],
+      },
+      {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 10,
+        frame: { maxWidth: 'infinity' },
+        children: [
+          { type: 'text', value: 'LAST 7 DAYS', size: 10, weight: 'bold', design: 'monospaced', color: INK, lineLimit: 1 },
+          barRow,
+          segRow,
+          { type: 'spacer' },
+        ],
+      },
+    ],
+  };
+}
+```

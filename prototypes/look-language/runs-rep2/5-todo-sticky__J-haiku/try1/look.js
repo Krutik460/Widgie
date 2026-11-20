@@ -1,0 +1,119 @@
+function hash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const isMedium = ctx.family === 'medium';
+  const maxItems = isMedium ? 6 : 4;
+  const items = d.items.slice(0, maxItems);
+  const hidden = d.items.length - items.length;
+
+  const INK = '#2B2A4C';
+  const INK_DONE = '#8A8A9A';
+  const NOTE = '#FFF176';
+  const HAND = 'Bradley Hand';
+
+  const rows = items.map((item, i) => {
+    const tilt = ((hash(item.id) % 5) - 2) * 0.4;
+    const textNode = {
+      type: 'text',
+      value: item.title,
+      size: isMedium ? 15 : 14,
+      weight: 'medium',
+      design: 'rounded',
+      color: item.done ? INK_DONE : INK,
+      strikethrough: item.done,
+      lineLimit: 1,
+      minScale: 0.8,
+      opacity: item.done ? 0.5 : 1,
+    };
+    const mark = {
+      type: 'symbol',
+      name: item.done ? 'checkmark.circle.fill' : 'circle',
+      size: 16,
+      weight: 'semibold',
+      color: item.done ? '#6B6B7B' : INK,
+      opacity: item.done ? 0.5 : 1,
+    };
+    return {
+      type: 'button',
+      action: 'toggleDone',
+      rowId: item.id,
+      children: [
+        {
+          type: 'hstack',
+          spacing: 6,
+          align: 'center',
+          rotation: tilt,
+          children: [mark, textNode, { type: 'spacer' }],
+        },
+      ],
+    };
+  });
+
+  const footer = {
+    type: 'hstack',
+    spacing: 4,
+    children: [
+      {
+        type: 'text',
+        value: hidden > 0
+          ? d.doneCount + '/' + d.total + ' · +' + hidden + ' more'
+          : d.doneCount + '/' + d.total + ' done',
+        size: 11,
+        weight: 'semibold',
+        design: 'rounded',
+        color: '#5A5A3A',
+      },
+      { type: 'spacer' },
+      {
+        type: 'button',
+        action: 'openAdd',
+        children: [
+          {
+            type: 'symbol',
+            name: 'plus.circle.fill',
+            size: 22,
+            color: INK,
+          },
+        ],
+      },
+    ],
+  };
+
+  const noteBody = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: isMedium ? 6 : 5,
+    padding: { top: 14, bottom: 8, leading: 14, trailing: 12 },
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    children: [
+      { type: 'text', value: 'To do', size: 18, weight: 'bold', design: 'serif', italic: true, color: INK },
+      ...rows,
+      { type: 'spacer' },
+      footer,
+    ],
+  };
+
+  return {
+    type: 'zstack',
+    align: 'center',
+    widgetBackground: '#F4F1E8',
+    children: [
+      {
+        type: 'vstack',
+        align: 'leading',
+        padding: 10,
+        frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+        rotation: -1.5,
+        background: NOTE,
+        cornerRadius: 4,
+        shadow: { color: '#00000033', radius: 4, x: 1, y: 3 },
+        children: [noteBody],
+      },
+    ],
+  };
+}

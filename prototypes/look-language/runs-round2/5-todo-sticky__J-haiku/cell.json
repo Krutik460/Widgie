@@ -1,0 +1,712 @@
+{
+  "id": "5-todo-sticky__J-haiku",
+  "group": "rerun",
+  "job_id": "5-todo-sticky",
+  "widget": "todo",
+  "user_words": "a yellow sticky note, slightly tilted, handwriting feel, finished items crossed out and faded",
+  "reference_image": null,
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 16,
+    "a-medium": 16,
+    "b-small": 16,
+    "b-medium": 16
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [
+    "Bradley Hand",
+    "Marker Felt"
+  ],
+  "state_diff_share": {
+    "small": 0.0618,
+    "medium": 0.0288
+  },
+  "actions_used": [
+    "openAdd",
+    "toggleDone"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 3060,
+  "gen_seconds_total": 29.52,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/5-todo-sticky__J-haiku/try1/look.js",
+      "reply": "runs-round2/5-todo-sticky__J-haiku/try1/reply.txt",
+      "request": "runs-round2/5-todo-sticky__J-haiku/try1/request.md",
+      "image_sent": null,
+      "bytes": 2582,
+      "gen_seconds": 5.82,
+      "api_seconds": 5.69,
+      "num_turns": 1,
+      "output_tokens": 1007,
+      "input_tokens": 6632,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 174,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 16,
+              "width": 0
+            },
+            "max": 16,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 71.09475708007812,
+          "ink_share": 0.9186108057489516,
+          "js_eval_ms": 0.3093329966068268,
+          "js_setup_ms": 1.1200419962406158,
+          "nodes": 27,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 55.8125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 58.428458005189896,
+          "tree_footprint_mb": 3.06268310546875,
+          "tree_ms": 1.6753329932689667,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 174,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 16,
+              "width": 0
+            },
+            "max": 16,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 74.36042785644531,
+          "ink_share": 0.9009641327522122,
+          "js_eval_ms": 0.29350000619888306,
+          "js_setup_ms": 1.02012500166893,
+          "nodes": 27,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 59.046875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 65.42995798587799,
+          "tree_footprint_mb": 3.04705810546875,
+          "tree_ms": 1.5327079892158508,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 174,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 16,
+              "width": 0
+            },
+            "max": 16,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 71.25100708007812,
+          "ink_share": 0.918977240340377,
+          "js_eval_ms": 0.3275830149650574,
+          "js_setup_ms": 1.1911250054836273,
+          "nodes": 27,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 56,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 58.07266700267792,
+          "tree_footprint_mb": 3.15643310546875,
+          "tree_ms": 1.8267080187797546,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 174,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 16,
+              "width": 0
+            },
+            "max": 16,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 73.25102996826172,
+          "ink_share": 0.9012660138487953,
+          "js_eval_ms": 0.48875001072883606,
+          "js_setup_ms": 1.344791978597641,
+          "nodes": 27,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 57.96875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 59.43466600775719,
+          "tree_footprint_mb": 3.06268310546875,
+          "tree_ms": 2.107041984796524,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 16,
+        "a-medium": 16,
+        "b-small": 16,
+        "b-medium": 16
+      },
+      "layout_overflow_pt": {
+        "a-small": 16,
+        "a-medium": 16,
+        "b-small": 16,
+        "b-medium": 16
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 6,
+        "a-medium": 6,
+        "b-small": 6,
+        "b-medium": 6
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/5-todo-sticky__J-haiku/try2/look.js",
+      "reply": "runs-round2/5-todo-sticky__J-haiku/try2/reply.txt",
+      "request": "runs-round2/5-todo-sticky__J-haiku/try2/request.md",
+      "image_sent": null,
+      "bytes": 3060,
+      "gen_seconds": 23.7,
+      "api_seconds": 23.33,
+      "num_turns": 1,
+      "output_tokens": 4589,
+      "input_tokens": 8241,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 71.04788208007812,
+          "ink_share": 0.9286673995358495,
+          "js_eval_ms": 0.3689579963684082,
+          "js_setup_ms": 1.2134589850902557,
+          "nodes": 25,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 55.703125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 58.10912501811981,
+          "tree_footprint_mb": 2.9689102172851562,
+          "tree_ms": 1.8267090022563934,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 71.64165496826172,
+          "ink_share": 0.9140582253165035,
+          "js_eval_ms": 0.3381670117378235,
+          "js_setup_ms": 0.9896659851074219,
+          "nodes": 27,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.03125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 68.72879099845886,
+          "tree_footprint_mb": 3.0314559936523438,
+          "tree_ms": 1.5497080087661743,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 71.12600708007812,
+          "ink_share": 0.9274866658523676,
+          "js_eval_ms": 0.3633340001106262,
+          "js_setup_ms": 1.0944160223007202,
+          "nodes": 25,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 55.78125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 55.5772500038147,
+          "tree_footprint_mb": 2.9376373291015625,
+          "tree_ms": 1.7073329985141754,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Bradley Hand",
+            "Marker Felt"
+          ],
+          "footprint_mb": 73.31350708007812,
+          "ink_share": 0.9131148468896814,
+          "js_eval_ms": 0.3739579916000366,
+          "js_setup_ms": 1.0620420277118683,
+          "nodes": 27,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 57.984375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 63.55075001716614,
+          "tree_footprint_mb": 3.0001602172851562,
+          "tree_ms": 1.683249980211258,
+          "variant": "js",
+          "png": "runs-round2/5-todo-sticky__J-haiku/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 6,
+        "a-medium": 6,
+        "b-small": 6,
+        "b-medium": 6
+      }
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "question": "Describe this image in two sentences. Then list every piece of text you can read in it, exactly as written. If there is no text, say so.",
+  "calls": [
+    {
+      "reference": "R1-lcd-habit",
+      "image": "refs/R1-lcd-watch.png",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "num_turns": 1,
+      "reply_file": "runs-round2/_sanity/R1-lcd-habit__haiku.txt",
+      "reply": "The image shows a green water-tracking widget with a large \"02 /8\" glass counter, eight segment indicators (two filled), and an ADD button with an undo icon. On the right, a 7-day log bar chart highlights the most recent day, with today's total at 02 of 8.\n\nText in the image:\n- WATER\n- GLASSES\n- 7 DAY LOG\n- 02\n- /8\n- ADD\n- TODAY 02 / 08"
+    },
+    {
+      "reference": "R1-lcd-habit",
+      "image": "refs/R1-lcd-watch.png",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "num_turns": 1,
+      "reply_file": "runs-round2/_sanity/R1-lcd-habit__sonnet.txt",
+      "reply": "This is a water-tracking widget in a muted olive-green palette, showing a count of 2 out of 8 glasses with a row of progress squares (two filled) and an \"ADD\" and undo button. On the right, a 7-day bar chart shows daily intake, with today's bar being the shortest and highlighted in dark green.\n\n**Text in the image:**\n- WATER\n- GLASSES\n- 7 DAY LOG\n- 02\n- /8\n- + ADD\n- TODAY 02 / 08\n\n(A faint, ghosted \"08\" also appears behind the large \"02\".)"
+    },
+    {
+      "reference": "R2-pass-todo",
+      "image": "refs/R2-boarding-pass.png",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "num_turns": 1,
+      "reply_file": "runs-round2/_sanity/R2-pass-todo__haiku.txt",
+      "reply": "This is a vintage-style airline boarding pass for Trans-Coastal Air Lines, with a teal header, a cream body, and a perforated passenger stub on the right. It shows a passenger flying from SFO to JFK on flight TC 418, with a red \"BOARDED\" stamp across the front.\n\nText in the image, in reading order:\n\n- BOARDING PASS\n- TRANS-COASTAL AIR LINES\n- PASSENGER STUB\n- NAME OF PASSENGER\n- M. HOLLOWAY\n- FROM\n- TO\n- SFO\n- JFK\n- BOARDED\n- FLIGHT\n- GATE\n- SEAT\n- DATE\n- TC 418\n- B12\n- 14A\n- 18 NOV\n- SEAT\n- GATE\n- 14A\n- B12\n- 0418 7731 2200 6"
+    },
+    {
+      "reference": "R2-pass-todo",
+      "image": "refs/R2-boarding-pass.png",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "num_turns": 1,
+      "reply_file": "runs-round2/_sanity/R2-pass-todo__sonnet.txt",
+      "reply": "**Description:** This is a vintage-style boarding pass in teal and cream with a perforated passenger stub on the right, featuring a barcode. A red \"BOARDED\" stamp overlaps the top of the ticket near the destination, and a red arrow points from SFO to JFK.\n\n**Text in the image:**\n\nMain pass:\n- BOARDING PASS\n- TRANS-COASTAL AIR LINES\n- NAME OF PASSENGER\n- M. HOLLOWAY\n- BOARDED (stamp)\n- FROM\n- SFO\n- TO\n- JFK\n- FLIGHT\n- TC 418\n- GATE\n- B12\n- SEAT\n- 14A\n- DATE\n- 18 NOV\n\nPassenger stub:\n- PASSENGER STUB\n- 0418 7731 2200 6 (under the barcode)\n- SEAT\n- GATE\n- 14A\n- B12"
+    },
+    {
+      "reference": "R3-photo-water",
+      "image": "refs/R3-photo.jpg",
+      "model": "haiku",
+      "model_ids": [
+        "claude-haiku-5-5"
+      ],
+      "num_turns": 1,
+      "reply_file": "runs-round2/_sanity/R3-photo-water__haiku.txt",
+      "reply": "Aerial view of a hillside vineyard with neat rows of vines curving across rolling green slopes, bordered by dense evergreen forest and a lone orange-leafed oak tree. Low fog drifts over distant forested mountain ridges under a soft, partly cloudy sky as warm morning light catches the hills.\n\nText in the image: None."
+    },
+    {
+      "reference": "R3-photo-water",
+      "image": "refs/R3-photo.jpg",
+      "model": "sonnet",
+      "model_ids": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "num_turns": 1,
+      "reply_file": "runs-round2/_sanity/R3-photo-water__sonnet.txt",
+      "reply": "This aerial view shows a rolling hilltop vineyard with neatly curved rows of vines, surrounded by dense evergreen forest in the foreground and forested ridges beyond. Low clouds and mist drift over the distant hills on the right, while warm, golden light catches the treetops and vine rows.\n\nThere is no text in this image."
+    }
+  ]
+}

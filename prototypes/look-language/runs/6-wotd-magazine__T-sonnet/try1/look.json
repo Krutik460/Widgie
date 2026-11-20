@@ -1,0 +1,62 @@
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 6,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#F8F0DE", "#EFE3C8"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "children": [
+        { "type": "text", "value": "WORD OF THE DAY", "size": 8, "weight": "semibold", "design": "serif", "kerning": 2, "color": "#8B1A1A", "lineLimit": 1 },
+        { "type": "spacer" },
+        { "type": "text", "value": "{{ data.date }}", "size": 9, "design": "serif", "italic": true, "color": "#8B1A1A", "lineLimit": 1 }
+      ]
+    },
+    { "type": "rect", "fill": "#8B1A1A", "frame": { "height": 1 } },
+    {
+      "type": "hstack",
+      "align": "top",
+      "spacing": 8,
+      "children": [
+        {
+          "type": "text",
+          "value": "{{ data.word }}",
+          "size": "{{ family == 'small' ? 64 : 84 }}",
+          "weight": "bold",
+          "design": "serif",
+          "color": "#8B1A1A",
+          "lineLimit": 1,
+          "frame": { "width": "{{ family == 'small' ? 38 : 50 }}", "height": "{{ family == 'small' ? 58 : 76 }}", "alignment": "leading" },
+          "clip": "rect"
+        },
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 3,
+          "frame": { "maxWidth": "infinity", "alignment": "topLeading" },
+          "children": [
+            { "type": "text", "value": "{{ data.word }}", "size": "{{ family == 'small' ? 17 : 24 }}", "weight": "bold", "design": "serif", "color": "#3A0D0D", "lineLimit": 1, "minScale": 0.5 },
+            { "type": "text", "value": "{{ data.partOfSpeech }}", "size": 11, "design": "serif", "italic": true, "color": "#8B1A1A", "lineLimit": 1 },
+            {
+              "type": "if",
+              "test": "{{ family == 'medium' }}",
+              "then": [
+                { "type": "text", "value": "{{ data.definition }}", "size": 13, "design": "serif", "color": "#3A0D0D", "lineLimit": 3 },
+                { "type": "text", "value": "“{{ data.example }}”", "size": 11, "design": "serif", "italic": true, "color": "#8B1A1A", "lineLimit": 2 }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'small' }}",
+      "then": [
+        { "type": "text", "value": "{{ data.definition }}", "size": 11, "design": "serif", "color": "#3A0D0D", "lineLimit": 3 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,552 @@
+{
+  "id": "6-wotd-magazine__J-haiku",
+  "group": "rerun",
+  "job_id": "6-wotd-magazine",
+  "widget": "wotd",
+  "user_words": "elegant magazine typography, serif, a giant first letter, cream and deep red",
+  "reference_image": null,
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 26,
+    "a-medium": 0,
+    "b-small": 26,
+    "b-medium": 0.3
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0.3,
+    "b-small": 0,
+    "b-medium": 0.3
+  },
+  "truncated_before": {
+    "a-small": 1,
+    "a-medium": 0,
+    "b-small": 1,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [],
+  "state_diff_share": {
+    "small": 0.1203,
+    "medium": 0.1368
+  },
+  "actions_used": [],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 2565,
+  "gen_seconds_total": 29.08,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/6-wotd-magazine__J-haiku/try1/look.js",
+      "reply": "runs-round2/6-wotd-magazine__J-haiku/try1/reply.txt",
+      "request": "runs-round2/6-wotd-magazine__J-haiku/try1/request.md",
+      "image_sent": null,
+      "bytes": 2368,
+      "gen_seconds": 11.13,
+      "api_seconds": 10.93,
+      "num_turns": 1,
+      "output_tokens": 1066,
+      "input_tokens": 6511,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 176,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 8,
+            "cut": [
+              {
+                "bottom": 8,
+                "label": "2026-11-18",
+                "max": 8,
+                "path": "root.children[0].children[1].children[4]",
+                "type": "text",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 1,
+            "edges": {
+              "bottom": 8,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 26,
+              "width": 0
+            },
+            "max": 26,
+            "texts": 5,
+            "truncated": [
+              {
+                "height": 9,
+                "height_needed": 18,
+                "line_limit": 5,
+                "lines_needed": 2,
+                "path": "root.children[0].children[1].children[2]",
+                "value": "The pleasant, earthy smell after rain falls on dry ground.",
+                "width": 127.3
+              }
+            ]
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.17279052734375,
+          "ink_share": 0.06770919980036605,
+          "js_eval_ms": 0.47108298540115356,
+          "js_setup_ms": 2.1165830194950104,
+          "nodes": 13,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 49.15625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 51.720833003520966,
+          "tree_footprint_mb": 2.9845809936523438,
+          "tree_ms": 2.846833974123001,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.70408630371094,
+          "ink_share": 0.08086639874719348,
+          "js_eval_ms": 0.3080829977989197,
+          "js_setup_ms": 1.145374983549118,
+          "nodes": 14,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 51.78125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 46.709791988134384,
+          "tree_footprint_mb": 2.93768310546875,
+          "tree_ms": 1.7061249911785126,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 176,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 8,
+            "cut": [
+              {
+                "bottom": 8,
+                "label": "2026-11-19",
+                "max": 8,
+                "path": "root.children[0].children[1].children[4]",
+                "type": "text",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 1,
+            "edges": {
+              "bottom": 8,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 26,
+              "width": 0
+            },
+            "max": 26,
+            "texts": 5,
+            "truncated": [
+              {
+                "height": 9,
+                "height_needed": 36,
+                "line_limit": 5,
+                "lines_needed": 4,
+                "path": "root.children[0].children[1].children[2]",
+                "value": "Given to using long words; (of a word) containing many sylla",
+                "width": 126
+              }
+            ]
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.28221130371094,
+          "ink_share": 0.07041257694227254,
+          "js_eval_ms": 0.2897080183029175,
+          "js_setup_ms": 1.0412499904632568,
+          "nodes": 13,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 49.296875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 52.91779100894928,
+          "tree_footprint_mb": 2.90643310546875,
+          "tree_ms": 1.5211670100688934,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0.3
+            },
+            "max": 0.3,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.82906341552734,
+          "ink_share": 0.09830003207486648,
+          "js_eval_ms": 0.2996250092983246,
+          "js_setup_ms": 1.0500420033931732,
+          "nodes": 14,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 51.953125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 46.515500009059906,
+          "tree_footprint_mb": 2.9376602172851562,
+          "tree_ms": 1.5590409934520721,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 26,
+        "a-medium": 0,
+        "b-small": 26,
+        "b-medium": 0.3
+      },
+      "layout_overflow_pt": {
+        "a-small": 26,
+        "a-medium": 0,
+        "b-small": 26,
+        "b-medium": 0.3
+      },
+      "content_overflow_pt": {
+        "a-small": 8,
+        "a-medium": 0,
+        "b-small": 8,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 1,
+        "a-medium": 0,
+        "b-small": 1,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 5,
+        "a-medium": 6,
+        "b-small": 5,
+        "b-medium": 6
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/6-wotd-magazine__J-haiku/try2/look.js",
+      "reply": "runs-round2/6-wotd-magazine__J-haiku/try2/reply.txt",
+      "request": "runs-round2/6-wotd-magazine__J-haiku/try2/request.md",
+      "image_sent": null,
+      "bytes": 2565,
+      "gen_seconds": 17.95,
+      "api_seconds": 13.5,
+      "num_turns": 1,
+      "output_tokens": 2335,
+      "input_tokens": 8193,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 5,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 67.92279052734375,
+          "ink_share": 0.07324620333048326,
+          "js_eval_ms": 0.2931250035762787,
+          "js_setup_ms": 1.1127920150756836,
+          "nodes": 12,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 48.9375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 49.67745900154114,
+          "tree_footprint_mb": 2.8907852172851562,
+          "tree_ms": 1.5922499895095825,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0.3
+            },
+            "max": 0.3,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.61026763916016,
+          "ink_share": 0.08875304239542647,
+          "js_eval_ms": 0.29408299922943115,
+          "js_setup_ms": 0.9807919859886169,
+          "nodes": 14,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 51.6875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 47.37808299064636,
+          "tree_footprint_mb": 2.92205810546875,
+          "tree_ms": 1.4800000190734863,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 5,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.12593841552734,
+          "ink_share": 0.08273278775294168,
+          "js_eval_ms": 0.2893750071525574,
+          "js_setup_ms": 1.0329169929027557,
+          "nodes": 12,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 49.09375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 45.383958011865616,
+          "tree_footprint_mb": 2.87518310546875,
+          "tree_ms": 1.5351249873638153,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0.3
+            },
+            "max": 0.3,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.73531341552734,
+          "ink_share": 0.10026225920265652,
+          "js_eval_ms": 0.3140830099582672,
+          "js_setup_ms": 1.1559999883174896,
+          "nodes": 14,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 51.859375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 52.2178750038147,
+          "tree_footprint_mb": 2.96893310546875,
+          "tree_ms": 1.6998330056667328,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-haiku/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0.3,
+        "b-small": 0,
+        "b-medium": 0.3
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0.3,
+        "b-small": 0,
+        "b-medium": 0.3
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 5,
+        "a-medium": 6,
+        "b-small": 5,
+        "b-medium": 6
+      }
+    }
+  ]
+}

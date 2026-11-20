@@ -1,0 +1,121 @@
+```js
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const INK = '#2B2A28';
+  const TEAL = '#1F5A63';
+  const RED = '#D4553F';
+  const PAPER = '#F3E8CC';
+
+  const maxItems = medium ? 4 : 3;
+  const items = d.items.slice(0, maxItems);
+  const allDone = d.total > 0 && d.doneCount >= d.total;
+
+  const header = {
+    type: 'hstack',
+    spacing: 6,
+    padding: { horizontal: 12 },
+    frame: { maxWidth: 'infinity', height: 24 },
+    background: TEAL,
+    children: [
+      { type: 'text', value: 'TO-DO PASS', size: medium ? 13 : 11, weight: 'medium', kerning: 2, color: PAPER, lineLimit: 1, minScale: 0.7 },
+      { type: 'spacer' },
+      { type: 'text', value: d.doneCount + '/' + d.total, size: 11, weight: 'semibold', kerning: 1, color: PAPER },
+    ],
+  };
+
+  const rows = items.map((it) => ({
+    type: 'button',
+    action: 'toggleDone',
+    rowId: it.id,
+    children: [
+      {
+        type: 'hstack',
+        spacing: 8,
+        align: 'center',
+        frame: { maxWidth: 'infinity', alignment: 'leading' },
+        children: [
+          it.done
+            ? { type: 'symbol', name: 'checkmark.circle.fill', size: 14, color: RED }
+            : { type: 'symbol', name: 'circle', size: 14, color: TEAL },
+          {
+            type: 'text',
+            value: it.title,
+            size: 13,
+            design: 'serif',
+            weight: 'medium',
+            color: it.done ? '#2B2A2899' : INK,
+            strikethrough: it.done,
+            lineLimit: 1,
+            minScale: 0.7,
+          },
+          { type: 'spacer' },
+        ],
+      },
+    ],
+  }));
+
+  const dotted = {
+    type: 'rect',
+    fill: '#2B2A2833',
+    frame: { maxWidth: 'infinity', height: 1 },
+  };
+
+  const footer = {
+    type: 'hstack',
+    align: 'center',
+    children: [
+      {
+        type: 'text',
+        value: allDone ? 'ALL DONE' : (d.total - d.doneCount) + ' REMAINING',
+        size: 10,
+        weight: 'semibold',
+        kerning: 1.5,
+        color: allDone ? RED : TEAL,
+        lineLimit: 1,
+      },
+      { type: 'spacer' },
+      {
+        type: 'button',
+        action: 'openAdd',
+        children: [
+          {
+            type: 'symbol', name: 'plus', size: 11, weight: 'bold', color: PAPER,
+            frame: { width: 22, height: 22 }, background: RED, clip: 'circle',
+          },
+        ],
+      },
+    ],
+  };
+
+  return {
+    type: 'vstack',
+    spacing: 0,
+    align: 'leading',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: PAPER,
+    children: [
+      header,
+      {
+        type: 'vstack',
+        spacing: 4,
+        align: 'leading',
+        padding: { horizontal: 12, top: 7, bottom: 6 },
+        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+        children: [
+          {
+            type: 'vstack',
+            spacing: 5,
+            align: 'leading',
+            frame: { maxWidth: 'infinity', alignment: 'topLeading' },
+            children: rows,
+          },
+          { type: 'spacer', minLength: 0 },
+          dotted,
+          footer,
+        ],
+      },
+    ],
+  };
+}
+```

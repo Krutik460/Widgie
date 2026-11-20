@@ -1,0 +1,850 @@
+{
+  "id": "R2-pass-todo__J-sonnet",
+  "group": "reference",
+  "job_id": "R2-pass-todo",
+  "widget": "todo",
+  "user_words": "make my widget look like this",
+  "reference_image": "refs/R2-boarding-pass.png",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 5,
+    "a-medium": 30.7,
+    "b-small": 5,
+    "b-medium": 30.7
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [],
+  "state_diff_share": {
+    "small": 0.0371,
+    "medium": 0.0311
+  },
+  "actions_used": [
+    "openAdd",
+    "toggleDone"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 3149,
+  "gen_seconds_total": 32.5,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/R2-pass-todo__J-sonnet/try1/look.js",
+      "reply": "runs-round2/R2-pass-todo__J-sonnet/try1/reply.txt",
+      "request": "runs-round2/R2-pass-todo__J-sonnet/try1/request.md",
+      "image_sent": "refs/R2-boarding-pass.png",
+      "bytes": 2984,
+      "gen_seconds": 19.06,
+      "api_seconds": 17.54,
+      "num_turns": 1,
+      "output_tokens": 1302,
+      "input_tokens": 7489,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 161,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 5,
+              "width": 0
+            },
+            "max": 5,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.04790496826172,
+          "ink_share": 0.254020601767029,
+          "js_eval_ms": 0.34404098987579346,
+          "js_setup_ms": 1.0581250190734863,
+          "nodes": 28,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 59.890625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 58.69674998521805,
+          "tree_footprint_mb": 2.7813644409179688,
+          "tree_ms": 1.64308300614357,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 186,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 9.8,
+            "cut": [
+              {
+                "label": "TO-DO PASS",
+                "max": 9.8,
+                "path": "root.children[0].children[0]",
+                "top": 9.8,
+                "type": "text",
+                "within": "widget"
+              },
+              {
+                "label": "1/4",
+                "max": 7.3,
+                "path": "root.children[0].children[2]",
+                "top": 7.3,
+                "type": "text",
+                "within": "widget"
+              },
+              {
+                "bottom": 7.3,
+                "label": "openAdd",
+                "max": 7.3,
+                "path": "root.children[1].children[6].children[2]",
+                "type": "button",
+                "within": "widget"
+              },
+              {
+                "bottom": 1.8,
+                "label": "3 REMAINING",
+                "max": 1.8,
+                "path": "root.children[1].children[6].children[0]",
+                "type": "text",
+                "within": "widget"
+              },
+              {
+                "bottom": 1.5,
+                "label": "plus",
+                "max": 1.5,
+                "path": "root.children[1].children[6].children[2].children[0]",
+                "type": "symbol",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 5,
+            "edges": {
+              "bottom": 7.3,
+              "leading": 0,
+              "top": 9.8,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 30.7,
+              "width": 0
+            },
+            "max": 30.7,
+            "texts": 7,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.26660919189453,
+          "ink_share": 0.14612931831474874,
+          "js_eval_ms": 0.3817499876022339,
+          "js_setup_ms": 0.9013330042362213,
+          "nodes": 33,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 62.21875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 49.58175000548363,
+          "tree_footprint_mb": 2.7969894409179688,
+          "tree_ms": 1.52845898270607,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 161,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 5,
+              "width": 0
+            },
+            "max": 5,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.92292785644531,
+          "ink_share": 0.2601685599120557,
+          "js_eval_ms": 0.367249995470047,
+          "js_setup_ms": 1.0694999992847443,
+          "nodes": 28,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 59.796875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 61.295915991067886,
+          "tree_footprint_mb": 2.8126373291015625,
+          "tree_ms": 1.697416990995407,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 186,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 9.8,
+            "cut": [
+              {
+                "label": "TO-DO PASS",
+                "max": 9.8,
+                "path": "root.children[0].children[0]",
+                "top": 9.8,
+                "type": "text",
+                "within": "widget"
+              },
+              {
+                "label": "3/4",
+                "max": 7.3,
+                "path": "root.children[0].children[2]",
+                "top": 7.3,
+                "type": "text",
+                "within": "widget"
+              },
+              {
+                "bottom": 7.3,
+                "label": "openAdd",
+                "max": 7.3,
+                "path": "root.children[1].children[6].children[2]",
+                "type": "button",
+                "within": "widget"
+              },
+              {
+                "bottom": 1.8,
+                "label": "1 REMAINING",
+                "max": 1.8,
+                "path": "root.children[1].children[6].children[0]",
+                "type": "text",
+                "within": "widget"
+              },
+              {
+                "bottom": 1.5,
+                "label": "plus",
+                "max": 1.5,
+                "path": "root.children[1].children[6].children[2].children[0]",
+                "type": "symbol",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 5,
+            "edges": {
+              "bottom": 7.3,
+              "leading": 0,
+              "top": 9.8,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 30.7,
+              "width": 0
+            },
+            "max": 30.7,
+            "texts": 7,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.64165496826172,
+          "ink_share": 0.15246882134299355,
+          "js_eval_ms": 0.35895800590515137,
+          "js_setup_ms": 1.1784589886665344,
+          "nodes": 33,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 62.609375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 60.35095801949501,
+          "tree_footprint_mb": 2.8751373291015625,
+          "tree_ms": 1.7969170212745667,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 5,
+        "a-medium": 30.7,
+        "b-small": 5,
+        "b-medium": 30.7
+      },
+      "layout_overflow_pt": {
+        "a-small": 5,
+        "a-medium": 30.7,
+        "b-small": 5,
+        "b-medium": 30.7
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 9.8,
+        "b-small": 0,
+        "b-medium": 9.8
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 6,
+        "a-medium": 7,
+        "b-small": 6,
+        "b-medium": 7
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/R2-pass-todo__J-sonnet/try2/look.js",
+      "reply": "runs-round2/R2-pass-todo__J-sonnet/try2/reply.txt",
+      "request": "runs-round2/R2-pass-todo__J-sonnet/try2/request.md",
+      "image_sent": "refs/R2-boarding-pass.png",
+      "bytes": 3149,
+      "gen_seconds": 13.44,
+      "api_seconds": 12.64,
+      "num_turns": 1,
+      "output_tokens": 1930,
+      "input_tokens": 9641,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.98538208007812,
+          "ink_share": 0.22714873172916417,
+          "js_eval_ms": 0.438042014837265,
+          "js_setup_ms": 1.0967919826507568,
+          "nodes": 29,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 59.890625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 60.439832985401154,
+          "tree_footprint_mb": 2.8126373291015625,
+          "tree_ms": 1.8172080218791962,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 7,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.03227996826172,
+          "ink_share": 0.2029584347465142,
+          "js_eval_ms": 0.3374580144882202,
+          "js_setup_ms": 0.8953329920768738,
+          "nodes": 34,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 62,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 63.06741699576378,
+          "tree_footprint_mb": 2.8126144409179688,
+          "tree_ms": 1.479291021823883,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.79790496826172,
+          "ink_share": 0.23126094214404946,
+          "js_eval_ms": 0.33104199171066284,
+          "js_setup_ms": 0.9729160070419312,
+          "nodes": 29,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 59.734375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 55.198666006326675,
+          "tree_footprint_mb": 2.7970123291015625,
+          "tree_ms": 1.537541002035141,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "assets": {
+            "reference": {
+              "decoded": [
+                1200,
+                560
+              ],
+              "decoded_pixels": 672000,
+              "source": [
+                1200,
+                560
+              ]
+            }
+          },
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 7,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.61040496826172,
+          "ink_share": 0.20788287013452578,
+          "js_eval_ms": 0.31849998235702515,
+          "js_setup_ms": 0.9030420184135437,
+          "nodes": 34,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 62.546875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 51.981958985328674,
+          "tree_footprint_mb": 2.8126144409179688,
+          "tree_ms": 1.4619590044021606,
+          "variant": "js",
+          "png": "runs-round2/R2-pass-todo__J-sonnet/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 6,
+        "a-medium": 7,
+        "b-small": 6,
+        "b-medium": 7
+      }
+    }
+  ]
+}

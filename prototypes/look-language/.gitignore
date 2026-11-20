@@ -1,0 +1,7 @@
+.build/
+__pycache__/
+# Generated renders and reference copies stay local; Engine/Evals/images holds the eval inputs.
+*.png
+*.jpg
+*.jpeg
+*.svg

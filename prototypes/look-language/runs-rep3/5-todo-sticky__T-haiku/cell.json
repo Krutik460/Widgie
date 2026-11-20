@@ -1,0 +1,228 @@
+{
+  "id": "5-todo-sticky__T-haiku",
+  "prompt_id": "5-todo-sticky",
+  "widget": "todo",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3103,
+  "output_bytes_first_try": 3103,
+  "gen_seconds": 4.46,
+  "repair_gen_seconds": null,
+  "render_ms": 56.803,
+  "tree_ms": 0.386,
+  "peak_rss_mb": 42.219,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 29,
+  "ink_share_min": 0.2596,
+  "overflow_pt": {
+    "a-small": 10,
+    "a-medium": 10,
+    "b-small": 10,
+    "b-medium": 10
+  },
+  "state_diff_share": {
+    "small": 0.0405,
+    "medium": 0.0193
+  },
+  "actions_used": [
+    "openAdd",
+    "toggleDone"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep3/5-todo-sticky__T-haiku/try1/look.json",
+      "reply": "runs-rep3/5-todo-sticky__T-haiku/try1/reply.txt",
+      "bytes": 3103,
+      "gen_seconds": 4.46,
+      "api_seconds": 4.41,
+      "output_tokens": 1064,
+      "thinking_tokens": 0,
+      "input_tokens": 5947,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 168,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.141357421875,
+          "ink_share": 0.3767354749399454,
+          "nodes": 29,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 39.109375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 56.803207993507385,
+          "tree_footprint_mb": 0.296875,
+          "tree_ms": 0.38645797967910767,
+          "variant": "template",
+          "png": "runs-rep3/5-todo-sticky__T-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 168,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 70.750732421875,
+          "ink_share": 0.25959887549291527,
+          "nodes": 29,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 42.25,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 50.943209022283554,
+          "tree_footprint_mb": 0.3125,
+          "tree_ms": 0.37391600012779236,
+          "variant": "template",
+          "png": "runs-rep3/5-todo-sticky__T-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 168,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.2038803100586,
+          "ink_share": 0.3882985220471479,
+          "nodes": 29,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 39.1875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 50.388792008161545,
+          "tree_footprint_mb": 0.296875,
+          "tree_ms": 0.32258298993110657,
+          "variant": "template",
+          "png": "runs-rep3/5-todo-sticky__T-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 168,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 70.7351303100586,
+          "ink_share": 0.26444784060678106,
+          "nodes": 29,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 42.21875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 57.09399998188019,
+          "tree_footprint_mb": 0.328125,
+          "tree_ms": 0.688291996717453,
+          "variant": "template",
+          "png": "runs-rep3/5-todo-sticky__T-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

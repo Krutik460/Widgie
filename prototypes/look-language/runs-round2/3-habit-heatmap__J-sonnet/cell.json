@@ -1,0 +1,559 @@
+{
+  "id": "3-habit-heatmap__J-sonnet",
+  "group": "rerun",
+  "job_id": "3-habit-heatmap",
+  "widget": "habit",
+  "user_words": "a heatmap of the last 5 weeks like a code contribution graph, neon green on black",
+  "reference_image": null,
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 12,
+    "a-medium": 23,
+    "b-small": 12,
+    "b-medium": 23
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [],
+  "state_diff_share": {
+    "small": 0.249,
+    "medium": 0.1605
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 3593,
+  "gen_seconds_total": 33.28,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/3-habit-heatmap__J-sonnet/try1/look.js",
+      "reply": "runs-round2/3-habit-heatmap__J-sonnet/try1/reply.txt",
+      "request": "runs-round2/3-habit-heatmap__J-sonnet/try1/request.md",
+      "image_sent": null,
+      "bytes": 3682,
+      "gen_seconds": 19.36,
+      "api_seconds": 19.23,
+      "num_turns": 1,
+      "output_tokens": 2618,
+      "input_tokens": 7363,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 170,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 12,
+              "width": 0
+            },
+            "max": 12,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.01665496826172,
+          "ink_share": 0.44493302389967837,
+          "js_eval_ms": 0.39579200744628906,
+          "js_setup_ms": 1.0640420019626617,
+          "nodes": 50,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 55.125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 63.18412500619888,
+          "tree_footprint_mb": 3.0470352172851562,
+          "tree_ms": 1.7883340120315552,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 181,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 23,
+              "width": 0
+            },
+            "max": 23,
+            "texts": 4,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.76667785644531,
+          "ink_share": 0.28225882530518287,
+          "js_eval_ms": 0.38862499594688416,
+          "js_setup_ms": 1.0170829892158508,
+          "nodes": 51,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 58.875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 62.21841698884964,
+          "tree_footprint_mb": 3.04705810546875,
+          "tree_ms": 1.765500009059906,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 170,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 12,
+              "width": 0
+            },
+            "max": 12,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.01665496826172,
+          "ink_share": 0.5038068482553641,
+          "js_eval_ms": 0.47554099559783936,
+          "js_setup_ms": 1.2601670026779175,
+          "nodes": 50,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 55.171875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 50.69345799088478,
+          "tree_footprint_mb": 3.0001373291015625,
+          "tree_ms": 2.251000016927719,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 181,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 23,
+              "width": 0
+            },
+            "max": 23,
+            "texts": 4,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.84480285644531,
+          "ink_share": 0.3354653685779514,
+          "js_eval_ms": 0.4082089960575104,
+          "js_setup_ms": 1.0389160215854645,
+          "nodes": 51,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 59.015625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 59.764041006565094,
+          "tree_footprint_mb": 3.09393310546875,
+          "tree_ms": 1.844083994626999,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 12,
+        "a-medium": 23,
+        "b-small": 12,
+        "b-medium": 23
+      },
+      "layout_overflow_pt": {
+        "a-small": 12,
+        "a-medium": 23,
+        "b-small": 12,
+        "b-medium": 23
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 2,
+        "a-medium": 4,
+        "b-small": 2,
+        "b-medium": 4
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/3-habit-heatmap__J-sonnet/try2/look.js",
+      "reply": "runs-round2/3-habit-heatmap__J-sonnet/try2/reply.txt",
+      "request": "runs-round2/3-habit-heatmap__J-sonnet/try2/request.md",
+      "image_sent": null,
+      "bytes": 3593,
+      "gen_seconds": 13.92,
+      "api_seconds": 13.68,
+      "num_turns": 1,
+      "output_tokens": 2196,
+      "input_tokens": 10092,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.82913208007812,
+          "ink_share": 0.3578030210496316,
+          "js_eval_ms": 0.3944169878959656,
+          "js_setup_ms": 0.9991660118103027,
+          "nodes": 50,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 54.921875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 54.83612501621246,
+          "tree_footprint_mb": 3.0470352172851562,
+          "tree_ms": 1.723125010728836,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 3,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.57915496826172,
+          "ink_share": 0.2500141506764023,
+          "js_eval_ms": 0.4157090187072754,
+          "js_setup_ms": 1.1005409955978394,
+          "nodes": 50,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.265625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 62.214124977588654,
+          "tree_footprint_mb": 3.0157852172851562,
+          "tree_ms": 1.859624981880188,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 70.09477996826172,
+          "ink_share": 0.40845242457554665,
+          "js_eval_ms": 0.3956250250339508,
+          "js_setup_ms": 1.0818329751491547,
+          "nodes": 50,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 55.25,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 63.24024999141693,
+          "tree_footprint_mb": 3.0001602172851562,
+          "tree_ms": 1.8589999973773956,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 3,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.64160919189453,
+          "ink_share": 0.2954095205750835,
+          "js_eval_ms": 0.3916670083999634,
+          "js_setup_ms": 1.00900000333786,
+          "nodes": 50,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.390625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 56.47624999284744,
+          "tree_footprint_mb": 3.0314102172851562,
+          "tree_ms": 1.7594999969005585,
+          "variant": "js",
+          "png": "runs-round2/3-habit-heatmap__J-sonnet/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 2,
+        "a-medium": 3,
+        "b-small": 2,
+        "b-medium": 3
+      }
+    }
+  ]
+}

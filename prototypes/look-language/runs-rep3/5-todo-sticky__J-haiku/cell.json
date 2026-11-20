@@ -1,0 +1,236 @@
+{
+  "id": "5-todo-sticky__J-haiku",
+  "prompt_id": "5-todo-sticky",
+  "widget": "todo",
+  "variant": "js",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3085,
+  "output_bytes_first_try": 3085,
+  "gen_seconds": 6.21,
+  "repair_gen_seconds": null,
+  "render_ms": 53.34,
+  "tree_ms": 1.548,
+  "peak_rss_mb": 44.953,
+  "js_setup_ms": 0.971,
+  "js_eval_ms": 0.352,
+  "nodes": 30,
+  "ink_share_min": 0.8233,
+  "overflow_pt": {
+    "a-small": 6,
+    "a-medium": 17,
+    "b-small": 6,
+    "b-medium": 17
+  },
+  "state_diff_share": {
+    "small": 0.0461,
+    "medium": 0.0247
+  },
+  "actions_used": [
+    "openAdd",
+    "toggleDone"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep3/5-todo-sticky__J-haiku/try1/look.js",
+      "reply": "runs-rep3/5-todo-sticky__J-haiku/try1/reply.txt",
+      "bytes": 3085,
+      "gen_seconds": 6.21,
+      "api_seconds": 5.74,
+      "output_tokens": 1361,
+      "thinking_tokens": 0,
+      "input_tokens": 5555,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 164,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 68.70404052734375,
+          "ink_share": 0.8268392980741827,
+          "js_eval_ms": 0.6507920026779175,
+          "js_setup_ms": 1.7859579920768738,
+          "nodes": 30,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 41.84375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 61.88816601037979,
+          "tree_footprint_mb": 3.07830810546875,
+          "tree_ms": 2.893417000770569,
+          "variant": "js",
+          "png": "runs-rep3/5-todo-sticky__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 175,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 71.82901763916016,
+          "ink_share": 0.8263806343276542,
+          "js_eval_ms": 0.34424999356269836,
+          "js_setup_ms": 0.9113750159740448,
+          "nodes": 30,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 44.953125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 45.54466700553894,
+          "tree_footprint_mb": 3.0314102172851562,
+          "tree_ms": 1.4879169762134552,
+          "variant": "js",
+          "png": "runs-rep3/5-todo-sticky__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 164,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 69.07901763916016,
+          "ink_share": 0.8232970970237368,
+          "js_eval_ms": 0.3518750071525574,
+          "js_setup_ms": 0.9707500040531158,
+          "nodes": 30,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 42.109375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 49.35420900583267,
+          "tree_footprint_mb": 3.06268310546875,
+          "tree_ms": 1.5477499961853027,
+          "variant": "js",
+          "png": "runs-rep3/5-todo-sticky__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 175,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 71.73526763916016,
+          "ink_share": 0.8247391558649837,
+          "js_eval_ms": 0.34470900893211365,
+          "js_setup_ms": 0.8932079970836639,
+          "nodes": 30,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 44.984375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 53.33966597914696,
+          "tree_footprint_mb": 3.03143310546875,
+          "tree_ms": 1.4636670053005219,
+          "variant": "js",
+          "png": "runs-rep3/5-todo-sticky__J-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

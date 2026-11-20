@@ -1,0 +1,230 @@
+{
+  "id": "5-todo-sticky__T-sonnet",
+  "prompt_id": "5-todo-sticky",
+  "widget": "todo",
+  "variant": "template",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 4273,
+  "output_bytes_first_try": 4273,
+  "gen_seconds": 18.56,
+  "repair_gen_seconds": null,
+  "render_ms": 53.569,
+  "tree_ms": 0.403,
+  "peak_rss_mb": 41.516,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 28,
+  "ink_share_min": 0.8763,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.0423,
+    "medium": 0.0256
+  },
+  "actions_used": [
+    "openAdd",
+    "toggleDone"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep2/5-todo-sticky__T-sonnet/try1/look.json",
+      "reply": "runs-rep2/5-todo-sticky__T-sonnet/try1/reply.txt",
+      "bytes": 4273,
+      "gen_seconds": 18.56,
+      "api_seconds": 18.58,
+      "output_tokens": 2591,
+      "thinking_tokens": 1180,
+      "input_tokens": 5920,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 134,
+          "content_width": 134,
+          "family": "small",
+          "footprint_mb": 67.0320053100586,
+          "ink_share": 0.9100199503277554,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 39.015625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 55.66150000691414,
+          "tree_footprint_mb": 0.34375,
+          "tree_ms": 0.7526249885559082,
+          "variant": "template",
+          "png": "runs-rep2/5-todo-sticky__T-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 134,
+          "content_width": 314,
+          "family": "medium",
+          "footprint_mb": 70.0320053100586,
+          "ink_share": 0.8763419558121545,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.515625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 53.56904199719429,
+          "tree_footprint_mb": 0.359375,
+          "tree_ms": 0.3799169957637787,
+          "variant": "template",
+          "png": "runs-rep2/5-todo-sticky__T-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 134,
+          "content_width": 134,
+          "family": "small",
+          "footprint_mb": 67.641357421875,
+          "ink_share": 0.9107121045560034,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 39.109375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 48.04404202103615,
+          "tree_footprint_mb": 0.328125,
+          "tree_ms": 0.3833339810371399,
+          "variant": "template",
+          "png": "runs-rep2/5-todo-sticky__T-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 134,
+          "content_width": 314,
+          "family": "medium",
+          "footprint_mb": 71.0476303100586,
+          "ink_share": 0.8765872342031282,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.6875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 49.676082998514175,
+          "tree_footprint_mb": 0.34375,
+          "tree_ms": 0.4025000035762787,
+          "variant": "template",
+          "png": "runs-rep2/5-todo-sticky__T-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

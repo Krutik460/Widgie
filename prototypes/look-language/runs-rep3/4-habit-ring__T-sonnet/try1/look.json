@@ -1,0 +1,109 @@
+{
+  "type": "hstack",
+  "align": "center",
+  "spacing": 22,
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#1C1C22", "#0B0B0F"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "vstack",
+      "align": "center",
+      "spacing": 6,
+      "children": [
+        {
+          "type": "if",
+          "test": "{{ family == 'small' }}",
+          "then": [
+            { "type": "text", "value": "{{ data.name }}", "size": 14, "weight": "semibold", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.7 }
+          ]
+        },
+        {
+          "type": "button",
+          "action": "toggleToday",
+          "children": [
+            {
+              "type": "zstack",
+              "align": "center",
+              "frame": { "width": 104, "height": 104 },
+              "children": [
+                { "type": "circle", "stroke": { "color": "#FFFFFF22", "width": 10 }, "frame": { "width": 104, "height": 104 } },
+                {
+                  "type": "circle",
+                  "stroke": { "color": "{{ lerpColor('#FF453A', '#32D74B', clamp(data.streak / 30, 0, 1)) }}", "width": 10, "cap": "round" },
+                  "trimFrom": 0,
+                  "trimTo": "{{ clamp(data.streak / 30, 0, 1) }}",
+                  "rotation": -90,
+                  "frame": { "width": 104, "height": 104 }
+                },
+                {
+                  "type": "vstack",
+                  "spacing": 0,
+                  "align": "center",
+                  "children": [
+                    {
+                      "type": "symbol",
+                      "name": "{{ data.doneToday ? 'flame.fill' : 'flame' }}",
+                      "size": 28,
+                      "color": "{{ lerpColor('#FF453A', '#32D74B', clamp(data.streak / 30, 0, 1)) }}"
+                    },
+                    { "type": "text", "value": "{{ data.streak }}", "size": 30, "weight": "bold", "design": "rounded", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.5 }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 8,
+          "children": [
+            { "type": "text", "value": "{{ data.name }}", "size": 16, "weight": "semibold", "color": "#FFFFFF", "lineLimit": 1 },
+            {
+              "type": "vstack",
+              "align": "leading",
+              "spacing": 4,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ range(5) }}",
+                  "item": "r",
+                  "index": "ri",
+                  "children": [
+                    {
+                      "type": "hstack",
+                      "spacing": 4,
+                      "children": [
+                        {
+                          "type": "repeat",
+                          "over": "{{ range(7) }}",
+                          "item": "c",
+                          "index": "ci",
+                          "children": [
+                            {
+                              "type": "rect",
+                              "cornerRadius": 4,
+                              "fill": "{{ data.days[r * 7 + c].done ? lerpColor('#FF453A', '#32D74B', clamp(data.streak / 30, 0, 1)) : '#FFFFFF22' }}",
+                              "frame": { "width": 16, "height": 16 }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+```js
+const BG = '#000000';
+const NEON = '#39FF14';
+const OFF = '#0E2411';
+
+function shade(run) {
+  if (run <= 0) return OFF;
+  if (run === 1) return '#1E7A12';
+  if (run === 2) return '#2BB817';
+  return NEON;
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const days = d.days || [];
+
+  let run = 0;
+  const runs = days.map(x => {
+    run = x.done ? run + 1 : 0;
+    return run;
+  });
+
+  const cell = medium ? 22 : 15;
+  const gap = medium ? 4 : 3;
+
+  const rows = [];
+  for (let r = 0; r < 5; r++) {
+    const cells = [];
+    for (let c = 0; c < 7; c++) {
+      const i = r * 7 + c;
+      if (i >= days.length) continue;
+      const isToday = i === days.length - 1;
+      const node = {
+        type: 'rect',
+        cornerRadius: medium ? 5 : 3,
+        fill: shade(runs[i]),
+        frame: { width: cell, height: cell },
+      };
+      if (isToday) node.stroke = { color: '#FFFFFF', width: 1.5 };
+      if (runs[i] >= 3) node.shadow = { color: NEON + '99', radius: 3, x: 0, y: 0 };
+      cells.push(node);
+    }
+    rows.push({ type: 'hstack', spacing: gap, children: cells });
+  }
+
+  const grid = { type: 'vstack', spacing: gap, children: rows };
+
+  const toggle = {
+    type: 'button',
+    action: 'toggleToday',
+    children: [
+      medium
+        ? {
+            type: 'hstack',
+            spacing: 6,
+            padding: { horizontal: 12, vertical: 8 },
+            background: d.doneToday ? NEON : '#0E2411',
+            clip: 'capsule',
+            children: [
+              { type: 'symbol', name: d.doneToday ? 'checkmark.circle.fill' : 'circle', size: 15, weight: 'bold', color: d.doneToday ? '#000000' : NEON },
+              { type: 'text', value: d.doneToday ? 'Done today' : 'Mark done', size: 13, weight: 'bold', color: d.doneToday ? '#000000' : NEON, lineLimit: 1 },
+            ],
+          }
+        : {
+            type: 'symbol',
+            name: d.doneToday ? 'checkmark' : 'plus',
+            size: 12,
+            weight: 'heavy',
+            color: d.doneToday ? '#000000' : NEON,
+            frame: { width: 22, height: 22 },
+            background: d.doneToday ? NEON : '#0E2411',
+            clip: 'circle',
+          },
+    ],
+  };
+
+  const streak = Math.max(0, d.streak || 0);
+
+  if (!medium) {
+    return {
+      type: 'vstack',
+      spacing: 9,
+      padding: 12,
+      align: 'leading',
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+      widgetBackground: BG,
+      children: [
+        {
+          type: 'hstack',
+          spacing: 4,
+          align: 'center',
+          children: [
+            { type: 'text', value: d.name, size: 14, weight: 'bold', design: 'monospaced', color: NEON, lineLimit: 1, minScale: 0.7 },
+            { type: 'spacer' },
+            { type: 'symbol', name: 'flame.fill', size: 11, color: NEON },
+            { type: 'text', value: String(streak), size: 13, weight: 'bold', design: 'monospaced', color: NEON },
+            toggle,
+          ],
+        },
+        grid,
+      ],
+    };
+  }
+
+  return {
+    type: 'hstack',
+    spacing: 14,
+    padding: 12,
+    align: 'center',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: BG,
+    children: [
+      {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 4,
+        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+        children: [
+          { type: 'text', value: d.name, size: 16, weight: 'bold', design: 'monospaced', color: NEON, lineLimit: 2, minScale: 0.7 },
+          { type: 'spacer' },
+          {
+            type: 'hstack',
+            spacing: 4,
+            align: 'bottom',
+            children: [
+              { type: 'symbol', name: 'flame.fill', size: 20, color: NEON },
+              { type: 'text', value: String(streak), size: 38, weight: 'heavy', design: 'monospaced', color: NEON, shadow: { color: NEON + '88', radius: 6, x: 0, y: 0 } },
+            ],
+          },
+          { type: 'text', value: streak === 1 ? 'day streak' : 'day streak', size: 11, design: 'monospaced', color: '#2BB817' },
+          { type: 'spacer' },
+          toggle,
+        ],
+      },
+      grid,
+    ],
+  };
+}
+```

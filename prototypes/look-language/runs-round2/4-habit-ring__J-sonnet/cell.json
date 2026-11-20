@@ -1,0 +1,559 @@
+{
+  "id": "4-habit-ring__J-sonnet",
+  "group": "rerun",
+  "job_id": "4-habit-ring",
+  "widget": "habit",
+  "user_words": "a ring that goes from red to green as my streak grows, with a flame in the middle and the streak number",
+  "reference_image": null,
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 0,
+    "a-medium": 13,
+    "b-small": 0,
+    "b-medium": 13
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [],
+  "state_diff_share": {
+    "small": 0.1209,
+    "medium": 0.1758
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 3887,
+  "gen_seconds_total": 38.47,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/4-habit-ring__J-sonnet/try1/look.js",
+      "reply": "runs-round2/4-habit-ring__J-sonnet/try1/reply.txt",
+      "request": "runs-round2/4-habit-ring__J-sonnet/try1/request.md",
+      "image_sent": null,
+      "bytes": 3902,
+      "gen_seconds": 21.72,
+      "api_seconds": 21.7,
+      "num_turns": 1,
+      "output_tokens": 2766,
+      "input_tokens": 7367,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 3,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.36042785644531,
+          "ink_share": 0.8195920361548796,
+          "js_eval_ms": 0.41929200291633606,
+          "js_setup_ms": 1.0241249799728394,
+          "nodes": 10,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 55.046875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 57.50550001859665,
+          "tree_footprint_mb": 3.0157852172851562,
+          "tree_ms": 1.605582982301712,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 171,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 13,
+              "width": 0
+            },
+            "max": 13,
+            "texts": 4,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.87605285644531,
+          "ink_share": 0.8356068753419746,
+          "js_eval_ms": 0.5554579794406891,
+          "js_setup_ms": 1.8792090117931366,
+          "nodes": 55,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 59,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 69.66100001335144,
+          "tree_footprint_mb": 3.17205810546875,
+          "tree_ms": 2.8632919788360596,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 3,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.23540496826172,
+          "ink_share": 0.8198770408370994,
+          "js_eval_ms": 0.43379199504852295,
+          "js_setup_ms": 1.0635420083999634,
+          "nodes": 10,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 53.90625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 55.19600000977516,
+          "tree_footprint_mb": 3.06268310546875,
+          "tree_ms": 1.6623329818248749,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 171,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 13,
+              "width": 0
+            },
+            "max": 13,
+            "texts": 4,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.73540496826172,
+          "ink_share": 0.7972113733703138,
+          "js_eval_ms": 0.503040999174118,
+          "js_setup_ms": 1.0881250202655792,
+          "nodes": 55,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 58.90625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 49.44908398389816,
+          "tree_footprint_mb": 3.17205810546875,
+          "tree_ms": 1.952915996313095,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 13,
+        "b-small": 0,
+        "b-medium": 13
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 13,
+        "b-small": 0,
+        "b-medium": 13
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 3,
+        "a-medium": 4,
+        "b-small": 3,
+        "b-medium": 4
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/4-habit-ring__J-sonnet/try2/look.js",
+      "reply": "runs-round2/4-habit-ring__J-sonnet/try2/reply.txt",
+      "request": "runs-round2/4-habit-ring__J-sonnet/try2/request.md",
+      "image_sent": null,
+      "bytes": 3887,
+      "gen_seconds": 16.75,
+      "api_seconds": 11.97,
+      "num_turns": 1,
+      "output_tokens": 2008,
+      "input_tokens": 10119,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 3,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.20417785644531,
+          "ink_share": 0.8195920361548796,
+          "js_eval_ms": 0.44404199719429016,
+          "js_setup_ms": 1.1393329799175262,
+          "nodes": 10,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 53.84375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 57.32500001788139,
+          "tree_footprint_mb": 3.09393310546875,
+          "tree_ms": 1.7618749737739563,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 4,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.96977996826172,
+          "ink_share": 0.8193241636950246,
+          "js_eval_ms": 0.45295798778533936,
+          "js_setup_ms": 1.113834023475647,
+          "nodes": 55,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 59.046875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 65.06949999928474,
+          "tree_footprint_mb": 3.18768310546875,
+          "tree_ms": 1.9002499878406525,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 3,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 69.15725708007812,
+          "ink_share": 0.8198770408370994,
+          "js_eval_ms": 0.39783400297164917,
+          "js_setup_ms": 1.0209580063819885,
+          "nodes": 10,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 54.84375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 61.56449997425079,
+          "tree_footprint_mb": 3.0470352172851562,
+          "tree_ms": 1.588041990995407,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 4,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.71975708007812,
+          "ink_share": 0.819343031263561,
+          "js_eval_ms": 0.467290997505188,
+          "js_setup_ms": 1.0185840129852295,
+          "nodes": 55,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.84375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 58.58329200744629,
+          "tree_footprint_mb": 3.1095352172851562,
+          "tree_ms": 1.8098750114440918,
+          "variant": "js",
+          "png": "runs-round2/4-habit-ring__J-sonnet/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 3,
+        "a-medium": 4,
+        "b-small": 3,
+        "b-medium": 4
+      }
+    }
+  ]
+}

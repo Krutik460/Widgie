@@ -1,0 +1,112 @@
+```json
+{
+  "type": "zstack",
+  "widgetBackground": { "gradient": "linear", "stops": ["#D9CDB4", "#C4B496"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "zstack",
+      "rotation": -3,
+      "children": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 5,
+          "padding": { "top": 16, "bottom": 10, "leading": 12, "trailing": 12 },
+          "frame": { "width": "{{ width - 24 }}", "height": "{{ height - 24 }}", "alignment": "topLeading" },
+          "background": { "gradient": "linear", "stops": ["#FFEB7F", "#FFDD55"], "from": "top", "to": "bottom" },
+          "cornerRadius": 4,
+          "shadow": { "color": "#00000055", "radius": 6, "x": 1, "y": 3 },
+          "children": [
+            {
+              "type": "hstack",
+              "spacing": 6,
+              "align": "center",
+              "children": [
+                { "type": "text", "value": "To do", "size": 18, "weight": "bold", "design": "rounded", "italic": true, "color": "#4A3B1A" },
+                { "type": "spacer" },
+                { "type": "text", "value": "{{ data.doneCount }}/{{ data.total }}", "size": 12, "weight": "semibold", "design": "rounded", "italic": true, "color": "#7A6528" },
+                {
+                  "type": "button",
+                  "action": "openAdd",
+                  "children": [
+                    {
+                      "type": "symbol",
+                      "name": "plus",
+                      "size": 12,
+                      "weight": "bold",
+                      "color": "#4A3B1A",
+                      "frame": { "width": 22, "height": 22 },
+                      "background": "#4A3B1A22",
+                      "clip": "circle"
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "rect", "fill": "#4A3B1A33", "frame": { "height": 1 } },
+            {
+              "type": "if",
+              "test": "{{ data.total == 0 }}",
+              "then": [
+                { "type": "text", "value": "Nothing to do. Tap + to add.", "size": 14, "design": "rounded", "italic": true, "color": "#7A6528", "lineLimit": 2 }
+              ],
+              "else": [
+                {
+                  "type": "repeat",
+                  "over": "{{ data.items }}",
+                  "item": "item",
+                  "index": "i",
+                  "children": [
+                    {
+                      "type": "button",
+                      "action": "toggleDone",
+                      "rowId": "{{ item.id }}",
+                      "children": [
+                        {
+                          "type": "hstack",
+                          "spacing": 6,
+                          "align": "center",
+                          "frame": { "maxWidth": "infinity", "alignment": "leading" },
+                          "opacity": "{{ item.done ? 0.45 : 1 }}",
+                          "children": [
+                            {
+                              "type": "symbol",
+                              "name": "{{ item.done ? 'checkmark.circle.fill' : 'circle' }}",
+                              "size": 14,
+                              "color": "#4A3B1A"
+                            },
+                            {
+                              "type": "text",
+                              "value": "{{ item.title }}",
+                              "size": 14,
+                              "weight": "medium",
+                              "design": "rounded",
+                              "italic": true,
+                              "color": "#4A3B1A",
+                              "strikethrough": "{{ item.done }}",
+                              "lineLimit": 1,
+                              "minScale": 0.8
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "spacer" }
+          ]
+        },
+        {
+          "type": "rect",
+          "fill": "#FFFFFF99",
+          "frame": { "width": 44, "height": 14 },
+          "rotation": 2,
+          "offset": { "x": 0, "y": "{{ 0 - (height - 24) / 2 }}" }
+        }
+      ]
+    }
+  ]
+}
+```

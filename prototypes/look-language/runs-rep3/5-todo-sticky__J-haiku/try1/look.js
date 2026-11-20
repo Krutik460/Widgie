@@ -1,0 +1,122 @@
+function hash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const isMedium = ctx.family === 'medium';
+  const maxItems = isMedium ? 6 : 4;
+  const shown = d.items.slice(0, maxItems);
+  const hiddenCount = d.items.length - shown.length;
+
+  const ink = '#2B2A4C';
+  const inkFaded = '#8C8A9E';
+  const noteYellow = '#FFF176';
+  const noteShadow = '#E6D34A';
+
+  const rows = shown.map((item, i) => {
+    const tilt = ((hash(item.id) % 5) - 2) * 0.4;
+    const titleNode = {
+      type: 'text',
+      value: item.title,
+      size: isMedium ? 15 : 13,
+      weight: 'medium',
+      design: 'rounded',
+      italic: true,
+      color: item.done ? inkFaded : ink,
+      strikethrough: item.done,
+      lineLimit: 1,
+      minScale: 0.8,
+    };
+    const box = {
+      type: 'symbol',
+      name: item.done ? 'checkmark.square.fill' : 'square',
+      size: 13,
+      color: item.done ? inkFaded : ink,
+    };
+    return {
+      type: 'button',
+      action: 'toggleDone',
+      rowId: item.id,
+      children: [
+        {
+          type: 'hstack',
+          spacing: 6,
+          align: 'center',
+          rotation: tilt,
+          opacity: item.done ? 0.5 : 1,
+          children: [box, titleNode, { type: 'spacer' }],
+        },
+      ],
+    };
+  });
+
+  const footer = hiddenCount > 0
+    ? { type: 'text', value: '+' + hiddenCount + ' more', size: 11, italic: true, design: 'rounded', color: inkFaded }
+    : { type: 'text', value: d.doneCount + ' of ' + d.total + ' done', size: 11, italic: true, design: 'rounded', color: inkFaded };
+
+  const addButton = {
+    type: 'button',
+    action: 'openAdd',
+    children: [
+      {
+        type: 'symbol',
+        name: 'plus',
+        size: 12,
+        weight: 'bold',
+        color: ink,
+        frame: { width: 26, height: 26 },
+        background: '#FFFFFF88',
+        clip: 'circle',
+      },
+    ],
+  };
+
+  const note = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: isMedium ? 6 : 5,
+    padding: { top: 14, bottom: 10, leading: 14, trailing: 14 },
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    background: {
+      gradient: 'linear',
+      stops: [noteYellow, '#FFEB3B'],
+      from: 'topLeading',
+      to: 'bottomTrailing',
+    },
+    shadow: { color: '#00000033', radius: 4, x: 1, y: 2 },
+    rotation: -2,
+    children: [
+      {
+        type: 'hstack',
+        children: [
+          {
+            type: 'text',
+            value: 'To do',
+            size: 16,
+            weight: 'heavy',
+            design: 'rounded',
+            italic: true,
+            color: ink,
+          },
+          { type: 'spacer' },
+          addButton,
+        ],
+      },
+      { type: 'rect', fill: noteShadow, frame: { height: 1 } },
+      ...rows,
+      { type: 'spacer' },
+      footer,
+    ],
+  };
+
+  return {
+    type: 'zstack',
+    align: 'center',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+    widgetBackground: '#F2EDE4',
+    children: [note],
+  };
+}

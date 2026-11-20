@@ -1,0 +1,19 @@
+2-water-lcd__J-sonnet: validity first try, fit fits first time, 1 calls, before 0 after 0
+1-water-glass__J-haiku: validity first try, fit fit repaired, 2 calls, before 72 after 0
+3-habit-heatmap__J-sonnet: validity first try, fit fit repaired, 2 calls, before 23 after 0
+3-habit-heatmap__J-haiku: validity first try, fit fit repaired, 2 calls, before 7.7 after 0
+2-water-lcd__J-haiku: validity first try, fit fit repaired, 2 calls, before 32 after 0
+4-habit-ring__J-haiku: validity first try, fit fit repaired, 2 calls, before 12 after 0
+1-water-glass__J-sonnet: validity first try, fit fit repaired, 2 calls, before 40 after 2
+5-todo-sticky__J-sonnet: validity first try, fit fit repaired, 2 calls, before 34.9 after 0
+5-todo-sticky__J-haiku: validity first try, fit fit repaired, 2 calls, before 16 after 0
+4-habit-ring__J-sonnet: validity first try, fit fit repaired, 2 calls, before 13 after 0
+6-wotd-magazine__J-haiku: validity first try, fit fit repaired, 2 calls, before 26 after 0.3
+6-wotd-magazine__J-sonnet: validity first try, fit fit repaired, 2 calls, before 20.5 after 0
+R1-lcd-habit__J-sonnet: validity first try, fit fits first time, 1 calls, before 2 after 2
+R2-pass-todo__J-sonnet: validity first try, fit fit repaired, 2 calls, before 30.7 after 0
+R2-pass-todo__J-haiku: validity first try, fit fits first time, 1 calls, before 0 after 0
+R3-photo-water__J-sonnet: validity first try, fit fits first time, 1 calls, before 2 after 2
+R3-photo-water__J-haiku: validity first try, fit fit repaired, 2 calls, before 4 after 0
+R1-lcd-habit__J-haiku: validity first try, fit fits first time, 1 calls, before 0 after 0
+wrote results-round2.json with 18 of 18 cells

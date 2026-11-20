@@ -1,0 +1,98 @@
+{
+  "type": "zstack",
+  "widgetBackground": { "gradient": "linear", "stops": ["#B98F5A", "#9C7444"], "from": "topLeading", "to": "bottomTrailing" },
+  "children": [
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 5,
+      "padding": 12,
+      "frame": { "width": "{{ width - 16 }}", "height": "{{ height - 16 }}", "alignment": "topLeading" },
+      "background": { "gradient": "linear", "stops": ["#FFE873", "#FFD94A"], "from": "top", "to": "bottom" },
+      "cornerRadius": 4,
+      "shadow": { "color": "#00000055", "radius": 6, "x": 2, "y": 4 },
+      "rotation": -3,
+      "children": [
+        {
+          "type": "hstack",
+          "spacing": 6,
+          "align": "center",
+          "children": [
+            { "type": "text", "value": "To do", "size": 20, "weight": "bold", "design": "rounded", "italic": true, "color": "#4A3B12" },
+            { "type": "text", "value": "{{ data.doneCount }}/{{ data.total }}", "size": 13, "weight": "medium", "design": "rounded", "italic": true, "color": "#7A6420" },
+            { "type": "spacer" },
+            {
+              "type": "button",
+              "action": "openAdd",
+              "children": [
+                {
+                  "type": "symbol",
+                  "name": "plus",
+                  "size": 13,
+                  "weight": "bold",
+                  "color": "#4A3B12",
+                  "frame": { "width": 24, "height": 24 },
+                  "background": "#FFFFFF55",
+                  "clip": "circle"
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "rect", "fill": "#4A3B1233", "frame": { "height": 1 } },
+        {
+          "type": "if",
+          "test": "{{ data.total == 0 }}",
+          "then": [
+            { "type": "text", "value": "Nothing to do. Nice!", "size": 15, "design": "rounded", "italic": true, "color": "#7A6420", "padding": { "top": 6 } }
+          ],
+          "else": [
+            {
+              "type": "repeat",
+              "over": "{{ data.items }}",
+              "item": "it",
+              "index": "i",
+              "children": [
+                {
+                  "type": "button",
+                  "action": "toggleDone",
+                  "rowId": "{{ it.id }}",
+                  "children": [
+                    {
+                      "type": "hstack",
+                      "spacing": 7,
+                      "align": "center",
+                      "frame": { "maxWidth": "infinity", "alignment": "leading" },
+                      "opacity": "{{ it.done ? 0.45 : 1 }}",
+                      "children": [
+                        {
+                          "type": "symbol",
+                          "name": "{{ it.done ? 'checkmark.circle.fill' : 'circle' }}",
+                          "size": 15,
+                          "color": "#4A3B12"
+                        },
+                        {
+                          "type": "text",
+                          "value": "{{ it.title }}",
+                          "size": 15,
+                          "weight": "medium",
+                          "design": "rounded",
+                          "italic": true,
+                          "color": "#3B2F0C",
+                          "strikethrough": "{{ it.done }}",
+                          "lineLimit": 1,
+                          "minScale": 0.75
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer" }
+      ]
+    }
+  ]
+}

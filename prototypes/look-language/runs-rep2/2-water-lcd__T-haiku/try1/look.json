@@ -1,0 +1,137 @@
+{
+  "type": "hstack",
+  "align": "top",
+  "spacing": 12,
+  "padding": 10,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": "#9DB09A",
+  "children": [
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 4,
+      "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+      "children": [
+        {
+          "type": "hstack",
+          "children": [
+            { "type": "text", "value": "{{ data.unit }}", "size": 11, "weight": "bold", "design": "monospaced", "color": "#22301F", "lineLimit": 1 },
+            { "type": "spacer" },
+            { "type": "text", "value": "GOAL {{ data.goal }}", "size": 11, "weight": "bold", "design": "monospaced", "color": "#22301F", "lineLimit": 1 }
+          ]
+        },
+        {
+          "type": "zstack",
+          "align": "leading",
+          "children": [
+            { "type": "text", "value": "8888", "size": 48, "weight": "black", "design": "monospaced", "color": "#22301F1F", "lineLimit": 1, "minScale": 0.5 },
+            { "type": "text", "value": "{{ data.todayCount }}", "size": 48, "weight": "black", "design": "monospaced", "color": "#22301F", "lineLimit": 1, "minScale": 0.5 }
+          ]
+        },
+        {
+          "type": "hstack",
+          "spacing": 3,
+          "frame": { "maxWidth": "infinity" },
+          "children": [
+            {
+              "type": "repeat",
+              "over": "{{ range(16) }}",
+              "item": "g",
+              "index": "i",
+              "children": [
+                {
+                  "type": "if",
+                  "test": "{{ i < min(data.goal, 16) }}",
+                  "then": [
+                    {
+                      "type": "rect",
+                      "cornerRadius": 1,
+                      "fill": "{{ i < data.todayCount ? '#22301F' : '#22301F33' }}",
+                      "frame": { "maxWidth": "infinity", "height": 12 }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "hstack",
+          "spacing": 8,
+          "children": [
+            {
+              "type": "button",
+              "action": "undoLast",
+              "children": [
+                {
+                  "type": "symbol",
+                  "name": "minus",
+                  "size": 13,
+                  "weight": "bold",
+                  "color": "#22301F",
+                  "frame": { "width": 30, "height": 30 },
+                  "background": "#22301F33",
+                  "clip": "circle"
+                }
+              ]
+            },
+            { "type": "spacer" },
+            {
+              "type": "button",
+              "action": "addGlass",
+              "children": [
+                {
+                  "type": "symbol",
+                  "name": "plus",
+                  "size": 13,
+                  "weight": "bold",
+                  "color": "#9DB09A",
+                  "frame": { "width": 30, "height": 30 },
+                  "background": "#22301F",
+                  "clip": "circle"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 4,
+          "children": [
+            { "type": "text", "value": "LAST 7", "size": 10, "weight": "bold", "design": "monospaced", "color": "#22301F", "lineLimit": 1 },
+            {
+              "type": "hstack",
+              "align": "bottom",
+              "spacing": 4,
+              "frame": { "height": 70, "alignment": "bottom" },
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ data.last7 }}",
+                  "item": "v",
+                  "index": "d",
+                  "children": [
+                    {
+                      "type": "rect",
+                      "cornerRadius": 1,
+                      "fill": "{{ d == 6 ? '#22301F' : '#22301F88' }}",
+                      "frame": { "width": 12, "height": "{{ 3 + 64 * min(v, max(data.goal, 1)) / max(data.goal, 1) }}" }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

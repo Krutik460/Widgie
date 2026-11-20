@@ -1,0 +1,96 @@
+function lerpColor(a, b, t) {
+  const pa = [1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map(i => parseInt(b.slice(i, i + 2), 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const streak = Math.max(0, Math.floor(Number(d.streak) || 0));
+  const t = Math.min(streak / 30, 1);
+  const mid = t < 0.5
+    ? lerpColor('#FF3B30', '#FFCC00', t * 2)
+    : lerpColor('#FFCC00', '#34C759', (t - 0.5) * 2);
+  const color = mid;
+  const progress = Math.max(streak > 0 ? 0.04 : 0, t);
+  const medium = ctx.family === 'medium';
+  const ringSize = medium ? 126 : 112;
+  const lw = medium ? 12 : 11;
+
+  const ring = {
+    type: 'zstack',
+    frame: { width: ringSize, height: ringSize },
+    children: [
+      { type: 'circle', stroke: { color: '#FFFFFF1F', width: lw }, frame: { width: ringSize, height: ringSize } },
+      {
+        type: 'circle',
+        stroke: { color: color, width: lw, cap: 'round' },
+        trimFrom: 0,
+        trimTo: progress,
+        rotation: -90,
+        frame: { width: ringSize, height: ringSize },
+      },
+      {
+        type: 'vstack',
+        spacing: 0,
+        children: [
+          { type: 'symbol', name: 'flame.fill', size: medium ? 30 : 26, color: d.doneToday ? color : '#8A8A8E' },
+          { type: 'text', value: String(streak), size: medium ? 34 : 30, weight: 'bold', design: 'rounded', color: '#FFFFFF', lineLimit: 1, minScale: 0.5 },
+        ],
+      },
+    ],
+  };
+
+  const ringButton = {
+    type: 'button',
+    action: 'toggleToday',
+    children: [ring],
+  };
+
+  const last = d.days.slice(-14);
+  const dots = [last.slice(0, 7), last.slice(7)].map(row => ({
+    type: 'hstack',
+    spacing: 6,
+    children: row.map(x => ({
+      type: 'circle',
+      fill: x.done ? color : '#FFFFFF22',
+      frame: { width: 14, height: 14 },
+    })),
+  }));
+
+  const side = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 8,
+    children: [
+      { type: 'text', value: d.name, size: 20, weight: 'bold', color: '#FFFFFF', lineLimit: 1, minScale: 0.6 },
+      { type: 'text', value: streak + (streak === 1 ? ' day streak' : ' day streak'), size: 13, color: '#9AA0A6', lineLimit: 1 },
+      { type: 'vstack', align: 'leading', spacing: 6, children: dots },
+      {
+        type: 'button',
+        action: 'toggleToday',
+        children: [{
+          type: 'hstack',
+          spacing: 5,
+          padding: { horizontal: 12, vertical: 6 },
+          background: d.doneToday ? color : '#FFFFFF22',
+          clip: 'capsule',
+          children: [
+            { type: 'symbol', name: d.doneToday ? 'checkmark' : 'circle', size: 12, weight: 'bold', color: d.doneToday ? '#000000' : '#FFFFFF' },
+            { type: 'text', value: d.doneToday ? 'Done' : 'Mark done', size: 12, weight: 'semibold', color: d.doneToday ? '#000000' : '#FFFFFF' },
+          ],
+        }],
+      },
+    ],
+  };
+
+  return {
+    type: 'hstack',
+    spacing: 18,
+    align: 'center',
+    padding: 14,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: { gradient: 'linear', stops: ['#1C1C22', '#0B0B0F'], from: 'top', to: 'bottom' },
+    children: medium ? [ringButton, side] : [ringButton],
+  };
+}

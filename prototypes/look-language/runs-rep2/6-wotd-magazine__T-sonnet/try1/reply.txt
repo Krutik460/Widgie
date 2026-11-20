@@ -1,0 +1,117 @@
+```json
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 6,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#F7EFDD", "#EFE2C6"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "align": "center",
+      "spacing": 6,
+      "children": [
+        {
+          "type": "text",
+          "value": "{{ data.word }}",
+          "size": 78,
+          "weight": "bold",
+          "design": "serif",
+          "color": "#8C1C2B",
+          "lineLimit": 1,
+          "frame": { "width": 50, "height": 64, "alignment": "leading" },
+          "clip": "rect",
+          "mask": {
+            "type": "rect",
+            "fill": {
+              "gradient": "linear",
+              "stops": [
+                { "color": "#000000", "at": 0.65 },
+                { "color": "#00000000", "at": 0.95 }
+              ],
+              "from": "leading",
+              "to": "trailing"
+            }
+          }
+        },
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "{{ data.word }}",
+              "size": 20,
+              "weight": "semibold",
+              "design": "serif",
+              "italic": true,
+              "color": "#5E1220",
+              "lineLimit": 1,
+              "minScale": 0.5
+            },
+            {
+              "type": "text",
+              "value": "{{ data.partOfSpeech }}",
+              "size": 10,
+              "weight": "medium",
+              "design": "serif",
+              "color": "#8C1C2B",
+              "kerning": 1.5,
+              "lineLimit": 1
+            },
+            {
+              "type": "if",
+              "test": "{{ family == 'medium' }}",
+              "then": [
+                {
+                  "type": "text",
+                  "value": "{{ data.date }}",
+                  "size": 10,
+                  "design": "serif",
+                  "color": "#8C1C2B99",
+                  "kerning": 1,
+                  "lineLimit": 1
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer" }
+      ]
+    },
+    {
+      "type": "rect",
+      "fill": "#8C1C2B",
+      "frame": { "height": 1.5, "maxWidth": "infinity" }
+    },
+    {
+      "type": "text",
+      "value": "{{ data.definition }}",
+      "size": 12,
+      "design": "serif",
+      "color": "#3A1A1A",
+      "lineLimit": "{{ family == 'medium' ? 3 : 4 }}",
+      "minScale": 0.8
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "text",
+          "value": "“{{ data.example }}”",
+          "size": 11,
+          "design": "serif",
+          "italic": true,
+          "color": "#8C1C2B",
+          "lineLimit": 2,
+          "minScale": 0.8
+        }
+      ]
+    },
+    { "type": "spacer" }
+  ]
+}
+```

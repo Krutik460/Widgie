@@ -1,0 +1,182 @@
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const goal = Math.max(d.goal, 1);
+  const count = Math.max(d.todayCount, 0);
+  const progress = Math.min(count / goal, 1);
+  const done = count >= goal;
+
+  const gw = medium ? 78 : 64;
+  const gh = medium ? 132 : 100;
+  const waterH = Math.round(gh * progress);
+
+  const bubbleDefs = [
+    { x: -0.22, y: 0.10, s: 9 },
+    { x: 0.18, y: 0.22, s: 6 },
+    { x: -0.05, y: 0.38, s: 8 },
+    { x: 0.24, y: 0.55, s: 5 },
+    { x: -0.2, y: 0.68, s: 7 },
+    { x: 0.08, y: 0.82, s: 5 },
+  ];
+  const bubbles = bubbleDefs
+    .filter(b => b.y * gh + b.s < waterH - 6)
+    .map(b => ({
+      type: 'circle',
+      fill: '#FFFFFF44',
+      stroke: { color: '#FFFFFF99', width: 1 },
+      frame: { width: b.s, height: b.s },
+      offset: { x: b.x * gw, y: -(b.y * gh) - 2 },
+    }));
+
+  const water = waterH > 0 && {
+    type: 'rect',
+    fill: { gradient: 'linear', stops: ['#7FDBFF', '#1E90FF', '#0A5BD8'], from: 'top', to: 'bottom' },
+    frame: { height: waterH, maxWidth: 'infinity' },
+    overlay: {
+      type: 'zstack',
+      align: 'top',
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'top' },
+      children: [
+        { type: 'capsule', fill: '#FFFFFF66', frame: { width: gw - 26, height: 4 }, padding: { top: 4 } },
+      ],
+    },
+  };
+
+  const glass = {
+    type: 'zstack',
+    align: 'bottom',
+    frame: { width: gw, height: gh },
+    background: '#FFFFFF26',
+    cornerRadius: 16,
+    overlay: { type: 'rect', cornerRadius: 16, stroke: { color: '#FFFFFFCC', width: 2.5 } },
+    children: [water, bubbles],
+  };
+
+  const plus = {
+    type: 'button',
+    action: 'addGlass',
+    children: [
+      {
+        type: 'symbol',
+        name: 'plus',
+        size: medium ? 38 : 32,
+        weight: 'heavy',
+        color: '#0A5BD8',
+        frame: { width: medium ? 78 : 60, height: medium ? 78 : 60 },
+        background: { gradient: 'linear', stops: ['#FFFFFF', '#CFF1FF'], from: 'top', to: 'bottom' },
+        clip: 'circle',
+        shadow: { color: '#00306099', radius: 6, x: 0, y: 3 },
+      },
+    ],
+  };
+
+  const undo = {
+    type: 'button',
+    action: 'undoLast',
+    children: [
+      {
+        type: 'symbol',
+        name: 'arrow.uturn.backward',
+        size: 12,
+        weight: 'bold',
+        color: '#FFFFFF',
+        frame: { width: 26, height: 26 },
+        background: '#FFFFFF2E',
+        clip: 'circle',
+      },
+    ],
+  };
+
+  const bg = { gradient: 'linear', stops: ['#38B6FF', '#1565D8', '#0B2F8A'], from: 'top', to: 'bottom' };
+
+  if (!medium) {
+    return {
+      type: 'vstack',
+      spacing: 6,
+      padding: 12,
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'top' },
+      widgetBackground: bg,
+      children: [
+        {
+          type: 'hstack',
+          spacing: 4,
+          align: 'center',
+          children: [
+            { type: 'text', value: String(count), size: 20, weight: 'heavy', design: 'rounded', color: '#FFFFFF' },
+            { type: 'text', value: '/ ' + goal, size: 13, weight: 'semibold', design: 'rounded', color: '#FFFFFFB3' },
+            done && { type: 'symbol', name: 'checkmark.circle.fill', size: 14, color: '#B8FFD9' },
+            { type: 'spacer' },
+            undo,
+          ],
+        },
+        {
+          type: 'hstack',
+          spacing: 12,
+          align: 'center',
+          children: [glass, plus],
+        },
+      ],
+    };
+  }
+
+  const maxV = Math.max(goal, 1, ...d.last7);
+  const bars = d.last7.map((v, i) => ({
+    type: 'capsule',
+    fill: i === d.last7.length - 1 ? '#FFFFFF' : '#FFFFFF66',
+    frame: { width: 12, height: 5 + 30 * Math.min(Math.max(v, 0) / maxV, 1) },
+  }));
+
+  return {
+    type: 'hstack',
+    spacing: 14,
+    align: 'center',
+    padding: 13,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: bg,
+    children: [
+      glass,
+      {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 6,
+        frame: { maxWidth: 'infinity', alignment: 'leading' },
+        children: [
+          {
+            type: 'hstack',
+            spacing: 4,
+            align: 'firstBaseline',
+            children: [
+              { type: 'text', value: String(count), size: 44, weight: 'heavy', design: 'rounded', color: '#FFFFFF', lineLimit: 1, minScale: 0.5 },
+              { type: 'text', value: '/ ' + goal, size: 18, weight: 'semibold', design: 'rounded', color: '#FFFFFFB3', lineLimit: 1 },
+            ],
+          },
+          {
+            type: 'hstack',
+            spacing: 6,
+            children: [
+              { type: 'text', value: done ? 'Goal reached!' : d.unit + ' today', size: 12, weight: 'medium', design: 'rounded', color: '#FFFFFFD9', lineLimit: 1, minScale: 0.7 },
+              done && { type: 'symbol', name: 'checkmark.circle.fill', size: 13, color: '#B8FFD9' },
+            ],
+          },
+          {
+            type: 'hstack',
+            spacing: 5,
+            align: 'bottom',
+            frame: { height: 38, alignment: 'bottom' },
+            children: bars,
+          },
+          {
+            type: 'hstack',
+            spacing: 6,
+            children: [
+              { type: 'text', value: 'Last 7 days', size: 10, weight: 'medium', design: 'rounded', color: '#FFFFFF99' },
+              { type: 'spacer' },
+              undo,
+            ],
+          },
+        ],
+      },
+      plus,
+    ],
+  };
+}

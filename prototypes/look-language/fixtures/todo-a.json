@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "id": "t1",
+      "title": "Buy oat milk",
+      "done": false
+    },
+    {
+      "id": "t2",
+      "title": "Call the dentist",
+      "done": true
+    },
+    {
+      "id": "t3",
+      "title": "Water the plants",
+      "done": false
+    },
+    {
+      "id": "t4",
+      "title": "Send rent to landlord",
+      "done": false
+    }
+  ],
+  "doneCount": 1,
+  "total": 4
+}

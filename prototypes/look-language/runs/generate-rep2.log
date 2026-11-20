@@ -1,0 +1,25 @@
+1-water-glass__T-haiku: first try  4638 bytes  7.73 s
+1-water-glass__J-haiku: first try  4701 bytes  8.17 s
+2-water-lcd__J-haiku: first try  3822 bytes  8.46 s
+2-water-lcd__T-sonnet: first try  3528 bytes  17.09 s
+2-water-lcd__J-sonnet: first try  4057 bytes  11.47 s
+1-water-glass__T-sonnet: first try  4926 bytes  22.11 s
+3-habit-heatmap__J-haiku: first try  1949 bytes  6.41 s
+1-water-glass__J-sonnet: first try  5450 bytes  27.94 s
+3-habit-heatmap__T-haiku: first try  1728 bytes  17.6 s
+2-water-lcd__T-haiku: first try  4409 bytes  38.73 s
+3-habit-heatmap__T-sonnet: first try  3968 bytes  21.43 s
+3-habit-heatmap__J-sonnet: first try  3402 bytes  16.41 s
+4-habit-ring__J-haiku: first try  4090 bytes  6.68 s
+5-todo-sticky__T-haiku: first try  2468 bytes  4.17 s
+4-habit-ring__T-haiku: first try  3407 bytes  17.44 s
+5-todo-sticky__J-haiku: first try  2893 bytes  5.56 s
+4-habit-ring__T-sonnet: first try  4156 bytes  19.95 s
+4-habit-ring__J-sonnet: first try  3299 bytes  9.54 s
+6-wotd-magazine__J-haiku: first try  2560 bytes  5.82 s
+5-todo-sticky__T-sonnet: first try  4273 bytes  18.56 s
+6-wotd-magazine__J-sonnet: first try  3937 bytes  10.56 s
+5-todo-sticky__J-sonnet: first try  3154 bytes  16.18 s
+6-wotd-magazine__T-haiku: repaired  1728 bytes  5.41 s  first error: cannot read .substring of "petrichor" in expression " data.word.substring ? '' : '' "
+6-wotd-magazine__T-sonnet: first try  3006 bytes  19.91 s
+wrote results-rep2.json with 24 of 24 cells

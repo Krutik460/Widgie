@@ -1,0 +1,27 @@
+This is a vintage-style airline boarding pass for Trans-Coastal Air Lines, with a teal header, a cream body, and a perforated passenger stub on the right. It shows a passenger flying from SFO to JFK on flight TC 418, with a red "BOARDED" stamp across the front.
+
+Text in the image, in reading order:
+
+- BOARDING PASS
+- TRANS-COASTAL AIR LINES
+- PASSENGER STUB
+- NAME OF PASSENGER
+- M. HOLLOWAY
+- FROM
+- TO
+- SFO
+- JFK
+- BOARDED
+- FLIGHT
+- GATE
+- SEAT
+- DATE
+- TC 418
+- B12
+- 14A
+- 18 NOV
+- SEAT
+- GATE
+- 14A
+- B12
+- 0418 7731 2200 6

@@ -1,0 +1,114 @@
+```js
+function render(ctx) {
+  const d = ctx.data;
+  const NEON = '#39FF14';
+  const DIM = '#0F2A0F';
+  const BG = '#000000';
+  const ROWS = 7;
+  const COLS = 6;
+  const medium = ctx.family === 'medium';
+  const cell = medium ? 16 : 12;
+  const gap = medium ? 4 : 3;
+
+  const days = d.days.slice(-35);
+  const weekday = s => {
+    const p = s.split('-').map(Number);
+    return (new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay() + 6) % 7;
+  };
+  const offset = days.length ? weekday(days[0].date) : 0;
+
+  const cols = [];
+  for (let c = 0; c < COLS; c++) cols.push(Array(ROWS).fill(null));
+  days.forEach((day, i) => {
+    const p = i + offset;
+    const c = Math.floor(p / 7);
+    const r = p % 7;
+    if (c < COLS) cols[c][r] = day;
+  });
+  const today = days.length ? days[days.length - 1] : null;
+
+  const grid = {
+    type: 'hstack',
+    spacing: gap,
+    children: cols.map(col => ({
+      type: 'vstack',
+      spacing: gap,
+      children: col.map(day => {
+        const node = {
+          type: 'rect',
+          cornerRadius: medium ? 4 : 3,
+          fill: day && day.done ? NEON : DIM,
+          frame: { width: cell, height: cell },
+        };
+        if (day && day === today) node.stroke = { color: '#FFFFFF', width: 1 };
+        return node;
+      }),
+    })),
+  };
+
+  const toggle = {
+    type: 'button',
+    action: 'toggleToday',
+    children: [
+      {
+        type: 'symbol',
+        name: d.doneToday ? 'checkmark.circle.fill' : 'circle',
+        size: 18,
+        color: NEON,
+      },
+    ],
+  };
+
+  let content;
+  if (medium) {
+    content = {
+      type: 'hstack',
+      spacing: 14,
+      align: 'top',
+      children: [
+        {
+          type: 'vstack',
+          align: 'leading',
+          spacing: 4,
+          frame: { width: 130, maxHeight: 'infinity', alignment: 'topLeading' },
+          children: [
+            { type: 'text', value: d.name, size: 15, weight: 'bold', color: NEON, lineLimit: 1, minScale: 0.6 },
+            { type: 'text', value: d.streak + ' day streak', size: 12, weight: 'semibold', color: NEON, lineLimit: 1, minScale: 0.6 },
+            { type: 'spacer' },
+            toggle,
+          ],
+        },
+        grid,
+      ],
+    };
+  } else {
+    content = {
+      type: 'vstack',
+      align: 'leading',
+      spacing: 6,
+      children: [
+        {
+          type: 'hstack',
+          spacing: 6,
+          children: [
+            { type: 'text', value: d.name, size: 13, weight: 'bold', color: NEON, lineLimit: 1, minScale: 0.6 },
+            { type: 'spacer' },
+            { type: 'text', value: d.streak + 'd', size: 12, weight: 'semibold', color: NEON },
+            toggle,
+          ],
+        },
+        grid,
+      ],
+    };
+  }
+
+  return {
+    type: 'vstack',
+    align: 'leading',
+    padding: 10,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: BG,
+    children: [content],
+  };
+}
+```

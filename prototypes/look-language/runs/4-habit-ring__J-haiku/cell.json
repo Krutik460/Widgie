@@ -1,0 +1,171 @@
+{
+  "id": "4-habit-ring__J-haiku",
+  "prompt_id": "4-habit-ring",
+  "widget": "habit",
+  "variant": "js",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3654,
+  "output_bytes_first_try": 3654,
+  "gen_seconds": 6.3,
+  "repair_gen_seconds": null,
+  "render_ms": 47.582,
+  "tree_ms": 1.57,
+  "peak_rss_mb": 45.859,
+  "js_setup_ms": 0.915,
+  "js_eval_ms": 0.402,
+  "nodes": 57,
+  "ink_share_min": 0.792,
+  "overflow_pt": {
+    "a-small": 24,
+    "a-medium": 0,
+    "b-small": 24,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.1237,
+    "medium": 0.077
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/4-habit-ring__J-haiku/try1/look.js",
+      "reply": "runs/4-habit-ring__J-haiku/try1/reply.txt",
+      "bytes": 3654,
+      "gen_seconds": 6.3,
+      "api_seconds": 6.1,
+      "output_tokens": 1587,
+      "thinking_tokens": 0,
+      "input_tokens": 6304,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 182,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.42276763916016,
+          "ink_share": 0.7952037783477871,
+          "js_eval_ms": 0.3907500207424164,
+          "js_setup_ms": 0.8846249878406525,
+          "nodes": 12,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 40.375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 47.187375009059906,
+          "tree_footprint_mb": 3.09393310546875,
+          "tree_ms": 1.4200409948825836,
+          "variant": "js",
+          "png": "runs/4-habit-ring__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 71.53214263916016,
+          "ink_share": 0.792022792022792,
+          "js_eval_ms": 0.4020409882068634,
+          "js_setup_ms": 0.8590420186519623,
+          "nodes": 57,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 45.953125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 47.775000005960464,
+          "tree_footprint_mb": 3.15643310546875,
+          "tree_ms": 1.570250004529953,
+          "variant": "js",
+          "png": "runs/4-habit-ring__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 182,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.23526763916016,
+          "ink_share": 0.7999674280363177,
+          "js_eval_ms": 0.39274999499320984,
+          "js_setup_ms": 0.9322080016136169,
+          "nodes": 12,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 40.1875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 45.42370802164078,
+          "tree_footprint_mb": 3.12518310546875,
+          "tree_ms": 1.4744170010089874,
+          "variant": "js",
+          "png": "runs/4-habit-ring__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 71.42276763916016,
+          "ink_share": 0.7926642893530311,
+          "js_eval_ms": 0.41462498903274536,
+          "js_setup_ms": 0.9152910113334656,
+          "nodes": 57,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 45.859375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 47.582332998514175,
+          "tree_footprint_mb": 3.21893310546875,
+          "tree_ms": 1.6241669952869415,
+          "variant": "js",
+          "png": "runs/4-habit-ring__J-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,590 @@
+{
+  "id": "6-wotd-magazine__J-sonnet",
+  "group": "rerun",
+  "job_id": "6-wotd-magazine",
+  "widget": "wotd",
+  "user_words": "elegant magazine typography, serif, a giant first letter, cream and deep red",
+  "reference_image": null,
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 11.5,
+    "a-medium": 20.5,
+    "b-small": 11.5,
+    "b-medium": 20.5
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 2
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [
+    "Didot"
+  ],
+  "state_diff_share": {
+    "small": 0.1232,
+    "medium": 0.1177
+  },
+  "actions_used": [],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 3813,
+  "gen_seconds_total": 36.27,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/6-wotd-magazine__J-sonnet/try1/look.js",
+      "reply": "runs-round2/6-wotd-magazine__J-sonnet/try1/reply.txt",
+      "request": "runs-round2/6-wotd-magazine__J-sonnet/try1/request.md",
+      "image_sent": null,
+      "bytes": 3390,
+      "gen_seconds": 12.57,
+      "api_seconds": 12.33,
+      "num_turns": 1,
+      "output_tokens": 1499,
+      "input_tokens": 6486,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 11.5,
+            "cut": [
+              {
+                "label": "P",
+                "max": 11.5,
+                "path": "root.children[0].children[0].children[0].children[0]",
+                "top": 11.5,
+                "type": "text",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 1,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 11.5,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 11.5,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 68.21968841552734,
+          "ink_share": 0.2651357843736004,
+          "js_eval_ms": 0.3886669874191284,
+          "js_setup_ms": 1.2912920117378235,
+          "nodes": 16,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 49.5625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 50.59450000524521,
+          "tree_footprint_mb": 3.06268310546875,
+          "tree_ms": 1.9525000154972076,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 20.5,
+            "cut": [
+              {
+                "label": "P",
+                "max": 20.5,
+                "path": "root.children[0].children[0].children[0].children[0]",
+                "top": 20.5,
+                "type": "text",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 1,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 20.5,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 20.5,
+            "texts": 7,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 70.82906341552734,
+          "ink_share": 0.19592083168242114,
+          "js_eval_ms": 0.34849998354911804,
+          "js_setup_ms": 1.011792004108429,
+          "nodes": 17,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 52.375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 47.014125019311905,
+          "tree_footprint_mb": 3.0626602172851562,
+          "tree_ms": 1.6051659882068634,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 11.5,
+            "cut": [
+              {
+                "label": "S",
+                "max": 11.5,
+                "path": "root.children[0].children[0].children[0].children[0]",
+                "top": 11.5,
+                "type": "text",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 1,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 11.5,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 11.5,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 68.39158630371094,
+          "ink_share": 0.2744595089776475,
+          "js_eval_ms": 0.36195799708366394,
+          "js_setup_ms": 1.1589590013027191,
+          "nodes": 16,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 49.71875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 52.45716601610184,
+          "tree_footprint_mb": 3.04705810546875,
+          "tree_ms": 1.7617500126361847,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 20.5,
+            "cut": [
+              {
+                "label": "S",
+                "max": 20.5,
+                "path": "root.children[0].children[0].children[0].children[0]",
+                "top": 20.5,
+                "type": "text",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 1,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 20.5,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 20.5,
+            "texts": 7,
+            "truncated": [
+              {
+                "height": 13,
+                "height_needed": 26,
+                "line_limit": 3,
+                "lines_needed": 2,
+                "path": "root.children[0].children[2]",
+                "value": "Given to using long words; (of a word) containing many sylla",
+                "width": 305.3
+              },
+              {
+                "height": 12,
+                "height_needed": 24,
+                "line_limit": 2,
+                "lines_needed": 2,
+                "path": "root.children[0].children[3]",
+                "value": "\u201cHis sesquipedalian emails took longer to decode than the me",
+                "width": 307
+              }
+            ]
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 70.81346130371094,
+          "ink_share": 0.19243033150317923,
+          "js_eval_ms": 0.3550410270690918,
+          "js_setup_ms": 1.0471669733524323,
+          "nodes": 17,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 52.375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 43.42662501335144,
+          "tree_footprint_mb": 3.1095809936523438,
+          "tree_ms": 1.6480840146541595,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 11.5,
+        "a-medium": 20.5,
+        "b-small": 11.5,
+        "b-medium": 20.5
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 11.5,
+        "a-medium": 20.5,
+        "b-small": 11.5,
+        "b-medium": 20.5
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 2
+      },
+      "texts": {
+        "a-small": 6,
+        "a-medium": 7,
+        "b-small": 6,
+        "b-medium": 7
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/6-wotd-magazine__J-sonnet/try2/look.js",
+      "reply": "runs-round2/6-wotd-magazine__J-sonnet/try2/reply.txt",
+      "request": "runs-round2/6-wotd-magazine__J-sonnet/try2/request.md",
+      "image_sent": null,
+      "bytes": 3813,
+      "gen_seconds": 23.7,
+      "api_seconds": 27.12,
+      "num_turns": 1,
+      "output_tokens": 3237,
+      "input_tokens": 8544,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 5,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 68.04781341552734,
+          "ink_share": 0.15764830422214082,
+          "js_eval_ms": 0.34995800256729126,
+          "js_setup_ms": 1.0764580070972443,
+          "nodes": 11,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 49.359375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 50.14220800995827,
+          "tree_footprint_mb": 2.9689102172851562,
+          "tree_ms": 1.610291987657547,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 70.28221130371094,
+          "ink_share": 0.28974925001415064,
+          "js_eval_ms": 0.35154199600219727,
+          "js_setup_ms": 1.0055420100688934,
+          "nodes": 12,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 51.8125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 47.564333975315094,
+          "tree_footprint_mb": 2.96893310546875,
+          "tree_ms": 1.573375016450882,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 5,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 68.00093841552734,
+          "ink_share": 0.19311102968120186,
+          "js_eval_ms": 0.35450002551078796,
+          "js_setup_ms": 1.0775409936904907,
+          "nodes": 11,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 49.375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 54.10374999046326,
+          "tree_footprint_mb": 2.98455810546875,
+          "tree_ms": 1.6132089793682098,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 6,
+            "truncated": []
+          },
+          "fonts_used": [
+            "Didot"
+          ],
+          "footprint_mb": 70.53218841552734,
+          "ink_share": 0.3296918926057999,
+          "js_eval_ms": 0.3567909896373749,
+          "js_setup_ms": 1.045625001192093,
+          "nodes": 12,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 52.140625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 40.61687499284744,
+          "tree_footprint_mb": 2.9688873291015625,
+          "tree_ms": 1.6242919862270355,
+          "variant": "js",
+          "png": "runs-round2/6-wotd-magazine__J-sonnet/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 5,
+        "a-medium": 6,
+        "b-small": 5,
+        "b-medium": 6
+      }
+    }
+  ]
+}

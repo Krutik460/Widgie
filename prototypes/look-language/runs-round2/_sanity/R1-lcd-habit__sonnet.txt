@@ -1,0 +1,12 @@
+This is a water-tracking widget in a muted olive-green palette, showing a count of 2 out of 8 glasses with a row of progress squares (two filled) and an "ADD" and undo button. On the right, a 7-day bar chart shows daily intake, with today's bar being the shortest and highlighted in dark green.
+
+**Text in the image:**
+- WATER
+- GLASSES
+- 7 DAY LOG
+- 02
+- /8
+- + ADD
+- TODAY 02 / 08
+
+(A faint, ghosted "08" also appears behind the large "02".)

@@ -1,0 +1,10 @@
+The image shows a green water-tracking widget with a large "02 /8" glass counter, eight segment indicators (two filled), and an ADD button with an undo icon. On the right, a 7-day log bar chart highlights the most recent day, with today's total at 02 of 8.
+
+Text in the image:
+- WATER
+- GLASSES
+- 7 DAY LOG
+- 02
+- /8
+- ADD
+- TODAY 02 / 08

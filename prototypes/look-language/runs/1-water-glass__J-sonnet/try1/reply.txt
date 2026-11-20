@@ -1,0 +1,169 @@
+```js
+function clamp(v, a, b) {
+  return Math.min(Math.max(v, a), b);
+}
+
+const GLASS_D = 'M0 0 L100 0 L88 120 Q87 130 77 130 L23 130 Q13 130 12 120 Z';
+
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const goal = d.goal > 0 ? d.goal : 1;
+  const p = clamp(d.todayCount / goal, 0, 1);
+  const done = d.todayCount >= goal;
+
+  const W = medium ? 84 : 58;
+  const H = Math.round(W * 1.3);
+  const waterH = H * p;
+
+  const bubbleDefs = [
+    { x: 0.25, y: 0.08, r: 6 },
+    { x: 0.6, y: 0.2, r: 4 },
+    { x: 0.42, y: 0.4, r: 8 },
+    { x: 0.72, y: 0.55, r: 5 },
+    { x: 0.3, y: 0.7, r: 4 },
+  ];
+  const bubbles = bubbleDefs
+    .filter(b => b.y * H + b.r * 2 < waterH)
+    .map(b => ({
+      type: 'circle',
+      stroke: { color: '#FFFFFFAA', width: 1.2 },
+      fill: '#FFFFFF33',
+      frame: { width: b.r * 2, height: b.r * 2 },
+      offset: { x: b.x * W, y: -(b.y * H) - 4 },
+    }));
+
+  const water = {
+    type: 'zstack',
+    align: 'bottomLeading',
+    frame: { width: W, height: H, alignment: 'bottom' },
+    mask: { type: 'path', d: GLASS_D, viewBox: [0, 0, 100, 130], fill: '#000000', frame: { width: W, height: H } },
+    children: [
+      {
+        type: 'rect',
+        fill: { gradient: 'linear', stops: ['#7FD8FF', '#1E88E5'], from: 'top', to: 'bottom' },
+        frame: { width: W, height: Math.max(waterH, 0) },
+      },
+      bubbles,
+    ],
+  };
+
+  const glass = {
+    type: 'zstack',
+    align: 'bottom',
+    frame: { width: W, height: H },
+    children: [
+      { type: 'path', d: GLASS_D, viewBox: [0, 0, 100, 130], fill: '#FFFFFF18', frame: { width: W, height: H } },
+      water,
+      { type: 'path', d: GLASS_D, viewBox: [0, 0, 100, 130], stroke: { color: '#FFFFFFCC', width: 2, cap: 'round' }, frame: { width: W, height: H } },
+    ],
+  };
+
+  const countRow = {
+    type: 'hstack',
+    align: 'firstBaseline',
+    spacing: 2,
+    children: [
+      { type: 'text', value: String(d.todayCount), size: medium ? 40 : 32, weight: 'heavy', design: 'rounded', color: '#FFFFFF' },
+      { type: 'text', value: '/' + d.goal, size: medium ? 18 : 14, weight: 'semibold', design: 'rounded', color: '#BDE6FF' },
+    ],
+  };
+
+  const undo = {
+    type: 'button',
+    action: 'undoLast',
+    children: [
+      {
+        type: 'symbol', name: 'arrow.uturn.backward', size: 11, weight: 'bold', color: '#FFFFFF',
+        frame: { width: 24, height: 24 }, background: '#FFFFFF2E', clip: 'circle',
+      },
+    ],
+  };
+
+  const plusSize = medium ? 72 : 62;
+  const plus = {
+    type: 'button',
+    action: 'addGlass',
+    children: [
+      {
+        type: 'symbol', name: 'plus', size: medium ? 36 : 30, weight: 'heavy', color: '#0B5CAD',
+        frame: { width: plusSize, height: plusSize },
+        background: { gradient: 'linear', stops: ['#FFFFFF', '#BDE9FF'], from: 'top', to: 'bottom' },
+        clip: 'circle',
+        shadow: { color: '#00000055', radius: 6, x: 0, y: 3 },
+      },
+    ],
+  };
+
+  const maxV = Math.max(goal, ...d.last7, 1);
+  const bars = {
+    type: 'hstack',
+    align: 'bottom',
+    spacing: 5,
+    children: d.last7.map((v, i) => ({
+      type: 'rect',
+      cornerRadius: 4,
+      fill: i === d.last7.length - 1 ? '#FFFFFF' : (v >= goal ? '#7FD8FF' : '#FFFFFF55'),
+      frame: { width: 12, height: 4 + 34 * clamp(v, 0, maxV) / maxV },
+    })),
+  };
+
+  const statusText = done ? 'Goal reached!' : (d.goal - d.todayCount) + ' more ' + d.unit;
+
+  const middle = medium
+    ? {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 6,
+        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'leading' },
+        children: [
+          countRow,
+          { type: 'text', value: statusText, size: 12, weight: 'semibold', color: '#BDE6FF', lineLimit: 1, minScale: 0.7 },
+          { type: 'spacer' },
+          { type: 'text', value: 'Last 7 days', size: 10, weight: 'medium', color: '#BDE6FF99' },
+          bars,
+        ],
+      }
+    : null;
+
+  const rightSmall = {
+    type: 'vstack',
+    align: 'trailing',
+    spacing: 4,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'trailing' },
+    children: [
+      {
+        type: 'hstack',
+        align: 'center',
+        spacing: 2,
+        children: [countRow, { type: 'spacer' }],
+      },
+      { type: 'text', value: done ? 'Goal reached!' : d.unit, size: 11, weight: 'semibold', color: '#BDE6FF', lineLimit: 1, minScale: 0.7, frame: { maxWidth: 'infinity', alignment: 'leading' } },
+      { type: 'spacer' },
+      {
+        type: 'hstack',
+        align: 'bottom',
+        spacing: 0,
+        children: [undo, { type: 'spacer' }, plus],
+      },
+    ],
+  };
+
+  const medRight = {
+    type: 'vstack',
+    align: 'trailing',
+    frame: { maxHeight: 'infinity', alignment: 'bottom' },
+    children: [{ type: 'spacer' }, undo, { type: 'spacer', minLength: 6 }, plus],
+  };
+
+  return {
+    type: 'hstack',
+    align: 'center',
+    spacing: medium ? 14 : 8,
+    padding: 12,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: { gradient: 'linear', stops: ['#0B3A75', '#1E88E5'], from: 'topLeading', to: 'bottomTrailing' },
+    children: medium ? [glass, middle, medRight] : [glass, rightSmall],
+  };
+}
+```

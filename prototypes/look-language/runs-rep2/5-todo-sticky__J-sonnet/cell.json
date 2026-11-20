@@ -1,0 +1,238 @@
+{
+  "id": "5-todo-sticky__J-sonnet",
+  "prompt_id": "5-todo-sticky",
+  "widget": "todo",
+  "variant": "js",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3154,
+  "output_bytes_first_try": 3154,
+  "gen_seconds": 16.18,
+  "repair_gen_seconds": null,
+  "render_ms": 43.821,
+  "tree_ms": 1.568,
+  "peak_rss_mb": 44.281,
+  "js_setup_ms": 0.989,
+  "js_eval_ms": 0.336,
+  "nodes": 33,
+  "ink_share_min": 0.8795,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.0232,
+    "medium": 0.0126
+  },
+  "actions_used": [
+    "openAdd",
+    "toggleDone"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep2/5-todo-sticky__J-sonnet/try1/look.js",
+      "reply": "runs-rep2/5-todo-sticky__J-sonnet/try1/reply.txt",
+      "bytes": 3154,
+      "gen_seconds": 16.18,
+      "api_seconds": 16.29,
+      "output_tokens": 2263,
+      "thinking_tokens": 892,
+      "input_tokens": 5526,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 69.21959686279297,
+          "ink_share": 0.9009405154513253,
+          "js_eval_ms": 0.4047499895095825,
+          "js_setup_ms": 1.1496670246124268,
+          "nodes": 33,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.71875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 48.163583010435104,
+          "tree_footprint_mb": 3.12518310546875,
+          "tree_ms": 1.858916997909546,
+          "variant": "js",
+          "png": "runs-rep2/5-todo-sticky__J-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 72.54776763916016,
+          "ink_share": 0.8811531857889474,
+          "js_eval_ms": 0.3356249928474426,
+          "js_setup_ms": 0.9892500042915344,
+          "nodes": 33,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 44.28125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 43.821042001247406,
+          "tree_footprint_mb": 3.1408309936523438,
+          "tree_ms": 1.5677079856395721,
+          "variant": "js",
+          "png": "runs-rep2/5-todo-sticky__J-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 69.62586975097656,
+          "ink_share": 0.898904767721184,
+          "js_eval_ms": 0.32945799827575684,
+          "js_setup_ms": 0.94200000166893,
+          "nodes": 33,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.859375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 43.1187079846859,
+          "tree_footprint_mb": 3.14080810546875,
+          "tree_ms": 1.5081250071525574,
+          "variant": "js",
+          "png": "runs-rep2/5-todo-sticky__J-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "openAdd",
+              "rowId": null
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 73.36026763916016,
+          "ink_share": 0.879473972189204,
+          "js_eval_ms": 0.32774999737739563,
+          "js_setup_ms": 0.890625,
+          "nodes": 33,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 44.453125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 42.98699998855591,
+          "tree_footprint_mb": 3.15643310546875,
+          "tree_ms": 1.4599159955978394,
+          "variant": "js",
+          "png": "runs-rep2/5-todo-sticky__J-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

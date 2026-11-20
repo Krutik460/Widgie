@@ -1,0 +1,143 @@
+{
+  "id": "6-wotd-magazine__T-sonnet",
+  "prompt_id": "6-wotd-magazine",
+  "widget": "wotd",
+  "variant": "template",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 2507,
+  "output_bytes_first_try": 2507,
+  "gen_seconds": 20.62,
+  "repair_gen_seconds": null,
+  "render_ms": 38.743,
+  "tree_ms": 0.277,
+  "peak_rss_mb": 33.203,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 13,
+  "ink_share_min": 0.6812,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.1233,
+    "medium": 0.1154
+  },
+  "actions_used": [],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/6-wotd-magazine__T-sonnet/try1/look.json",
+      "reply": "runs/6-wotd-magazine__T-sonnet/try1/reply.txt",
+      "bytes": 2507,
+      "gen_seconds": 20.62,
+      "api_seconds": 20.79,
+      "output_tokens": 2656,
+      "thinking_tokens": 1549,
+      "input_tokens": 5797,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.735015869140625,
+          "ink_share": 0.6925613777940638,
+          "nodes": 12,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 29.765625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 35.640749990940094,
+          "tree_footprint_mb": 0.21875,
+          "tree_ms": 0.2677080035209656,
+          "variant": "template",
+          "png": "runs/6-wotd-magazine__T-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 65.95378875732422,
+          "ink_share": 0.6945340653949925,
+          "nodes": 13,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 33.203125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 38.743499994277954,
+          "tree_footprint_mb": 0.21875,
+          "tree_ms": 0.2765839993953705,
+          "variant": "template",
+          "png": "runs/6-wotd-magazine__T-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.813140869140625,
+          "ink_share": 0.6811611905052726,
+          "nodes": 12,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 29.96875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 36.22095900774002,
+          "tree_footprint_mb": 0.21875,
+          "tree_ms": 0.2815830111503601,
+          "variant": "template",
+          "png": "runs/6-wotd-magazine__T-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 66.31316375732422,
+          "ink_share": 0.7039678496632139,
+          "nodes": 13,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 33.5625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 44.13991701602936,
+          "tree_footprint_mb": 0.234375,
+          "tree_ms": 0.27470898628234863,
+          "variant": "template",
+          "png": "runs/6-wotd-magazine__T-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

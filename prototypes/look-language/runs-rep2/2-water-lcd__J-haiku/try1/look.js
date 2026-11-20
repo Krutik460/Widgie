@@ -1,0 +1,95 @@
+function render(ctx) {
+  const d = ctx.data;
+  const SCREEN = '#B8C4A8';
+  const INK = '#2A3328';
+  const DIM = '#5E6B58';
+  const SEG_OFF = '#A3B095';
+  const goal = Math.max(1, Math.round(d.goal));
+  const count = Math.max(0, Math.round(d.todayCount));
+  const filled = Math.min(count, goal);
+  const isMedium = ctx.family === 'medium';
+  const segCount = Math.min(goal, 16);
+  const segs = [];
+  for (let i = 0; i < segCount; i++) {
+    const on = Math.round(i * goal / segCount) < filled;
+    segs.push({ type: 'rect', cornerRadius: 1, fill: on ? INK : SEG_OFF, frame: { height: 12 } });
+  }
+  const segBar = { type: 'hstack', spacing: 2, children: segs };
+  const max = Math.max(goal, 1, ...d.last7);
+  const bars = d.last7.map((v, i) => ({
+    type: 'vstack',
+    spacing: 2,
+    align: 'center',
+    children: [
+      { type: 'rect', fill: i === d.last7.length - 1 ? INK : DIM, frame: { width: 8, height: 2 + 26 * Math.min(v, max) / max } },
+      { type: 'text', value: String(i === d.last7.length - 1 ? 'T' : ''), size: 8, design: 'monospaced', color: DIM },
+    ],
+  }));
+  const readout = {
+    type: 'hstack',
+    spacing: 4,
+    align: 'bottom',
+    children: [
+      { type: 'text', value: String(count).padStart(2, '0'), size: isMedium ? 46 : 40, weight: 'bold', design: 'monospaced', color: INK, minScale: 0.5, lineLimit: 1 },
+      { type: 'text', value: '/' + goal, size: 15, design: 'monospaced', color: DIM, lineLimit: 1 },
+    ],
+  };
+  const buttons = {
+    type: 'hstack',
+    spacing: 6,
+    children: [
+      { type: 'button', action: 'undoLast', children: [
+        { type: 'text', value: '-', size: 16, weight: 'bold', design: 'monospaced', color: INK, frame: { width: 30, height: 22 }, background: SEG_OFF, cornerRadius: 3 },
+      ] },
+      { type: 'button', action: 'addGlass', children: [
+        { type: 'text', value: '+', size: 16, weight: 'bold', design: 'monospaced', color: SCREEN, frame: { width: 30, height: 22 }, background: INK, cornerRadius: 3 },
+      ] },
+    ],
+  };
+  const left = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 6,
+    children: [
+      { type: 'text', value: 'GLASSES', size: 9, weight: 'bold', design: 'monospaced', color: DIM, lineLimit: 1 },
+      readout,
+      segBar,
+      buttons,
+    ],
+  };
+  const right = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 4,
+    children: [
+      { type: 'text', value: '7 DAY', size: 9, weight: 'bold', design: 'monospaced', color: DIM, lineLimit: 1 },
+      { type: 'hstack', spacing: 4, align: 'bottom', frame: { height: 30 }, children: bars },
+    ],
+  };
+  const body = isMedium
+    ? {
+        type: 'hstack',
+        align: 'center',
+        spacing: 16,
+        children: [
+          { type: 'vstack', align: 'leading', spacing: 6, frame: { maxWidth: 'infinity', alignment: 'leading' }, children: [left.children[0], left.children[1], left.children[2], left.children[3]] },
+          { type: 'vstack', align: 'leading', spacing: 6, children: [right.children[0], right.children[1]] },
+        ],
+      }
+    : {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 8,
+        children: [left.children[0], left.children[1], left.children[2], { type: 'spacer' }, left.children[3], right.children[0], right.children[1]],
+      };
+  return {
+    type: 'vstack',
+    align: 'leading',
+    padding: 12,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: { gradient: 'linear', stops: ['#C5D0B4', '#A9B69A'], from: 'top', to: 'bottom' },
+    children: [
+      { type: 'vstack', align: 'leading', spacing: 0, padding: 10, frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' }, background: SCREEN, cornerRadius: 8, shadow: { color: '#00000033', radius: 2, x: 0, y: 1 }, children: [body] },
+    ],
+  };
+}

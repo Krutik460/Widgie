@@ -1,0 +1,153 @@
+{
+  "id": "4-habit-ring__T-haiku",
+  "prompt_id": "4-habit-ring",
+  "widget": "habit",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3483,
+  "output_bytes_first_try": 3483,
+  "gen_seconds": 5.54,
+  "repair_gen_seconds": null,
+  "render_ms": 48.3,
+  "tree_ms": 0.581,
+  "peak_rss_mb": 42.062,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 49,
+  "ink_share_min": 0.7878,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 120,
+    "b-small": 0,
+    "b-medium": 120
+  },
+  "state_diff_share": {
+    "small": 0.1182,
+    "medium": 0.0774
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep3/4-habit-ring__T-haiku/try1/look.json",
+      "reply": "runs-rep3/4-habit-ring__T-haiku/try1/reply.txt",
+      "bytes": 3483,
+      "gen_seconds": 5.54,
+      "api_seconds": 5.58,
+      "output_tokens": 1286,
+      "thinking_tokens": 0,
+      "input_tokens": 6700,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.625732421875,
+          "ink_share": 0.7965473718496804,
+          "nodes": 8,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 35.03125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 49.07483398914337,
+          "tree_footprint_mb": 0.15625,
+          "tree_ms": 0.4064580202102661,
+          "variant": "template",
+          "png": "runs-rep3/4-habit-ring__T-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 458,
+          "family": "medium",
+          "footprint_mb": 68.3757553100586,
+          "ink_share": 0.7877775891020924,
+          "nodes": 49,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 42.125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 46.00883302092552,
+          "tree_footprint_mb": 0.328125,
+          "tree_ms": 0.6092079877853394,
+          "variant": "template",
+          "png": "runs-rep3/4-habit-ring__T-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.797630310058594,
+          "ink_share": 0.7968323765319002,
+          "nodes": 8,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 35.1875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 42.00554198026657,
+          "tree_footprint_mb": 0.171875,
+          "tree_ms": 0.3011249899864197,
+          "variant": "template",
+          "png": "runs-rep3/4-habit-ring__T-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 458,
+          "family": "medium",
+          "footprint_mb": 68.266357421875,
+          "ink_share": 0.7886454972547687,
+          "nodes": 49,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 42.0625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 48.30012500286102,
+          "tree_footprint_mb": 0.3125,
+          "tree_ms": 0.58058300614357,
+          "variant": "template",
+          "png": "runs-rep3/4-habit-ring__T-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

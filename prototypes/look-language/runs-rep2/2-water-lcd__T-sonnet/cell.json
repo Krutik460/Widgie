@@ -1,0 +1,182 @@
+{
+  "id": "2-water-lcd__T-sonnet",
+  "prompt_id": "2-water-lcd",
+  "widget": "water",
+  "variant": "template",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3528,
+  "output_bytes_first_try": 3528,
+  "gen_seconds": 17.09,
+  "repair_gen_seconds": null,
+  "render_ms": 44.63,
+  "tree_ms": 0.529,
+  "peak_rss_mb": 39.984,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 34,
+  "ink_share_min": 0.7045,
+  "overflow_pt": {
+    "a-small": 1,
+    "a-medium": 1,
+    "b-small": 1,
+    "b-medium": 1
+  },
+  "state_diff_share": {
+    "small": 0.0834,
+    "medium": 0.094
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep2/2-water-lcd__T-sonnet/try1/look.json",
+      "reply": "runs-rep2/2-water-lcd__T-sonnet/try1/reply.txt",
+      "bytes": 3528,
+      "gen_seconds": 17.09,
+      "api_seconds": 16.88,
+      "output_tokens": 2267,
+      "thinking_tokens": 810,
+      "input_tokens": 5844,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 159,
+          "family": "small",
+          "footprint_mb": 64.0007553100586,
+          "ink_share": 0.7305077154838973,
+          "nodes": 33,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 37.046875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 45.00158300995827,
+          "tree_footprint_mb": 0.359375,
+          "tree_ms": 0.5291669964790344,
+          "variant": "template",
+          "png": "runs-rep2/2-water-lcd__T-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 339,
+          "family": "medium",
+          "footprint_mb": 67.110107421875,
+          "ink_share": 0.7045338767193072,
+          "nodes": 34,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 40.015625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 43.26708400249481,
+          "tree_footprint_mb": 0.359375,
+          "tree_ms": 0.5122089982032776,
+          "variant": "template",
+          "png": "runs-rep2/2-water-lcd__T-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 159,
+          "family": "small",
+          "footprint_mb": 63.907005310058594,
+          "ink_share": 0.7316070192581735,
+          "nodes": 33,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 36.984375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 44.62995898723602,
+          "tree_footprint_mb": 0.328125,
+          "tree_ms": 0.49858298897743225,
+          "variant": "template",
+          "png": "runs-rep2/2-water-lcd__T-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 339,
+          "family": "medium",
+          "footprint_mb": 67.110107421875,
+          "ink_share": 0.7050433010697912,
+          "nodes": 34,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 39.984375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 42.96629202365875,
+          "tree_footprint_mb": 0.34375,
+          "tree_ms": 0.5356670022010803,
+          "variant": "template",
+          "png": "runs-rep2/2-water-lcd__T-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

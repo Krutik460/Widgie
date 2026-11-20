@@ -1,0 +1,123 @@
+function lerpColor(a, b, t) {
+  const pa = [1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map(i => parseInt(b.slice(i, i + 2), 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+
+function streakColor(t) {
+  t = Math.min(Math.max(t, 0), 1);
+  if (t < 0.5) return lerpColor('#FF453A', '#FFD60A', t * 2);
+  return lerpColor('#FFD60A', '#30D158', (t - 0.5) * 2);
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const goal = 30;
+  const streak = Math.max(0, d.streak || 0);
+  const progress = Math.min(streak / goal, 1);
+  const color = streakColor(progress);
+  const size = medium ? 124 : 108;
+  const stroke = 10;
+
+  const ringChildren = [
+    { type: 'circle', stroke: { color: '#FFFFFF1F', width: stroke }, frame: { width: size, height: size } },
+    progress > 0 && {
+      type: 'circle',
+      stroke: { color: color, width: stroke, cap: 'round' },
+      trimFrom: 0,
+      trimTo: progress,
+      rotation: -90,
+      frame: { width: size, height: size },
+    },
+    {
+      type: 'vstack',
+      spacing: 0,
+      align: 'center',
+      children: [
+        { type: 'symbol', name: 'flame.fill', size: medium ? 28 : 24, color: d.doneToday ? color : '#8A8F98' },
+        { type: 'text', value: String(streak), size: medium ? 34 : 30, weight: 'bold', design: 'rounded', color: '#FFFFFF', lineLimit: 1, minScale: 0.5 },
+        { type: 'text', value: streak === 1 ? 'day streak' : 'day streak', size: 10, weight: 'medium', color: '#A7ADB8', lineLimit: 1 },
+      ],
+      frame: { width: size - stroke * 2 - 6 },
+    },
+  ];
+
+  const ring = {
+    type: 'button',
+    action: 'toggleToday',
+    children: [{ type: 'zstack', align: 'center', children: ringChildren, frame: { width: size, height: size } }],
+  };
+
+  const nameText = {
+    type: 'text',
+    value: d.name,
+    size: medium ? 17 : 13,
+    weight: 'semibold',
+    color: '#FFFFFF',
+    lineLimit: 1,
+    minScale: 0.7,
+  };
+
+  let content;
+  if (!medium) {
+    content = {
+      type: 'vstack',
+      spacing: 6,
+      align: 'center',
+      padding: 10,
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+      children: [nameText, ring],
+    };
+  } else {
+    const days = d.days || [];
+    const rows = [];
+    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7));
+    const grid = {
+      type: 'vstack',
+      spacing: 4,
+      align: 'leading',
+      children: rows.map((row, r) => ({
+        type: 'hstack',
+        spacing: 4,
+        children: row.map((day, c) => {
+          const isToday = r * 7 + c === days.length - 1;
+          return {
+            type: 'rect',
+            cornerRadius: 4,
+            fill: day.done ? color : '#FFFFFF1A',
+            stroke: isToday ? { color: '#FFFFFF', width: 1.5 } : undefined,
+            frame: { width: 17, height: 17 },
+          };
+        }),
+      })),
+    };
+    const status = {
+      type: 'hstack',
+      spacing: 5,
+      children: [
+        { type: 'symbol', name: d.doneToday ? 'checkmark.circle.fill' : 'circle', size: 13, color: d.doneToday ? '#30D158' : '#A7ADB8' },
+        { type: 'text', value: d.doneToday ? 'Done today' : 'Tap ring to check in', size: 12, weight: 'medium', color: '#A7ADB8', lineLimit: 1, minScale: 0.7 },
+      ],
+    };
+    content = {
+      type: 'hstack',
+      spacing: 18,
+      align: 'center',
+      padding: { horizontal: 16, vertical: 12 },
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+      children: [
+        ring,
+        {
+          type: 'vstack',
+          spacing: 8,
+          align: 'leading',
+          children: [nameText, grid, status],
+        },
+      ],
+    };
+  }
+
+  content.widgetBackground = { gradient: 'linear', stops: ['#1F2230', '#0E1018'], from: 'top', to: 'bottom' };
+  return content;
+}

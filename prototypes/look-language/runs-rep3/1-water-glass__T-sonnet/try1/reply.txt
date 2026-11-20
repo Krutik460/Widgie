@@ -1,0 +1,116 @@
+```json
+{
+  "type": "hstack",
+  "spacing": 12,
+  "align": "center",
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#0B5FD6", "#0A2A6B"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "zstack",
+      "align": "bottom",
+      "frame": { "width": 66, "height": 130 },
+      "cornerRadius": 16,
+      "overlay": { "type": "rect", "cornerRadius": 16, "stroke": { "color": "#FFFFFFAA", "width": 3 } },
+      "children": [
+        { "type": "rect", "fill": "#FFFFFF22", "frame": { "maxWidth": "infinity", "maxHeight": "infinity" } },
+        {
+          "type": "rect",
+          "fill": { "gradient": "linear", "stops": ["#7FDBFF", "#1E90FF"], "from": "top", "to": "bottom" },
+          "frame": { "width": 66, "height": "{{ 130 * clamp(data.todayCount / max(data.goal, 1), 0, 1) }}" }
+        },
+        {
+          "type": "if",
+          "test": "{{ data.todayCount / max(data.goal, 1) > 0.2 }}",
+          "then": [
+            { "type": "circle", "fill": "#FFFFFF66", "frame": { "width": 10, "height": 10 }, "offset": { "x": -14, "y": -12 } },
+            { "type": "circle", "fill": "#FFFFFF55", "frame": { "width": 7, "height": 7 }, "offset": { "x": 12, "y": -28 } },
+            { "type": "circle", "fill": "#FFFFFF44", "frame": { "width": 5, "height": 5 }, "offset": { "x": -6, "y": -42 } }
+          ]
+        },
+        {
+          "type": "if",
+          "test": "{{ data.todayCount / max(data.goal, 1) > 0.6 }}",
+          "then": [
+            { "type": "circle", "fill": "#FFFFFF66", "frame": { "width": 9, "height": 9 }, "offset": { "x": 14, "y": -60 } },
+            { "type": "circle", "fill": "#FFFFFF55", "frame": { "width": 6, "height": 6 }, "offset": { "x": -16, "y": -72 } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 6,
+          "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "bottomLeading" },
+          "children": [
+            { "type": "text", "value": "LAST 7 DAYS", "size": 10, "weight": "bold", "kerning": 1, "color": "#BFE3FF" },
+            {
+              "type": "hstack",
+              "align": "bottom",
+              "spacing": 5,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ data.last7 }}",
+                  "item": "v",
+                  "index": "i",
+                  "children": [
+                    {
+                      "type": "rect",
+                      "cornerRadius": 4,
+                      "fill": "{{ i == 6 ? '#FFFFFF' : '#7FDBFF99' }}",
+                      "frame": { "width": 12, "height": "{{ 6 + 70 * clamp(v / max(data.goal, 1), 0, 1) }}" }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "else": []
+    },
+    {
+      "type": "vstack",
+      "align": "center",
+      "spacing": 4,
+      "frame": { "maxHeight": "infinity" },
+      "children": [
+        { "type": "text", "value": "{{ data.todayCount }}/{{ data.goal }}", "size": 26, "weight": "heavy", "design": "rounded", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.5 },
+        { "type": "text", "value": "{{ data.unit }}", "size": 11, "weight": "medium", "color": "#BFE3FF", "lineLimit": 1, "minScale": 0.6 },
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "addGlass",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "plus",
+              "size": 30,
+              "weight": "heavy",
+              "color": "#0B5FD6",
+              "frame": { "width": 58, "height": 58 },
+              "background": "#FFFFFF",
+              "clip": "circle",
+              "shadow": { "color": "#00000055", "radius": 6, "x": 0, "y": 3 }
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "action": "undoLast",
+          "children": [
+            { "type": "symbol", "name": "arrow.uturn.backward", "size": 12, "weight": "semibold", "color": "#BFE3FF", "frame": { "width": 58, "height": 22 } }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

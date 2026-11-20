@@ -1,0 +1,145 @@
+function lerpColor(a, b, t) {
+  const pa = [1, 3, 5].map(i => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map(i => parseInt(b.slice(i, i + 2), 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const goal = d.goal > 0 ? d.goal : 1;
+  const progress = Math.min(Math.max(d.todayCount / goal, 0), 1);
+  const isMedium = ctx.family === 'medium';
+  const glassW = isMedium ? 70 : 64;
+  const glassH = isMedium ? 110 : 96;
+  const fillH = Math.max(glassH * progress, 0);
+
+  const glass = {
+    type: 'zstack',
+    align: 'bottom',
+    children: [
+      {
+        type: 'rect',
+        cornerRadius: 10,
+        fill: '#FFFFFF14',
+        stroke: { color: '#8FD8FF', width: 2, cap: 'round' },
+        frame: { width: glassW, height: glassH },
+      },
+      {
+        type: 'rect',
+        cornerRadius: 8,
+        fill: {
+          gradient: 'linear',
+          stops: [lerpColor('#2EC4FF', '#00E5FF', progress), '#0077B6'],
+          from: 'top',
+          to: 'bottom',
+        },
+        frame: { width: glassW - 6, height: Math.max(fillH - 3, 0) },
+        padding: { bottom: 3 },
+      },
+      {
+        type: 'circle',
+        fill: '#FFFFFF88',
+        frame: { width: 6, height: 6 },
+        offset: { x: -16, y: -glassH / 2 + 18 + (1 - progress) * 0 },
+      },
+    ],
+  };
+
+  const count = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 2,
+    children: [
+      { type: 'text', value: String(d.todayCount), size: isMedium ? 34 : 30, weight: 'heavy', design: 'rounded', color: '#E0F7FF', lineLimit: 1, minScale: 0.5 },
+      { type: 'text', value: 'of ' + d.goal + ' ' + d.unit, size: 12, weight: 'medium', color: '#8FD8FF', lineLimit: 1, minScale: 0.6 },
+    ],
+  };
+
+  const maxLast = Math.max(1, ...d.last7);
+  const trend = {
+    type: 'hstack',
+    align: 'bottom',
+    spacing: 3,
+    children: d.last7.map((v, i) => ({
+      type: 'rect',
+      cornerRadius: 2,
+      fill: i === d.last7.length - 1 ? '#00E5FF' : '#2A6F97',
+      frame: { width: 6, height: 4 + 22 * Math.min(v, maxLast) / maxLast },
+    })),
+  };
+
+  const plusButton = {
+    type: 'button',
+    action: 'addGlass',
+    children: [
+      {
+        type: 'symbol', name: 'plus', size: isMedium ? 30 : 26, weight: 'bold', color: '#03253A',
+        frame: { width: isMedium ? 58 : 52, height: isMedium ? 58 : 52 },
+        background: { gradient: 'linear', stops: ['#7CF0FF', '#00B4D8'], from: 'topLeading', to: 'bottomTrailing' },
+        clip: 'circle',
+        shadow: { color: '#00E5FF88', radius: 8, x: 0, y: 2 },
+      },
+    ],
+  };
+
+  const undoButton = {
+    type: 'button',
+    action: 'undoLast',
+    children: [
+      { type: 'symbol', name: 'arrow.uturn.backward', size: 13, weight: 'semibold', color: '#8FD8FF', frame: { width: 26, height: 26 }, background: '#FFFFFF14', clip: 'circle' },
+    ],
+  };
+
+  if (isMedium) {
+    return {
+      type: 'hstack',
+      spacing: 16,
+      padding: 14,
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+      widgetBackground: { gradient: 'linear', stops: ['#06213A', '#0A3D62'], from: 'top', to: 'bottom' },
+      children: [
+        glass,
+        {
+          type: 'vstack',
+          align: 'leading',
+          spacing: 10,
+          children: [
+            count,
+            { type: 'text', value: 'Hydration', size: 12, weight: 'semibold', color: '#8FD8FF' },
+            trend,
+            { type: 'spacer' },
+            { type: 'hstack', spacing: 10, children: [undoButton, { type: 'spacer' }] },
+          ],
+        },
+        { type: 'spacer' },
+        plusButton,
+      ],
+    };
+  }
+
+  return {
+    type: 'vstack',
+    align: 'center',
+    spacing: 6,
+    padding: 12,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+    widgetBackground: { gradient: 'linear', stops: ['#06213A', '#0A3D62'], from: 'top', to: 'bottom' },
+    children: [
+      {
+        type: 'hstack',
+        spacing: 8,
+        children: [
+          { type: 'spacer' },
+          count,
+          { type: 'spacer' },
+        ],
+      },
+      glass,
+      {
+        type: 'hstack',
+        spacing: 10,
+        children: [undoButton, { type: 'spacer' }, plusButton],
+      },
+    ],
+  };
+}

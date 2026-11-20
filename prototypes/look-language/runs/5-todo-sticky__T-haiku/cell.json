@@ -1,0 +1,228 @@
+{
+  "id": "5-todo-sticky__T-haiku",
+  "prompt_id": "5-todo-sticky",
+  "widget": "todo",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3417,
+  "output_bytes_first_try": 3417,
+  "gen_seconds": 4.9,
+  "repair_gen_seconds": null,
+  "render_ms": 46.925,
+  "tree_ms": 0.339,
+  "peak_rss_mb": 41.766,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 28,
+  "ink_share_min": 0.2085,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.0407,
+    "medium": 0.0218
+  },
+  "actions_used": [
+    "openAdd",
+    "toggleDone"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/5-todo-sticky__T-haiku/try1/look.json",
+      "reply": "runs/5-todo-sticky__T-haiku/try1/reply.txt",
+      "bytes": 3417,
+      "gen_seconds": 4.9,
+      "api_seconds": 4.73,
+      "output_tokens": 1117,
+      "thinking_tokens": 0,
+      "input_tokens": 5947,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 65.969482421875,
+          "ink_share": 0.4558853466878384,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 38.796875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 46.925209015607834,
+          "tree_footprint_mb": 0.265625,
+          "tree_ms": 0.33912500739097595,
+          "variant": "template",
+          "png": "runs/5-todo-sticky__T-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.9069595336914,
+          "ink_share": 0.21876945718005325,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.765625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 51.28945800662041,
+          "tree_footprint_mb": 0.296875,
+          "tree_ms": 0.3331249952316284,
+          "variant": "template",
+          "png": "runs/5-todo-sticky__T-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.0476303100586,
+          "ink_share": 0.4369121778429217,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 38.8125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 45.09000000357628,
+          "tree_footprint_mb": 0.28125,
+          "tree_ms": 0.3341659903526306,
+          "variant": "template",
+          "png": "runs/5-todo-sticky__T-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleDone",
+              "rowId": "t1"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t2"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t3"
+            },
+            {
+              "action": "toggleDone",
+              "rowId": "t4"
+            },
+            {
+              "action": "openAdd",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 69.1726303100586,
+          "ink_share": 0.20850549989622835,
+          "nodes": 28,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.859375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 44.85741698741913,
+          "tree_footprint_mb": 0.265625,
+          "tree_ms": 0.34424999356269836,
+          "variant": "template",
+          "png": "runs/5-todo-sticky__T-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

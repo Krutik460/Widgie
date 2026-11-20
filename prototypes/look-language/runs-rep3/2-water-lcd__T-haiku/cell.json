@@ -1,0 +1,223 @@
+{
+  "id": "2-water-lcd__T-haiku",
+  "prompt_id": "2-water-lcd",
+  "widget": "water",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": false,
+  "valid_after_repair": true,
+  "status": "repaired",
+  "error_first_try": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)",
+  "error_after_repair": null,
+  "output_bytes": 3830,
+  "output_bytes_first_try": 3659,
+  "gen_seconds": 6.03,
+  "repair_gen_seconds": 10.08,
+  "render_ms": 48.838,
+  "tree_ms": 0.538,
+  "peak_rss_mb": 32.422,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 46,
+  "ink_share_min": 0.7501,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 35,
+    "b-small": 0,
+    "b-medium": 35
+  },
+  "state_diff_share": {
+    "small": 0.031,
+    "medium": 0.0551
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 2,
+  "attempts": [
+    {
+      "look": "runs-rep3/2-water-lcd__T-haiku/try1/look.json",
+      "reply": "runs-rep3/2-water-lcd__T-haiku/try1/reply.txt",
+      "bytes": 3659,
+      "gen_seconds": 6.03,
+      "api_seconds": 6.11,
+      "output_tokens": 1509,
+      "thinking_tokens": 0,
+      "input_tokens": 5868,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": false,
+      "first_error": {
+        "error": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)",
+        "state": "a",
+        "family": "small"
+      },
+      "renders": {
+        "a-small": {
+          "ok": false,
+          "error": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+        },
+        "a-medium": {
+          "ok": false,
+          "error": "unknown prop \"stroke\" on \"text\" at root.children[6].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+        },
+        "b-small": {
+          "ok": false,
+          "error": "unknown prop \"stroke\" on \"text\" at root.children[5].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+        },
+        "b-medium": {
+          "ok": false,
+          "error": "unknown prop \"stroke\" on \"text\" at root.children[6].children[0].children[0] (allowed: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, padding, frame, background, overlay, clip, cornerRadius, opacity, shadow, rotation, offset, scale, blur, mask, aspectRatio)"
+        }
+      }
+    },
+    {
+      "look": "runs-rep3/2-water-lcd__T-haiku/try2/look.json",
+      "reply": "runs-rep3/2-water-lcd__T-haiku/try2/reply.txt",
+      "bytes": 3830,
+      "gen_seconds": 10.08,
+      "api_seconds": 10.04,
+      "output_tokens": 2505,
+      "thinking_tokens": 956,
+      "input_tokens": 7577,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.391265869140625,
+          "ink_share": 0.7503766133300761,
+          "nodes": 24,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 28.546875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 57.52987498044968,
+          "tree_footprint_mb": 0.265625,
+          "tree_ms": 0.6402499973773956,
+          "variant": "template",
+          "png": "runs-rep3/2-water-lcd__T-haiku/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 193,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 66.45376586914062,
+          "ink_share": 0.7652308447010434,
+          "nodes": 46,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 32.4375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 46.443749994039536,
+          "tree_footprint_mb": 0.328125,
+          "tree_ms": 0.5377910137176514,
+          "variant": "template",
+          "png": "runs-rep3/2-water-lcd__T-haiku/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 62.406890869140625,
+          "ink_share": 0.7500508936932535,
+          "nodes": 24,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 28.578125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 48.83762499690056,
+          "tree_footprint_mb": 0.25,
+          "tree_ms": 0.3679580092430115,
+          "variant": "template",
+          "png": "runs-rep3/2-water-lcd__T-haiku/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 193,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 66.45378875732422,
+          "ink_share": 0.7716269504348975,
+          "nodes": 46,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 32.421875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 43.261332988739014,
+          "tree_footprint_mb": 0.3125,
+          "tree_ms": 0.4904159903526306,
+          "variant": "template",
+          "png": "runs-rep3/2-water-lcd__T-haiku/try2/b-medium.png"
+        }
+      }
+    }
+  ]
+}

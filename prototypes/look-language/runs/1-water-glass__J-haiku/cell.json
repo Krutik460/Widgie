@@ -1,0 +1,188 @@
+{
+  "id": "1-water-glass__J-haiku",
+  "prompt_id": "1-water-glass",
+  "widget": "water",
+  "variant": "js",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 4261,
+  "output_bytes_first_try": 4261,
+  "gen_seconds": 8.27,
+  "repair_gen_seconds": null,
+  "render_ms": 43.047,
+  "tree_ms": 1.491,
+  "peak_rss_mb": 44.891,
+  "js_setup_ms": 0.886,
+  "js_eval_ms": 0.389,
+  "nodes": 26,
+  "ink_share_min": 0.8544,
+  "overflow_pt": {
+    "a-small": 56,
+    "a-medium": 16,
+    "b-small": 56,
+    "b-medium": 16
+  },
+  "state_diff_share": {
+    "small": 0.1716,
+    "medium": 0.1095
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/1-water-glass__J-haiku/try1/look.js",
+      "reply": "runs/1-water-glass__J-haiku/try1/reply.txt",
+      "bytes": 4261,
+      "gen_seconds": 8.27,
+      "api_seconds": 8.18,
+      "output_tokens": 1987,
+      "thinking_tokens": 0,
+      "input_tokens": 5467,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 214,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.39151763916016,
+          "ink_share": 0.8675406310739837,
+          "js_eval_ms": 0.3875409960746765,
+          "js_setup_ms": 0.9066669940948486,
+          "nodes": 17,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 40.421875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 43.04679101705551,
+          "tree_footprint_mb": 3.1564102172851562,
+          "tree_ms": 1.4911250174045563,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 174,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 70.79776763916016,
+          "ink_share": 0.8549567020602523,
+          "js_eval_ms": 0.37299999594688416,
+          "js_setup_ms": 0.8785420060157776,
+          "nodes": 26,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 44.953125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 42.48575001955032,
+          "tree_footprint_mb": 3.1251602172851562,
+          "tree_ms": 1.458167016506195,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 214,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 66.56339263916016,
+          "ink_share": 0.8675406310739837,
+          "js_eval_ms": 0.4356659948825836,
+          "js_setup_ms": 0.8856670260429382,
+          "nodes": 17,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 40.59375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 41.61141699552536,
+          "tree_footprint_mb": 3.1251602172851562,
+          "tree_ms": 1.5114589929580688,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 174,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 70.70401763916016,
+          "ink_share": 0.8544382788348918,
+          "js_eval_ms": 0.38874998688697815,
+          "js_setup_ms": 0.8565830290317535,
+          "nodes": 26,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 44.890625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 47.21520799398422,
+          "tree_footprint_mb": 3.15643310546875,
+          "tree_ms": 1.4540829956531525,
+          "variant": "js",
+          "png": "runs/1-water-glass__J-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

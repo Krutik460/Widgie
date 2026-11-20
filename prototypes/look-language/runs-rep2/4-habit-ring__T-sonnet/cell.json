@@ -1,0 +1,165 @@
+{
+  "id": "4-habit-ring__T-sonnet",
+  "prompt_id": "4-habit-ring",
+  "widget": "habit",
+  "variant": "template",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 4156,
+  "output_bytes_first_try": 4156,
+  "gen_seconds": 19.95,
+  "repair_gen_seconds": null,
+  "render_ms": 45.728,
+  "tree_ms": 1.148,
+  "peak_rss_mb": 41.5,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 54,
+  "ink_share_min": 0.7786,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.1074,
+    "medium": 0.1824
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep2/4-habit-ring__T-sonnet/try1/look.json",
+      "reply": "runs-rep2/4-habit-ring__T-sonnet/try1/reply.txt",
+      "bytes": 4156,
+      "gen_seconds": 19.95,
+      "api_seconds": 20.06,
+      "output_tokens": 2764,
+      "thinking_tokens": 1288,
+      "input_tokens": 6669,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 63.344482421875,
+          "ink_share": 0.7827042872847196,
+          "nodes": 11,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 36.765625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 52.40262499451637,
+          "tree_footprint_mb": 0.1875,
+          "tree_ms": 0.5448330044746399,
+          "variant": "template",
+          "png": "runs-rep2/4-habit-ring__T-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 67.9538803100586,
+          "ink_share": 0.7786456859304541,
+          "nodes": 54,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.5,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 45.72800001502037,
+          "tree_footprint_mb": 0.484375,
+          "tree_ms": 1.148375004529953,
+          "variant": "template",
+          "png": "runs-rep2/4-habit-ring__T-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 63.391357421875,
+          "ink_share": 0.7831521517853508,
+          "nodes": 11,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 36.828125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 43.10020798444748,
+          "tree_footprint_mb": 0.21875,
+          "tree_ms": 0.29074999690055847,
+          "variant": "template",
+          "png": "runs-rep2/4-habit-ring__T-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.1257553100586,
+          "ink_share": 0.7790796400067923,
+          "nodes": 54,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.6875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 44.87983301281929,
+          "tree_footprint_mb": 0.515625,
+          "tree_ms": 1.1584170162677765,
+          "variant": "template",
+          "png": "runs-rep2/4-habit-ring__T-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,172 @@
+{
+  "id": "1-water-glass__T-haiku",
+  "prompt_id": "1-water-glass",
+  "widget": "water",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 4198,
+  "output_bytes_first_try": 4198,
+  "gen_seconds": 7.69,
+  "repair_gen_seconds": null,
+  "render_ms": 48.509,
+  "tree_ms": 0.433,
+  "peak_rss_mb": 42.109,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 40,
+  "ink_share_min": 0.7489,
+  "overflow_pt": {
+    "a-small": 12,
+    "a-medium": 49,
+    "b-small": 12,
+    "b-medium": 49
+  },
+  "state_diff_share": {
+    "small": 0.341,
+    "medium": 0.3634
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/1-water-glass__T-haiku/try1/look.json",
+      "reply": "runs/1-water-glass__T-haiku/try1/reply.txt",
+      "bytes": 4198,
+      "gen_seconds": 7.69,
+      "api_seconds": 7.51,
+      "output_tokens": 1716,
+      "thinking_tokens": 0,
+      "input_tokens": 5862,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 170,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 63.656982421875,
+          "ink_share": 0.814380521965718,
+          "nodes": 15,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 36.921875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 48.85608297586441,
+          "tree_footprint_mb": 0.21875,
+          "tree_ms": 0.3255000114440918,
+          "variant": "template",
+          "png": "runs/1-water-glass__T-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "content_height": 207,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.2820053100586,
+          "ink_share": 0.7489103979170204,
+          "nodes": 40,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 42.15625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 46.88891699910164,
+          "tree_footprint_mb": 0.359375,
+          "tree_ms": 0.44362500309944153,
+          "variant": "template",
+          "png": "runs/1-water-glass__T-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 170,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 63.672630310058594,
+          "ink_share": 0.8221977932494605,
+          "nodes": 15,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 36.921875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 47.09916600584984,
+          "tree_footprint_mb": 0.234375,
+          "tree_ms": 0.3140000104904175,
+          "variant": "template",
+          "png": "runs/1-water-glass__T-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "content_height": 207,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.2663803100586,
+          "ink_share": 0.7548914171430727,
+          "nodes": 40,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 42.109375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 48.5086669921875,
+          "tree_footprint_mb": 0.34375,
+          "tree_ms": 0.43254199624061584,
+          "variant": "template",
+          "png": "runs/1-water-glass__T-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

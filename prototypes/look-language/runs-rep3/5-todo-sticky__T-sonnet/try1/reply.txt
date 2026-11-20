@@ -1,0 +1,102 @@
+```json
+{
+  "type": "zstack",
+  "widgetBackground": { "gradient": "linear", "stops": ["#D8C27A", "#C4AC5E"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 6,
+      "padding": { "top": 12, "bottom": 10, "leading": 14, "trailing": 14 },
+      "frame": { "width": "{{ width - 16 }}", "height": "{{ height - 16 }}", "alignment": "topLeading" },
+      "background": { "gradient": "linear", "stops": ["#FFE866", "#FFDD3C"], "from": "top", "to": "bottom" },
+      "cornerRadius": 4,
+      "shadow": { "color": "#00000055", "radius": 6, "x": 1, "y": 3 },
+      "rotation": -3,
+      "children": [
+        {
+          "type": "hstack",
+          "spacing": 6,
+          "align": "center",
+          "children": [
+            { "type": "text", "value": "To do", "size": 20, "weight": "bold", "design": "rounded", "italic": true, "color": "#4A3B12" },
+            { "type": "text", "value": "{{ data.doneCount }}/{{ data.total }}", "size": 13, "weight": "semibold", "design": "rounded", "italic": true, "color": "#8A6D0B" },
+            { "type": "spacer" },
+            {
+              "type": "button",
+              "action": "openAdd",
+              "children": [
+                {
+                  "type": "symbol", "name": "plus", "size": 13, "weight": "bold", "color": "#4A3B12",
+                  "frame": { "width": 26, "height": 26 }, "background": "#FFFFFF66", "clip": "circle"
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "rect", "fill": "#4A3B1233", "frame": { "height": 1.5, "maxWidth": "infinity" } },
+        {
+          "type": "if",
+          "test": "{{ data.total == 0 }}",
+          "then": [
+            { "type": "text", "value": "Nothing to do. Tap + to add!", "size": 15, "design": "rounded", "italic": true, "color": "#6B5513" }
+          ],
+          "else": [
+            {
+              "type": "vstack",
+              "align": "leading",
+              "spacing": 5,
+              "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ data.items }}",
+                  "item": "it",
+                  "index": "i",
+                  "children": [
+                    {
+                      "type": "button",
+                      "action": "toggleDone",
+                      "rowId": "{{ it.id }}",
+                      "children": [
+                        {
+                          "type": "hstack",
+                          "spacing": 7,
+                          "align": "center",
+                          "frame": { "maxWidth": "infinity", "alignment": "leading" },
+                          "opacity": "{{ it.done ? 0.4 : 1 }}",
+                          "children": [
+                            {
+                              "type": "symbol",
+                              "name": "{{ it.done ? 'checkmark.circle.fill' : 'circle' }}",
+                              "size": 15,
+                              "weight": "medium",
+                              "color": "#4A3B12"
+                            },
+                            {
+                              "type": "text",
+                              "value": "{{ it.title }}",
+                              "size": 15,
+                              "weight": "medium",
+                              "design": "rounded",
+                              "italic": true,
+                              "color": "#3D3010",
+                              "strikethrough": "{{ it.done }}",
+                              "lineLimit": 1,
+                              "minScale": 0.8
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

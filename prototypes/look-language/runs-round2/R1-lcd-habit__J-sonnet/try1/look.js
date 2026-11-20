@@ -1,0 +1,156 @@
+const DARK = '#2A3322';
+const MID = '#525B44';
+const SOFT = '#5F6A4E';
+const EMPTY = '#8F9C7E';
+
+function pad2(n) {
+  return (n < 10 ? '0' : '') + n;
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const days = d.days || [];
+  const last8 = days.slice(-8);
+  while (last8.length < 8) last8.unshift({ done: false });
+
+  const weeks = [];
+  for (let i = 0; i < 5; i++) {
+    const chunk = days.slice(i * 7, i * 7 + 7);
+    weeks.push(chunk.filter(x => x.done).length);
+  }
+  const total = days.filter(x => x.done).length;
+
+  const header = {
+    type: 'text',
+    value: String(d.name || '').toUpperCase(),
+    size: 14,
+    weight: 'heavy',
+    design: 'monospaced',
+    kerning: 1.5,
+    color: DARK,
+    lineLimit: 1,
+    minScale: 0.6,
+  };
+
+  const big = {
+    type: 'hstack',
+    align: 'firstBaseline',
+    spacing: 4,
+    children: [
+      { type: 'text', value: pad2(d.streak), size: 54, weight: 'heavy', design: 'monospaced', color: DARK, lineLimit: 1, minScale: 0.6 },
+      { type: 'text', value: d.streak === 1 ? 'DAY' : 'DAYS', size: 14, weight: 'bold', design: 'monospaced', color: SOFT, lineLimit: 1 },
+    ],
+  };
+
+  const boxes = {
+    type: 'hstack',
+    spacing: 3,
+    children: last8.map(x => ({
+      type: 'rect',
+      cornerRadius: 2,
+      fill: x.done ? DARK : EMPTY,
+      stroke: { color: x.done ? DARK : SOFT, width: 1.5 },
+      frame: { maxWidth: 'infinity', height: 13 },
+    })),
+  };
+
+  const mainBtn = {
+    type: 'button',
+    action: 'toggleToday',
+    children: [
+      {
+        type: 'hstack',
+        spacing: 5,
+        align: 'center',
+        children: [
+          { type: 'symbol', name: d.doneToday ? 'checkmark' : 'plus', size: 14, weight: 'bold', color: '#C5CFB0' },
+          { type: 'text', value: d.doneToday ? 'DONE' : 'MARK', size: 14, weight: 'heavy', design: 'monospaced', color: '#C5CFB0' },
+        ],
+        frame: { maxWidth: 'infinity', height: 32 },
+        background: DARK,
+        cornerRadius: 9,
+      },
+    ],
+  };
+
+  const undoBtn = {
+    type: 'button',
+    action: 'toggleToday',
+    children: [
+      {
+        type: 'symbol', name: 'arrow.uturn.backward', size: 14, weight: 'bold', color: DARK,
+        frame: { width: 32, height: 32 },
+        overlay: { type: 'rect', cornerRadius: 9, stroke: { color: DARK, width: 2.5 } },
+      },
+    ],
+  };
+
+  const left = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 4,
+    frame: medium ? { width: 150, maxHeight: 'infinity', alignment: 'topLeading' } : { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    children: [
+      header,
+      big,
+      boxes,
+      { type: 'spacer', minLength: 0 },
+      { type: 'hstack', spacing: 6, children: [mainBtn, undoBtn] },
+    ],
+  };
+
+  const maxH = 72;
+  const right = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 6,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    children: [
+      { type: 'text', value: '5 WEEK LOG', size: 16, weight: 'heavy', design: 'monospaced', kerning: 1.5, color: DARK, lineLimit: 1, minScale: 0.6 },
+      {
+        type: 'hstack',
+        align: 'bottom',
+        spacing: 6,
+        frame: { maxWidth: 'infinity', height: 84, alignment: 'bottom' },
+        children: weeks.map((c, i) => ({
+          type: 'rect',
+          cornerRadius: 3,
+          fill: i === weeks.length - 1 ? DARK : MID,
+          frame: { maxWidth: 'infinity', height: 6 + (maxH - 6) * c / 7 },
+        })),
+      },
+      {
+        type: 'hstack',
+        spacing: 6,
+        children: weeks.map((c, i) => ({
+          type: 'rect',
+          cornerRadius: 1,
+          fill: i === weeks.length - 1 ? DARK : '#8A9778',
+          frame: { maxWidth: 'infinity', height: i === weeks.length - 1 ? 3 : 4 },
+        })),
+      },
+      { type: 'rect', fill: '#8A9778', frame: { maxWidth: 'infinity', height: 1 } },
+      {
+        type: 'text',
+        value: (d.doneToday ? 'TODAY DONE ' : 'TODAY OPEN ') + pad2(total) + '/' + pad2(days.length),
+        size: 12,
+        weight: 'heavy',
+        design: 'monospaced',
+        color: SOFT,
+        lineLimit: 1,
+        minScale: 0.6,
+      },
+    ],
+  };
+
+  return {
+    type: 'hstack',
+    align: 'top',
+    spacing: 14,
+    padding: 12,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: { gradient: 'linear', stops: ['#AAB696', '#98A587'], from: 'top', to: 'bottom' },
+    children: [left, medium && right],
+  };
+}

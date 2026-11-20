@@ -1,0 +1,165 @@
+{
+  "id": "3-habit-heatmap__T-sonnet",
+  "prompt_id": "3-habit-heatmap",
+  "widget": "habit",
+  "variant": "template",
+  "model": "sonnet",
+  "model_ids": [
+    "claude-haiku-5-5",
+    "claude-sonnet-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 7134,
+  "output_bytes_first_try": 7134,
+  "gen_seconds": 24.49,
+  "repair_gen_seconds": null,
+  "render_ms": 51.736,
+  "tree_ms": 1.337,
+  "peak_rss_mb": 41.422,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 54,
+  "ink_share_min": 0.3577,
+  "overflow_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.3223,
+    "medium": 0.1895
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs/3-habit-heatmap__T-sonnet/try1/look.json",
+      "reply": "runs/3-habit-heatmap__T-sonnet/try1/reply.txt",
+      "bytes": 7134,
+      "gen_seconds": 24.49,
+      "api_seconds": 24.15,
+      "output_tokens": 3668,
+      "thinking_tokens": 1241,
+      "input_tokens": 6671,
+      "models": [
+        "claude-haiku-5-5",
+        "claude-sonnet-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 65.5476303100586,
+          "ink_share": 0.5018525304344286,
+          "nodes": 52,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 38.5625,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 53.0862919986248,
+          "tree_footprint_mb": 0.4375,
+          "tree_ms": 1.3360829949378967,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-sonnet/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.813232421875,
+          "ink_share": 0.3576724967453444,
+          "nodes": 54,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.421875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 51.73625001311302,
+          "tree_footprint_mb": 0.453125,
+          "tree_ms": 1.3738340139389038,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-sonnet/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 65.406982421875,
+          "ink_share": 0.5713936728960547,
+          "nodes": 52,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 38.453125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 48.84866699576378,
+          "tree_footprint_mb": 0.453125,
+          "tree_ms": 1.3368330001831055,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-sonnet/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 68.985107421875,
+          "ink_share": 0.4132374860851682,
+          "nodes": 54,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 41.640625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 48.11316701769829,
+          "tree_footprint_mb": 0.4375,
+          "tree_ms": 1.308208018541336,
+          "variant": "template",
+          "png": "runs/3-habit-heatmap__T-sonnet/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

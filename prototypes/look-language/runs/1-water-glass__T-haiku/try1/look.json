@@ -1,0 +1,119 @@
+{
+  "type": "vstack",
+  "align": "center",
+  "spacing": 6,
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#0B1F3A", "#06121F"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 8,
+      "frame": { "maxWidth": "infinity" },
+      "children": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 0,
+          "children": [
+            { "type": "text", "value": "{{ data.todayCount }} / {{ data.goal }}", "size": 20, "weight": "bold", "design": "rounded", "color": "#E6F7FF", "lineLimit": 1, "minScale": 0.6 },
+            { "type": "text", "value": "{{ data.unit }} today", "size": 11, "color": "#7FD4F5", "lineLimit": 1 }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "addGlass",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "plus",
+              "size": 18,
+              "weight": "heavy",
+              "color": "#06121F",
+              "frame": { "width": 44, "height": 44 },
+              "background": { "gradient": "linear", "stops": ["#7FE7FF", "#2A9DF4"], "from": "top", "to": "bottom" },
+              "clip": "circle",
+              "shadow": { "color": "#2A9DF466", "radius": 6, "x": 0, "y": 2 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "zstack",
+      "align": "bottom",
+      "frame": { "width": "{{ family == 'medium' ? 300 : 130 }}", "height": "{{ family == 'medium' ? 90 : 96 }}" },
+      "children": [
+        {
+          "type": "rect",
+          "cornerRadius": 10,
+          "stroke": { "color": "#7FD4F5", "width": 2, "cap": "round" },
+          "frame": { "maxWidth": "infinity", "maxHeight": "infinity" }
+        },
+        {
+          "type": "rect",
+          "cornerRadius": 8,
+          "fill": { "gradient": "linear", "stops": ["#5FD3FF", "#1769C9"], "from": "top", "to": "bottom" },
+          "frame": {
+            "maxWidth": "infinity",
+            "height": "{{ (family == 'medium' ? 90 : 96) * 0.9 * clamp(data.todayCount / data.goal, 0, 1) }}"
+          },
+          "padding": 3,
+          "overlay": {
+            "type": "zstack",
+            "align": "top",
+            "children": [
+              { "type": "circle", "fill": "#FFFFFF55", "frame": { "width": 5, "height": 5 }, "offset": { "x": -18, "y": 10 } },
+              { "type": "circle", "fill": "#FFFFFF55", "frame": { "width": 3, "height": 3 }, "offset": { "x": 14, "y": 22 } },
+              { "type": "circle", "fill": "#FFFFFF44", "frame": { "width": 4, "height": 4 }, "offset": { "x": -6, "y": 40 } }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "hstack",
+          "spacing": 4,
+          "align": "bottom",
+          "frame": { "maxWidth": "infinity" },
+          "children": [
+            {
+              "type": "repeat",
+              "over": "{{ data.last7 }}",
+              "item": "g",
+              "index": "i",
+              "children": [
+                {
+                  "type": "vstack",
+                  "spacing": 3,
+                  "children": [
+                    {
+                      "type": "rect",
+                      "cornerRadius": 3,
+                      "fill": "{{ i == 6 ? '#7FE7FF' : '#2A6FA8' }}",
+                      "frame": { "width": 14, "height": "{{ 4 + 20 * min(g, 8) / 8 }}" }
+                    },
+                    { "type": "text", "value": "{{ g }}", "size": 8, "color": "#7FD4F5" }
+                  ]
+                }
+              ]
+            },
+            { "type": "spacer" },
+            {
+              "type": "button",
+              "action": "undoLast",
+              "children": [
+                { "type": "symbol", "name": "arrow.uturn.backward", "size": 12, "weight": "semibold", "color": "#7FD4F5", "frame": { "width": 28, "height": 28 }, "background": "#FFFFFF1A", "clip": "circle" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

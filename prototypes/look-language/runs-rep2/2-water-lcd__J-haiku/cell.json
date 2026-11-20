@@ -1,0 +1,188 @@
+{
+  "id": "2-water-lcd__J-haiku",
+  "prompt_id": "2-water-lcd",
+  "widget": "water",
+  "variant": "js",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 3822,
+  "output_bytes_first_try": 3822,
+  "gen_seconds": 8.46,
+  "repair_gen_seconds": null,
+  "render_ms": 44.146,
+  "tree_ms": 1.769,
+  "peak_rss_mb": 36.297,
+  "js_setup_ms": 1.074,
+  "js_eval_ms": 0.4,
+  "nodes": 46,
+  "ink_share_min": 0.4127,
+  "overflow_pt": {
+    "a-small": 52,
+    "a-medium": 0,
+    "b-small": 52,
+    "b-medium": 0
+  },
+  "state_diff_share": {
+    "small": 0.0595,
+    "medium": 0.0441
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep2/2-water-lcd__J-haiku/try1/look.js",
+      "reply": "runs-rep2/2-water-lcd__J-haiku/try1/reply.txt",
+      "bytes": 3822,
+      "gen_seconds": 8.46,
+      "api_seconds": 8.58,
+      "output_tokens": 1749,
+      "thinking_tokens": 0,
+      "input_tokens": 5469,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 210,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 69.84455108642578,
+          "ink_share": 0.4639061927445951,
+          "js_eval_ms": 0.40608400106430054,
+          "js_setup_ms": 1.1927079856395721,
+          "nodes": 45,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 33.125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 52.510582983493805,
+          "tree_footprint_mb": 3.07830810546875,
+          "tree_ms": 1.8904999792575836,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 74.39140319824219,
+          "ink_share": 0.41265259146053845,
+          "js_eval_ms": 0.3998750150203705,
+          "js_setup_ms": 1.0739159882068634,
+          "nodes": 46,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 36.328125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 41.73199999332428,
+          "tree_footprint_mb": 3.0782852172851562,
+          "tree_ms": 1.7689170241355896,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 210,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 69.78202819824219,
+          "ink_share": 0.4778307072187614,
+          "js_eval_ms": 0.3692919909954071,
+          "js_setup_ms": 0.90379199385643,
+          "nodes": 45,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 33.046875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 43.42537498474121,
+          "tree_footprint_mb": 3.07830810546875,
+          "tree_ms": 1.5317910015583038,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 73.82890319824219,
+          "ink_share": 0.41550159430954137,
+          "js_eval_ms": 0.3745419979095459,
+          "js_setup_ms": 0.8994579911231995,
+          "nodes": 46,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 36.296875,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 44.146417021751404,
+          "tree_footprint_mb": 3.07830810546875,
+          "tree_ms": 1.5342499911785126,
+          "variant": "js",
+          "png": "runs-rep2/2-water-lcd__J-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

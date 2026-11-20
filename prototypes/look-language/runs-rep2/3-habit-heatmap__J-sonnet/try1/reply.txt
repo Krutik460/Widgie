@@ -1,0 +1,120 @@
+```js
+var NEON = '#39FF14';
+var OFF = '#0F2A14';
+
+function cell(day, isToday, w, h) {
+  var node = {
+    type: 'rect',
+    cornerRadius: 3,
+    fill: day && day.done ? NEON : OFF,
+    frame: { width: w, height: h },
+  };
+  if (day && day.done) {
+    node.shadow = { color: '#39FF14AA', radius: 3, x: 0, y: 0 };
+  }
+  if (isToday) {
+    node.stroke = { color: day && day.done ? '#E8FFE0' : NEON, width: 1.5 };
+  }
+  return node;
+}
+
+function grid(days, w, h, gap) {
+  var list = days.slice(-35);
+  var cols = [];
+  for (var c = 0; c < 5; c++) {
+    var rows = [];
+    for (var r = 0; r < 7; r++) {
+      var idx = c * 7 + r;
+      rows.push(cell(list[idx], idx === list.length - 1, w, h));
+    }
+    cols.push({ type: 'vstack', spacing: gap, children: rows });
+  }
+  return { type: 'hstack', spacing: gap, align: 'top', children: cols };
+}
+
+function toggle(done, size) {
+  return {
+    type: 'button',
+    action: 'toggleToday',
+    children: [
+      {
+        type: 'symbol',
+        name: done ? 'checkmark.circle.fill' : 'circle',
+        size: size,
+        weight: 'bold',
+        color: NEON,
+      },
+    ],
+  };
+}
+
+function render(ctx) {
+  var d = ctx.data;
+  var days = d.days || [];
+  var bg = '#000000';
+
+  if (ctx.family === 'small') {
+    return {
+      type: 'vstack',
+      align: 'leading',
+      spacing: 8,
+      padding: 12,
+      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+      widgetBackground: bg,
+      children: [
+        {
+          type: 'hstack',
+          spacing: 4,
+          align: 'center',
+          children: [
+            {
+              type: 'vstack',
+              align: 'leading',
+              spacing: 0,
+              children: [
+                { type: 'text', value: d.name, size: 13, weight: 'bold', design: 'monospaced', color: NEON, lineLimit: 1, minScale: 0.7 },
+                { type: 'text', value: d.streak + ' day streak', size: 9, design: 'monospaced', color: '#39FF1499', lineLimit: 1 },
+              ],
+            },
+            { type: 'spacer' },
+            toggle(d.doneToday, 22),
+          ],
+        },
+        {
+          type: 'zstack',
+          frame: { maxWidth: 'infinity', alignment: 'center' },
+          children: [grid(days, 24, 11, 3)],
+        },
+      ],
+    };
+  }
+
+  return {
+    type: 'hstack',
+    spacing: 14,
+    padding: 14,
+    align: 'center',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+    widgetBackground: bg,
+    children: [
+      {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 2,
+        frame: { maxHeight: 'infinity', alignment: 'topLeading' },
+        children: [
+          { type: 'text', value: d.name, size: 16, weight: 'bold', design: 'monospaced', color: NEON, lineLimit: 1, minScale: 0.7 },
+          { type: 'text', value: 'LAST 5 WEEKS', size: 9, design: 'monospaced', color: '#39FF1488' },
+          { type: 'spacer' },
+          { type: 'text', value: String(d.streak), size: 44, weight: 'heavy', design: 'monospaced', color: NEON, lineLimit: 1, minScale: 0.5, shadow: { color: '#39FF14AA', radius: 6, x: 0, y: 0 } },
+          { type: 'text', value: d.streak === 1 ? 'day streak' : 'day streak', size: 11, design: 'monospaced', color: '#39FF1499' },
+          { type: 'spacer' },
+          toggle(d.doneToday, 28),
+        ],
+      },
+      { type: 'spacer' },
+      grid(days, 30, 15, 4),
+    ],
+  };
+}
+```

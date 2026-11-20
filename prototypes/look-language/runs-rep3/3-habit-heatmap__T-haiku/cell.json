@@ -1,0 +1,163 @@
+{
+  "id": "3-habit-heatmap__T-haiku",
+  "prompt_id": "3-habit-heatmap",
+  "widget": "habit",
+  "variant": "template",
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_after_repair": true,
+  "status": "first try",
+  "error_first_try": null,
+  "error_after_repair": null,
+  "output_bytes": 2620,
+  "output_bytes_first_try": 2620,
+  "gen_seconds": 4.6,
+  "repair_gen_seconds": null,
+  "render_ms": 57.515,
+  "tree_ms": 2.634,
+  "peak_rss_mb": 41.438,
+  "js_setup_ms": null,
+  "js_eval_ms": null,
+  "nodes": 51,
+  "ink_share_min": 0.5127,
+  "overflow_pt": {
+    "a-small": 55,
+    "a-medium": 78,
+    "b-small": 55,
+    "b-medium": 78
+  },
+  "state_diff_share": {
+    "small": 0.2934,
+    "medium": 0.3468
+  },
+  "actions_used": [
+    "toggleToday"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "final_attempt": 1,
+  "attempts": [
+    {
+      "look": "runs-rep3/3-habit-heatmap__T-haiku/try1/look.json",
+      "reply": "runs-rep3/3-habit-heatmap__T-haiku/try1/reply.txt",
+      "bytes": 2620,
+      "gen_seconds": 4.6,
+      "api_seconds": 4.67,
+      "output_tokens": 1053,
+      "thinking_tokens": 0,
+      "input_tokens": 6697,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 213,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 64.578857421875,
+          "ink_share": 0.512723423313383,
+          "nodes": 50,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 37.828125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 57.51516601443291,
+          "tree_footprint_mb": 0.421875,
+          "tree_ms": 3.6997919976711273,
+          "variant": "template",
+          "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 236,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 67.844482421875,
+          "ink_share": 0.5886304031999396,
+          "nodes": 51,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 41.4375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 54.55112501978874,
+          "tree_footprint_mb": 0.4375,
+          "tree_ms": 2.63400000333786,
+          "variant": "template",
+          "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 213,
+          "content_width": 158,
+          "family": "small",
+          "footprint_mb": 64.594482421875,
+          "ink_share": 0.513415577541631,
+          "nodes": 50,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 37.875,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 52.43800002336502,
+          "tree_footprint_mb": 0.40625,
+          "tree_ms": 2.5077089965343475,
+          "variant": "template",
+          "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "toggleToday",
+              "rowId": null
+            }
+          ],
+          "content_height": 236,
+          "content_width": 338,
+          "family": "medium",
+          "footprint_mb": 67.860107421875,
+          "ink_share": 0.5184430482443727,
+          "nodes": 51,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 41.5,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 63.77974998950958,
+          "tree_footprint_mb": 0.421875,
+          "tree_ms": 2.4542089998722076,
+          "variant": "template",
+          "png": "runs-rep3/3-habit-heatmap__T-haiku/try1/b-medium.png"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+```json
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 6,
+  "padding": { "horizontal": 12, "vertical": 10 },
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#AEBBA4", "#97A68D"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 6,
+      "children": [
+        { "type": "text", "value": "WATER", "size": 11, "weight": "bold", "design": "monospaced", "kerning": 2, "color": "#1E2B1E" },
+        { "type": "spacer" },
+        {
+          "type": "text",
+          "value": "{{ data.todayCount >= data.goal ? 'GOAL MET' : 'LEFT ' + str(data.goal - data.todayCount) }}",
+          "size": 11,
+          "weight": "semibold",
+          "design": "monospaced",
+          "color": "#1E2B1E",
+          "lineLimit": 1,
+          "minScale": 0.6
+        }
+      ]
+    },
+    {
+      "type": "hstack",
+      "align": "bottom",
+      "spacing": 4,
+      "children": [
+        {
+          "type": "text",
+          "value": "{{ data.todayCount }}",
+          "size": "{{ family == 'medium' ? 52 : 40 }}",
+          "weight": "heavy",
+          "design": "monospaced",
+          "color": "#1E2B1E",
+          "lineLimit": 1,
+          "minScale": 0.5
+        },
+        {
+          "type": "text",
+          "value": "/ {{ data.goal }} {{ data.unit }}",
+          "size": 12,
+          "weight": "semibold",
+          "design": "monospaced",
+          "color": "#1E2B1E",
+          "lineLimit": 1,
+          "minScale": 0.6
+        },
+        { "type": "spacer" }
+      ]
+    },
+    {
+      "type": "hstack",
+      "spacing": 3,
+      "children": [
+        {
+          "type": "repeat",
+          "over": "{{ range(data.goal) }}",
+          "item": "s",
+          "index": "k",
+          "children": [
+            {
+              "type": "rect",
+              "cornerRadius": 2,
+              "fill": "{{ k < data.todayCount ? '#1E2B1E' : '#8A9A80' }}",
+              "frame": { "height": 14 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "hstack",
+      "align": "bottom",
+      "spacing": 6,
+      "frame": { "height": 34 },
+      "children": [
+        {
+          "type": "hstack",
+          "align": "bottom",
+          "spacing": 3,
+          "frame": { "height": 34 },
+          "children": [
+            {
+              "type": "repeat",
+              "over": "{{ data.last7 }}",
+              "item": "v",
+              "index": "d",
+              "children": [
+                {
+                  "type": "rect",
+                  "cornerRadius": 1,
+                  "fill": "{{ v >= data.goal ? '#1E2B1E' : '#5F6F58' }}",
+                  "frame": { "width": 7, "height": "{{ 3 + 31 * min(v, data.goal) / max(data.goal, 1) }}" }
+                }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "undoLast",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "minus",
+              "size": 12,
+              "weight": "bold",
+              "color": "#1E2B1E",
+              "frame": { "width": 26, "height": 26 },
+              "background": "#7D8D74",
+              "cornerRadius": 5
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "action": "addGlass",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "plus",
+              "size": 12,
+              "weight": "bold",
+              "color": "#1E2B1E",
+              "frame": { "width": 26, "height": 26 },
+              "background": "#C9D6BE",
+              "cornerRadius": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

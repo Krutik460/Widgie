@@ -1,0 +1,159 @@
+```js
+function render(ctx) {
+  const d = ctx.data;
+  const isMed = ctx.family === 'medium';
+  const goal = Math.max(d.goal || 1, 1);
+  const count = Math.max(d.todayCount || 0, 0);
+  const progress = Math.min(Math.max(count / goal, 0), 1);
+  const unit = String(d.unit || '');
+  const last = Array.isArray(d.last7) ? d.last7 : [];
+  const peak = Math.max(goal, 1, ...last);
+  const barMax = isMed ? 84 : 28;
+  const barW = isMed ? 150 : 128;
+  const cream = '#E9D39A';
+  const sage = '#CFE3B0';
+
+  const bars = last.map((v, i) => {
+    const val = Math.min(Math.max(v || 0, 0), peak);
+    const h = Math.max(3, barMax * val / peak);
+    return {
+      type: 'rect',
+      cornerRadius: 3,
+      fill: i === last.length - 1 ? cream : sage + '99',
+      frame: { width: isMed ? 14 : 9, height: h },
+    };
+  });
+
+  const progressBar = {
+    type: 'zstack',
+    align: 'leading',
+    children: [
+      { type: 'capsule', fill: '#FFFFFF33', frame: { width: barW, height: 6 } },
+      { type: 'capsule', fill: cream, frame: { width: Math.max(0.01, barW * progress), height: 6 } },
+    ],
+  };
+
+  const buttons = {
+    type: 'hstack',
+    spacing: 10,
+    children: [
+      {
+        type: 'button',
+        action: 'undoLast',
+        children: [
+          {
+            type: 'symbol', name: 'arrow.uturn.backward', size: 13, weight: 'bold', color: '#FFFFFF',
+            frame: { width: 30, height: 30 }, background: '#FFFFFF26', clip: 'circle',
+          },
+        ],
+      },
+      {
+        type: 'button',
+        action: 'addGlass',
+        children: [
+          {
+            type: 'symbol', name: 'plus', size: 14, weight: 'bold', color: '#0A140D',
+            frame: { width: 30, height: 30 }, background: cream, clip: 'circle',
+          },
+        ],
+      },
+    ],
+  };
+
+  const countRow = {
+    type: 'hstack',
+    align: 'bottom',
+    spacing: 4,
+    children: [
+      { type: 'text', value: String(count), size: 34, weight: 'bold', design: 'rounded', color: '#FFFFFF', lineLimit: 1, minScale: 0.5 },
+      { type: 'text', value: '/ ' + goal + ' ' + unit, size: 13, weight: 'semibold', color: '#DDE8D6', lineLimit: 1, minScale: 0.6 },
+    ],
+  };
+
+  const leftColumn = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 8,
+    children: [
+      { type: 'text', value: unit.toUpperCase(), size: 11, weight: 'semibold', color: cream, lineLimit: 1 },
+      countRow,
+      progressBar,
+      buttons,
+    ],
+  };
+
+  const chart = {
+    type: 'hstack',
+    align: 'bottom',
+    spacing: isMed ? 8 : 5,
+    frame: { height: barMax },
+    children: bars,
+  };
+
+  const content = isMed
+    ? {
+        type: 'hstack',
+        align: 'center',
+        spacing: 18,
+        padding: 14,
+        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'center' },
+        children: [
+          leftColumn,
+          {
+            type: 'vstack',
+            align: 'leading',
+            spacing: 8,
+            children: [
+              { type: 'text', value: 'Last 7 days', size: 11, weight: 'semibold', color: '#DDE8D6', lineLimit: 1 },
+              chart,
+            ],
+          },
+        ],
+      }
+    : {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 8,
+        padding: { top: 12, bottom: 12, leading: 14, trailing: 14 },
+        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+        children: [
+          { type: 'text', value: unit.toUpperCase(), size: 11, weight: 'semibold', color: cream, lineLimit: 1 },
+          countRow,
+          progressBar,
+          chart,
+          buttons,
+        ],
+      };
+
+  const background = {
+    type: 'zstack',
+    align: 'center',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+    children: [
+      {
+        type: 'image',
+        asset: 'reference',
+        mode: 'fill',
+        crop: isMed ? [0, 0.2, 1, 0.6] : [0.25, 0, 0.5, 1],
+      },
+      {
+        type: 'rect',
+        fill: {
+          gradient: 'linear',
+          stops: ['#071009E6', '#07100999', '#07100833'],
+          from: 'leading',
+          to: 'trailing',
+        },
+      },
+    ],
+  };
+
+  return {
+    type: 'zstack',
+    align: 'center',
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+    widgetBackground: background,
+    children: [content],
+  };
+}
+```

@@ -1,0 +1,153 @@
+```json
+{
+  "type": "vstack",
+  "align": "center",
+  "spacing": 8,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#0B2545", "#13315C"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 10,
+      "align": "center",
+      "children": [
+        {
+          "type": "zstack",
+          "align": "bottom",
+          "frame": { "width": "{{ family == 'medium' ? 78 : 62 }}", "height": "{{ family == 'medium' ? 110 : 96 }}" },
+          "children": [
+            {
+              "type": "rect",
+              "cornerRadius": 10,
+              "fill": "#FFFFFF22",
+              "stroke": { "color": "#8FD3FF", "width": 2, "cap": "round" },
+              "frame": { "width": "{{ family == 'medium' ? 78 : 62 }}", "height": "{{ family == 'medium' ? 110 : 96 }}" }
+            },
+            {
+              "type": "rect",
+              "cornerRadius": 8,
+              "fill": {
+                "gradient": "linear",
+                "stops": ["#4CC9F0", "#1E6FD9"],
+                "from": "top",
+                "to": "bottom"
+              },
+              "frame": {
+                "width": "{{ family == 'medium' ? 70 : 54 }}",
+                "height": "{{ (family == 'medium' ? 102 : 88) * clamp(data.todayCount / max(data.goal, 1), 0, 1) }}"
+              }
+            },
+            {
+              "type": "symbol",
+              "name": "drop.fill",
+              "size": 12,
+              "color": "#FFFFFF88",
+              "frame": { "maxHeight": "infinity", "alignment": "topTrailing" },
+              "padding": 6,
+              "offset": { "x": 0, "y": 0 }
+            }
+          ]
+        },
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 4,
+          "children": [
+            {
+              "type": "text",
+              "value": "{{ data.todayCount }}/{{ data.goal }}",
+              "size": "{{ family == 'medium' ? 30 : 26 }}",
+              "weight": "heavy",
+              "design": "rounded",
+              "color": "#FFFFFF",
+              "lineLimit": 1,
+              "minScale": 0.5
+            },
+            {
+              "type": "text",
+              "value": "{{ data.unit }} today",
+              "size": 12,
+              "weight": "medium",
+              "color": "#8FD3FF",
+              "lineLimit": 1,
+              "minScale": 0.6
+            },
+            {
+              "type": "if",
+              "test": "{{ family == 'medium' }}",
+              "then": [
+                {
+                  "type": "hstack",
+                  "spacing": 4,
+                  "align": "bottom",
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "over": "{{ data.last7 }}",
+                      "item": "v",
+                      "index": "i",
+                      "children": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 2,
+                          "fill": "{{ i == 6 ? '#8FD3FF' : '#4CC9F0AA' }}",
+                          "frame": { "width": 8, "height": "{{ 4 + 26 * clamp(v / max(data.goal, 1), 0, 1) }}" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "hstack",
+      "spacing": 10,
+      "children": [
+        {
+          "type": "button",
+          "action": "undoLast",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "minus",
+              "size": 13,
+              "weight": "bold",
+              "color": "#8FD3FF",
+              "frame": { "width": 30, "height": 30 },
+              "background": "#FFFFFF22",
+              "clip": "circle"
+            }
+          ]
+        },
+        {
+          "type": "button",
+          "action": "addGlass",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "plus",
+              "size": 22,
+              "weight": "bold",
+              "color": "#0B2545",
+              "frame": { "width": 46, "height": 46 },
+              "background": {
+                "gradient": "linear",
+                "stops": ["#8FD3FF", "#4CC9F0"],
+                "from": "topLeading",
+                "to": "bottomTrailing"
+              },
+              "clip": "circle",
+              "shadow": { "color": "#4CC9F0AA", "radius": 6, "x": 0, "y": 2 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

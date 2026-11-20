@@ -1,0 +1,125 @@
+{
+  "type": "hstack",
+  "spacing": 14,
+  "align": "center",
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity" },
+  "widgetBackground": "#0C1821",
+  "children": [
+    {
+      "type": "zstack",
+      "frame": { "width": 112, "height": 112 },
+      "children": [
+        {
+          "type": "circle",
+          "stroke": { "color": "#FFFFFF22", "width": 10, "cap": "round" },
+          "frame": { "width": 112, "height": 112 }
+        },
+        {
+          "type": "circle",
+          "stroke": {
+            "color": "{{ lerpColor('#E63946', '#2BD46A', clamp(data.streak / 30, 0, 1)) }}",
+            "width": 10,
+            "cap": "round"
+          },
+          "trimFrom": 0,
+          "trimTo": "{{ clamp(data.streak / 30, 0.02, 1) }}",
+          "rotation": -90,
+          "frame": { "width": 112, "height": 112 }
+        },
+        {
+          "type": "button",
+          "action": "toggleToday",
+          "children": [
+            {
+              "type": "vstack",
+              "spacing": 0,
+              "children": [
+                {
+                  "type": "symbol",
+                  "name": "flame.fill",
+                  "size": 26,
+                  "color": "{{ lerpColor('#E63946', '#2BD46A', clamp(data.streak / 30, 0, 1)) }}",
+                  "opacity": "{{ data.doneToday ? 1 : 0.35 }}"
+                },
+                {
+                  "type": "text",
+                  "value": "{{ data.streak }}",
+                  "size": 30,
+                  "weight": "heavy",
+                  "design": "rounded",
+                  "color": "#FFFFFF",
+                  "lineLimit": 1,
+                  "minScale": 0.5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "align": "leading",
+          "spacing": 6,
+          "frame": { "maxWidth": "infinity", "alignment": "leading" },
+          "children": [
+            {
+              "type": "text",
+              "value": "{{ data.name }}",
+              "size": 15,
+              "weight": "bold",
+              "color": "#FFFFFF",
+              "lineLimit": 1,
+              "minScale": 0.6
+            },
+            {
+              "type": "text",
+              "value": "{{ data.doneToday ? 'Done today' : 'Not done yet' }}",
+              "size": 11,
+              "color": "#9FB3C8",
+              "lineLimit": 1
+            },
+            {
+              "type": "vstack",
+              "align": "leading",
+              "spacing": 4,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ range(5) }}",
+                  "index": "r",
+                  "children": [
+                    {
+                      "type": "hstack",
+                      "spacing": 4,
+                      "children": [
+                        {
+                          "type": "repeat",
+                          "over": "{{ range(7) }}",
+                          "index": "c",
+                          "children": [
+                            {
+                              "type": "rect",
+                              "cornerRadius": 4,
+                              "fill": "{{ data.days[r * 7 + c].done ? '#2BD46A' : '#FFFFFF22' }}",
+                              "frame": { "width": 18, "height": 18 }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

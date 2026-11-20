@@ -1,0 +1,134 @@
+{
+  "type": "hstack",
+  "spacing": 12,
+  "align": "center",
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#0B2A5B", "#071A3A"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "zstack",
+      "align": "bottom",
+      "frame": { "width": 60, "height": 130 },
+      "background": "#FFFFFF1A",
+      "overlay": { "type": "rect", "cornerRadius": 14, "stroke": { "color": "#BFE6FFAA", "width": 3 } },
+      "cornerRadius": 14,
+      "children": [
+        {
+          "type": "rect",
+          "fill": { "gradient": "linear", "stops": ["#6FD6FF", "#1E78F0"], "from": "top", "to": "bottom" },
+          "frame": { "width": 60, "height": "{{ 130 * clamp(data.todayCount / max(data.goal, 1), 0, 1) }}" }
+        },
+        {
+          "type": "if",
+          "test": "{{ 130 * clamp(data.todayCount / max(data.goal, 1), 0, 1) > 4 }}",
+          "then": [
+            { "type": "capsule", "fill": "#FFFFFF88", "frame": { "width": 44, "height": 4 }, "offset": { "x": 0, "y": "{{ -(130 * clamp(data.todayCount / max(data.goal, 1), 0, 1)) + 8 }}" } }
+          ]
+        },
+        {
+          "type": "if",
+          "test": "{{ 130 * clamp(data.todayCount / max(data.goal, 1), 0, 1) > 28 }}",
+          "then": [
+            { "type": "circle", "fill": "#FFFFFF66", "frame": { "width": 9, "height": 9 }, "offset": { "x": -14, "y": -14 } },
+            { "type": "circle", "fill": "#FFFFFF44", "frame": { "width": 6, "height": 6 }, "offset": { "x": 12, "y": -22 } }
+          ]
+        },
+        {
+          "type": "if",
+          "test": "{{ 130 * clamp(data.todayCount / max(data.goal, 1), 0, 1) > 60 }}",
+          "then": [
+            { "type": "circle", "fill": "#FFFFFF55", "frame": { "width": 11, "height": 11 }, "offset": { "x": 8, "y": -44 } },
+            { "type": "circle", "fill": "#FFFFFF44", "frame": { "width": 7, "height": 7 }, "offset": { "x": -12, "y": -56 } }
+          ]
+        },
+        {
+          "type": "if",
+          "test": "{{ 130 * clamp(data.todayCount / max(data.goal, 1), 0, 1) > 95 }}",
+          "then": [
+            { "type": "circle", "fill": "#FFFFFF55", "frame": { "width": 8, "height": 8 }, "offset": { "x": -6, "y": -80 } },
+            { "type": "circle", "fill": "#FFFFFF44", "frame": { "width": 10, "height": 10 }, "offset": { "x": 14, "y": -92 } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "vstack",
+      "align": "leading",
+      "spacing": 2,
+      "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+      "children": [
+        {
+          "type": "hstack",
+          "align": "center",
+          "spacing": 4,
+          "children": [
+            { "type": "text", "value": "{{ data.todayCount }}", "size": 38, "weight": "heavy", "design": "rounded", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.6 },
+            { "type": "spacer" },
+            {
+              "type": "button",
+              "action": "undoLast",
+              "children": [
+                { "type": "symbol", "name": "arrow.uturn.backward", "size": 12, "weight": "bold", "color": "#BFE6FF", "frame": { "width": 26, "height": 26 }, "background": "#FFFFFF22", "clip": "circle" }
+              ]
+            }
+          ]
+        },
+        { "type": "text", "value": "of {{ data.goal }} {{ data.unit }}", "size": 12, "weight": "medium", "design": "rounded", "color": "#9FD3FF", "lineLimit": 1, "minScale": 0.7 },
+        { "type": "spacer" },
+        {
+          "type": "hstack",
+          "align": "bottom",
+          "spacing": 10,
+          "children": [
+            {
+              "type": "if",
+              "test": "{{ family == 'medium' }}",
+              "then": [
+                {
+                  "type": "hstack",
+                  "align": "bottom",
+                  "spacing": 6,
+                  "children": [
+                    {
+                      "type": "repeat",
+                      "over": "{{ data.last7 }}",
+                      "item": "v",
+                      "index": "i",
+                      "children": [
+                        {
+                          "type": "rect",
+                          "cornerRadius": 4,
+                          "fill": "{{ i == 6 ? '#6FD6FF' : '#3D78C4' }}",
+                          "frame": { "width": 14, "height": "{{ 6 + 38 * min(v, max(data.goal, 1)) / max(data.goal, 1) }}" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            { "type": "spacer" },
+            {
+              "type": "button",
+              "action": "addGlass",
+              "children": [
+                {
+                  "type": "symbol",
+                  "name": "plus",
+                  "size": 30,
+                  "weight": "black",
+                  "color": "#FFFFFF",
+                  "frame": { "width": "{{ family == 'medium' ? 90 : 64 }}", "height": 56 },
+                  "background": { "gradient": "linear", "stops": ["#4FC3FF", "#1E78F0"], "from": "top", "to": "bottom" },
+                  "clip": "capsule",
+                  "shadow": { "color": "#4FC3FF88", "radius": 8, "x": 0, "y": 2 }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

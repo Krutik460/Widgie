@@ -1,0 +1,12 @@
+{
+  "title": "Dune",
+  "pagesRead": 180,
+  "pagesGoal": 300,
+  "sessions": [
+    { "day": "M", "pages": 30 },
+    { "day": "T", "pages": 12 },
+    { "day": "W", "pages": 0 },
+    { "day": "T", "pages": 40 },
+    { "day": "F", "pages": 22 }
+  ]
+}

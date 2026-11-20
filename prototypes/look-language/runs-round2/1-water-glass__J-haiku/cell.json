@@ -1,0 +1,675 @@
+{
+  "id": "1-water-glass__J-haiku",
+  "group": "rerun",
+  "job_id": "1-water-glass",
+  "widget": "water",
+  "user_words": "a glass that fills up with water as I drink, bubbly blue, with a big plus button",
+  "reference_image": null,
+  "model": "haiku",
+  "model_ids": [
+    "claude-haiku-5-5"
+  ],
+  "valid_first_try": true,
+  "valid_final": true,
+  "validity_repair_used": false,
+  "fit_repair_used": true,
+  "validity_status": "first try",
+  "fit_status": "fit repaired",
+  "errors": [],
+  "before_attempt": 1,
+  "final_attempt": 2,
+  "overflow_before_pt": {
+    "a-small": 22,
+    "a-medium": 72,
+    "b-small": 22,
+    "b-medium": 72
+  },
+  "overflow_after_pt": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_before": {
+    "a-small": 0,
+    "a-medium": 0,
+    "b-small": 0,
+    "b-medium": 0
+  },
+  "truncated_after": {
+    "a-small": 0,
+    "a-medium": 1,
+    "b-small": 0,
+    "b-medium": 1
+  },
+  "assets_used": [],
+  "assets_used_by_render": {
+    "a-small": [],
+    "a-medium": [],
+    "b-small": [],
+    "b-medium": []
+  },
+  "look_mentions_reference_asset": false,
+  "fonts_used": [],
+  "state_diff_share": {
+    "small": 0.1214,
+    "medium": 0.1076
+  },
+  "actions_used": [
+    "addGlass",
+    "undoLast"
+  ],
+  "actions_unknown": [],
+  "actions_missing": [],
+  "output_bytes": 4283,
+  "gen_seconds_total": 25.82,
+  "model_calls": 2,
+  "attempts": [
+    {
+      "kind": "first",
+      "look": "runs-round2/1-water-glass__J-haiku/try1/look.js",
+      "reply": "runs-round2/1-water-glass__J-haiku/try1/reply.txt",
+      "request": "runs-round2/1-water-glass__J-haiku/try1/request.md",
+      "image_sent": null,
+      "bytes": 4332,
+      "gen_seconds": 8.08,
+      "api_seconds": 7.61,
+      "num_turns": 1,
+      "output_tokens": 1947,
+      "input_tokens": 6549,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 180,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 22,
+              "width": 0
+            },
+            "max": 22,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 66.57915496826172,
+          "ink_share": 0.8601034159846912,
+          "js_eval_ms": 0.8575000166893005,
+          "js_setup_ms": 4.318040996789932,
+          "nodes": 18,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 54.203125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 91.09841698408127,
+          "tree_footprint_mb": 3.0157623291015625,
+          "tree_ms": 5.796124994754791,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try1/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 408,
+          "family": "medium",
+          "fit": {
+            "content_max": 25,
+            "cut": [
+              {
+                "label": "addGlass",
+                "max": 25,
+                "path": "root.children[0].children[4].children[0]",
+                "trailing": 25,
+                "type": "button",
+                "within": "widget"
+              },
+              {
+                "label": "undoLast",
+                "max": 16,
+                "path": "root.children[0].children[4].children[1]",
+                "trailing": 16,
+                "type": "button",
+                "within": "widget"
+              },
+              {
+                "label": "plus",
+                "max": 14,
+                "path": "root.children[0].children[4].children[0].children[0]",
+                "trailing": 14,
+                "type": "symbol",
+                "within": "widget"
+              },
+              {
+                "label": "arrow.uturn.backward",
+                "max": 9,
+                "path": "root.children[0].children[4].children[1].children[0]",
+                "trailing": 9,
+                "type": "symbol",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 4,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 25
+            },
+            "layout": {
+              "height": 0,
+              "width": 72
+            },
+            "max": 72,
+            "texts": 9,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.53225708007812,
+          "ink_share": 0.8687070722318666,
+          "js_eval_ms": 0.42637500166893005,
+          "js_setup_ms": 1.2463330030441284,
+          "nodes": 39,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 58.59375,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 65.62070798873901,
+          "tree_footprint_mb": 3.0939102172851562,
+          "tree_ms": 1.958292007446289,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try1/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 180,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 22,
+              "width": 0
+            },
+            "max": 22,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.37600708007812,
+          "ink_share": 0.8601034159846912,
+          "js_eval_ms": 0.3767080008983612,
+          "js_setup_ms": 1.0889590084552765,
+          "nodes": 18,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 54.234375,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 58.098625004291534,
+          "tree_footprint_mb": 3.0626602172851562,
+          "tree_ms": 1.6821250021457672,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try1/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 408,
+          "family": "medium",
+          "fit": {
+            "content_max": 25,
+            "cut": [
+              {
+                "label": "addGlass",
+                "max": 25,
+                "path": "root.children[0].children[4].children[0]",
+                "trailing": 25,
+                "type": "button",
+                "within": "widget"
+              },
+              {
+                "label": "undoLast",
+                "max": 16,
+                "path": "root.children[0].children[4].children[1]",
+                "trailing": 16,
+                "type": "button",
+                "within": "widget"
+              },
+              {
+                "label": "plus",
+                "max": 14,
+                "path": "root.children[0].children[4].children[0].children[0]",
+                "trailing": 14,
+                "type": "symbol",
+                "within": "widget"
+              },
+              {
+                "label": "arrow.uturn.backward",
+                "max": 9,
+                "path": "root.children[0].children[4].children[1].children[0]",
+                "trailing": 9,
+                "type": "symbol",
+                "within": "widget"
+              }
+            ],
+            "cut_count": 4,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 25
+            },
+            "layout": {
+              "height": 0,
+              "width": 72
+            },
+            "max": 72,
+            "texts": 9,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 73.21980285644531,
+          "ink_share": 0.8686693335346064,
+          "js_eval_ms": 0.40620797872543335,
+          "js_setup_ms": 1.3635840117931366,
+          "nodes": 39,
+          "ok": true,
+          "overflow": true,
+          "peak_rss_mb": 59.265625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 58.261334002017975,
+          "tree_footprint_mb": 3.12518310546875,
+          "tree_ms": 2.09825000166893,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try1/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 22,
+        "a-medium": 72,
+        "b-small": 22,
+        "b-medium": 72
+      },
+      "layout_overflow_pt": {
+        "a-small": 22,
+        "a-medium": 72,
+        "b-small": 22,
+        "b-medium": 72
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 25,
+        "b-small": 0,
+        "b-medium": 25
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "texts": {
+        "a-small": 2,
+        "a-medium": 9,
+        "b-small": 2,
+        "b-medium": 9
+      }
+    },
+    {
+      "kind": "fit repair",
+      "look": "runs-round2/1-water-glass__J-haiku/try2/look.js",
+      "reply": "runs-round2/1-water-glass__J-haiku/try2/reply.txt",
+      "request": "runs-round2/1-water-glass__J-haiku/try2/request.md",
+      "image_sent": null,
+      "bytes": 4283,
+      "gen_seconds": 17.74,
+      "api_seconds": 18.02,
+      "num_turns": 1,
+      "output_tokens": 3935,
+      "input_tokens": 9200,
+      "models": [
+        "claude-haiku-5-5"
+      ],
+      "transport_retries": 0,
+      "fence": {
+        "fenced": true,
+        "blocks": 1,
+        "chars_outside_fence": 0
+      },
+      "valid": true,
+      "first_error": null,
+      "renders": {
+        "a-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.43852996826172,
+          "ink_share": 0.8710964537274541,
+          "js_eval_ms": 0.980333000421524,
+          "js_setup_ms": 1.333416998386383,
+          "nodes": 17,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 54.328125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 61.62366697192192,
+          "tree_footprint_mb": 3.10955810546875,
+          "tree_ms": 2.7760410010814667,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try2/a-small.png"
+        },
+        "a-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 9,
+            "truncated": [
+              {
+                "height": 10,
+                "height_needed": 10,
+                "line_limit": 1,
+                "lines_needed": 1,
+                "path": "root.children[0].children[2].children[6].children[1]",
+                "value": "2",
+                "width": 3
+              }
+            ]
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.61038208007812,
+          "ink_share": 0.8726627799475482,
+          "js_eval_ms": 0.40641599893569946,
+          "js_setup_ms": 1.1474170088768005,
+          "nodes": 37,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.703125,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 49.95395800471306,
+          "tree_footprint_mb": 3.0470352172851562,
+          "tree_ms": 1.8274999856948853,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try2/a-medium.png"
+        },
+        "b-small": {
+          "actions": [
+            {
+              "action": "undoLast",
+              "rowId": null
+            },
+            {
+              "action": "addGlass",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 158,
+          "family": "small",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 2,
+            "truncated": []
+          },
+          "fonts_used": [],
+          "footprint_mb": 68.31350708007812,
+          "ink_share": 0.8710964537274541,
+          "js_eval_ms": 0.3774169981479645,
+          "js_setup_ms": 1.0647910237312317,
+          "nodes": 17,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 54.28125,
+          "pixel_height": 474,
+          "pixel_width": 474,
+          "render_ms": 57.38670900464058,
+          "tree_footprint_mb": 3.0470352172851562,
+          "tree_ms": 1.6540000140666962,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try2/b-small.png"
+        },
+        "b-medium": {
+          "actions": [
+            {
+              "action": "addGlass",
+              "rowId": null
+            },
+            {
+              "action": "undoLast",
+              "rowId": null
+            }
+          ],
+          "assets": {},
+          "assets_used": [],
+          "content_height": 158,
+          "content_width": 338,
+          "family": "medium",
+          "fit": {
+            "content_max": 0,
+            "cut": [],
+            "cut_count": 0,
+            "edges": {
+              "bottom": 0,
+              "leading": 0,
+              "top": 0,
+              "trailing": 0
+            },
+            "layout": {
+              "height": 0,
+              "width": 0
+            },
+            "max": 0,
+            "texts": 9,
+            "truncated": [
+              {
+                "height": 10,
+                "height_needed": 10,
+                "line_limit": 1,
+                "lines_needed": 1,
+                "path": "root.children[0].children[2].children[6].children[1]",
+                "value": "7",
+                "width": 3
+              }
+            ]
+          },
+          "fonts_used": [],
+          "footprint_mb": 72.45413208007812,
+          "ink_share": 0.8726816475160846,
+          "js_eval_ms": 0.44041699171066284,
+          "js_setup_ms": 1.073166012763977,
+          "nodes": 37,
+          "ok": true,
+          "overflow": false,
+          "peak_rss_mb": 58.5625,
+          "pixel_height": 474,
+          "pixel_width": 1014,
+          "render_ms": 49.54529199004173,
+          "tree_footprint_mb": 3.0157852172851562,
+          "tree_ms": 1.796915978193283,
+          "variant": "js",
+          "png": "runs-round2/1-water-glass__J-haiku/try2/b-medium.png"
+        }
+      },
+      "overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "layout_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "content_overflow_pt": {
+        "a-small": 0,
+        "a-medium": 0,
+        "b-small": 0,
+        "b-medium": 0
+      },
+      "truncated_texts": {
+        "a-small": 0,
+        "a-medium": 1,
+        "b-small": 0,
+        "b-medium": 1
+      },
+      "texts": {
+        "a-small": 2,
+        "a-medium": 9,
+        "b-small": 2,
+        "b-medium": 9
+      }
+    }
+  ]
+}

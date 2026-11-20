@@ -1,0 +1,85 @@
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 8,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": "#000000",
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 6,
+      "children": [
+        { "type": "text", "value": "{{ data.name }}", "size": 14, "weight": "bold", "design": "rounded", "color": "#39FF14", "lineLimit": 1, "minScale": 0.6 },
+        { "type": "spacer" },
+        { "type": "text", "value": "{{ data.streak }}d", "size": 12, "weight": "semibold", "color": "#39FF14" }
+      ]
+    },
+    {
+      "type": "hstack",
+      "spacing": 3,
+      "frame": { "maxHeight": "infinity", "alignment": "center" },
+      "children": [
+        {
+          "type": "repeat",
+          "over": "range(5)",
+          "item": "w",
+          "index": "wi",
+          "children": [
+            {
+              "type": "vstack",
+              "spacing": 3,
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "range(7)",
+                  "item": "d",
+                  "index": "di",
+                  "children": [
+                    {
+                      "type": "rect",
+                      "cornerRadius": 2,
+                      "fill": "{{ data.days[w * 7 + d].done ? (data.days[w * 7 + d].date == data.days[34].date ? '#39FF14' : '#39FF14') : (data.days[w * 7 + d].date == data.days[34].date ? '#1F3D1F' : '#0F1F0F') }}",
+                      "opacity": "{{ data.days[w * 7 + d].done ? 1 : 0.9 }}",
+                      "frame": { "width": "{{ (width - 28 - 4 * 3) / 5 - 0 }}", "height": "{{ (height - 28 - 8 - 6 * 3) / 7 }}" }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        { "type": "text", "value": "{{ data.doneToday ? 'Done today' : 'Not done yet' }}", "size": 12, "color": "#7FBF7F" }
+      ]
+    },
+    {
+      "type": "hstack",
+      "frame": { "maxWidth": "infinity" },
+      "children": [
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "toggleToday",
+          "children": [
+            {
+              "type": "symbol",
+              "name": "checkmark",
+              "size": 14,
+              "weight": "bold",
+              "color": "#000000",
+              "frame": { "width": 30, "height": 30 },
+              "background": "#39FF14",
+              "clip": "circle"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

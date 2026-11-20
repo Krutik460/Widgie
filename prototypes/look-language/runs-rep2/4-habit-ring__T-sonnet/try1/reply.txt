@@ -1,0 +1,123 @@
+```json
+{
+  "type": "hstack",
+  "spacing": 18,
+  "align": "center",
+  "padding": 12,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "center" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#1E1B2E", "#0E0D17"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "vstack",
+      "spacing": 4,
+      "align": "center",
+      "children": [
+        {
+          "type": "if",
+          "test": "{{ family == 'small' }}",
+          "then": [
+            { "type": "text", "value": "{{ data.name }}", "size": 14, "weight": "semibold", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.7 }
+          ]
+        },
+        {
+          "type": "button",
+          "action": "toggleToday",
+          "children": [
+            {
+              "type": "zstack",
+              "align": "center",
+              "frame": { "width": 108, "height": 108 },
+              "children": [
+                { "type": "circle", "stroke": { "color": "#FFFFFF22", "width": 10 } },
+                {
+                  "type": "circle",
+                  "stroke": {
+                    "color": "{{ lerpColor('#FF3B30', '#34C759', clamp(data.streak / 30, 0, 1)) }}",
+                    "width": 10,
+                    "cap": "round"
+                  },
+                  "trimFrom": 0,
+                  "trimTo": "{{ clamp(data.streak / 30, 0.001, 1) }}",
+                  "rotation": -90
+                },
+                {
+                  "type": "vstack",
+                  "spacing": 0,
+                  "align": "center",
+                  "children": [
+                    {
+                      "type": "symbol",
+                      "name": "flame.fill",
+                      "size": 26,
+                      "color": "{{ data.doneToday ? '#FF9F0A' : '#6B6B78' }}"
+                    },
+                    { "type": "text", "value": "{{ data.streak }}", "size": 30, "weight": "bold", "design": "rounded", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.5 },
+                    { "type": "text", "value": "{{ data.streak == 1 ? 'day' : 'days' }}", "size": 10, "weight": "medium", "color": "#A8A8B8" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [
+        {
+          "type": "vstack",
+          "spacing": 6,
+          "align": "leading",
+          "children": [
+            { "type": "text", "value": "{{ data.name }}", "size": 17, "weight": "bold", "color": "#FFFFFF", "lineLimit": 1, "minScale": 0.7 },
+            {
+              "type": "text",
+              "value": "{{ data.doneToday ? 'Done today' : 'Tap the ring to check in' }}",
+              "size": 11,
+              "color": "#A8A8B8",
+              "lineLimit": 1,
+              "minScale": 0.7
+            },
+            {
+              "type": "vstack",
+              "spacing": 5,
+              "align": "leading",
+              "children": [
+                {
+                  "type": "repeat",
+                  "over": "{{ range(5) }}",
+                  "item": "r",
+                  "index": "ri",
+                  "children": [
+                    {
+                      "type": "hstack",
+                      "spacing": 5,
+                      "children": [
+                        {
+                          "type": "repeat",
+                          "over": "{{ range(7) }}",
+                          "item": "c",
+                          "index": "ci",
+                          "children": [
+                            {
+                              "type": "rect",
+                              "cornerRadius": 4,
+                              "fill": "{{ data.days[r * 7 + c].done ? lerpColor('#FF3B30', '#34C759', clamp(data.streak / 30, 0, 1)) : '#FFFFFF1A' }}",
+                              "frame": { "width": 15, "height": 15 }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```

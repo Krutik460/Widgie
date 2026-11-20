@@ -1,0 +1,184 @@
+const INK = '#2B3324';
+const LABEL = '#5A6650';
+const BG = '#A6B698';
+const BG2 = '#8D9C7C';
+const MID = '#55604A';
+const DARK = '#2E3A26';
+const OFF = '#7D8A6E';
+
+function cell(done, size) {
+  return {
+    type: 'rect',
+    cornerRadius: 2,
+    fill: done ? DARK : BG2,
+    stroke: done ? undefined : { color: MID, width: 1 },
+    frame: { width: size, height: size },
+  };
+}
+
+function grid(days, size, gap) {
+  const rows = [];
+  for (let r = 0; r < 5; r++) {
+    rows.push({
+      type: 'hstack',
+      spacing: gap,
+      children: days.slice(r * 7, r * 7 + 7).map(x => cell(x.done, size)),
+    });
+  }
+  return { type: 'vstack', spacing: gap, align: 'leading', children: rows };
+}
+
+function toggle(d) {
+  return {
+    type: 'button',
+    action: 'toggleToday',
+    children: [
+      {
+        type: 'symbol',
+        name: d.doneToday ? 'checkmark' : 'plus',
+        size: 12,
+        weight: 'bold',
+        color: '#D3DCC4',
+        frame: { width: 30, height: 26 },
+        background: DARK,
+        cornerRadius: 7,
+      },
+    ],
+  };
+}
+
+function head(d) {
+  return {
+    type: 'hstack',
+    spacing: 6,
+    children: [
+      {
+        type: 'text',
+        value: d.name.toUpperCase(),
+        size: 12,
+        weight: 'bold',
+        design: 'monospaced',
+        color: INK,
+        lineLimit: 1,
+        minScale: 0.6,
+      },
+      { type: 'spacer' },
+      toggle(d),
+    ],
+  };
+}
+
+function streak(d) {
+  return {
+    type: 'hstack',
+    align: 'bottom',
+    spacing: 4,
+    children: [
+      {
+        type: 'text',
+        value: String(d.streak),
+        size: 30,
+        weight: 'bold',
+        design: 'monospaced',
+        color: INK,
+        lineLimit: 1,
+        minScale: 0.5,
+      },
+      {
+        type: 'text',
+        value: 'DAY STREAK',
+        size: 10,
+        weight: 'semibold',
+        design: 'monospaced',
+        color: LABEL,
+        lineLimit: 1,
+        minScale: 0.6,
+      },
+    ],
+  };
+}
+
+function chart(d) {
+  const last = d.days.slice(-7);
+  const doneCount = last.filter(x => x.done).length;
+  return {
+    type: 'vstack',
+    spacing: 6,
+    align: 'leading',
+    frame: { width: 160 },
+    children: [
+      {
+        type: 'text',
+        value: '7 DAY LOG',
+        size: 11,
+        weight: 'bold',
+        design: 'monospaced',
+        color: LABEL,
+        lineLimit: 1,
+      },
+      {
+        type: 'hstack',
+        align: 'bottom',
+        spacing: 4,
+        frame: { height: 96 },
+        children: last.map(x => ({
+          type: 'rect',
+          cornerRadius: 3,
+          fill: x.done ? DARK : OFF,
+          frame: { width: 17, height: x.done ? 96 : 20 },
+        })),
+      },
+      {
+        type: 'rect',
+        fill: MID,
+        frame: { height: 1 },
+      },
+      {
+        type: 'text',
+        value: 'THIS WEEK ' + doneCount + ' / 7',
+        size: 12,
+        weight: 'semibold',
+        design: 'monospaced',
+        color: LABEL,
+        lineLimit: 1,
+        minScale: 0.6,
+      },
+    ],
+  };
+}
+
+function render(ctx) {
+  const d = ctx.data;
+  const base = {
+    padding: { horizontal: 14, vertical: 10 },
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: { gradient: 'linear', stops: [BG, BG2], from: 'top', to: 'bottom' },
+  };
+
+  if (ctx.family === 'medium') {
+    return {
+      ...base,
+      type: 'hstack',
+      align: 'top',
+      spacing: 14,
+      children: [
+        {
+          type: 'vstack',
+          align: 'leading',
+          spacing: 6,
+          frame: { width: 134 },
+          children: [head(d), streak(d), grid(d.days, 9, 3)],
+        },
+        chart(d),
+      ],
+    };
+  }
+
+  return {
+    ...base,
+    type: 'vstack',
+    align: 'leading',
+    spacing: 6,
+    children: [head(d), streak(d), grid(d.days, 10, 3)],
+  };
+}

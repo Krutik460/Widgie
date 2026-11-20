@@ -1,0 +1,71 @@
+function render(ctx) {
+  const d = ctx.data;
+  const NEON = '#39FF14';
+  const DIM = '#0F2A0F';
+  const BLACK = '#000000';
+
+  // Show the last 35 days as 5 weeks of 7 columns, oldest first.
+  const days = d.days.slice(-35);
+  const cols = 7;
+  const weeks = [];
+  for (let w = 0; w < 5; w++) {
+    weeks.push(days.slice(w * cols, w * cols + cols));
+  }
+
+  const cell = (day, isToday) => ({
+    type: 'rect',
+    cornerRadius: 2,
+    fill: day && day.done ? NEON : DIM,
+    stroke: isToday ? { color: '#FFFFFF', width: 1, cap: 'round' } : undefined,
+    frame: { width: 1, height: 1 },
+  });
+
+  const grid = {
+    type: 'hstack',
+    spacing: ctx.family === 'medium' ? 4 : 3,
+    children: weeks.map((week, wi) => ({
+      type: 'vstack',
+      spacing: ctx.family === 'medium' ? 4 : 3,
+      children: week.map((day, di) =>
+        ({
+          type: 'button',
+          action: 'toggleToday',
+          rowId: day ? day.date : undefined,
+          children: [
+            {
+              type: 'rect',
+              cornerRadius: 2,
+              fill: day && day.done ? NEON : DIM,
+              stroke: wi === 4 && di === 6 ? { color: '#FFFFFF', width: 1, cap: 'round' } : undefined,
+              frame: { width: ctx.family === 'medium' ? 22 : 18, height: ctx.family === 'medium' ? 18 : 16 },
+            },
+          ],
+        })
+      ),
+    })),
+  };
+
+  const header = {
+    type: 'hstack',
+    spacing: 6,
+    children: [
+      { type: 'text', value: d.name, size: 14, weight: 'bold', color: NEON, lineLimit: 1, minScale: 0.7 },
+      { type: 'spacer' },
+      { type: 'text', value: d.streak + 'd', size: 13, weight: 'semibold', color: NEON },
+    ],
+  };
+
+  return {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 8,
+    padding: 12,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: BLACK,
+    children: [
+      header,
+      { type: 'spacer' },
+      grid,
+    ],
+  };
+}

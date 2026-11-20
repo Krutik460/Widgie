@@ -1,0 +1,135 @@
+```js
+function render(ctx) {
+  const d = ctx.data;
+  const medium = ctx.family === 'medium';
+  const cap = medium ? 8 : 4;
+  const shown = d.items.slice(0, cap);
+  const more = d.items.length - shown.length;
+
+  const row = (item) => ({
+    type: 'button',
+    action: 'toggleDone',
+    rowId: item.id,
+    children: [
+      {
+        type: 'hstack',
+        spacing: 5,
+        align: 'center',
+        children: [
+          {
+            type: 'symbol',
+            name: item.done ? 'checkmark.circle.fill' : 'circle',
+            size: 12,
+            color: item.done ? '#8A7A4A' : '#3B3210',
+          },
+          {
+            type: 'text',
+            value: item.title,
+            size: 14,
+            fontName: 'Marker Felt',
+            color: item.done ? '#8A7A4A' : '#3B3210',
+            strikethrough: item.done,
+            lineLimit: 1,
+            minScale: 0.6,
+            opacity: item.done ? 0.5 : 1,
+          },
+        ],
+      },
+    ],
+  });
+
+  const header = {
+    type: 'hstack',
+    spacing: 4,
+    align: 'center',
+    children: [
+      {
+        type: 'text',
+        value: 'To do',
+        size: 15,
+        fontName: 'Bradley Hand',
+        weight: 'bold',
+        color: '#3B3210',
+      },
+      { type: 'spacer' },
+      {
+        type: 'text',
+        value: d.doneCount + '/' + d.total,
+        size: 11,
+        fontName: 'Bradley Hand',
+        color: '#6B5D1E',
+      },
+      {
+        type: 'button',
+        action: 'openAdd',
+        children: [
+          {
+            type: 'symbol',
+            name: 'plus',
+            size: 11,
+            weight: 'bold',
+            color: '#3B3210',
+            frame: { width: 20, height: 20 },
+            background: '#FFFFFF88',
+            clip: 'circle',
+          },
+        ],
+      },
+    ],
+  };
+
+  const body = medium
+    ? {
+        type: 'hstack',
+        align: 'top',
+        spacing: 12,
+        children: [shown.slice(0, 4), shown.slice(4)].map((col) => ({
+          type: 'vstack',
+          align: 'leading',
+          spacing: 3,
+          frame: { maxWidth: 'infinity', alignment: 'topLeading' },
+          children: col.map(row),
+        })),
+      }
+    : {
+        type: 'vstack',
+        align: 'leading',
+        spacing: 3,
+        frame: { maxWidth: 'infinity', alignment: 'topLeading' },
+        children: shown.map(row),
+      };
+
+  const moreLine = more > 0
+    ? {
+        type: 'text',
+        value: '+' + more + ' more',
+        size: 11,
+        fontName: 'Bradley Hand',
+        color: '#6B5D1E',
+      }
+    : null;
+
+  const note = {
+    type: 'vstack',
+    align: 'leading',
+    spacing: 5,
+    padding: 10,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    background: {
+      gradient: 'linear',
+      stops: ['#FFF59D', '#FFEB3B'],
+      from: 'top',
+      to: 'bottom',
+    },
+    shadow: { color: '#00000033', radius: 4, x: 1, y: 2 },
+    children: [header, body, moreLine],
+  };
+
+  return {
+    type: 'zstack',
+    rotation: -2,
+    widgetBackground: '#FFF9C4',
+    children: [note],
+  };
+}
+```

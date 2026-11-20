@@ -1,0 +1,81 @@
+{
+  "type": "vstack",
+  "align": "leading",
+  "spacing": 8,
+  "padding": 14,
+  "frame": { "maxWidth": "infinity", "maxHeight": "infinity", "alignment": "topLeading" },
+  "widgetBackground": { "gradient": "linear", "stops": ["#1B2A41", "#0C1821"], "from": "top", "to": "bottom" },
+  "children": [
+    {
+      "type": "hstack",
+      "spacing": 6,
+      "children": [
+        { "type": "text", "value": "{{ data.title }}", "size": 17, "weight": "bold", "design": "serif", "color": "#FFFFFF", "lineLimit": 1 },
+        { "type": "spacer" },
+        {
+          "type": "if",
+          "test": "{{ data.pagesRead >= data.pagesGoal }}",
+          "then": [{ "type": "symbol", "name": "checkmark.seal.fill", "size": 16, "color": "#7AE582" }],
+          "else": [{ "type": "text", "value": "{{ round(100 * data.pagesRead / data.pagesGoal) }}%", "size": 13, "weight": "semibold", "color": "#9FB3C8" }]
+        }
+      ]
+    },
+    {
+      "type": "zstack",
+      "align": "leading",
+      "children": [
+        { "type": "capsule", "fill": "#FFFFFF22", "frame": { "height": 8 } },
+        {
+          "type": "capsule",
+          "fill": "{{ lerpColor('#F4A259', '#7AE582', data.pagesRead / data.pagesGoal) }}",
+          "frame": { "width": "{{ (width - 28) * clamp(data.pagesRead / data.pagesGoal, 0, 1) }}", "height": 8 }
+        }
+      ]
+    },
+    {
+      "type": "if",
+      "test": "{{ family == 'medium' }}",
+      "then": [{ "type": "text", "value": "{{ data.pagesRead }} of {{ data.pagesGoal }} pages", "size": 12, "color": "#9FB3C8" }]
+    },
+    {
+      "type": "hstack",
+      "align": "bottom",
+      "spacing": 6,
+      "frame": { "maxHeight": "infinity", "alignment": "bottom" },
+      "children": [
+        {
+          "type": "repeat",
+          "over": "{{ data.sessions }}",
+          "item": "s",
+          "index": "i",
+          "children": [
+            {
+              "type": "vstack",
+              "spacing": 3,
+              "children": [
+                {
+                  "type": "rect",
+                  "cornerRadius": 3,
+                  "fill": "{{ i == len(data.sessions) - 1 ? '#7AE582' : '#5C7C99' }}",
+                  "frame": { "width": 10, "height": "{{ 4 + 36 * min(s.pages, 40) / 40 }}" }
+                },
+                { "type": "text", "value": "{{ s.day }}", "size": 9, "color": "#9FB3C8" }
+              ]
+            }
+          ]
+        },
+        { "type": "spacer" },
+        {
+          "type": "button",
+          "action": "logPages",
+          "children": [
+            {
+              "type": "symbol", "name": "plus", "size": 16, "weight": "bold", "color": "#0C1821",
+              "frame": { "width": 34, "height": 34 }, "background": "#7AE582", "clip": "circle"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
