@@ -61,7 +61,7 @@ public struct HostingIntents: AppIntentsPackage {}
 
 // MARK: The one intent
 
-/// Every tap on every user-created widget that writes in place. Its three parameters are exactly `Tap`. Form
+/// Every tap on every user-created widget that writes in place. Its four parameters are exactly `Tap`. Form
 /// buttons never reach it: they are links that open the app.
 public struct RunAction: AppIntent {
     public static let title: LocalizedStringResource = "Run widget action"
@@ -70,6 +70,7 @@ public struct RunAction: AppIntent {
     @Parameter(title: "Widget") var widgetID: String
     @Parameter(title: "Action") var actionID: String
     @Parameter(title: "Row") var rowID: String?
+    @Parameter(title: "Day") var day: String?
 
     public init() {}
 
@@ -77,10 +78,11 @@ public struct RunAction: AppIntent {
         widgetID = tap.widget
         actionID = tap.action
         rowID = tap.row
+        day = tap.day
     }
 
     public func perform() async throws -> some IntentResult {
-        try Hosting.engine.perform(Tap(widget: widgetID, action: actionID, row: rowID))
+        try Hosting.engine.perform(Tap(widget: widgetID, action: actionID, row: rowID, day: day))
         return .result()
     }
 }

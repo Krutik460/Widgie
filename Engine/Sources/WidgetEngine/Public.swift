@@ -31,14 +31,17 @@ public enum Family: String, Sendable, CaseIterable, Codable {
 
 /// What a button in the tree is about, as the widget's App Intent and the form link carry it. Strings,
 /// because they arrive from outside (an intent parameter, a URL) and the engine validates them on use.
+/// `day` is the `YYYY-MM-DD` an `insertOn` button writes to, and nil for every other button.
 public struct Tap: Hashable, Sendable, Codable {
     public let widget: String
     public let action: String
     public let row: String?
-    public init(widget: String, action: String, row: String?) {
+    public let day: String?
+    public init(widget: String, action: String, row: String?, day: String? = nil) {
         self.widget = widget
         self.action = action
         self.row = row
+        self.day = day
     }
 }
 

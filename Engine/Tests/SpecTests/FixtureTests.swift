@@ -35,7 +35,7 @@ import Testing
         }
         #expect(table.id.raw == "glasses")
         #expect(table.fields.isEmpty)
-        guard case .daily(_, 7)? = spec.query("week")?.shape else {
+        guard case .daily(.rows, nil, 7)? = spec.query("week")?.shape else {
             Issue.record("week is not daily over 7 days")
             return
         }
@@ -79,12 +79,12 @@ import Testing
 
     @Test func habitHasAStreakAndFiveWeeksOfDays() throws {
         let spec = try Spec.parse(fixture("habit"))
-        guard case .streak(let table)? = spec.query("streak")?.shape else {
-            Issue.record("streak is not a streak")
+        guard case .streak(.rows(let table), nil, 1)? = spec.query("streak")?.shape else {
+            Issue.record("streak is not a streak of any row")
             return
         }
         #expect(table.id.raw == "checkins")
-        guard case .daily(_, 35)? = spec.query("days")?.shape else {
+        guard case .daily(.rows, nil, 35)? = spec.query("days")?.shape else {
             Issue.record("days is not daily over 35 days")
             return
         }

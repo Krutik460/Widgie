@@ -172,6 +172,40 @@ Today every row belongs to one widget (`row.widget`, `row.tbl`). That rules out 
 - The kind check runs in the builder before the save, not inside the save transaction. Two builds racing on a shared dataset could slip past it, but a mismatched cell already reads as absent, so the worst case is a blank value, not a crash.
 - Still to design: how the model asks for another widget's data in the grammar, and system-filled datasets (steps, weather, calendar).
 
+### Phase 1c. Day-tracking gaps in the query and action set (2026-11-20)
+
+Real trackers need per-day sums, filtered charts, goal streaks, rolling and monthly windows, and logging for a past day. All of it is grammar, query engine, and tap plumbing. Storage does not change.
+
+**Design.**
+
+- **`daily` and `streak` take a measure.** The target is a table (rows per day, as now) or a number field as `"table.field"` (the sum of that field per day). Both take an optional `where`, the same equality filter `count` and `sum` take.
+- **`daily` entries** stay `{ date, weekday, count }`. With a field target each entry also has `sum`. `count` is always the rows that match `where`.
+- **`streak` takes an optional `goal`**. A day counts when its measure reaches the goal. For a table target it is a whole number of rows from 1 to 100, 1 when left out. For a field target it is a number above 0 and is required, since "a sum above zero" is rarely what anyone means. Today still has grace: the streak ends today, or yesterday while today has not reached the goal yet.
+- **Windows.** `window` adds `month` (the calendar month that contains today) and `{ "days": N }` (the last N days, today included, N from 1 to 366, the same meaning `daily`'s `days` has). `today`, `week`, and `all` are unchanged.
+- **`insertOn` action.** Like `insert`, but the row lands on the day the button names. A button for it needs `"day": "YYYY-MM-DD"`. Only today and the 365 days before it are tappable. The tree validator draws a well-formed day outside that range without a tap (a week strip holds days after today), and the store checks the day again on the tap, against the tap's own today, so a future day never lands. Every other action refuses `day`.
+- `Tap` gains an optional `day`, and `RunAction` a fourth parameter. `Bindings` gains today's day so the validator can bound the button's day.
+- The `full` stress state fills filtered history with matching rows and fills goal streaks with enough rows per day to meet the goal, so a goal streak still reaches three digits.
+
+**Steps.**
+
+- [x] `Spec`: `Measure`, `where` and `goal` on `daily` and `streak`, new windows, `insertOn`, limits, JSON round trip, `full` state
+- [x] `Rows`: per-day sums and filters, goal streaks, month and rolling windows, `apply` with a day
+- [x] `WidgetEngine`: `sum` in daily entries, button `day` validation, `Tap.day`, `perform`
+- [x] `WidgetHosting`: `RunAction` carries the day
+- [x] Reference: `blocks.md` and `look.md`, with examples and mistake lines the reference tests parse
+- [x] Tests for each gap: parse and refusal lines, query results, the stale and future-day tap, the `full` state
+- [x] Update `docs/engine/` (USAGE, RATIONALE)
+- [x] Check: `Engine/scripts/check` passes and the four fixtures prove unchanged
+
+**Review (2026-11-20).** Done as designed. `Engine/scripts/check` passes with 187 tests (13 new, plus new cases in the parametrized mistake and full-state tests). All 32 fixture renders and proof reports are byte-identical to `main`. Notes:
+
+- A row streak's `goal` is a whole number from 1 to 100. A field streak's goal is any number above 0, up to 1,000,000. The 100 cap keeps the `full` state at most 100 rows a day.
+- An independent review found that a week strip of day buttons would fail the look on every day but the last of the week, because `ctx.today.week` holds days after today. Out-of-range days now draw untappable instead of failing.
+- `full` merges history only between queries with the same rows per day, so a 366-day `daily` beside a goal streak does not seed 100 rows a day for a year.
+- Known gap: in `full`, a field streak cannot reach its goal when the only value the widget writes is 0 or negative, or needs more than 100 rows a day (a +10 ml button with a 2000 ml goal). The streak then reads 0 in that state. Layout still gets stressed by the other queries.
+- Decimal sums against a goal rely on SQLite's `total()`, which adds exactly enough that ten 0.1 doses reach a goal of 1 (tested).
+- Fixed in passing: a limit error said "at most 24 querys". It now uses the plural key ("queries").
+
 ### Phase 2. AI builder
 
 - [x] Build loop on the Mac: model reply, proof, one-line verdict, up to two repairs (`Engine/Evals/run.py`, prompt in `Engine/Reference/build-prompt.md`)
@@ -266,7 +300,7 @@ Contact sheets: `prototypes/look-language/index.html` (round one) and `prototype
 
 - No action can ask an AI block to run now ("give me a new one").
 - An AI block cannot see its own earlier rows, so "do not repeat" cannot be enforced.
-- `week` means the calendar week. A rolling last seven days needs a workaround.
+- ~~`week` means the calendar week. A rolling last seven days needs a workaround.~~ Fixed in phase 1c: `{ "days": 7 }` and `month`.
 
 **Visual fixes (2026-11-20).**
 

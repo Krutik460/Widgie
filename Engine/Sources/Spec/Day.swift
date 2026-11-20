@@ -30,6 +30,18 @@ package struct Day: Hashable, Comparable, Sendable, CustomStringConvertible {
     }
 
     package var iso: String {
+        let (year, month, day) = parts
+        return String(format: "%04d-%02d-%02d", year, month, day)
+    }
+
+    /// The first and last day of the calendar month that contains this day.
+    package var month: ClosedRange<Day> {
+        let (year, month, day) = parts
+        let first = adding(1 - day)
+        return first...first.adding(Self.length(of: month, in: year) - 1)
+    }
+
+    private var parts: (year: Int, month: Int, day: Int) {
         let shifted = index + 719_468
         let era = (shifted >= 0 ? shifted : shifted - 146_096) / 146_097
         let dayOfEra = shifted - era * 146_097
@@ -38,8 +50,7 @@ package struct Day: Hashable, Comparable, Sendable, CustomStringConvertible {
         let monthIndex = (5 * dayOfYear + 2) / 153
         let day = dayOfYear - (153 * monthIndex + 2) / 5 + 1
         let month = monthIndex < 10 ? monthIndex + 3 : monthIndex - 9
-        let year = yearOfEra + era * 400 + (month <= 2 ? 1 : 0)
-        return String(format: "%04d-%02d-%02d", year, month, day)
+        return (yearOfEra + era * 400 + (month <= 2 ? 1 : 0), month, day)
     }
 
     /// 1970-01-01 was a Thursday.

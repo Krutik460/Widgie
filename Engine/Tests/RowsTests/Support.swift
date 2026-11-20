@@ -3,7 +3,26 @@ import Rows
 import Spec
 import Testing
 
-/// `items` has a field of every kind and `glasses` has none. Every query and action the tests use is here.
+/// Items written over five days and glasses over four, shared by the test documents.
+let busySample = #"""
+    {
+        "busy": {
+          "items": [
+            {"daysAgo": 4, "title": "Oat milk", "size": 3, "done": false},
+            {"daysAgo": 3, "title": "bread", "size": 1, "done": true, "due": "2026-11-20"},
+            {"daysAgo": 2, "title": "Apples", "done": false, "due": "2026-11-19"},
+            {"daysAgo": 0, "title": "Oat milk", "size": 5},
+            {"daysAgo": 0, "size": 3, "done": true}
+          ],
+          "glasses": [
+            {"daysAgo": 0, "repeat": 2}, {"daysAgo": 1, "repeat": 3}, {"daysAgo": 2}, {"daysAgo": 4, "repeat": 2}
+          ]
+        }
+    }
+    """#
+
+/// `items` has a field of every kind and `glasses` has none. Every query and action the tests use is here,
+/// except the day-tracking ones in `dayDocument`, since a document holds at most 24 queries.
 let testDocument = #"""
     {
       "name": "Test",
@@ -48,20 +67,45 @@ let testDocument = #"""
         "remove": {"delete": "items"},
         "edit": {"form": "items", "fields": ["title", "size"]}
       },
-      "samples": {
-        "busy": {
-          "items": [
-            {"daysAgo": 4, "title": "Oat milk", "size": 3, "done": false},
-            {"daysAgo": 3, "title": "bread", "size": 1, "done": true, "due": "2026-11-20"},
-            {"daysAgo": 2, "title": "Apples", "done": false, "due": "2026-11-19"},
-            {"daysAgo": 0, "title": "Oat milk", "size": 5},
-            {"daysAgo": 0, "size": 3, "done": true}
-          ],
-          "glasses": [
-            {"daysAgo": 0, "repeat": 2}, {"daysAgo": 1, "repeat": 3}, {"daysAgo": 2}, {"daysAgo": 4, "repeat": 2}
-          ]
-        }
-      }
+      "samples": \#(busySample)
+    }
+    """#
+
+/// The tables of `testDocument` with per-day sums and filters, goal streaks, month and rolling windows, and
+/// logging for a past day.
+let dayDocument = #"""
+    {
+      "name": "Days",
+      "look": "function render(ctx) { return { type: 'spacer' }; }",
+      "tables": {
+        "glasses": {"fields": {}},
+        "items": {"fields": {"title": "text", "done": "bool", "size": "number", "due": "date"}}
+      },
+      "queries": {
+        "glassesToday": {"count": "glasses", "window": "today"},
+        "glassesAll": {"count": "glasses", "window": "all"},
+        "glassesDaily": {"daily": "glasses", "days": 3},
+        "streak": {"streak": "glasses"},
+        "newest": {"list": "items", "limit": 3, "window": "all"},
+        "glassesMonth": {"count": "glasses", "window": "month"},
+        "glassesTwoDays": {"count": "glasses", "window": {"days": 2}},
+        "sizeTwoDays": {"sum": "items.size", "window": {"days": 2}},
+        "sizeDaily": {"daily": "items.size", "days": 5},
+        "openDaily": {"daily": "items", "where": {"done": false}, "days": 5},
+        "doneSizeDaily": {"daily": "items.size", "where": {"done": true}, "days": 5},
+        "twoGlasses": {"streak": "glasses", "goal": 2},
+        "threeGlasses": {"streak": "glasses", "goal": 3},
+        "doneSize": {"streak": "items.size", "where": {"done": true}, "goal": 3},
+        "openStreak": {"streak": "items", "where": {"done": false}}
+      },
+      "actions": {
+        "drink": {"insert": "glasses"},
+        "add": {"insert": "items", "values": {"title": "Oat milk", "size": 3}},
+        "finish": {"set": "items.done", "to": true},
+        "lateGlass": {"insertOn": "glasses"},
+        "lateItem": {"insertOn": "items", "values": {"title": "Late", "size": 2}}
+      },
+      "samples": \#(busySample)
     }
     """#
 
@@ -124,10 +168,12 @@ struct Bench {
     }
 
     @discardableResult
-    func tap(_ action: String, row: RowKey? = nil, input: [Spec.FieldValue] = [], at iso: String) throws -> Applied {
+    func tap(
+        _ action: String, row: RowKey? = nil, day: Day? = nil, input: [Spec.FieldValue] = [], at iso: String
+    ) throws -> Applied {
         let date = try instant(iso)
         return try store.apply(
-            try #require(spec.action(named: action)), widget: widget, row: row, input: input,
+            try #require(spec.action(named: action)), widget: widget, row: row, day: day, input: input,
             today: Today(at: date, calendar: calendar), at: date)
     }
 

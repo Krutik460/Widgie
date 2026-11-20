@@ -99,12 +99,14 @@ package enum Vocabulary {
             (props, parser) throws(Diagnostic) in
             .image(try parser.picture(props))
         },
-        NodeType("button", ["action", "rowId", "children"]) { (props, parser) throws(Diagnostic) in
+        NodeType("button", ["action", "rowId", "day", "children"]) { (props, parser) throws(Diagnostic) in
             let press = try parser.press(props)
             let children = try parser.children(of: props, place: .button)
             guard !children.isEmpty else {
                 throw props.error("needs \"children\" to show; a button looks exactly like its children")
             }
+            // A day the store would refuse today still draws, untappable, so a week strip stays valid.
+            guard let press else { return .zstack(align: .center, children: children) }
             return .button(press, children: children)
         },
     ]
@@ -336,7 +338,10 @@ struct TreeParser {
         return try props.fill(key).map(Layer.fill)
     }
 
-    mutating func press(_ props: Props) throws(Diagnostic) -> Press {
+    /// Nil for a button whose well-formed `day` is outside `loggableDays` of the render's day: a day after
+    /// today in a week strip, or a row's day more than a year back. It draws without a tap until its day
+    /// comes into range, and the store checks the day again on every tap.
+    mutating func press(_ props: Props) throws(Diagnostic) -> Press? {
         switch props.place {
         case .tree: break
         case .button: throw props.error("is inside another button; a button cannot hold a button")
@@ -380,7 +385,29 @@ struct TreeParser {
         default:
             break
         }
-        let tap = Tap(widget: bindings.widget.rawValue, action: raw, row: row)
+        let day = try props.read("day") { (value, name) throws(Diagnostic) in
+            try Value.string(value, name, maxLength: 10)
+        }
+        switch (effect.needsDay, day) {
+        case (false, _?):
+            throw props.error(
+                "action \(Diagnostic.quote(raw)) does not write to a chosen day, so it takes no \"day\"; use an insertOn action to add a row on another day"
+            )
+        case (true, nil):
+            throw props.error(
+                "action \(Diagnostic.quote(raw)) needs \"day\": the date it adds a row on, like \"\(bindings.today.iso)\" (take dates from ctx.today or a daily entry)"
+            )
+        case (true, let iso?):
+            guard let parsed = Day(iso: iso) else {
+                throw props.error(
+                    "\"day\" must be a date as \"YYYY-MM-DD\", like \"\(bindings.today.iso)\", not \(Diagnostic.quote(iso))"
+                )
+            }
+            guard Spec.Effect.loggableDays(from: bindings.today).contains(parsed) else { return nil }
+        case (false, nil):
+            break
+        }
+        let tap = Tap(widget: bindings.widget.rawValue, action: raw, row: row, day: day)
         taps.append(tap)
         if case .form = effect { return .form(tap) }
         return .run(tap)
@@ -428,7 +455,7 @@ struct TreeParser {
         case .delete: "it deletes"
         case .toggle(let field): "whose \"\(field.id.raw)\" it flips"
         case .set(let value): "whose \"\(value.field.id.raw)\" it sets"
-        case .insert, .form: "it is about"
+        case .insert, .insertOn, .form: "it is about"
         }
     }
 }

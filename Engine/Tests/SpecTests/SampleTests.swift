@@ -72,6 +72,10 @@ private func rows(
         #""queries": {"total": {"sum": "items.size", "where": {"title": "Run"}, "window": "all"}}"#,
         #""queries": {"run": {"streak": "glasses"}}"#,
         #""queries": {"year": {"daily": "glasses", "days": 366}}"#,
+        #""queries": {"goal": {"streak": "glasses", "goal": 8}}"#,
+        #""queries": {"kept": {"streak": "items.size", "where": {"done": true}, "goal": 10}}"#,
+        #""queries": {"open": {"daily": "items", "where": {"done": false}, "days": 14}}"#,
+        #""queries": {"sizes": {"daily": "items.size", "where": {"title": "Run"}, "days": 7}}"#,
     ]
 
     @Test(arguments: referenceWidgets)
@@ -97,15 +101,17 @@ private func rows(
                 #expect(rows(of: full, table: field.table, daysAgo: 0, matching: filter) >= 100, "\(query.id)")
             case .latest(let table, let filter, _):
                 #expect(rows(of: full, table: table.id, daysAgo: 0, matching: filter) >= 1, "\(query.id)")
-            case .streak(let table):
+            case .streak(let measure, let filter, let goal):
                 for daysAgo in 0..<100 {
-                    #expect(rows(of: full, table: table.id, daysAgo: daysAgo) >= 1, "\(query.id)")
+                    #expect(
+                        measured(full, measure, daysAgo: daysAgo, matching: filter) >= goal, "\(query.id) \(daysAgo)")
                 }
-            case .daily(let table, let days):
+            case .daily(let measure, let filter, let days):
                 for daysAgo in 0..<days {
-                    #expect(rows(of: full, table: table.id, daysAgo: daysAgo) >= 1, "\(query.id)")
+                    #expect(
+                        rows(of: full, table: measure.table, daysAgo: daysAgo, matching: filter) >= 1, "\(query.id)")
                 }
-                #expect(rows(of: full, table: table.id, daysAgo: 0) >= 100, "\(query.id)")
+                #expect(rows(of: full, table: measure.table, daysAgo: 0, matching: filter) >= 100, "\(query.id)")
             }
         }
         for row in full.rows {
@@ -142,11 +148,25 @@ private func rows(
             ])
     }
 
+    /// A day's row count, or the sum of a field over the day's rows, among rows matching `filter`.
+    private func measured(
+        _ sample: Spec.Sample, _ measure: Spec.Measure, daysAgo: Int, matching filter: Spec.FieldValue?
+    ) -> Double {
+        let day = sample.rows.filter { $0.table.id == measure.table && $0.daysAgo == daysAgo && matches($0, filter) }
+        guard case .total(let field) = measure else { return Double(day.reduce(0) { $0 + $1.count }) }
+        return day.reduce(0) { total, row in
+            guard case .number(let value)? = row.values.first(where: { $0.field == field.erased })?.value else {
+                return total
+            }
+            return total + value * Double(row.count)
+        }
+    }
+
     private func isFilterLiteral(_ value: Spec.FieldValue, _ spec: Spec) -> Bool {
         spec.queries.contains { query in
             switch query.shape {
             case .count(_, let filter?, _), .sum(_, let filter?, _), .latest(_, let filter?, _),
-                .list(_, let filter?, _, _, _):
+                .list(_, let filter?, _, _, _), .streak(_, let filter?, _), .daily(_, let filter?, _):
                 filter == value
             default: false
             }

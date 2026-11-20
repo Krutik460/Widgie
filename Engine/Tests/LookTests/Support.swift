@@ -81,8 +81,8 @@ func bindings(
     let assets = Dictionary(
         uniqueKeysWithValues: images.compactMap { key, bytes in spec.asset(named: key).map { ($0.id, bytes) } })
     return Bindings(
-        widget: WidgetID(rawValue: "w1"), spec: spec, rows: rows, images: .inMemory(assets), family: family,
-        size: size(family), pixelScale: 2)
+        widget: WidgetID(rawValue: "w1"), spec: spec, rows: rows, today: today, images: .inMemory(assets),
+        family: family, size: size(family), pixelScale: 2)
 }
 
 /// Runs a look and validates its tree: the drawing, or the one line a model would get back.

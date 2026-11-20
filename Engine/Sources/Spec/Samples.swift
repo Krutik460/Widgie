@@ -26,19 +26,44 @@ extension Spec {
     package static let empty = Sample(name: "empty", rows: [])
 
     /// Rows that stress layout: every list filled to its limit, three-digit counts, streaks, and daily
-    /// totals, and in every field the longest value the widget can store there. It catches spills the
-    /// model's own samples miss.
+    /// totals, and in every field the longest value the widget can store there. Rows for a filtered query
+    /// match its filter, and every day of a goal streak reaches the goal. It catches spills the model's own
+    /// samples miss.
     package var full: Sample {
         var rows: [SampleRow] = []
         for table in tables {
             let base = table.fields.map(longestStorable)
-            var groups: [(filter: FieldValue?, count: Int)] = []
-            var historyDays = 0
-            func need(_ filter: FieldValue?, _ count: Int) {
-                if let index = groups.firstIndex(where: { $0.filter == filter }) {
-                    groups[index].count = max(groups[index].count, count)
+            func matching(_ filter: FieldValue?) -> [FieldValue] {
+                (base.filter { $0.field != filter?.field } + [filter].compactMap { $0 }).sorted {
+                    $0.field.id < $1.field.id
+                }
+            }
+            /// Rows per day for a streak's days to reach `goal`, at most 100.
+            func reaching(_ goal: Double, _ measure: Measure, _ filter: FieldValue?) -> Int {
+                var each = 1.0
+                if case .total(let field) = measure {
+                    let value = matching(filter).first { $0.field == field.erased }?.value
+                    guard case .number(let number)? = value, number > 0 else { return 1 }
+                    each = number
+                }
+                return Int(min(100, max(1, (goal / each).rounded(.up))))
+            }
+            var today: [(filter: FieldValue?, count: Int)] = []
+            var history: [(filter: FieldValue?, days: Int, each: Int)] = []
+            /// `count` rows today and, for the `days - 1` days before it, `each` rows a day.
+            func need(_ filter: FieldValue?, _ count: Int, days: Int = 1, each: Int = 1) {
+                if let index = today.firstIndex(where: { $0.filter == filter }) {
+                    today[index].count = max(today[index].count, count)
                 } else {
-                    groups.append((filter, count))
+                    today.append((filter, count))
+                }
+                guard days > 1 else { return }
+                // Merged only with history of the same density, so a long daily beside a goal streak does
+                // not fill the daily's year at the streak's rows per day.
+                if let index = history.firstIndex(where: { $0.filter == filter && $0.each == each }) {
+                    history[index].days = max(history[index].days, days)
+                } else {
+                    history.append((filter, days, each))
                 }
             }
             for query in queries where query.shape.table == table.id {
@@ -46,25 +71,26 @@ extension Spec {
                 case .count(_, let filter, _), .sum(_, let filter, _): need(filter, 100)
                 case .latest(_, let filter, _): need(filter, 1)
                 case .list(_, let filter, _, let limit, _): need(filter, limit)
-                case .streak:
-                    need(nil, 1)
-                    historyDays = max(historyDays, 100)
-                case .daily(_, let days):
-                    need(nil, 100)
-                    historyDays = max(historyDays, days)
+                case .streak(let measure, let filter, let goal):
+                    let each = reaching(goal, measure, filter)
+                    need(filter, each, days: Self.streakDays, each: each)
+                case .daily(_, let filter, let days): need(filter, 100, days: days)
                 }
             }
-            for (filter, count) in groups {
-                let values = (base.filter { $0.field != filter?.field } + [filter].compactMap { $0 })
-                    .sorted { $0.field.id < $1.field.id }
-                rows.append(SampleRow(table: table, daysAgo: 0, count: count, values: values))
+            for (filter, count) in today {
+                rows.append(SampleRow(table: table, daysAgo: 0, count: count, values: matching(filter)))
             }
-            for daysAgo in 1..<max(historyDays, 1) {
-                rows.append(SampleRow(table: table, daysAgo: daysAgo, count: 1, values: base))
+            for (filter, days, each) in history {
+                for daysAgo in 1..<days {
+                    rows.append(SampleRow(table: table, daysAgo: daysAgo, count: each, values: matching(filter)))
+                }
             }
         }
         return Sample(name: "full", rows: rows)
     }
+
+    /// How far back `full` fills a streak's days, for a three-digit streak.
+    private static let streakDays = 100
 
     /// A form or an automation can write anything into a field, and a toggle flips it, so such a field gets
     /// the longest value of its kind. A field that only fixed action values write, such as one emoji per
@@ -73,7 +99,7 @@ extension Spec {
         var fixed: [FieldValue] = []
         for action in actions {
             switch action.effect {
-            case .insert(_, let values): fixed += values.filter { $0.field == field }
+            case .insert(_, let values), .insertOn(_, let values): fixed += values.filter { $0.field == field }
             case .set(let value) where value.field == field: fixed.append(value)
             case .toggle(let toggled) where toggled.erased == field: return field.longestValue
             case .form(let form) where form.fields.contains(field): return field.longestValue

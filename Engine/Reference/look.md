@@ -16,7 +16,7 @@ The look is one script. It may define constants and helper functions, and it mus
 
 | Key | Holds |
 |---|---|
-| `ctx.data` | One key per query id of the widget. `count`, `sum`, and `streak` give a number. `latest` gives a row or `null`. `list` gives a list of rows. `daily` gives a list of `{ date, weekday, count }`, oldest first and today last. |
+| `ctx.data` | One key per query id of the widget. `count`, `sum`, and `streak` give a number. `latest` gives a row or `null`. `list` gives a list of rows. `daily` gives a list of `{ date, weekday, count }`, oldest first and today last, with `sum` added when it sums a field. |
 | `ctx.family` | `"small"` or `"medium"`. |
 | `ctx.width`, `ctx.height` | The widget size in points: 158 x 158 for small and 338 x 158 for medium on a typical phone. Other phones differ by a few points, so read these instead of assuming them. |
 | `ctx.today` | `{ date, weekday, week }`. `date` is today as `"2026-11-18"`, `weekday` is `"Mon"` to `"Sun"`, and `week` is the seven dates of the current week, first day first. |
@@ -130,7 +130,7 @@ The root node is centered in the widget and is offered the whole widget. It gets
 | `ellipse` | an ellipse that fills the space it is given | `fill`, `stroke`, `trimFrom`, `trimTo` |
 | `path` | any shape, from SVG path data | `d`, `viewBox`, `fill`, `stroke`, `trimFrom`, `trimTo` |
 | `image` | one of the widget's image assets | `asset`, `mode`, `crop`, `saturation`, `brightness`, `contrast` |
-| `button` | makes its children tappable and looks exactly like them, layered as in a `zstack` | `action`, `rowId`, `children` |
+| `button` | makes its children tappable and looks exactly like them, layered as in a `zstack` | `action`, `rowId`, `day`, `children` |
 
 Stacks: `spacing` is the gap between children in points. A `vstack` aligns children `leading`, `center` (the default), or `trailing`. An `hstack` aligns them `top`, `center` (the default), `bottom`, or `firstBaseline`. A `zstack` takes any alignment name. A `spacer` takes the free space along its stack and pushes its siblings apart. Give it `minLength: 0` when space is tight, because by default it keeps a few points even when there is no room.
 
@@ -244,6 +244,7 @@ A `button` makes its children tappable. It has no look of its own, so draw the b
 - `action` is an action id from the widget's `actions`.
 - `rowId` says which row the tap is about. An action that changes or deletes a row (`toggle`, `set`, `delete`) needs it. An `insert` takes none. A `form` takes it to edit that row and leaves it out to add a new one.
 - `rowId` must be the `id` of a row the look received in `ctx.data` from a query on that action's table. Write `row.id`, never a title or a made-up value.
+- `day` says which date an `insertOn` action adds its row on, such as `"2026-11-17"`. Only today and the 365 days before it can be tapped: a button for a later day, such as the rest of this week, draws but does nothing until its day comes. Take it from `ctx.today.date`, `ctx.today.week`, or a `daily` entry's `date`, so a tap on yesterday's bar logs yesterday: `{ type: 'button', action: 'logOn', day: entry.date, children: [...] }`. Every other action takes no `day`.
 - A button cannot hold another button.
 - Keep a button for every action in both sizes. The small look and the medium look each need a button for every action in at least one state. Make each button at least 30 points across so a finger can hit it.
 

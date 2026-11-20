@@ -61,20 +61,28 @@ A query reads one table. Each query has exactly one of these keys, which names i
 | `sum` | a number field, as `"table.field"` | `window`, optional `where` | a number. A row with no value adds nothing. |
 | `latest` | a table | `window`, optional `where` | the newest row, or `null` |
 | `list` | a table | `window`, `limit`, optional `sort`, optional `where` | a list of rows |
-| `streak` | a table | none | the number of days in a row that have at least one row, ending today, or ending yesterday until today has one |
-| `daily` | a table | `days` | a list with one entry per day, oldest first and today last |
+| `streak` | a table, or a number field as `"table.field"` | optional `goal`, optional `where` | the number of days in a row that reach the goal, ending today, or ending yesterday until today reaches it |
+| `daily` | a table, or a number field as `"table.field"` | `days`, optional `where` | a list with one entry per day, oldest first and today last |
 
 `window` is one of:
 
 - `today`: rows written today.
 - `week`: rows written in the current week, which starts on the user's first day of the week.
+- `month`: rows written in the current calendar month.
+- `{ "days": 7 }`: rows written in the last 7 days, today included. Any whole number from 1 to 366.
 - `all`: every row.
+
+`streak` and `daily` measure each day. With a table they count the day's rows. With a number field they add up that field over the day's rows, so `{ "daily": "drinks.ml", "days": 7 }` charts millilitres per day.
+
+`goal` is what a day must reach to keep a `streak` going. With a table it is a number of rows, a whole number from 1 to 100, and it may be left out, and then one row keeps the day. With a number field it is the day's total, a number above 0 and at most 1000000, and it is required.
 
 `where` keeps only rows whose field equals a value. It names one field of the query's table and a value of that field's kind. A `bool` field with no value counts as `false`, so `{ "done": false }` includes new rows nobody has touched. `where` cannot compare a `date` field.
 
 `limit` is the most rows a `list` returns, from 1 to 100. `sort` is `newest` (the default), `oldest`, or a field id. Put `-` before a field id to sort it descending. A row with no value for the sort field comes last.
 
 `days` is how many days a `daily` covers, from 1 to 366.
+
+With `where`, a `streak` or `daily` measures only the rows that match.
 
 ```json
 {
@@ -107,6 +115,29 @@ A habit streak:
 }
 ```
 
+Day tracking: amounts per day, a goal streak, filtered history, and longer windows.
+
+```json
+{
+  "tables": {
+    "glasses": { "fields": {} },
+    "drinks": { "fields": { "ml": "number" } },
+    "moods": { "fields": { "mood": "text" } },
+    "tasks": { "fields": { "title": "text", "done": "bool", "minutes": "number" } }
+  },
+  "queries": {
+    "mlWeek": { "daily": "drinks.ml", "days": 7 },
+    "hydrated": { "streak": "drinks.ml", "goal": 2000 },
+    "eightGlasses": { "streak": "glasses", "goal": 8 },
+    "happyDays": { "daily": "moods", "where": { "mood": "happy" }, "days": 30 },
+    "doneWeek": { "daily": "tasks", "where": { "done": true }, "days": 7 },
+    "focus": { "daily": "tasks.minutes", "where": { "done": true }, "days": 14 },
+    "lastSeven": { "count": "glasses", "window": { "days": 7 } },
+    "mlMonth": { "sum": "drinks.ml", "window": "month" }
+  }
+}
+```
+
 ## What the look receives
 
 `ctx.data` has one key per query id, holding the value from the table above.
@@ -117,10 +148,11 @@ A row is an object with `id`, `day`, `daysAgo`, and every field of its table:
 { id: "0193f4c2-7d1e-7a3b-9c4e-5f6a7b8c9d0e", day: "2026-11-18", daysAgo: 0, title: "Buy oat milk", done: false }
 ```
 
-A `daily` entry has the date, the three-letter weekday, and the number of rows that day:
+A `daily` entry has the date, the three-letter weekday, and the number of rows that day. A `daily` over a number field also has `sum`, the day's total of that field:
 
 ```js
 { date: "2026-11-18", weekday: "Wed", count: 3 }
+{ date: "2026-11-18", weekday: "Wed", count: 3, sum: 750 }
 ```
 
 `ctx.today` is `{ date: "2026-11-18", weekday: "Wed", week: [seven dates of the current week, first day first] }`. The look never reads a clock, so it gets the date from here.
@@ -132,12 +164,13 @@ An action is what a tap does. Each action has exactly one of these keys, which n
 | Effect | Target | Other keys | The button needs `rowId` |
 |---|---|---|---|
 | `insert` | a table | optional `values`: field values for the new row | no |
+| `insertOn` | a table | optional `values`: field values for the new row | no, but it needs `day` |
 | `set` | a field, as `"table.field"` | `to`: the value to store | yes |
 | `toggle` | a `bool` field, as `"table.field"` | none | yes |
 | `delete` | a table | none | yes |
 | `form` | a table | `fields`: a list of field ids to ask for, optional `prompt`: the form's title | optional |
 
-A new row lands on today. A button whose action needs `rowId` must give the `id` of a row the look received from a query on the action's table. A `form` opens the app, where the user types the values. With a `rowId` the form edits that row. Without one it adds a row.
+An `insert` row lands on today. An `insertOn` row lands on the date its button gives as `day`, today or one of the 365 days before it, so a person can log a day they forgot. A button whose action needs `rowId` must give the `id` of a row the look received from a query on the action's table. A `form` opens the app, where the user types the values. With a `rowId` the form edits that row. Without one it adds a row.
 
 ```json
 {
@@ -147,7 +180,8 @@ A new row lands on today. A button whose action needs `rowId` must give the `id`
     "toggle": { "toggle": "items.done" },
     "finish": { "set": "items.done", "to": true },
     "remove": { "delete": "items" },
-    "quick": { "insert": "items", "values": { "title": "Stretch", "done": false } }
+    "quick": { "insert": "items", "values": { "title": "Stretch", "done": false } },
+    "late": { "insertOn": "items", "values": { "title": "Stretch", "done": true } }
   }
 }
 ```
@@ -297,7 +331,20 @@ A query without a window:
 ```
 
 ```text
-query "today": count needs "window": today, week, or all
+query "today": count needs "window": today, week, month, all, or {"days": 7} for the last 7 days with today last
+```
+
+A `streak` of a number field without a `goal`:
+
+```json
+{
+  "tables": { "drinks": { "fields": { "ml": "number" } } },
+  "queries": { "hydrated": { "streak": "drinks.ml" } }
+}
+```
+
+```text
+query "hydrated": a streak of "drinks.ml" needs "goal": the day's total that keeps the streak, like {"streak": "drinks.ml", "goal": 2000}
 ```
 
 A `toggle` on a field that is not a `bool`:

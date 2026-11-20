@@ -102,16 +102,18 @@ public struct RunAction: AppIntent {
     @Parameter(title: "Widget") var widgetID: String
     @Parameter(title: "Action") var actionID: String
     @Parameter(title: "Row") var rowID: String?
+    @Parameter(title: "Day") var day: String?
 
     public init() {}
     init(_ tap: Tap) {
         widgetID = tap.widget
         actionID = tap.action
         rowID = tap.row
+        day = tap.day
     }
 
     public func perform() async throws -> some IntentResult {
-        try Hosting.engine.perform(Tap(widget: widgetID, action: actionID, row: rowID))
+        try Hosting.engine.perform(Tap(widget: widgetID, action: actionID, row: rowID, day: day))
         return .result()
     }
 }
@@ -262,8 +264,8 @@ What the model writes, what `source(of:)` returns, what a widget directory holds
 | `format` | Integer. The document format version. Absent in a model reply means current. |
 | `name` | What the user sees in the widget picker. |
 | `tables` | `{ id: { "fields": { fieldId: kind } } }`, where a kind is `text`, `number`, `bool`, or `date`. Field ids `id`, `day`, `daysAgo`, `repeat`, `newest`, and `oldest` are reserved. |
-| `queries` | `{ id: { <shape>: <target>, ... } }`. Shapes: `count` (table), `sum` (`"table.field"`, number field), `latest` (table), `list` (table, with `limit` and an optional `sort`), `streak` (table), `daily` (table, with `days`). `count`, `sum`, `latest`, and `list` require `window` (`today`, `week`, or `all`) and take an optional `where`. |
-| `actions` | `{ id: { <effect>: <target>, ... } }`. Effects: `insert` (table, optional `values`), `set` (`"table.field"` plus `to`), `toggle` (`"table.field"`, bool field), `delete` (table), `form` (table, `fields` list, optional `prompt`). |
+| `queries` | `{ id: { <shape>: <target>, ... } }`. Shapes: `count` (table), `sum` (`"table.field"`, number field), `latest` (table), `list` (table, with `limit` and an optional `sort`), `streak` (table or number field, optional `goal`), `daily` (table or number field, with `days`). `count`, `sum`, `latest`, and `list` require `window` (`today`, `week`, `month`, `all`, or `{ "days": N }`). Every shape takes an optional `where`. |
+| `actions` | `{ id: { <effect>: <target>, ... } }`. Effects: `insert` (table, optional `values`), `insertOn` (table, optional `values`; its button names a `day`), `set` (`"table.field"` plus `to`), `toggle` (`"table.field"`, bool field), `delete` (table), `form` (table, `fields` list, optional `prompt`). |
 | `automations` | `{ id: { "prompt": ..., "every": "hour" or "day" or "week", "at": "06:00", "on": "monday", "writes": table } }`. The builder adds `timeZone`. |
 | `look` | The JavaScript source, one string. |
 | `assets` | `{ assetId: { "about": "what the picture shows" } }`. Bytes travel next to the JSON, never inside it. Saving adds each asset's `digest`. |
@@ -271,7 +273,7 @@ What the model writes, what `source(of:)` returns, what a widget directory holds
 
 `where` is `{ field: value }`: one field of the query's table, compared for equality against a literal of that field's kind. Nothing more expressive. It is what makes "open to-dos" and "done to-dos" correct past the list limit. A bool field with no value counts as false, so `{ "done": false }` matches a new row nobody has touched. A text, number, or date field with no value matches nothing, and `where` cannot compare a date field.
 
-A row belongs to the day it was written on, in the writer's calendar, and never moves. `today` is that day, `week` is the seven days from the calendar's first weekday that contain today, and `daily` counts rows per day.
+A row belongs to the day it was written on, in the writer's calendar, and never moves. `insertOn` writes a row on an earlier day, today or up to 365 days back, which the button names. `today` is the reader's day, `week` is the seven days from the calendar's first weekday that contain today, `month` is the calendar month that contains today, and `{ "days": N }` is the last N days with today last. `daily` and `streak` measure each day by its row count, or with a number field by that field's sum. A `streak` day counts when its measure reaches `goal` (1 row when left out).
 
 There are no seed rows. A widget starts with no data, the empty state is a state every look must handle, and the proof checks it.
 
@@ -280,7 +282,7 @@ The look sees `ctx = { data, family, width, height, today }`. `data` has one key
 - `count`, `sum`, and `streak` are numbers.
 - `latest` is a row or `null`.
 - `list` is an array of rows.
-- `daily` is an array of `{ date, weekday, count }`, oldest first and today last, such as `{ "date": "2026-11-18", "weekday": "Wed", "count": 3 }`.
+- `daily` is an array of `{ date, weekday, count }`, oldest first and today last, such as `{ "date": "2026-11-18", "weekday": "Wed", "count": 3 }`. Over a number field each entry also has `sum`.
 
 A row is `{ "id", "day", "daysAgo", ...fields }`, with dates as ISO strings, a bool field with no value as `false`, and any other field with no value as `null`. `today` is `{ "date": "2026-11-18", "weekday": "Wed", "week": [seven ISO dates of the user's current week, first day first] }`, so a look can show the date and draw day strips without reading the clock. History views read `daily` and do no date arithmetic.
 

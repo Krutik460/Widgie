@@ -247,11 +247,14 @@ package final class RowStore: Sendable {
     }
 
     /// Applies one action as one stamped batch through `merge`. Checks that a tapped row exists, is live, and
-    /// belongs to the dataset (widget, effect's table) is bound to; otherwise writes nothing and says why. `.insert` ignores `row`.
+    /// belongs to the dataset (widget, effect's table) is bound to; otherwise writes nothing and says why.
+    /// `.insert` and `.insertOn` ignore `row`. `.insertOn` writes only on a `day` in
+    /// `Effect.loggableDays(from: today.day)`, and every other effect ignores `day`.
     /// `.form` writes only with input: without a row it inserts, with one it sets the given fields. Input
     /// values are already typed against the form's fields.
     package func apply(
-        _ action: Spec.Action, widget: WidgetKey, row: RowKey?, input: [Spec.FieldValue], today: Today, at instant: Date
+        _ action: Spec.Action, widget: WidgetKey, row: RowKey?, day: Day? = nil, input: [Spec.FieldValue],
+        today: Today, at instant: Date
     ) throws(StoreError) -> Applied {
         let at = milliseconds(instant)
         return try write(at: instant) { db in
@@ -260,15 +263,22 @@ package final class RowStore: Sendable {
                 if let stale = try staleness(of: row, widget: widget, table: table, db) { return .ignored(stale) }
                 return .changes(try change(row))
             }
-            func insert(into table: Spec.TableID, _ values: [Spec.FieldValue]) throws -> Plan {
+            func insert(into table: Spec.TableID, _ values: [Spec.FieldValue], on day: Day? = nil) throws -> Plan {
                 guard let dataset = try Rows.dataset(of: widget, table: table.raw, db) else {
                     return .ignored("table \(table) has no dataset")
                 }
-                return .changes(insertion(into: dataset, values, day: today.day, at: at))
+                return .changes(insertion(into: dataset, values, day: day ?? today.day, at: at))
             }
             switch action.effect {
             case .insert(let table, let values):
                 return try insert(into: table.id, values)
+            case .insertOn(let table, let values):
+                guard let day else { return .ignored("action \(action.id) needs a day") }
+                let loggable = Spec.Effect.loggableDays(from: today.day)
+                guard loggable.contains(day) else {
+                    return .ignored("day \(day) is not between \(loggable.lowerBound) and today, \(today.day)")
+                }
+                return try insert(into: table.id, values, on: day)
             case .set(let value):
                 return try target(value.field.table) { [.setCell($0, field: value.field.id.raw, value.value.stored)] }
             case .toggle(let field):
@@ -481,7 +491,16 @@ package struct RowValue: Sendable, Equatable {
 
 package struct DayCount: Sendable, Equatable {
     package let day: Day
+    /// Rows that day.
     package let count: Int
+    /// The sum of the measured field that day, for a `daily` over a field. Nil for a `daily` over a table.
+    package let sum: Double?
+
+    package init(day: Day, count: Int, sum: Double? = nil) {
+        self.day = day
+        self.count = count
+        self.sum = sum
+    }
 }
 
 package enum Applied: Sendable, Equatable {

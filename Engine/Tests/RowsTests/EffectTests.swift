@@ -20,6 +20,38 @@ import Testing
         #expect(row.day == (try day("2026-11-18")))
     }
 
+    @Test func insertOnWritesARowOnTheTappedDay() throws {
+        let bench = try Bench(spec: parse(dayDocument))
+        #expect(try bench.tap("lateGlass", day: try day("2026-11-17"), at: noon) == .written)
+        #expect(try bench.tap("lateItem", day: try day("2026-11-16"), at: noon) == .written)
+        #expect(try bench.number("glassesToday", at: noon) == 0)
+        #expect(try bench.days("glassesDaily", at: noon).map(\.count) == [0, 1, 0])
+        #expect(try bench.number("streak", at: noon) == 1, "yesterday's row keeps the streak alive")
+        let row = try item(bench)
+        #expect(row.fields == ["title": .text("Late"), "size": .number(2)])
+        #expect(row.day == (try day("2026-11-16")))
+        #expect(try bench.tap("lateGlass", day: try day("2026-11-18"), at: noon) == .written, "today is loggable")
+    }
+
+    @Test func insertOnReachesBackOneYearAndNeverAhead() throws {
+        let bench = try Bench(spec: parse(dayDocument))
+        #expect(try bench.tap("lateGlass", day: try day("2025-11-18"), at: noon) == .written)
+        #expect(
+            try bench.tap("lateGlass", day: try day("2025-11-17"), at: noon)
+                == .ignored("day 2025-11-17 is not between 2025-11-18 and today, 2026-11-18"))
+        #expect(
+            try bench.tap("lateGlass", day: try day("2026-11-19"), at: noon)
+                == .ignored("day 2026-11-19 is not between 2025-11-18 and today, 2026-11-18"))
+        #expect(try bench.tap("lateGlass", at: noon) == .ignored("action lateGlass needs a day"))
+        #expect(try bench.number("glassesAll", at: noon) == 1)
+    }
+
+    @Test func insertIgnoresADay() throws {
+        let bench = try Bench()
+        #expect(try bench.tap("drink", day: try day("2026-11-10"), at: noon) == .written)
+        #expect(try bench.number("glassesToday", at: noon) == 1)
+    }
+
     @Test func insertIgnoresATappedRow() throws {
         let bench = try Bench()
         try bench.tap("drink", at: noon)

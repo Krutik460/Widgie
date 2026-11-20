@@ -18,7 +18,8 @@ let mistakeSpec = try! document(
         "toggle": { "toggle": "items.done" },
         "drink": { "insert": "glasses" },
         "undo": { "delete": "glasses" },
-        "add": { "form": "items", "fields": ["title"] }
+        "add": { "form": "items", "fields": ["title"] },
+        "late": { "insertOn": "glasses" }
       },
       "assets": { "photo": { "about": "a mountain lake at dusk" } }
     }
@@ -67,7 +68,7 @@ struct Mistake: Sendable, CustomTestStringConvertible {
         Mistake(
             "button naming a missing action",
             returning: "{ type: 'button', action: 'refill', children: [{ type: 'symbol', name: 'plus' }] }",
-            #"button at root: no action "refill" (actions: add, drink, toggle, undo)"#),
+            #"button at root: no action "refill" (actions: add, drink, late, toggle, undo)"#),
         Mistake(
             "missing row id",
             returning: "{ type: 'button', action: 'undo', children: [{ type: 'symbol', name: 'minus' }] }",
@@ -93,6 +94,23 @@ struct Mistake: Sendable, CustomTestStringConvertible {
             returning:
                 "{ type: 'button', action: 'drink', rowId: d.last.id, children: [{ type: 'symbol', name: 'plus' }] }",
             #"button at root: action "drink" adds a new row, so it takes no "rowId""#),
+        Mistake(
+            "insertOn without a day",
+            returning: "{ type: 'button', action: 'late', children: [{ type: 'symbol', name: 'plus' }] }",
+            #"button at root: action "late" needs "day": the date it adds a row on, like "2026-11-18" (take dates from ctx.today or a daily entry)"#
+        ),
+        Mistake(
+            "a day on an insert",
+            returning:
+                "{ type: 'button', action: 'drink', day: ctx.today.date, children: [{ type: 'symbol', name: 'plus' }] }",
+            #"button at root: action "drink" does not write to a chosen day, so it takes no "day"; use an insertOn action to add a row on another day"#
+        ),
+        Mistake(
+            "a day that is not a date",
+            returning:
+                "{ type: 'button', action: 'late', day: 'yesterday', children: [{ type: 'symbol', name: 'plus' }] }",
+            #"button at root: "day" must be a date as "YYYY-MM-DD", like "2026-11-18", not "yesterday""#
+        ),
         Mistake(
             "a button inside a button",
             returning:
@@ -174,6 +192,9 @@ struct Mistake: Sendable, CustomTestStringConvertible {
                 { type: 'button', action: 'drink', children: [{ type: 'symbol', name: 'plus' }] },
                 { type: 'button', action: 'add', children: [{ type: 'symbol', name: 'plus.circle' }] },
                 { type: 'button', action: 'add', rowId: d.open[0].id, children: [{ type: 'symbol', name: 'pencil' }] },
+                ctx.today.week.map(day => ({ type: 'button', action: 'late', day: day,
+                  children: [{ type: 'symbol', name: 'clock' }] })),
+                { type: 'button', action: 'late', day: '2025-11-17', children: [{ type: 'symbol', name: 'clock' }] },
               ] };
             }
             """
@@ -186,7 +207,10 @@ struct Mistake: Sendable, CustomTestStringConvertible {
                 Tap(widget: "w1", action: "toggle", row: "item-1"), Tap(widget: "w1", action: "undo", row: "glass-1"),
                 Tap(widget: "w1", action: "drink", row: nil), Tap(widget: "w1", action: "add", row: nil),
                 Tap(widget: "w1", action: "add", row: "item-1"),
-            ])
+                Tap(widget: "w1", action: "late", row: nil, day: "2026-11-16"),
+                Tap(widget: "w1", action: "late", row: nil, day: "2026-11-17"),
+                Tap(widget: "w1", action: "late", row: nil, day: "2026-11-18"),
+            ], "days after today and more than a year back draw without a tap")
     }
 
     @Test func childrenFlattenAndSkipEmptyEntries() async throws {

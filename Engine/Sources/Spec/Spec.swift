@@ -78,6 +78,8 @@ extension Spec {
         static let daysAgo = 0...400
         static let listLimit = 1...100
         static let dailyDays = 1...366
+        static let goal = 1_000_000.0
+        static let rowGoal = 1...100
         static let textLength = 300
         static let promptLength = 2000
         static let formPromptLength = 80
@@ -135,9 +137,9 @@ struct Reader {
         )]
     {
         guard let value = members[key] else { return [] }
-        let entries = try Reader(value, else: "\"\(key)\" must be an object of \(noun)s keyed by id, like \(example)")
+        let entries = try Reader(value, else: "\"\(key)\" must be an object of \(key) keyed by id, like \(example)")
         guard entries.keys.count <= max else {
-            throw Diagnostic("at most \(max) \(noun)s, found \(entries.keys.count)")
+            throw Diagnostic("at most \(max) \(key), found \(entries.keys.count)")
         }
         var result: [(Spec.Name<Tag>, JSONValue)] = []
         for raw in entries.keys {

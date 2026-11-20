@@ -76,8 +76,8 @@ public final class Engine: Sendable {
         return Faces(entries: entries, reloadAt: reloadAt)
     }
 
-    /// Applies a tapped action. Resolves the action by name, parses the row id, and asks the store to apply
-    /// it at `date` in this engine's calendar. A form action needs `input`, checked against the form's field
+    /// Applies a tapped action. Resolves the action by name, parses the row id and the day, and asks the
+    /// store to apply it at `date` in this engine's calendar. A form action needs `input`, checked against the form's field
     /// kinds before anything is written; any other action ignores it. A stale tap is a quiet no-op. Throws
     /// only when the store cannot be opened or written, or when form input has the wrong kind.
     public func perform(_ tap: Tap, input: [String: InputValue] = [:], at date: Date = .now) throws(EngineError) {
@@ -88,11 +88,16 @@ public final class Engine: Sendable {
             guard let key = RowKey(parsing: raw) else { return }
             row = key
         }
+        var day: Day?
+        if let raw = tap.day {
+            guard let parsed = Day(iso: raw) else { return }
+            day = parsed
+        }
         var values: [Spec.FieldValue] = []
         if case .form(let form) = target.action.effect { values = try Self.values(input, for: form) }
         do throws(StoreError) {
             let applied = try store.apply(
-                target.action, widget: target.widget.key, row: row, input: values,
+                target.action, widget: target.widget.key, row: row, day: day, input: values,
                 today: Today(at: date, calendar: calendar), at: date)
             if case .ignored(let reason) = applied {
                 log.info("tap ignored: \(reason, privacy: .public)")

@@ -68,6 +68,49 @@ import Testing
         #expect(days.map(\.count) == [1, 3, 2])
     }
 
+    @Test func perDaySumsAndFiltersOnASeededSample() throws {
+        let bench = try Bench(spec: parse(dayDocument))
+        try bench.seed("busy", at: noon)
+        let sizes = try bench.days("sizeDaily", at: noon)
+        #expect(
+            try sizes.map(\.day) == ["2026-11-14", "2026-11-15", "2026-11-16", "2026-11-17", "2026-11-18"].map(day))
+        #expect(sizes.map(\.sum) == [3, 1, 0, 0, 8], "a row with no size adds nothing; a day with no rows sums to 0")
+        #expect(sizes.map(\.count) == [1, 1, 1, 0, 2])
+        let open = try bench.days("openDaily", at: noon)
+        #expect(open.map(\.count) == [1, 0, 1, 0, 1], "a bool with no value counts as false")
+        #expect(open.allSatisfy { $0.sum == nil }, "a daily over a table has no sum")
+        let done = try bench.days("doneSizeDaily", at: noon)
+        #expect(done.map(\.sum) == [0, 1, 0, 0, 3])
+        #expect(done.map(\.count) == [0, 1, 0, 0, 1])
+    }
+
+    @Test func monthAndRollingWindowsOnASeededSample() throws {
+        let bench = try Bench(spec: parse(dayDocument))
+        try bench.seed("busy", at: noon)
+        #expect(try bench.number("glassesMonth", at: noon) == 8)
+        #expect(try bench.number("glassesTwoDays", at: noon) == 5, "Nov 17 and 18")
+        #expect(try bench.number("sizeTwoDays", at: noon) == 8)
+    }
+
+    @Test func theMonthIsTheCalendarMonthThatHoldsToday() throws {
+        let bench = try Bench(spec: parse(dayDocument))
+        for time in [
+            "2026-10-31T23:30:00-04:00", "2026-11-01T00:30:00-04:00", "2026-11-30T23:00:00-05:00",
+            "2026-12-01T09:00:00-05:00",
+        ] {
+            try bench.tap("drink", at: time)
+        }
+        #expect(try bench.number("glassesMonth", at: "2026-10-31T23:45:00-04:00") == 1)
+        #expect(try bench.number("glassesMonth", at: "2026-11-01T08:00:00-05:00") == 2, "Nov 1 to 30")
+        #expect(try bench.number("glassesMonth", at: "2026-12-01T10:00:00-05:00") == 1)
+        #expect(try bench.number("glassesTwoDays", at: "2026-12-01T10:00:00-05:00") == 2, "Nov 30 and Dec 1")
+
+        let leap = try Bench(spec: parse(dayDocument))
+        try leap.tap("drink", at: "2028-02-29T12:00:00-05:00")
+        try leap.tap("drink", at: "2028-03-01T12:00:00-05:00")
+        #expect(try leap.number("glassesMonth", at: "2028-02-01T12:00:00-05:00") == 1, "February 2028 has 29 days")
+    }
+
     @Test func theEmptyStateReadsAsNothing() throws {
         let bench = try Bench()
         try bench.store.seed(Spec.empty, widget: bench.widget, today: bench.today(noon))
@@ -95,6 +138,12 @@ import Testing
         #expect(days.count == 35)
         #expect(days.last?.count == 100)
         #expect(days.dropLast().allSatisfy { $0.count == 1 })
+
+        let bench = try Bench(spec: parse(dayDocument))
+        try bench.store.seed(bench.spec.full, widget: bench.widget, today: bench.today(noon))
+        #expect(try bench.number("twoGlasses", at: noon) == 100, "every day of a goal streak meets the goal")
+        #expect(try bench.number("doneSize", at: noon) == 100, "a filtered sum streak fills with matching rows")
+        #expect(try bench.days("openDaily", at: noon).map(\.count).allSatisfy { $0 >= 1 })
     }
 
     @Test func rowsWrittenAroundMidnightLandOnTheirOwnDay() throws {
@@ -195,5 +244,57 @@ import Testing
 
     @Test func countsDaysNotRows() throws {
         #expect(try streak([0, 0, 0, 1]) == 2)
+    }
+
+    @Test func countsOnlyDaysThatReachTheGoal() throws {
+        #expect(try streak([0, 0, 1, 1, 2], query: "twoGlasses") == 2)
+        #expect(try streak([0, 0, 1, 1, 2, 2, 2], query: "twoGlasses") == 3, "more than the goal still counts")
+        #expect(try streak([0, 0, 1, 2, 2], query: "twoGlasses") == 1, "a day short of the goal breaks it")
+    }
+
+    @Test func endsYesterdayWhileTodayIsShortOfTheGoal() throws {
+        #expect(try streak([0, 1, 1, 2, 2], query: "twoGlasses") == 2)
+        #expect(try streak([0, 2, 2], query: "twoGlasses") == 0)
+    }
+
+    @Test func sumsAFieldOfMatchingRowsAgainstTheGoal() throws {
+        let bench = try Bench(spec: parse(dayDocument))
+        let today = try day("2026-11-18")
+        for ago in [2, 1, 0] {
+            let time = today.adding(-ago).iso + "T12:00:00-05:00"
+            try bench.tap("add", at: time)
+            let added = try #require(bench.rows("newest", at: time).first)
+            if ago != 1 { try bench.tap("finish", row: added.key, at: time) }
+        }
+        try bench.tap("add", at: today.adding(-1).iso + "T13:00:00-05:00")
+        #expect(try bench.number("doneSize", at: "2026-11-18T18:00:00-05:00") == 1, "yesterday's rows are not done")
+        #expect(
+            try bench.number("openStreak", at: "2026-11-18T18:00:00-05:00") == 1,
+            "only yesterday has open rows, and today has none yet")
+    }
+
+    @Test func decimalAmountsAddUpToTheirGoal() throws {
+        let bench = try Bench(
+            spec: parse(
+                #"""
+                {"name": "Pills", "look": "function render(ctx) { return { type: 'spacer' }; }",
+                 "tables": {"doses": {"fields": {"mg": "number"}}},
+                 "queries": {"kept": {"streak": "doses.mg", "goal": 1}, "week": {"daily": "doses.mg", "days": 2}},
+                 "actions": {"tenth": {"insert": "doses", "values": {"mg": 0.1}}}}
+                """#))
+        for _ in 0..<10 { try bench.tap("tenth", at: "2026-11-17T12:00:00-05:00") }
+        for _ in 0..<9 { try bench.tap("tenth", at: "2026-11-18T12:00:00-05:00") }
+        #expect(try bench.number("kept", at: "2026-11-18T18:00:00-05:00") == 1, "ten tenths reach 1; nine do not")
+        try bench.tap("tenth", at: "2026-11-18T13:00:00-05:00")
+        #expect(try bench.number("kept", at: "2026-11-18T18:00:00-05:00") == 2)
+    }
+
+    func streak(_ daysAgo: [Int], query: String) throws -> Double {
+        let bench = try Bench(spec: parse(dayDocument))
+        let today = try day("2026-11-18")
+        for ago in daysAgo {
+            try bench.tap("drink", at: today.adding(-ago).iso + "T12:00:00-05:00")
+        }
+        return try bench.number(query, at: "2026-11-18T18:00:00-05:00")
     }
 }

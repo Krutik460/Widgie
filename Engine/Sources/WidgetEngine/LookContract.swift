@@ -11,7 +11,8 @@ import Spec
 /// Builds `ctx` as JSON text:
 /// `{ data: { queryId: result }, family, width, height, today: { date, weekday, week } }`.
 /// - `count`, `sum`, `streak`: a number. `latest`: a row or null. `list`: a list of rows.
-/// - `daily`: a list of `{ date, weekday, count }`, oldest first and today last.
+/// - `daily`: a list of `{ date, weekday, count }`, oldest first and today last, with `sum` added when it
+///   measures a field.
 /// - A row is `{ id, day, daysAgo, ...fields }`. Dates are ISO strings, weekdays are `Mon` to `Sun`, a bool
 ///   field with no value is `false`, and any other field with no value is `null`. The fields come from the
 ///   query's table in `spec`, so a row lists every field of its table.
@@ -42,10 +43,12 @@ package func lookContext(
         case .days(let days):
             data[query.id.raw] = .array(
                 days.map { entry in
-                    .object([
+                    var members: [String: JSONValue] = [
                         "date": .string(entry.day.iso), "weekday": .string(entry.day.weekday.short),
                         "count": .number(Double(entry.count)),
-                    ])
+                    ]
+                    if let sum = entry.sum { members["sum"] = .number(sum) }
+                    return .object(members)
                 })
         }
     }
@@ -78,18 +81,21 @@ package struct Bindings: Sendable {
     /// The ids of the rows the look received, by the table each came from. A button's `rowId` must be one
     /// of these for its action's table. `rows(in:spec:)` derives it from the query results.
     package let rows: [Spec.TableID: Set<String>]
+    /// The render's day. A button's `day` must be in `Spec.Effect.loggableDays(from: today)`.
+    package let today: Day
     package let images: AssetImages
     package let family: Family
     package let size: CGSize
     package let pixelScale: Double
 
     package init(
-        widget: WidgetID, spec: Spec, rows: [Spec.TableID: Set<String>], images: AssetImages, family: Family,
-        size: CGSize, pixelScale: Double
+        widget: WidgetID, spec: Spec, rows: [Spec.TableID: Set<String>], today: Day, images: AssetImages,
+        family: Family, size: CGSize, pixelScale: Double
     ) {
         self.widget = widget
         self.spec = spec
         self.rows = rows
+        self.today = today
         self.images = images
         self.family = family
         self.size = size
@@ -120,6 +126,7 @@ extension Drawing {
     ///
     /// References: a button's `action` must name an action in the spec. Its `rowId` must be present exactly
     /// when that action's `rowUse` requires it, and must be a row the look received for the action's table.
+    /// Its `day` must be present exactly when the action `needsDay`, and must be a loggable day.
     /// An image's `asset` must be a spec asset that `images` can decode. A button for a form action becomes
     /// `.form`, which the host turns into a link. Every failure is one line that names the node path:
     /// `button at root.children[4].children[0]: action "undo" needs "rowId": the id of the row it deletes`.
@@ -180,6 +187,6 @@ package func composeDrawing(
         tree: tree,
         bindings: Bindings(
             widget: WidgetID(rawValue: widget.raw), spec: spec, rows: Bindings.rows(in: results, spec: spec),
-            images: images, family: family, size: size, pixelScale: pixelScale))
+            today: today.day, images: images, family: family, size: size, pixelScale: pixelScale))
     return Composition(drawing: drawing, results: results, tree: tree)
 }

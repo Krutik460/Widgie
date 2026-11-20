@@ -7,9 +7,8 @@ extension Spec {
     }
 
     /// The closed read set. A row belongs to the day it was written on, in the writer's calendar. `window`
-    /// and `where` sit only on the cases that use them, so a windowed streak or a filtered daily cannot be
-    /// written. A `where` field always belongs to the query's table, and a bool field with no value
-    /// counts as false.
+    /// sits only on the cases that read a window, so a windowed streak or daily cannot be written. A `where`
+    /// field always belongs to the query's table, and a bool field with no value counts as false.
     package enum Shape: Hashable, Sendable {
         /// Rows in the window that match `where`. The look gets a number.
         case count(Table, where: FieldValue?, Window)
@@ -20,28 +19,45 @@ extension Spec {
         case latest(Table, where: FieldValue?, Window)
         /// Up to `limit` rows in the window that match `where`, in `order`. The look gets a list of rows.
         case list(Table, where: FieldValue?, Order, limit: Int, Window)
-        /// Consecutive days with at least one row, ending today, or ending yesterday while today has none.
-        /// The look gets a number.
-        case streak(Table)
-        /// One entry per day for the last `days` days, oldest first and today last, each with that day's
-        /// row count. The look gets a list of `{ date, weekday, count }`.
-        case daily(Table, days: Int)
+        /// Consecutive days whose measure over rows matching `where` reaches `goal`, ending today, or ending
+        /// yesterday while today has not reached it yet. The look gets a number.
+        case streak(Measure, where: FieldValue?, goal: Double)
+        /// One entry per day for the last `days` days, oldest first and today last, with that day's count of
+        /// rows matching `where` and, for a field measure, their sum. The look gets a list of
+        /// `{ date, weekday, count }`, with `sum` added for a field measure.
+        case daily(Measure, where: FieldValue?, days: Int)
 
         package var table: TableID {
             switch self {
-            case .count(let table, _, _), .latest(let table, _, _), .list(let table, _, _, _, _), .streak(let table),
-                .daily(let table, _):
-                table.id
+            case .count(let table, _, _), .latest(let table, _, _), .list(let table, _, _, _, _): table.id
             case .sum(let field, _, _): field.table
+            case .streak(let measure, _, _), .daily(let measure, _, _): measure.table
             }
         }
     }
 
-    /// `today` is the reader's current day, `week` is the seven days from the calendar's first weekday
-    /// that contain today, and `all` has no bound.
-    package enum Window: String, CaseIterable, Hashable, Sendable {
+    /// What one day is worth to `streak` and `daily`: how many rows it has, or the sum of a number field over
+    /// them. A row with no value adds nothing to a sum.
+    package enum Measure: Hashable, Sendable {
+        case rows(Table)
+        case total(Field<Double>)
+
+        package var table: TableID {
+            switch self {
+            case .rows(let table): table.id
+            case .total(let field): field.table
+            }
+        }
+    }
+
+    /// `today` is the reader's current day, `week` is the seven days from the calendar's first weekday that
+    /// contain today, `month` is the calendar month that contains today, `days` is the last that many days
+    /// with today last, and `all` has no bound.
+    package enum Window: Hashable, Sendable {
         case today
         case week
+        case month
+        case days(Int)
         case all
     }
 
@@ -63,17 +79,15 @@ extension Spec.Query {
             case .sum: ["sum", "where", "window"]
             case .latest: ["latest", "where", "window"]
             case .list: ["limit", "list", "sort", "where", "window"]
-            case .streak: ["streak"]
-            case .daily: ["daily", "days"]
+            case .streak: ["goal", "streak", "where"]
+            case .daily: ["daily", "days", "where"]
             }
         }
 
         func refusal(of key: String) -> String {
             switch (self, key) {
             case (.streak, "window"): "streak takes no \"window\"; it always counts back from today"
-            case (.streak, "where"): "streak takes no \"where\"; it counts days that have any row"
             case (.daily, "window"): "daily takes no \"window\"; \"days\" sets how many days it covers"
-            case (.daily, "where"): "daily takes no \"where\"; it counts every row of each day"
             default: "\(rawValue) takes no \(Diagnostic.quote(key)) (keys: \(keys.joined(separator: ", ")))"
             }
         }
@@ -125,29 +139,82 @@ extension Spec.Query {
                         table, where: try filter(query, table), try order(query["sort"], table), limit: limit,
                         try window(query, kind)))
             case .streak:
-                return Spec.Query(id: id, shape: .streak(try resolver.table(target, for: "streak")))
+                let (measure, table) = try self.measure(target, for: "streak", resolver)
+                return Spec.Query(
+                    id: id,
+                    shape: .streak(measure, where: try filter(query, table), goal: try goal(query, measure, target)))
             case .daily:
-                let table = try resolver.table(target, for: "daily")
+                let (measure, table) = try self.measure(target, for: "daily", resolver)
                 guard let days = try query.wholeNumber("days", in: Spec.Limits.dailyDays) else {
                     throw Diagnostic(
                         "daily needs \"days\": how many days to cover, a whole number from 1 to \(Spec.Limits.dailyDays.upperBound)"
                     )
                 }
-                return Spec.Query(id: id, shape: .daily(table, days: days))
+                return Spec.Query(id: id, shape: .daily(measure, where: try filter(query, table), days: days))
             }
         } catch {
             throw error.within("query \(Diagnostic.quote(id.raw))")
         }
     }
 
+    private static let windowChoices =
+        "today, week, month, all, or {\"days\": 7} for the last 7 days with today last"
+
     private static func window(_ query: Reader, _ kind: Kind) throws(Diagnostic) -> Spec.Window {
         guard let value = query["window"] else {
-            throw Diagnostic("\(kind.rawValue) needs \"window\": today, week, or all")
+            throw Diagnostic("\(kind.rawValue) needs \"window\": \(windowChoices)")
         }
-        guard case .string(let raw) = value, let window = Spec.Window(rawValue: raw) else {
-            throw Diagnostic("\"window\" must be today, week, or all, not \(value.described)")
+        switch value {
+        case .string("today"): return .today
+        case .string("week"): return .week
+        case .string("month"): return .month
+        case .string("all"): return .all
+        case .object:
+            do throws(Diagnostic) {
+                let window = try Reader(value, else: "")
+                try window.requireOnly(["days"]) { "takes only \"days\", not \(Diagnostic.quote($0))" }
+                guard let days = try window.wholeNumber("days", in: Spec.Limits.dailyDays) else {
+                    throw Diagnostic("needs \"days\": how many days back from today, like {\"days\": 7}")
+                }
+                return .days(days)
+            } catch {
+                throw error.within("window")
+            }
+        default:
+            throw Diagnostic("\"window\" must be \(windowChoices), not \(value.described)")
         }
-        return window
+    }
+
+    /// A table counts rows per day. `"table.field"` sums a number field per day.
+    private static func measure(_ target: JSONValue, for key: String, _ resolver: Resolver) throws(Diagnostic) -> (
+        Spec.Measure, Spec.Table
+    ) {
+        if case .string(let raw) = target, raw.contains(".") {
+            let (table, field) = try resolver.field(target, for: key, of: Double.self)
+            return (.total(field), table)
+        }
+        let table = try resolver.table(target, for: key)
+        return (.rows(table), table)
+    }
+
+    /// A row measure's goal is a whole number of rows, 1 when left out. A field measure must say what total
+    /// counts as a day kept.
+    private static func goal(_ query: Reader, _ measure: Spec.Measure, _ target: JSONValue) throws(Diagnostic)
+        -> Double
+    {
+        if case .rows = measure { return Double(try query.wholeNumber("goal", in: Spec.Limits.rowGoal) ?? 1) }
+        guard let value = query["goal"] else {
+            guard case .total(let field) = measure else { return 1 }
+            throw Diagnostic(
+                "a streak of \"\(field.path)\" needs \"goal\": the day's total that keeps the streak, like {\"streak\": \"\(field.path)\", \"goal\": 2000}"
+            )
+        }
+        guard case .number(let goal) = value, goal > 0, goal <= Spec.Limits.goal else {
+            throw Diagnostic(
+                "\"goal\" must be a number above 0 and at most \(Int(Spec.Limits.goal)), like 8, not \(value.described)"
+            )
+        }
+        return goal
     }
 
     private static func filter(_ query: Reader, _ table: Spec.Table) throws(Diagnostic) -> Spec.FieldValue? {
@@ -192,11 +259,16 @@ extension Spec.Query {
     }
 
     var json: JSONValue {
+        func filtered(_ key: String, _ target: String, _ filter: Spec.FieldValue?) -> [String: JSONValue] {
+            var members: [String: JSONValue] = [key: .string(target)]
+            if let filter { members["where"] = [filter].json }
+            return members
+        }
         func windowed(_ key: String, _ target: String, _ filter: Spec.FieldValue?, _ window: Spec.Window) -> [String:
             JSONValue]
         {
-            var members: [String: JSONValue] = [key: .string(target), "window": .string(window.rawValue)]
-            if let filter { members["where"] = [filter].json }
+            var members = filtered(key, target, filter)
+            members["window"] = window.json
             return members
         }
         switch shape {
@@ -211,10 +283,41 @@ extension Spec.Query {
             members["limit"] = .number(Double(limit))
             members["sort"] = .string(order.raw)
             return .object(members)
-        case .streak(let table):
-            return .object(["streak": .string(table.id.raw)])
-        case .daily(let table, let days):
-            return .object(["daily": .string(table.id.raw), "days": .number(Double(days))])
+        case .streak(let measure, let filter, let goal):
+            var members = filtered("streak", measure.raw, filter)
+            // A row measure's default goal is left out, so a plain streak keeps its canonical bytes.
+            let isDefault: Bool =
+                switch measure {
+                case .rows: goal == 1
+                case .total: false
+                }
+            if !isDefault { members["goal"] = .number(goal) }
+            return .object(members)
+        case .daily(let measure, let filter, let days):
+            var members = filtered("daily", measure.raw, filter)
+            members["days"] = .number(Double(days))
+            return .object(members)
+        }
+    }
+}
+
+extension Spec.Measure {
+    var raw: String {
+        switch self {
+        case .rows(let table): table.id.raw
+        case .total(let field): field.path
+        }
+    }
+}
+
+extension Spec.Window {
+    var json: JSONValue {
+        switch self {
+        case .today: .string("today")
+        case .week: .string("week")
+        case .month: .string("month")
+        case .days(let days): .object(["days": .number(Double(days))])
+        case .all: .string("all")
         }
     }
 }

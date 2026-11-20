@@ -10,6 +10,9 @@ extension Spec {
     package enum Effect: Hashable, Sendable {
         /// A new row on today's day with these values. Fields it does not list have no value.
         case insert(Table, [FieldValue])
+        /// A new row with these values on the day the button names, one of `loggableDays`: "I forgot
+        /// yesterday".
+        case insertOn(Table, [FieldValue])
         /// One field of the tapped row.
         case set(FieldValue)
         /// Flips one bool field of the tapped row. A field with no value counts as false.
@@ -21,7 +24,7 @@ extension Spec {
 
         package var table: TableID {
             switch self {
-            case .insert(let table, _), .delete(let table): table.id
+            case .insert(let table, _), .insertOn(let table, _), .delete(let table): table.id
             case .set(let value): value.field.table
             case .toggle(let field): field.table
             case .form(let form): form.table.id
@@ -32,10 +35,22 @@ extension Spec {
         /// `rowId`.
         package var rowUse: RowUse {
             switch self {
-            case .insert: .never
+            case .insert, .insertOn: .never
             case .set, .toggle, .delete: .required
             case .form: .optional
             }
+        }
+
+        /// Whether a button for this effect names a day. Derived from the case, so the tree validator and
+        /// `apply` agree.
+        package var needsDay: Bool {
+            if case .insertOn = self { true } else { false }
+        }
+
+        /// The days an `insertOn` may write to, seen from `today`: today and the 365 days before it. The tree
+        /// validator checks a button's day against the render's today, and `apply` against the tap's.
+        package static func loggableDays(from today: Day) -> ClosedRange<Day> {
+            today.adding(-365)...today
         }
     }
 
@@ -57,11 +72,12 @@ extension Spec {
 
 extension Spec.Action {
     private enum Kind: String, CaseIterable {
-        case insert, set, toggle, delete, form
+        case insert, insertOn, set, toggle, delete, form
 
         var keys: [String] {
             switch self {
             case .insert: ["insert", "values"]
+            case .insertOn: ["insertOn", "values"]
             case .set: ["set", "to"]
             case .toggle: ["toggle"]
             case .delete: ["delete"]
@@ -88,15 +104,18 @@ extension Spec.Action {
             }
             let target = action[kind.rawValue] ?? .null
             switch kind {
-            case .insert:
-                let table = try resolver.table(target, for: "insert")
-                guard let given = action["values"] else { return Spec.Action(id: id, effect: .insert(table, [])) }
-                do throws(Diagnostic) {
-                    let values = try Reader(given, else: "must map field ids to values, like {\"done\": false}")
-                    return Spec.Action(id: id, effect: .insert(table, try table.values(values)))
-                } catch {
-                    throw error.within("values")
+            case .insert, .insertOn:
+                let table = try resolver.table(target, for: kind.rawValue)
+                var values: [Spec.FieldValue] = []
+                if let given = action["values"] {
+                    do throws(Diagnostic) {
+                        values = try table.values(
+                            Reader(given, else: "must map field ids to values, like {\"done\": false}"))
+                    } catch {
+                        throw error.within("values")
+                    }
                 }
+                return Spec.Action(id: id, effect: kind == .insert ? .insert(table, values) : .insertOn(table, values))
             case .set:
                 let (_, field) = try resolver.field(target, for: "set")
                 guard let given = action["to"] else {
@@ -146,6 +165,8 @@ extension Spec.Action {
         switch effect {
         case .insert(let table, let values):
             return .object(["insert": .string(table.id.raw), "values": values.json])
+        case .insertOn(let table, let values):
+            return .object(["insertOn": .string(table.id.raw), "values": values.json])
         case .set(let value):
             return .object(["set": .string(value.field.path), "to": value.value.json])
         case .toggle(let field):

@@ -36,6 +36,8 @@ extension Spec.Window {
         switch self {
         case .today: today.day...today.day
         case .week: today.weekStart...today.weekStart.adding(6)
+        case .month: today.day.month
+        case .days(let count): today.day.adding(1 - count)...today.day
         case .all: nil
         }
     }
@@ -61,11 +63,13 @@ func evaluate(_ shape: Spec.Shape, widget: WidgetKey, today: Today, _ db: Databa
     case .list(let table, let filter, let order, let limit, let window):
         let rows = Selection(widget: widget, table: table.id, days: window.days(today), matching: filter)
         return .rows(try list(table, rows, order, limit: limit, db))
-    case .streak(let table):
-        let rows = Selection(widget: widget, table: table.id)
+    case .streak(let measure, let filter, let goal):
+        let rows = Selection(widget: widget, table: measure.table, matching: filter)
+        let totals = DayTotals(measure, rows)
         let days = try Int.fetchCursor(
-            db, sql: "SELECT DISTINCT r.day FROM row r WHERE \(rows.sql) AND r.day <= ? ORDER BY r.day DESC",
-            arguments: rows.arguments + [today.day.index])
+            db,
+            sql: "SELECT day FROM (\(totals.sql) AND r.day <= ? GROUP BY r.day) WHERE measure >= ? ORDER BY day DESC",
+            arguments: totals.arguments + [today.day.index, goal])
         guard let newest = try days.next(), newest >= today.day.index - 1 else { return .number(0) }
         var streak = 1
         var previous = newest
@@ -74,20 +78,42 @@ func evaluate(_ shape: Spec.Shape, widget: WidgetKey, today: Today, _ db: Databa
             previous = day
         }
         return .number(Double(streak))
-    case .daily(let table, let count):
+    case .daily(let measure, let filter, let count):
         let first = today.day.adding(1 - count)
-        let rows = Selection(widget: widget, table: table.id, days: first...today.day)
-        var counts: [Int: Int] = [:]
-        for row in try Row.fetchAll(
-            db, sql: "SELECT r.day, count(*) FROM row r WHERE \(rows.sql) GROUP BY r.day", arguments: rows.arguments)
-        {
-            counts[row[0]] = row[1]
+        let totals = DayTotals(
+            measure, Selection(widget: widget, table: measure.table, days: first...today.day, matching: filter))
+        var found: [Int: Row] = [:]
+        for row in try Row.fetchAll(db, sql: "\(totals.sql) GROUP BY r.day", arguments: totals.arguments) {
+            found[row["day"]] = row
         }
+        let sums: Bool = if case .total = measure { true } else { false }
         return .days(
             (0..<count).map { offset in
                 let day = first.adding(offset)
-                return DayCount(day: day, count: counts[day.index] ?? 0)
+                let row = found[day.index]
+                return DayCount(day: day, count: row?["count"] ?? 0, sum: sums ? row?["measure"] ?? 0 : nil)
             })
+    }
+}
+
+/// Each selected day's `day`, `count` of rows, and `measure`: the count again, or the sum of the measured
+/// field. A statement up to its WHERE clause, so callers add more conditions, then `GROUP BY r.day`.
+private struct DayTotals {
+    let sql: String
+    let arguments: StatementArguments
+
+    init(_ measure: Spec.Measure, _ rows: Selection) {
+        switch measure {
+        case .rows:
+            sql = "SELECT r.day AS day, count(*) AS count, count(*) AS measure FROM row r WHERE \(rows.sql)"
+            arguments = rows.arguments
+        case .total(let field):
+            sql = """
+                SELECT r.day AS day, count(*) AS count, total(v.value) AS measure FROM row r
+                LEFT JOIN cell v ON v.row = r.key AND v.field = ? WHERE \(rows.sql)
+                """
+            arguments = [field.id.raw] + rows.arguments
+        }
     }
 }
 

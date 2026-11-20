@@ -113,11 +113,23 @@ struct Mistake: CustomTestStringConvertible, Sendable {
             line: #"query "run": streak takes no "window"; it always counts back from today"#),
         Mistake(
             label: "missing window", json: withTables(#""queries": {"today": {"count": "glasses"}}"#),
-            line: #"query "today": count needs "window": today, week, or all"#),
+            line:
+                #"query "today": count needs "window": today, week, month, all, or {"days": 7} for the last 7 days with today last"#
+        ),
         Mistake(
             label: "unknown window",
             json: withTables(#""queries": {"today": {"count": "glasses", "window": "this week"}}"#),
-            line: #"query "today": "window" must be today, week, or all, not the string "this week""#),
+            line:
+                #"query "today": "window" must be today, week, month, all, or {"days": 7} for the last 7 days with today last, not the string "this week""#
+        ),
+        Mistake(
+            label: "rolling window without days",
+            json: withTables(#""queries": {"x": {"count": "glasses", "window": {"last": 7}}}"#),
+            line: #"query "x", window: takes only "days", not "last""#),
+        Mistake(
+            label: "rolling window too long",
+            json: withTables(#""queries": {"x": {"count": "glasses", "window": {"days": 0}}}"#),
+            line: #"query "x", window: "days" must be a whole number from 1 to 366, not the number 0"#),
         Mistake(
             label: "key of another shape",
             json: withTables(#""queries": {"x": {"count": "items", "window": "all", "limit": 5}}"#),
@@ -143,9 +155,35 @@ struct Mistake: CustomTestStringConvertible, Sendable {
             json: withTables(#""queries": {"x": {"count": "items", "where": {"status": "open"}, "window": "all"}}"#),
             line: #"query "x": where names no field "status" in items (fields: done, due, size, title)"#),
         Mistake(
-            label: "where on daily",
+            label: "where on daily names another table's field",
             json: withTables(#""queries": {"x": {"daily": "glasses", "days": 7, "where": {"done": true}}}"#),
-            line: #"query "x": daily takes no "where"; it counts every row of each day"#),
+            line: #"query "x": where names no field "done" in glasses (glasses has no fields)"#),
+        Mistake(
+            label: "daily over a text field",
+            json: withTables(#""queries": {"x": {"daily": "items.title", "days": 7}}"#),
+            line: #"query "x": daily needs a number field; "items.title" is text (number fields: items.size)"#),
+        Mistake(
+            label: "streak of a field without a goal",
+            json: withTables(#""queries": {"x": {"streak": "items.size"}}"#),
+            line:
+                #"query "x": a streak of "items.size" needs "goal": the day's total that keeps the streak, like {"streak": "items.size", "goal": 2000}"#
+        ),
+        Mistake(
+            label: "streak goal of zero",
+            json: withTables(#""queries": {"x": {"streak": "glasses", "goal": 0}}"#),
+            line: #"query "x": "goal" must be a whole number from 1 to 100, not the number 0"#),
+        Mistake(
+            label: "fractional goal on a row streak",
+            json: withTables(#""queries": {"x": {"streak": "glasses", "goal": 2.5}}"#),
+            line: #"query "x": "goal" must be a whole number from 1 to 100, not the number 2.5"#),
+        Mistake(
+            label: "negative goal on a field streak",
+            json: withTables(#""queries": {"x": {"streak": "items.size", "goal": -5}}"#),
+            line: #"query "x": "goal" must be a number above 0 and at most 1000000, like 8, not the number -5"#),
+        Mistake(
+            label: "goal on a count",
+            json: withTables(#""queries": {"x": {"count": "glasses", "window": "today", "goal": 8}}"#),
+            line: #"query "x": count takes no "goal" (keys: count, where, window)"#),
         Mistake(
             label: "list without limit", json: withTables(#""queries": {"x": {"list": "items", "window": "all"}}"#),
             line: #"query "x": list needs "limit": the most rows to return, a whole number from 1 to 100"#),
@@ -167,7 +205,15 @@ struct Mistake: CustomTestStringConvertible, Sendable {
     static let actionsCases: [Mistake] = [
         Mistake(
             label: "no effect", json: withTables(#""actions": {"go": {"open": "items"}}"#),
-            line: #"action "go": needs one of insert, set, toggle, delete, form, like {"insert": "items"}"#),
+            line: #"action "go": needs one of insert, insertOn, set, toggle, delete, form, like {"insert": "items"}"#),
+        Mistake(
+            label: "insertOn with an unknown field",
+            json: withTables(#""actions": {"late": {"insertOn": "items", "values": {"name": "Run"}}}"#),
+            line: #"action "late", values: no field "name" in items (fields: done, due, size, title)"#),
+        Mistake(
+            label: "insertOn with a field target",
+            json: withTables(#""actions": {"late": {"insertOn": "items.done"}}"#),
+            line: #"action "late": insertOn takes a table, not a field; write "items""#),
         Mistake(
             label: "toggle on a text field", json: withTables(#""actions": {"flip": {"toggle": "items.title"}}"#),
             line: #"action "flip": toggle needs a bool field; "items.title" is text (bool fields: items.done)"#),
