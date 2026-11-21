@@ -16,13 +16,14 @@ extension Engine {
     /// Steps, stopping at the first problem:
     /// 1. `Spec.parse(source.json)`. A missing `format` means current.
     /// 2. With `replacing`: `spec.checkCompatible(replacing: old.spec)`, the same check against every other
-    ///    widget bound to one of its datasets, and keep its key. Without: a new key, whose tables get new
-    ///    datasets on save.
+    ///    widget bound to one of its datasets and against the kinds of the cells already stored in those
+    ///    datasets (`store.storedKinds`), and keep its key. Without: a new key, whose tables get new datasets
+    ///    on save.
     /// 3. `ingest`: every image has an asset entry, and every asset has bytes in `source.images` or a digest
     ///    whose file this store holds. Downscale and encode.
     /// 4. `spec.fillingTimeZone(calendar.timeZone)`.
-    /// 5. `prove`, the matrix `Engine.proofs` also runs: every data state in every family, then action
-    ///    coverage and the content check. The first problem is the rejection.
+    /// 5. `prove`, the matrix `Engine.proofs` also runs: every data state in every family, then the tinted and
+    ///    dark redraws, then action coverage and the content check. The first problem is the rejection.
     /// 6. `store.save`: files first, then the revision, the head move, and a new dataset for each table that
     ///    has none. `onCommit` runs.
     public func build(_ source: WidgetSource, replacing: WidgetID? = nil) async throws(EngineError) -> BuildOutcome {
@@ -40,8 +41,10 @@ extension Engine {
                 throw EngineError(message: "no widget \(replacing.rawValue) to replace")
             }
             let sharers: [Sharer]
+            let stored: [String: [String: Set<Spec.FieldKind>]]
             do throws(StoreError) {
                 sharers = try store.sharers(of: parsed)
+                stored = try store.storedKinds(of: parsed)
             } catch {
                 throw EngineError(message: error.message)
             }
@@ -49,6 +52,9 @@ extension Engine {
                 try spec.checkCompatible(replacing: found.spec)
                 for sharer in sharers {
                     try spec.checkCompatible(sharer.table, with: sharer.widget.spec, table: sharer.as)
+                }
+                for (table, kinds) in stored.sorted(by: { $0.key < $1.key }) {
+                    try spec.checkCompatible(table, holding: kinds)
                 }
             } catch {
                 return .rejected(error.line)
@@ -75,8 +81,9 @@ extension Engine {
         return .saved(WidgetID(rawValue: key.raw))
     }
 
-    /// The stored widget in exchange form: the head revision's canonical bytes plus each asset's stored bytes
-    /// under its id. Nil for an unknown or deleted widget.
+    /// The stored widget in exchange form: the drawn revision's canonical bytes (`StoredWidget.revision`, the
+    /// head once it is proved here) plus each asset's stored bytes under its id. Nil for an unknown or deleted
+    /// widget, or one with no revision proved here.
     public func source(of widget: WidgetID) throws(EngineError) -> WidgetSource? {
         let store = try self.store()
         guard let key = WidgetKey(parsing: widget.rawValue), let stored = try self.widget(key, in: store) else {
@@ -95,7 +102,8 @@ extension Engine {
         }
     }
 
-    /// Every revision the widget has had, newest first. The first is the current one.
+    /// Every revision the widget has had, newest first. The first is the head; the widget draws the newest one
+    /// proved on this phone, which is the head unless a synced head is still waiting for `proveReceived`.
     public func history(of widget: WidgetID) throws(EngineError) -> [WidgetRevision] {
         let store = try self.store()
         guard let key = WidgetKey(parsing: widget.rawValue) else { return [] }
@@ -106,8 +114,9 @@ extension Engine {
         }
     }
 
-    /// Moves the widget back to an earlier revision. The revision was proved when it was saved, so this
-    /// only moves the head. `onCommit` runs.
+    /// Moves the widget back to an earlier revision in its history. This only moves the head: a revision
+    /// saved here was proved when it was saved, and one another device saved draws once `proveReceived`
+    /// passes it. `onCommit` runs.
     public func restore(_ widget: WidgetID, to revision: WidgetRevision) throws(EngineError) {
         let store = try self.store()
         guard let key = WidgetKey(parsing: widget.rawValue), let digest = Spec.Digest(hex: revision.id) else {

@@ -38,7 +38,7 @@ A table is a list of rows. Each field has one kind.
 | `bool` | `true` or `false` | `false` |
 | `date` | a date such as `"2026-11-18"` | `null` |
 
-Every row also belongs to the day it was written on. That day decides which windows the row falls in, so a table with no fields still counts things: one row per glass of water, one row per check-in.
+Every row also belongs to a day: the day it was written on, or the day an `insertOn` button gave. That day decides which windows the row falls in, so a table with no fields still counts things: one row per glass of water, one row per check-in.
 
 These field ids are reserved: `day`, `daysAgo`, `id`, `newest`, `oldest`, `repeat`.
 
@@ -61,7 +61,7 @@ A query reads one table. Each query has exactly one of these keys, which names i
 | `sum` | a number field, as `"table.field"` | `window`, optional `where` | a number. A row with no value adds nothing. |
 | `latest` | a table | `window`, optional `where` | the newest row, or `null` |
 | `list` | a table | `window`, `limit`, optional `sort`, optional `where` | a list of rows |
-| `streak` | a table, or a number field as `"table.field"` | optional `goal`, optional `where` | the number of days in a row that reach the goal, ending today, or ending yesterday until today reaches it |
+| `streak` | a table, or a number field as `"table.field"` | `goal` (optional for a table), optional `where` | the number of days in a row that reach the goal, ending today, or ending yesterday until today reaches it |
 | `daily` | a table, or a number field as `"table.field"` | `days`, optional `where` | a list with one entry per day, oldest first and today last |
 
 `window` is one of:
@@ -72,13 +72,15 @@ A query reads one table. Each query has exactly one of these keys, which names i
 - `{ "days": 7 }`: rows written in the last 7 days, today included. Any whole number from 1 to 366.
 - `all`: every row.
 
+Every window ends today, so a row on a later day counts from its day on.
+
 `streak` and `daily` measure each day. With a table they count the day's rows. With a number field they add up that field over the day's rows, so `{ "daily": "drinks.ml", "days": 7 }` charts millilitres per day.
 
 `goal` is what a day must reach to keep a `streak` going. With a table it is a number of rows, a whole number from 1 to 100, and it may be left out, and then one row keeps the day. With a number field it is the day's total, a number above 0 and at most 1000000, and it is required.
 
 `where` keeps only rows whose field equals a value. It names one field of the query's table and a value of that field's kind. A `bool` field with no value counts as `false`, so `{ "done": false }` includes new rows nobody has touched. `where` cannot compare a `date` field.
 
-`limit` is the most rows a `list` returns, from 1 to 100. `sort` is `newest` (the default), `oldest`, or a field id. Put `-` before a field id to sort it descending. A row with no value for the sort field comes last.
+`limit` is the most rows a `list` returns, from 1 to 100. `sort` is `newest` (the default), `oldest`, or a field id. Put `-` before a field id to sort it descending. A row with no value for a text, number, or date sort field comes last, and a `bool` field with no value sorts as `false`.
 
 `days` is how many days a `daily` covers, from 1 to 366.
 
@@ -256,11 +258,14 @@ The app makes the no-rows state and the stress state itself, named `empty` and `
 | actions | 16 |
 | automations | 4 |
 | assets | 8 |
+| an asset's `about` | 200 characters |
 | samples | 6 |
+| a sample name | 40 characters, on one line |
 | rows in one sample, after `repeat` | 1000 |
 | `repeat` | 100 |
 | `daysAgo` | 400 |
-| a text value | 300 characters |
+| a text value | 300 characters as JavaScript counts them (an emoji counts as 2) |
+| field values `list` and `latest` queries return together (rows times their table's fields, a `latest` is one row) | 1000 |
 | a `prompt` | 2000 characters |
 | a form `prompt` | 80 characters |
 | the look | 65,536 bytes |

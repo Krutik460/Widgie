@@ -46,6 +46,19 @@ private func rows(
                 == #"sample "huge": 1100 rows after repeat; keep a sample to 1000 or fewer"#)
     }
 
+    /// JavaScript holds text as UTF-16, so the limit counts UTF-16 units: an emoji is 2.
+    @Test func textIsLimitedInUTF16Units() throws {
+        func sample(_ title: String) -> String {
+            withTables(#""samples": {"busy": {"items": [{"title": "\#(title)"}]}}"#)
+        }
+        _ = try parse(sample(String(repeating: "💧", count: 150)))
+        #expect(
+            rejection(sample(String(repeating: "💧", count: 151)))
+                == #"sample "busy", items[0]: the value for "items.title" is 302 characters as JavaScript counts them (an emoji counts as 2); keep it to 300 or fewer"#
+        )
+        _ = try parse(sample(String(repeating: "a", count: 300)))
+    }
+
     @Test func stateFilesUseTheSampleGrammar() throws {
         let spec = try Spec.parse(fixture("todo"))
         let state = try spec.parseState(
@@ -142,10 +155,12 @@ private func rows(
                     + #""write": {"form": "moods", "fields": ["note"]}}"#))
         let row = try #require(spec.full.rows.first)
         #expect(row.values.map(\.field.id.raw) == ["mood", "note", "score", "starred"])
+        let note = try #require(row.values.first { $0.field.id.raw == "note" })
         #expect(
-            row.values.map(\.value) == [
-                .text("😐 meh"), .text("Water the plants on the balcony and porch"), .number(5), .bool(true),
-            ])
+            note.value.text.map { $0.utf16.count == 300 && $0.hasPrefix("Water the plants") } == true,
+            "the longest text a field holds")
+        #expect(
+            row.values.filter { $0.field.id.raw != "note" }.map(\.value) == [.text("😐 meh"), .number(5), .bool(true)])
     }
 
     /// A day's row count, or the sum of a field over the day's rows, among rows matching `filter`.
@@ -171,5 +186,11 @@ private func rows(
             default: false
             }
         }
+    }
+}
+
+extension Spec.Cell {
+    fileprivate var text: String? {
+        if case .text(let text) = self { text } else { nil }
     }
 }

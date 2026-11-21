@@ -77,6 +77,8 @@ extension Spec {
         static let repeatCount = 1...100
         static let daysAgo = 0...400
         static let listLimit = 1...100
+        /// Rows times their table's fields, over every `list` (at its limit) and `latest` (one row) together.
+        static let queryCells = 1000
         static let dailyDays = 1...366
         static let goal = 1_000_000.0
         static let rowGoal = 1...100

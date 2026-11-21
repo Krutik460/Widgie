@@ -117,22 +117,76 @@ import WidgetEngine
         #expect(picture(await scratch.face(id)).looksLike(try await expected(source, rows: "{}")))
     }
 
-    @Test @MainActor func aTapOnAnActionARefinementRemovedDoesNothing() async throws {
+    @Test @MainActor func aTapWithoutARevisionOfThisLiveWidgetDoesNothing() async throws {
         let scratch = Scratch()
-        let source = try fixture("water")
-        let id = try await scratch.build(source)
+        let id = try await scratch.build(try fixture("water"))
+        let todo = try await scratch.build(try fixture("todo"))
         let drink = try button("drink", on: await scratch.face(id)).tap
-        let renamed = WidgetSource(
-            json: Data(String(decoding: source.json, as: UTF8.self).replacing("drink", with: "sip").utf8))
-        _ = try await scratch.build(renamed, replacing: id)
+        let foreign = try button("add", on: await scratch.face(todo)).tap.revision
         let commits = scratch.commits
 
-        try scratch.engine.perform(drink, at: morning)
-        try scratch.engine.perform(Tap(widget: "not a widget", action: "sip", row: nil), at: morning)
-        try scratch.engine.perform(Tap(widget: id.rawValue, action: "undo", row: "not a row"), at: morning)
+        for revision in [nil, "not a digest", foreign] {
+            try scratch.engine.perform(
+                Tap(widget: id.rawValue, revision: revision, action: "drink", row: nil), at: morning)
+        }
+        try scratch.engine.perform(
+            Tap(widget: "not a widget", revision: drink.revision, action: "drink", row: nil), at: morning)
+        try scratch.engine.perform(
+            Tap(widget: id.rawValue, revision: drink.revision, action: "undo", row: "not a row"), at: morning)
+        try scratch.engine.perform(
+            Tap(widget: id.rawValue, revision: drink.revision, action: "sip", row: nil), at: morning)
         #expect(scratch.commits == commits)
-        #expect(picture(await scratch.face(id)).looksLike(try await expected(renamed, rows: "{}")))
-        #expect(try scratch.engine.form(for: drink) == nil)
+
+        try scratch.engine.delete(id)
+        try scratch.engine.perform(drink, at: morning)
+        #expect(scratch.commits == commits + 1, "a deleted widget takes no taps")
+    }
+}
+
+/// A tap runs the action as the revision it was drawn from defines it, so a refinement that lands between
+/// the render and the press never changes what the press does.
+@Suite struct TapRevisionTests {
+    @Test @MainActor func aTapFromBeforeARefinementRunsTheEffectItWasDrawnWith() async throws {
+        let scratch = Scratch()
+        let before = document(look: counterLook())
+        let id = try await scratch.build(before)
+        let old = try button("add", on: await scratch.face(id)).tap
+        let after = document(
+            look: counterLook(
+                "{ type: 'text', value: ctx.data.n + ' ' + ctx.data.m, size: 30, color: '#FFFFFF', lineLimit: 1, minScale: 0.5 }"
+            ),
+            tables: ["taps": ["fields": [:] as [String: Any]], "misses": ["fields": [:] as [String: Any]]],
+            queries: ["n": ["count": "taps", "window": "all"], "m": ["count": "misses", "window": "all"]],
+            actions: ["add": ["insert": "misses"]])
+        _ = try await scratch.build(after, replacing: id)
+        let new = try button("add", on: await scratch.face(id)).tap
+        #expect(new.revision != old.revision)
+
+        try scratch.engine.perform(old, at: morning)
+        #expect(
+            picture(await scratch.face(id))
+                .looksLike(try await expected(after, rows: #"{"taps": [{"daysAgo": 0}]}"#)))
+        try scratch.engine.perform(new, at: morning)
+        #expect(
+            picture(await scratch.face(id))
+                .looksLike(try await expected(after, rows: #"{"taps": [{"daysAgo": 0}], "misses": [{"daysAgo": 0}]}"#)))
+    }
+
+    @Test @MainActor func aFormOpensAsTheRevisionItWasDrawnFromDefinesIt() async throws {
+        let scratch = Scratch()
+        let source = try fixture("todo")
+        let id = try await scratch.build(source)
+        let old = try button("add", on: await scratch.face(id)).tap
+        let refined = WidgetSource(
+            json: Data(
+                String(decoding: source.json, as: UTF8.self).replacing("New to-do", with: "Another thing").utf8))
+        _ = try await scratch.build(refined, replacing: id)
+
+        let form = try #require(try scratch.engine.form(for: old))
+        #expect(form.title == "New to-do" && form.tap == old)
+        let current = try #require(try scratch.engine.form(for: try button("add", on: await scratch.face(id)).tap))
+        #expect(current.title == "Another thing")
+        #expect(try scratch.engine.form(for: Tap(widget: id.rawValue, revision: nil, action: "add", row: nil)) == nil)
     }
 }
 
@@ -173,6 +227,21 @@ import WidgetEngine
         #expect(buttons(face).isEmpty)
     }
 
+    /// The image budget holds for the whole `faces` call, the same cap and the same line as the proof.
+    @Test @MainActor func imagesPastTheBudgetOnLiveDataFallBack() async throws {
+        let scratch = Scratch()
+        let look = counterLook(extra: "...(ctx.data.n === 3 ? [\(croppedPhotos)] : []),")
+        let id = try await scratch.build(
+            document(
+                name: "Widget", look: look, assets: ["photo": ["about": "a sunset"]],
+                images: ["photo": photo(3000, 2000)]))
+        for _ in 0..<3 { try scratch.engine.perform(try button("add", on: await scratch.face(id)).tap, at: morning) }
+        let face = await scratch.face(id)
+        #expect(picture(face).looksLike(picture(.placeholder)))
+        guard case .fallback(_, let reason) = face.content else { throw Unexpected() }
+        #expect(reason.contains("images decode to more than 1.5 megapixels"), "\(reason)")
+    }
+
     @Test @MainActor func anUnknownWidgetFallsBackUntilMidnight() async throws {
         let faces = await Scratch().engine.faces(
             for: WidgetID(rawValue: "6d1f1d8e-0000-4000-8000-000000000000"), family: .small,
@@ -190,6 +259,6 @@ import WidgetEngine
         let faces = await engine.faces(for: nil, family: .small, size: Family.small.standardSize, from: morning)
         #expect(faces.reloadAt == morning.addingTimeInterval(15 * 60))
         #expect(picture(faces.current).looksLike(picture(.placeholder)))
-        #expect(throws: EngineError.self) { try engine.perform(Tap(widget: "w", action: "a", row: nil)) }
+        #expect(throws: EngineError.self) { try engine.perform(Tap(widget: "w", revision: nil, action: "a", row: nil)) }
     }
 }

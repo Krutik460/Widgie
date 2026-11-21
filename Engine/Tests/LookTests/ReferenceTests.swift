@@ -148,7 +148,7 @@ struct LookExample: Sendable, CustomTestStringConvertible {
         let rows = LookReference.table(under: "### Node types")
         let common = LookReference.numbered(under: "### Common props")
         #expect(rows.count == 13)
-        #expect(common.count == 15)
+        #expect(common.count == 16)
         let spec = try LookReference.widget()
         for row in rows {
             let type = try #require(LookReference.codeSpans(row[0]).first)

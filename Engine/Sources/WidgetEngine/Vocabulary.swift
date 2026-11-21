@@ -95,7 +95,7 @@ package enum Vocabulary {
             }
             return .shape(.path(d, viewBox: viewBox), try shapePaint(props))
         },
-        NodeType("image", ["asset", "mode", "crop", "saturation", "brightness", "contrast"]) {
+        NodeType("image", ["asset", "mode", "crop", "saturation", "brightness", "contrast", "tint"]) {
             (props, parser) throws(Diagnostic) in
             .image(try parser.picture(props))
         },
@@ -168,6 +168,9 @@ package enum Vocabulary {
         CommonProp("blend") { (props, _, style) throws(Diagnostic) in
             style.blend = try props.choice("blend", Blend.self)
         },
+        CommonProp("accent") { (props, _, style) throws(Diagnostic) in
+            style.accent = try props.bool("accent") ?? false
+        },
     ]
 
     /// Props only the root node takes.
@@ -179,7 +182,7 @@ package enum Vocabulary {
 
     private static let shapeProps = ["fill", "stroke", "trimFrom", "trimTo"]
     private static let spacing = -Limits.padding...Limits.padding
-    private static let black = RGBA(r: 0, g: 0, b: 0, a: 1)
+    private static let black = ColorPair(RGBA(r: 0, g: 0, b: 0, a: 1))
 
     private static func shapePaint(_ props: Props) throws(Diagnostic) -> ShapePaint {
         let fill = try props.fill("fill")
@@ -269,6 +272,19 @@ struct TreeParser {
     mutating func node(_ value: JSONValue, at path: String, depth: Int, place: Place, extra: [String] = [])
         throws(Diagnostic) -> Node
     {
+        let (type, props, common) = try header(value, at: path, depth: depth, place: place, extra: extra)
+        let kind = try type.read(props, &self)
+        var style = Style()
+        for prop in common { try prop.read(props, &self, &style) }
+        return Node(kind: kind, style: style, path: path)
+    }
+
+    /// Everything `node` checks before it reads props. Kept out of `node` so the frame that recurses into
+    /// children stays small: the error lines built here would otherwise take stack space at every level.
+    @inline(never)
+    private mutating func header(_ value: JSONValue, at path: String, depth: Int, place: Place, extra: [String])
+        throws(Diagnostic) -> (NodeType, Props, [CommonProp])
+    {
         let label = "node at \(path)"
         guard case .object(let members) = value else {
             throw Diagnostic(
@@ -300,10 +316,7 @@ struct TreeParser {
                 "unknown prop \(Diagnostic.quote(unknown)) (\(name) props: \(type.props.joined(separator: ", ")); common props: \(common.map(\.name).joined(separator: ", "))\(only))"
             )
         }
-        let kind = try type.read(props, &self)
-        var style = Style()
-        for prop in common { try prop.read(props, &self, &style) }
-        return Node(kind: kind, style: style, path: path)
+        return (type, props, common)
     }
 
     /// `children`, flattened: nested lists are spliced in place, and `null`, `false`, `0`, and `""` are
@@ -331,7 +344,9 @@ struct TreeParser {
         if case .object(let members) = value, members["type"] != nil {
             return .node(try node(value, at: "\(props.path).\(key)", depth: props.depth + 1, place: place))
         }
-        if case .object(let members) = value, members["gradient"] == nil {
+        if case .object(let members) = value, members["gradient"] == nil, members["light"] == nil,
+            members["dark"] == nil
+        {
             throw props.error(
                 "\"\(key)\" must be a hex color, a gradient, or a node with a \"type\", not an object without either")
         }
@@ -407,7 +422,8 @@ struct TreeParser {
         case (false, nil):
             break
         }
-        let tap = Tap(widget: bindings.widget.rawValue, action: raw, row: row, day: day)
+        let tap = Tap(
+            widget: bindings.widget.rawValue, revision: bindings.revision, action: raw, row: row, day: day)
         taps.append(tap)
         if case .form = effect { return .form(tap) }
         return .run(tap)
@@ -429,15 +445,26 @@ struct TreeParser {
         let crop = try props.read("crop", Value.crop)
         let pixels = CGSize(
             width: bindings.size.width * bindings.pixelScale, height: bindings.size.height * bindings.pixelScale)
-        guard let image = bindings.images.image(asset.id, crop: crop, maxPixels: pixels) else {
-            throw props.error("asset \(Diagnostic.quote(raw)) has no readable image; send the image again")
+        let image: DecodedImage
+        do throws(AssetImages.Failure) {
+            image = try bindings.images.image(asset.id, crop: crop, maxPixels: pixels)
+        } catch {
+            switch error {
+            case .unreadable:
+                throw props.error("asset \(Diagnostic.quote(raw)) has no readable image; send the image again")
+            case .overBudget:
+                throw props.error(
+                    "images decode to more than 1.5 megapixels in this render; draw fewer images, or fewer distinct crops of one asset, since each crop decodes again at the widget's size"
+                )
+            }
         }
         return Picture(
             image: image, mode: try props.choice("mode", ImageMode.self) ?? .fill,
             adjust: ColorAdjust(
                 saturation: try props.number("saturation", in: 0...4),
                 brightness: try props.number("brightness", in: -1...1),
-                contrast: try props.number("contrast", in: 0...4)))
+                contrast: try props.number("contrast", in: 0...4)),
+            tint: try props.choice("tint", ImageTint.self) ?? .desaturated)
     }
 
     private static func flatten(_ items: [JSONValue], into flat: inout [JSONValue]) {

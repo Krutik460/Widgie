@@ -21,7 +21,8 @@ import WidgetEngine
         let samples = try JSONSerialization.jsonObject(with: try fixture(name).json) as? [String: Any]
         let names = ((samples?["samples"] as? [String: Any]) ?? [:]).keys.sorted()
         let states = ["empty"] + names.map { "sample-" + $0.replacing(" ", with: "-") } + ["full"]
-        let pngs = states.flatMap { state in ["small", "medium"].map { "\(state)-\($0).png" } }
+        let cells = states.map { ($0, "") } + [("empty", "-tinted"), ("full", "-tinted"), ("full", "-dark")]
+        let pngs = cells.flatMap { state, suffix in ["small", "medium"].map { "\(state)-\($0)\(suffix).png" } }
         let written = try FileManager.default.contentsOfDirectory(atPath: output.path(percentEncoded: false))
         #expect(Set(written) == Set(pngs + ["report.json"]))
 
@@ -33,6 +34,10 @@ import WidgetEngine
         let renders = try #require(report["renders"] as? [[String: Any]])
         #expect(renders.compactMap { $0["png"] as? String } == pngs)
         #expect(renders.allSatisfy { $0["verdict"] is NSNull && $0["error"] is NSNull && $0["fit"] is [String: Any] })
+        #expect(
+            renders.compactMap { $0["appearance"] as? String }.suffix(7) == [
+                "light", "tinted", "tinted", "tinted", "tinted", "dark", "dark",
+            ])
     }
 
     @Test func proofModeExitsOneWithTheBuildLineForARejectedWidget() async throws {
@@ -58,6 +63,11 @@ import WidgetEngine
         let png = directory.appending(path: "full.png")
         #expect(await RenderTool.run([water, "medium", png.path(percentEncoded: false), "--full"]) == 0)
         #expect(FileManager.default.fileExists(atPath: png.path(percentEncoded: false)))
+        let tinted = directory.appending(path: "tinted.png")
+        #expect(
+            await RenderTool.run([water, "small", tinted.path(percentEncoded: false), "--appearance", "tinted"]) == 0)
+        #expect(FileManager.default.fileExists(atPath: tinted.path(percentEncoded: false)))
+        #expect(await RenderTool.run([water, "small", png.path(percentEncoded: false), "--appearance", "clear"]) == 2)
         #expect(await RenderTool.run([water, "large", png.path(percentEncoded: false)]) == 2)
         #expect(await RenderTool.run([water, "small", png.path(percentEncoded: false), "--bogus"]) == 2)
         #expect(await RenderTool.run(["--help"]) == 0)

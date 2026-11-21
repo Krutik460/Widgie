@@ -1,0 +1,86 @@
+# The app project. `scripts/build` generates Widgie.xcodeproj from this file with XcodeGen; the project and
+# the Info.plist files it writes are git-ignored, so this file is the only source of truth.
+name: Widgie
+options:
+  bundleIdPrefix: dev.krutikpatel
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Automatic
+    # The team id for the device step goes here. Empty signs to run locally, which the simulator accepts.
+    DEVELOPMENT_TEAM: ""
+    MARKETING_VERSION: "0.1"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+packages:
+  WidgetEngine:
+    path: ../Engine
+targets:
+  Widgie:
+    type: application
+    platform: iOS
+    sources:
+      - Widgie
+      # The four reference widgets, so the app can install them before the AI builder exists. Debug only.
+      - path: ../Engine/Fixtures
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: WidgetEngine
+        products: [WidgetEngine, WidgetBuilder, WidgetHosting]
+      - target: WidgieWidgets
+    entitlements:
+      path: Widgie/Widgie.entitlements
+      properties:
+        com.apple.security.application-groups: [group.dev.krutikpatel.widgie]
+    info:
+      path: Widgie/Info.plist
+      properties:
+        CFBundleDisplayName: Widgie
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        EngineAppGroup: group.dev.krutikpatel.widgie
+        EngineURLScheme: widgie
+        CFBundleURLTypes:
+          - CFBundleURLName: dev.krutikpatel.widgie
+            CFBundleURLSchemes: [widgie]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.krutikpatel.widgie
+      configs:
+        Release:
+          EXCLUDED_SOURCE_FILE_NAMES: Fixtures
+  WidgieWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [WidgieWidgets]
+    # Never WidgetBuilder: the extension cannot build, ingest images, or encode PNGs (docs/engine/USAGE.md).
+    dependencies:
+      - package: WidgetEngine
+        products: [WidgetEngine, WidgetHosting]
+    entitlements:
+      path: WidgieWidgets/WidgieWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.dev.krutikpatel.widgie]
+    info:
+      path: WidgieWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Widgie
+        EngineAppGroup: group.dev.krutikpatel.widgie
+        EngineURLScheme: widgie
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.krutikpatel.widgie.widgets
+schemes:
+  Widgie:
+    build:
+      targets:
+        Widgie: all
+        WidgieWidgets: all
+    run:
+      config: Debug

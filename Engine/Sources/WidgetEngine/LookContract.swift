@@ -77,6 +77,9 @@ private func cell(_ cell: Spec.Cell) -> JSONValue {
 /// What a tree may refer to, resolved before validation.
 package struct Bindings: Sendable {
     package let widget: WidgetID
+    /// The digest of the revision being drawn, stamped on every tap. Proofs draw a spec that may never be
+    /// saved, so they pass `Bindings.unsaved`, which is not a digest and so never names a stored revision.
+    package let revision: String
     package let spec: Spec
     /// The ids of the rows the look received, by the table each came from. A button's `rowId` must be one
     /// of these for its action's table. `rows(in:spec:)` derives it from the query results.
@@ -88,11 +91,15 @@ package struct Bindings: Sendable {
     package let size: CGSize
     package let pixelScale: Double
 
+    package static let unsaved = "unsaved"
+
     package init(
-        widget: WidgetID, spec: Spec, rows: [Spec.TableID: Set<String>], today: Day, images: AssetImages,
+        widget: WidgetID, revision: String, spec: Spec, rows: [Spec.TableID: Set<String>], today: Day,
+        images: AssetImages,
         family: Family, size: CGSize, pixelScale: Double
     ) {
         self.widget = widget
+        self.revision = revision
         self.spec = spec
         self.rows = rows
         self.today = today
@@ -151,6 +158,10 @@ extension Drawing {
     }
 }
 
+/// The most UTF-8 bytes of JSON `composeDrawing` hands a look as `ctx`. The parse-time cell cap keeps real
+/// widgets well under it; this is the backstop for long text in every cell.
+package let contextLimit = 1024 * 1024
+
 /// What one pass of `composeDrawing` made, and what it was made from. The builder reruns the look on these
 /// results with one query emptied, and compares the tree, to find a query no render depends on.
 package struct Composition: Sendable {
@@ -163,11 +174,11 @@ package struct Composition: Sendable {
 /// The one path from stored state to a `Drawing`. `Engine.faces` and the builder's proofs both call it, so
 /// a proof exercises exactly what a widget will run.
 ///
-/// Steps: `store.results(of: spec.queries, ...)`, then `lookContext`, then `sandbox.run(spec.look, ...)`
-/// (a `Sandbox.Failure` becomes `Diagnostic(failure.line)`), then `Drawing.parse` with the row ids of the
-/// same results in its `Bindings`.
+/// Steps: `store.results(of: spec.queries, ...)`, then `lookContext`, refused over `contextLimit` bytes, then
+/// `sandbox.run(spec.look, ...)` (a `Sandbox.Failure` becomes `Diagnostic(failure.line)`), then
+/// `Drawing.parse` with the row ids of the same results and `revision` in its `Bindings`.
 package func composeDrawing(
-    spec: Spec, widget: WidgetKey, store: RowStore, images: AssetImages,
+    spec: Spec, widget: WidgetKey, revision: String, store: RowStore, images: AssetImages,
     family: Family, size: CGSize, pixelScale: Double, today: Today, sandbox: Sandbox, budget: Sandbox.Budget
 ) async throws(Diagnostic) -> Composition {
     let results: [Spec.QueryID: QueryResult]
@@ -177,6 +188,11 @@ package func composeDrawing(
         throw Diagnostic("the widget's data could not be read: \(error.message)")
     }
     let context = lookContext(results: results, spec: spec, family: family, size: size, today: today)
+    guard context.utf8.count <= contextLimit else {
+        throw Diagnostic(
+            "ctx is \(context.utf8.count / 1024) KB of JSON, more than \(contextLimit / 1024) KB; lower the list limits so the queries return fewer rows"
+        )
+    }
     let tree: String
     do throws(Sandbox.Failure) {
         tree = try await sandbox.run(spec.look, context: context, budget: budget)
@@ -186,7 +202,8 @@ package func composeDrawing(
     let drawing = try Drawing.parse(
         tree: tree,
         bindings: Bindings(
-            widget: WidgetID(rawValue: widget.raw), spec: spec, rows: Bindings.rows(in: results, spec: spec),
+            widget: WidgetID(rawValue: widget.raw), revision: revision, spec: spec,
+            rows: Bindings.rows(in: results, spec: spec),
             today: today.day, images: images, family: family, size: size, pixelScale: pixelScale))
     return Composition(drawing: drawing, results: results, tree: tree)
 }

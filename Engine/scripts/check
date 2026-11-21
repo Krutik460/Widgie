@@ -5,7 +5,6 @@ set -euo pipefail
 
 engine="$(cd "$(dirname "$0")/.." && pwd)"
 modules="$engine/../docs/engine/MODULES.md"
-frameworks=/Library/Developer/CommandLineTools/Library/Developer/Frameworks
 cd "$engine"
 
 step() { printf '\n== %s\n' "$1"; }
@@ -17,10 +16,10 @@ if ! swift format lint --strict --recursive Package.swift Sources Tests; then
 fi
 
 step "release build"
-swift build -c release --build-system native
+swift build -c release
 
 step "tests"
-swift test --build-system native -Xswiftc "-F$frameworks" -Xlinker -rpath -Xlinker "$frameworks"
+swift test
 
 step "module rules from docs/engine/MODULES.md"
 table="$(awk '/^## / { inside = ($0 == "## Targets") } inside && /^\| `[A-Za-z]+` \|/' "$modules")"

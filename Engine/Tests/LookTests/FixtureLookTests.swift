@@ -102,11 +102,11 @@ struct FixtureState: Sendable, CustomTestStringConvertible {
         ).get()
         #expect(
             drawing.taps == [
-                Tap(widget: "w1", action: "add", row: nil),
-                Tap(widget: "w1", action: "toggle", row: "todo-1"),
-                Tap(widget: "w1", action: "toggle", row: "todo-2"),
-                Tap(widget: "w1", action: "toggle", row: "todo-3"),
-                Tap(widget: "w1", action: "toggle", row: "todo-4"),
+                Tap(widget: "w1", revision: "r1", action: "add", row: nil),
+                Tap(widget: "w1", revision: "r1", action: "toggle", row: "todo-1"),
+                Tap(widget: "w1", revision: "r1", action: "toggle", row: "todo-2"),
+                Tap(widget: "w1", revision: "r1", action: "toggle", row: "todo-3"),
+                Tap(widget: "w1", revision: "r1", action: "toggle", row: "todo-4"),
             ])
     }
 }

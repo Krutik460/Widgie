@@ -43,12 +43,44 @@ struct StoredState: Sendable, CustomTestStringConvertible {
         try store.bind(tablesOf: spec, to: widget)
         try store.seed(sample, widget: widget, today: today)
         let drawing = try await composeDrawing(
-            spec: spec, widget: widget, store: store, images: .inMemory([:]), family: family, size: size(family),
+            spec: spec, widget: widget, revision: Bindings.unsaved, store: store, images: .inMemory([:]),
+            family: family, size: size(family),
             pixelScale: 2, today: today, sandbox: Sandbox(), budget: .proof
         ).drawing
         let image = render(drawing)
         try writeArtifact(
             image, "stored-\(state.widget)-\(state.state.replacingOccurrences(of: " ", with: "-"))-\(family.rawValue)")
         #expect(drawing.taps.allSatisfy { $0.widget == widget.raw })
+    }
+
+    /// The parse-time cell cap keeps ordinary text under the context cap, but a character JSON escapes takes
+    /// six bytes, so text full of them can still make `ctx` large. `composeDrawing` refuses it before the look
+    /// runs.
+    @Test func aContextOverOneMegabyteIsRefused() async throws {
+        let fields = (0..<10).map { "f\($0)" }
+        let text = String(repeating: #"\u0001"#, count: 300)
+        let values = fields.map { #""\#($0)": "\#(text)""# }.joined(separator: ", ")
+        let spec = try document(
+            #"{"name": "Notes", "look": "function render(ctx) { return { type: 'spacer' }; }", "tables": {"notes": {"fields": {\#(fields.map { #""\#($0)": "text""# }.joined(separator: ", "))}}}, "queries": {"all": {"list": "notes", "window": "all", "limit": 100}}, "samples": {"long": {"notes": [{"repeat": 100, \#(values)}]}}}"#
+        )
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let today = Today(at: try Date("2026-11-18T09:00:00Z", strategy: .iso8601), calendar: calendar)
+        let store = try RowStore.scratch()
+        let widget = WidgetKey.mint()
+        try store.bind(tablesOf: spec, to: widget)
+        try store.seed(try #require(spec.sample(named: "long")), widget: widget, today: today)
+        do throws(Diagnostic) {
+            _ = try await composeDrawing(
+                spec: spec, widget: widget, revision: Bindings.unsaved, store: store, images: .inMemory([:]),
+                family: .small, size: size(.small), pixelScale: 2, today: today, sandbox: Sandbox(), budget: .proof)
+            Issue.record("composed a context over the limit")
+        } catch {
+            #expect(
+                error.line.hasPrefix("ctx is ")
+                    && error.line.hasSuffix(
+                        " KB of JSON, more than 1024 KB; lower the list limits so the queries return fewer rows"),
+                "\(error.line)")
+        }
     }
 }

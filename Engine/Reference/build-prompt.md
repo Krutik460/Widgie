@@ -32,4 +32,4 @@ When the person attaches a picture, it is their reference for the look. Recreate
 
 ## A line from the app
 
-The app checks every document by drawing it with no rows, with each sample, and with a full state, in both sizes. When it finds a problem, your next message holds the person's request, your previous document, and one line from the app. Fix what the line names, keep the rest of the widget and its design, and reply with the complete corrected document in the same form.
+The app checks every document by drawing it with no rows, with each sample, and with a full state, in both sizes, and again in tinted and dark mode. When it finds a problem, your next message holds the person's request, your previous document, and one line from the app. Fix what the line names, keep the rest of the widget and its design, and reply with the complete corrected document in the same form.

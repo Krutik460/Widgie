@@ -47,7 +47,7 @@ struct Props {
     }
 
     func bool(_ key: String) throws(Diagnostic) -> Bool? { try read(key, Value.bool) }
-    func color(_ key: String) throws(Diagnostic) -> RGBA? { try read(key, Value.color) }
+    func color(_ key: String) throws(Diagnostic) -> ColorPair? { try read(key, Value.color) }
     func fill(_ key: String) throws(Diagnostic) -> Fill? { try read(key, Value.fill) }
 }
 
@@ -117,7 +117,19 @@ enum Value {
         return choice
     }
 
-    static func color(_ value: JSONValue, _ name: String) throws(Diagnostic) -> RGBA {
+    /// A hex color, or `{ light, dark }` with a hex color for each color scheme.
+    static func color(_ value: JSONValue, _ name: String) throws(Diagnostic) -> ColorPair {
+        if case .object = value {
+            let pair = try object(value, name, keys: ["light", "dark"])
+            guard let light = pair["light"], let dark = pair["dark"] else {
+                throw Diagnostic("\"\(name)\" needs both \"light\" and \"dark\"")
+            }
+            return ColorPair(light: try hexColor(light, "\(name).light"), dark: try hexColor(dark, "\(name).dark"))
+        }
+        return ColorPair(try hexColor(value, name))
+    }
+
+    private static func hexColor(_ value: JSONValue, _ name: String) throws(Diagnostic) -> RGBA {
         guard case .string(let text) = value, let color = hex(text) else {
             throw Diagnostic(
                 "\"\(name)\" must be a hex color like \"#RRGGBB\" or \"#RRGGBBAA\", not \(describe(value))")
@@ -128,6 +140,11 @@ enum Value {
     /// A color or a gradient.
     static func fill(_ value: JSONValue, _ name: String) throws(Diagnostic) -> Fill {
         if case .string = value { return .color(try color(value, name)) }
+        if case .object(let members) = value, members["gradient"] == nil,
+            members["light"] != nil || members["dark"] != nil
+        {
+            return .color(try color(value, name))
+        }
         guard case .object(let members) = value, case .string(let kind)? = members["gradient"] else {
             throw Diagnostic(
                 "\"\(name)\" must be a hex color like \"#RRGGBB\" or a gradient like {\"gradient\": \"linear\", \"stops\": [\"#1B2A41\", \"#0C1821\"]}, not \(describe(value))"
@@ -168,7 +185,7 @@ enum Value {
         }
     }
 
-    /// A list of colors spaced evenly, or of `{ color, at }`.
+    /// A list of colors spaced evenly, or of `{ color, at }`. A color may be a `{ light, dark }` pair.
     private static func stops(_ value: JSONValue?, _ name: String) throws(Diagnostic) -> [Stop] {
         let request = "\"\(name)\" must be a list of 2 to 16 colors, or of {\"color\": \"#RRGGBB\", \"at\": 0 to 1}"
         guard case .array(let items)? = value, (2...16).contains(items.count) else {
@@ -177,7 +194,7 @@ enum Value {
         var stops: [Stop] = []
         for (index, item) in items.enumerated() {
             let itemName = "\(name)[\(index)]"
-            if case .object = item {
+            if case .object(let members) = item, members["light"] == nil, members["dark"] == nil {
                 let stop = try object(item, itemName, keys: ["color", "at"])
                 guard let color = stop["color"], let at = stop["at"] else {
                     throw Diagnostic("\"\(itemName)\" needs both \"color\" and \"at\"")
@@ -307,7 +324,7 @@ enum Value {
         }
         return Shadow(
             color: try members["color"].map { (value) throws(Diagnostic) in try color(value, "\(name).color") }
-                ?? RGBA(r: 0, g: 0, b: 0, a: 0.33),
+                ?? ColorPair(RGBA(r: 0, g: 0, b: 0, a: 0.33)),
             radius: try measure("radius", 0...Limits.blur, 4),
             offset: CGSize(
                 width: try measure("x", -Limits.length...Limits.length, 0),

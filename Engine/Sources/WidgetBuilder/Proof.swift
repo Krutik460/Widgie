@@ -7,15 +7,17 @@ import SwiftUI
 import WidgetEngine
 
 extension Engine {
-    /// Renders a source in one data state and family, offscreen, and measures it. Used by the render tool
-    /// and by evals; `build` runs the same `proveCell` for every cell of its matrix.
+    /// Renders a source in one data state, family, and appearance, offscreen, and measures it. Used by the
+    /// render tool and by evals; `build` runs the same `proveCell` and `proveAppearance` for every cell of its
+    /// matrix.
     ///
     /// Throws `Rejected` when there is nothing to measure: the source does not parse, the state does not
     /// match the tables, or the look fails on this data. Otherwise returns the PNG and the fit report,
-    /// with `verdict` set to the exact line `build` would send for this render.
+    /// with `verdict` set to the exact line `build` would send for this render: for `dark` and `tinted`,
+    /// the light render's line first, since layout does not change with the appearance.
     public static func proof(
         _ source: WidgetSource, state: DataState = .empty, family: Family, size: CGSize? = nil,
-        at date: Date = .now, calendar: Calendar = .current
+        appearance: Appearance = .light, at date: Date = .now, calendar: Calendar = .current
     ) async throws(Rejected) -> Proof {
         let spec: Spec
         let images: [Spec.AssetID: Data]
@@ -28,10 +30,12 @@ extension Engine {
             throw Rejected(line: error.line)
         }
         do throws(ProofStop) {
-            return try await proveCell(
+            let cell = try await proveCell(
                 spec, images: images, state: chosen, family: family, size: size ?? family.standardSize,
-                today: Today(at: date, calendar: calendar), sandbox: Sandbox()
-            ).proof
+                today: Today(at: date, calendar: calendar), sandbox: Sandbox())
+            guard appearance != .light else { return cell.proof }
+            let shown = try await proveAppearance(cell, appearance)
+            return Proof(png: shown.png, fit: shown.fit, verdict: cell.proof.verdict ?? shown.verdict)
         } catch {
             switch error {
             case .rejected(let line): throw Rejected(line: line)
@@ -40,8 +44,8 @@ extension Engine {
         }
     }
 
-    /// Everything `build` checks, on a source it does not save: every data state in every family, then
-    /// action coverage and the content check. Unlike `build` it renders every cell even after one fails, so
+    /// Everything `build` checks, on a source it does not save: every data state in every family, then the
+    /// tinted and dark redraws, then action coverage and the content check. Unlike `build` it renders every cell even after one fails, so
     /// an eval sees them all, but `verdict` is the same first problem `build` would return. Throws only when
     /// the proof itself cannot run.
     public static func proofs(_ source: WidgetSource, at date: Date = .now, calendar: Calendar = .current)
@@ -67,7 +71,7 @@ extension Engine {
 }
 
 public struct Proof: Sendable {
-    /// 3x, light appearance, `FaceHost.still`.
+    /// 3x, `FaceHost.still`, in the render's appearance.
     public let png: Data
     public let fit: FitReport
     /// The exact line `build` would send the model for this render, or nil when it passes.
@@ -92,7 +96,11 @@ public struct FitReport: Codable, Sendable {
     /// channel, to four places. Under 0.0005 is a blank render: nothing drawn, or drawn in the background's
     /// color.
     public let ink: Double
-    /// Image pixels decoded for this render. Over 1,500,000 is rejected.
+    /// Tinted renders only: the share of sampled opaque pixels in the most common color that is not the
+    /// backdrop, to four places. Over 0.5 means a full-size shape draws the backdrop. Nil otherwise.
+    public let cover: Double?
+    /// Image pixels decoded for this render. Informational: a decode past `AssetImages.pixelBudget` fails the
+    /// look itself, before there is a render to measure.
     public let imagePixels: Int
     /// The action of every button rendered, in tree order.
     public let buttons: [String]
@@ -142,7 +150,10 @@ struct ProofState: Sendable {
     let label: String
     let sample: Spec.Sample
 
-    func prefix(_ family: Family) -> String { "\(family.rawValue), \(label): " }
+    func prefix(_ family: Family, _ appearance: Appearance = .light) -> String {
+        appearance == .light
+            ? "\(family.rawValue), \(label): " : "\(family.rawValue), \(label), \(appearance.rawValue): "
+    }
 
     static let empty = ProofState(name: "empty", label: "empty", sample: Spec.empty)
 
@@ -196,6 +207,7 @@ enum ProofStop: Error {
 
 /// One passing render of the matrix, with what coverage and the content check need from it.
 struct Cell: Sendable {
+    let state: ProofState
     let family: Family
     let size: CGSize
     let today: Today
@@ -204,9 +216,10 @@ struct Cell: Sendable {
 }
 
 /// The one acceptance path. `build` runs it before it saves, and `Engine.proofs` runs it for the render tool,
-/// so the two cannot disagree. Renders `empty`, each sample, and `full` in every family, in that order; the
-/// first failing render's line is the verdict. When every render passes, coverage and the content check run
-/// on the whole matrix.
+/// so the two cannot disagree. Renders `empty`, each sample, and `full` in every family, in that order, then
+/// redraws the same trees tinted (`empty`, the sparsest, where a blank or a backdrop shape shows most, and
+/// `full`, the busiest) and dark (`full`, where every color pair is in use). The first failing render's line
+/// is the verdict. When every render passes, coverage and the content check run on the whole matrix.
 func prove(
     _ spec: Spec, images: [Spec.AssetID: Data], today: Today, sandbox: Sandbox, stopAtFirstFailure: Bool
 ) async throws(EngineError) -> (renders: [ProofRender], verdict: String?) {
@@ -219,20 +232,44 @@ func prove(
                 let cell = try await proveCell(
                     spec, images: images, state: state, family: family, size: family.standardSize, today: today,
                     sandbox: sandbox)
-                renders.append(ProofRender(state: state.name, family: family, outcome: .success(cell.proof)))
+                renders.append(
+                    ProofRender(state: state.name, family: family, appearance: .light, outcome: .success(cell.proof)))
                 cells.append(cell)
                 verdict = verdict ?? cell.proof.verdict
             } catch {
                 switch error {
                 case .rejected(let line):
                     renders.append(
-                        ProofRender(state: state.name, family: family, outcome: .failure(Rejected(line: line))))
+                        ProofRender(
+                            state: state.name, family: family, appearance: .light,
+                            outcome: .failure(Rejected(line: line))))
                     verdict = verdict ?? line
                 case .broken(let message):
                     throw EngineError(message: "the proof could not run: \(message)")
                 }
             }
             if verdict != nil, stopAtFirstFailure { return (renders, verdict) }
+        }
+    }
+    for (appearance, states) in appearanceCells {
+        for state in states {
+            for family in Family.allCases {
+                guard let cell = cells.first(where: { $0.state.name == state && $0.family == family }) else { continue }
+                let proof: Proof
+                do throws(ProofStop) {
+                    proof = try await proveAppearance(cell, appearance)
+                } catch {
+                    if case .broken(let message) = error {
+                        throw EngineError(message: "the proof could not run: \(message)")
+                    }
+                    continue
+                }
+                renders.append(
+                    ProofRender(
+                        state: state, family: cell.family, appearance: appearance, outcome: .success(proof)))
+                verdict = verdict ?? proof.verdict
+                if verdict != nil, stopAtFirstFailure { return (renders, verdict) }
+            }
         }
     }
     if verdict == nil { verdict = uncovered(spec, cells: cells) }
@@ -263,7 +300,8 @@ func proveCell(
     let composition: Composition
     do throws(Diagnostic) {
         composition = try await composeDrawing(
-            spec: spec, widget: widget, store: store, images: decoded, family: family, size: size,
+            spec: spec, widget: widget, revision: Bindings.unsaved, store: store, images: decoded, family: family,
+            size: size,
             pixelScale: renderScale,
             today: today, sandbox: sandbox, budget: .proof)
     } catch {
@@ -271,22 +309,49 @@ func proveCell(
     }
     let composed = clock.now
     let probe = GeometryProbe()
-    let renderer = ImageRenderer(
-        content: DrawingView(drawing: composition.drawing, host: .still)
-            .environment(\.geometryProbe, probe)
-            .environment(\.colorScheme, .light))
-    renderer.scale = renderScale
-    renderer.proposedSize = ProposedViewSize(size)
-    guard let image = renderer.cgImage, let png = encodePNG(image) else {
-        throw .broken("the renderer produced no image")
-    }
+    let image = try draw(composition.drawing, .light, probe: probe)
+    guard let png = encodePNG(image) else { throw .broken("the renderer produced no image") }
     let fit = analyze(
         probe, drawing: composition.drawing, image: image, imagePixels: decoded.decodedPixels,
         lookMilliseconds: milliseconds(composed - started), renderMilliseconds: milliseconds(clock.now - composed))
     let verdict = verdict(for: fit, size: size).map { state.prefix(family) + $0 }
     return Cell(
-        family: family, size: size, today: today, proof: Proof(png: png, fit: fit, verdict: verdict),
+        state: state, family: family, size: size, today: today, proof: Proof(png: png, fit: fit, verdict: verdict),
         composition: composition)
+}
+
+/// The cells drawn again in another appearance, by state name, after the light matrix.
+private let appearanceCells: [(Appearance, [String])] = [(.tinted, ["empty", "full"]), (.dark, ["full"])]
+
+/// A light cell's tree drawn again in `appearance`. The look never learns the appearance, so the tree and its
+/// layout are the light cell's; only the pixels change. Runs the blank check, and for tinted the cover check,
+/// and keeps the light cell's fit report otherwise.
+@MainActor
+func proveAppearance(_ cell: Cell, _ appearance: Appearance) throws(ProofStop) -> Proof {
+    let clock = ContinuousClock()
+    let started = clock.now
+    let image = try draw(cell.composition.drawing, appearance, probe: nil)
+    guard let png = encodePNG(image) else { throw .broken("the renderer produced no image") }
+    let ink = inkShare(image)
+    let cover = appearance == .tinted ? coverShare(image, backdrop: Palette.backdrop) : nil
+    let fit = cell.proof.fit.redrawn(ink: ink, cover: cover, renderMilliseconds: milliseconds(clock.now - started))
+    let verdict = appearanceVerdict(for: fit, appearance).map { cell.state.prefix(cell.family, appearance) + $0 }
+    return Proof(png: png, fit: fit, verdict: verdict)
+}
+
+/// One render at `renderScale` with `FaceHost.still`, in the appearance's rendering mode and color scheme.
+/// Tinted uses the light scheme, so a color pair's light value gives the opacity.
+@MainActor
+private func draw(_ drawing: Drawing, _ appearance: Appearance, probe: GeometryProbe?) throws(ProofStop) -> CGImage {
+    let renderer = ImageRenderer(
+        content: DrawingView(drawing: drawing, host: .still)
+            .environment(\.geometryProbe, probe)
+            .environment(\.colorScheme, appearance == .dark ? .dark : .light)
+            .environment(\.renderingMode, appearance == .tinted ? .accented : .fullColor))
+    renderer.scale = renderScale
+    renderer.proposedSize = ProposedViewSize(drawing.size)
+    guard let image = renderer.cgImage else { throw .broken("the renderer produced no image") }
+    return image
 }
 
 /// Coverage: in each family, every action has a button in at least one state, so a repair cannot pass by
@@ -304,9 +369,9 @@ func uncovered(_ spec: Spec, cells: [Cell]) -> String? {
 
 /// The content check: every query changes what the widget shows in at least one state and family, so a
 /// repair cannot pass by dropping the data it was asked to show. For each query, the look runs again on a
-/// passing render's results with that query emptied (zero for a number, null for a row, an empty list), and
-/// the query counts as shown when the tree changes or the look fails. `full` cells go first, since every
-/// query has data there.
+/// passing render's results with that query emptied (zero for a number, or one when it was zero; null for a
+/// row; an empty list), and the query counts as shown when the tree changes or the look fails. `full` cells go
+/// first, since every query has data there.
 func unshown(_ spec: Spec, cells: [Cell], sandbox: Sandbox) async -> String? {
     for query in spec.queries {
         var shown = false
@@ -332,7 +397,8 @@ func unshown(_ spec: Spec, cells: [Cell], sandbox: Sandbox) async -> String? {
 }
 
 extension QueryResult {
-    /// The same answer with nothing in it, or nil when it already has nothing.
+    /// The same answer with nothing in it, or nil when it already has nothing. A number always changes: to
+    /// zero, or to one when it was zero.
     fileprivate var emptied: QueryResult? {
         switch self {
         case .number(let number): .number(number == 0 ? 1 : 0)

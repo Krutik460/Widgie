@@ -55,7 +55,7 @@ package struct TextRun: Sendable {
     package let weight: Weight
     package let font: Typeface
     package let italic: Bool
-    package let color: RGBA
+    package let color: ColorPair
     package let lineLimit: Int?
     package let minScale: Double
     package let align: HAlign
@@ -74,7 +74,7 @@ package struct Symbol: Sendable {
     package let name: String
     package let size: Double
     package let weight: Weight
-    package let color: RGBA
+    package let color: ColorPair
 }
 
 package enum Geometry: Sendable {
@@ -118,6 +118,8 @@ package struct Picture: Sendable {
     package let image: DecodedImage
     package let mode: ImageMode
     package let adjust: ColorAdjust
+    /// How tinted mode draws it.
+    package let tint: ImageTint
 }
 
 /// Each is nil when the look leaves it out, and the renderer then adds no modifier.
@@ -143,6 +145,8 @@ package struct Style: Sendable {
     package var rotation: Double?
     package var offset: CGSize?
     package var blend: Blend?
+    /// Drawn in the tint color in tinted mode, with everything in it. Applied outermost.
+    package var accent = false
 }
 
 /// A background, overlay, mask, or widget background: a fill or a whole node. Boxed because a node's style
@@ -153,20 +157,32 @@ package indirect enum Layer: Sendable {
 }
 
 package enum Fill: Sendable {
-    case color(RGBA)
+    case color(ColorPair)
     case linear(stops: [Stop], from: CGPoint, to: CGPoint)
     case radial(stops: [Stop], center: CGPoint, startRadius: Double, endRadius: Double)
     case angular(stops: [Stop], center: CGPoint, startAngle: Double, endAngle: Double)
 }
 
 package struct Stop: Sendable {
-    package let color: RGBA
+    package let color: ColorPair
     package let location: Double
 }
 
 /// sRGB components from 0 to 1.
 package struct RGBA: Sendable, Hashable {
     package let r, g, b, a: Double
+}
+
+/// A color for each color scheme. A plain hex color is the same in both.
+package struct ColorPair: Sendable, Hashable {
+    package let light, dark: RGBA
+
+    package init(light: RGBA, dark: RGBA) {
+        self.light = light
+        self.dark = dark
+    }
+
+    package init(_ both: RGBA) { self.init(light: both, dark: both) }
 }
 
 package struct Frame: Sendable {
@@ -181,7 +197,7 @@ package struct Insets: Sendable {
 }
 
 package struct Shadow: Sendable {
-    package let color: RGBA
+    package let color: ColorPair
     package let radius: Double
     package let offset: CGSize
 }
@@ -219,6 +235,10 @@ package enum Weight: String, CaseIterable, Sendable {
 package enum Design: String, CaseIterable, Sendable { case `default`, serif, rounded, monospaced }
 package enum Cap: String, CaseIterable, Sendable { case butt, round }
 package enum ImageMode: String, CaseIterable, Sendable { case fill, fit }
+
+/// How an image draws in tinted mode: in its own colors, in gray, or in the tint color by its brightness. Public
+/// because `FaceHost.tint` maps it to WidgetKit's accented rendering mode.
+public enum ImageTint: String, CaseIterable, Sendable { case fullColor, desaturated, accented }
 package enum ClipShape: String, CaseIterable, Sendable { case rect, circle, capsule, ellipse }
 package enum Blend: String, CaseIterable, Sendable {
     case normal, multiply, screen, overlay, darken, lighten, colorDodge, colorBurn, softLight, hardLight, difference,

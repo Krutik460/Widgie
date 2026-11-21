@@ -28,12 +28,12 @@ import Testing
         #expect(failures.withLock { $0 }.isEmpty)
         #expect(try first.number("glassesAll", at: noon) == 1000)
         #expect(try second.number("glassesAll", at: noon) == 1000)
-        let feed = try first.store.changes()
+        let feed = try first.store.feed()
         let inserts = feed.filter { if case .insertRow = $0.change { true } else { false } }
         #expect(inserts.count == 1000)
         #expect(Set(inserts.map(\.stamp)).count == 1000, "one clock: no two writes share a stamp")
         #expect(Set(feed.map(\.replica)).count == 1, "both connections are one replica")
-        #expect(Set(try second.store.changes()) == Set(feed))
+        #expect(Set(try second.store.feed()) == Set(feed))
     }
 
     @Test func eitherProcessMayOpenAFreshFileFirst() throws {
@@ -58,7 +58,7 @@ import Testing
             try first.tap("drink", at: noon)
             try second.tap("drink", at: noon)
             #expect(try first.number("glassesAll", at: noon) == 2)
-            #expect(Set(try first.store.changes().map(\.replica)).count == 1, "one migration made one replica")
+            #expect(Set(try first.store.feed().map(\.replica)).count == 1, "one migration made one replica")
         }
     }
 
@@ -71,12 +71,12 @@ import Testing
             let bench = try Bench(store: RowStore.open(directory: directory))
             widget = bench.widget
             try bench.tap("add", at: noon)
-            before = try bench.store.changes()
+            before = try bench.store.feed()
         }
         let bench = try Bench(store: RowStore.open(directory: directory), widget: widget)
         #expect(try bench.number("open", at: noon) == 1)
         try bench.tap("drink", at: noon)
-        #expect(Set(try bench.store.changes().map(\.replica)) == Set(before.map(\.replica)))
+        #expect(Set(try bench.store.feed().map(\.replica)) == Set(before.map(\.replica)))
     }
 
     @Test func aFileFromANewerBuildIsRefused() throws {

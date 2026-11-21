@@ -243,3 +243,107 @@ private let everyKind: [(String, String)] = [
                 > 0.005)
     }
 }
+
+/// The rendering modes: color pairs by color scheme, and tinted mode as the renderer emulates it.
+@Suite @MainActor struct RenderingModeTests {
+    private func shown(
+        _ tree: String, mode: RenderingMode = .fullColor, scheme: ColorScheme = .light, host: FaceHost = .still
+    ) async throws -> Bitmap {
+        let drawing = try await drawing(tree, spec: mistakeSpec, images: ["photo": quadrants])
+        return Bitmap(render(drawing, host: host, mode: mode, scheme: scheme))
+    }
+
+    private let backdrop = (r: 33, g: 36, b: 41)
+    private let tint = (r: 255, g: 179, b: 64)
+
+    @Test func aColorPairFollowsTheColorSchemeInFillsTextAndGradientStops() async throws {
+        let solid = "{ type: 'rect', fill: { light: '#FF0000', dark: '#0000FF' }, frame: { width: 60, height: 60 } }"
+        #expect(near(try await shown(solid).pixel(79, 79), 255, 0, 0))
+        #expect(near(try await shown(solid, scheme: .dark).pixel(79, 79), 0, 0, 255))
+        let gradient =
+            "{ type: 'rect', fill: { gradient: 'linear', stops: [{ light: '#FF0000', dark: '#0000FF' }, { color: { light: '#FF0000', dark: '#0000FF' }, at: 1 }] }, frame: { width: 60, height: 60 } }"
+        #expect(near(try await shown(gradient).pixel(79, 79), 255, 0, 0))
+        #expect(near(try await shown(gradient, scheme: .dark).pixel(79, 79), 0, 0, 255))
+        let text =
+            "{ type: 'symbol', name: 'square.fill', size: 80, color: { light: '#000000', dark: '#FFFFFF' }, widgetBackground: '#808080' }"
+        #expect(near(try await shown(text).pixel(79, 79), 0, 0, 0))
+        #expect(near(try await shown(text, scheme: .dark).pixel(79, 79), 255, 255, 255))
+    }
+
+    @Test func tintedModeDrawsOneColorAtEachNodesOpacityOnTheBackdrop() async throws {
+        let tree = """
+            { type: 'hstack', spacing: 0, widgetBackground: '#FF0000', children: [
+              { type: 'rect', fill: '#0000FF', frame: { width: 40, height: 40 } },
+              { type: 'rect', fill: '#00FF00', opacity: 0.5, frame: { width: 40, height: 40 } },
+              { type: 'rect', fill: '#123456', accent: true, frame: { width: 40, height: 40 } },
+            ] }
+            """
+        let tinted = try await shown(tree, mode: .accented)
+        #expect(near(tinted.pixel(20, 20), backdrop.r, backdrop.g, backdrop.b))
+        #expect(near(tinted.pixel(39, 79), 255, 255, 255))
+        #expect(near(tinted.pixel(79, 79), 144, 146, 148))
+        #expect(near(tinted.pixel(119, 79), tint.r, tint.g, tint.b))
+        let full = try await shown(tree)
+        #expect(near(full.pixel(20, 20), 255, 0, 0))
+        #expect(near(full.pixel(39, 79), 0, 0, 255))
+    }
+
+    @Test func anAccentNodeTintsItsLayersAndChildren() async throws {
+        let tree =
+            "{ type: 'zstack', accent: true, background: '#00FF00', frame: { width: 80, height: 80 }, children: [{ type: 'symbol', name: 'square.fill', size: 30, color: '#000000' }] }"
+        let tinted = try await shown(tree, mode: .accented)
+        #expect(near(tinted.pixel(45, 45), tint.r, tint.g, tint.b))
+        #expect(near(tinted.pixel(79, 79), tint.r, tint.g, tint.b))
+        let own = try await shown(
+            "{ type: 'symbol', name: 'square.fill', size: 80, color: '#000000', accent: true }", mode: .accented)
+        #expect(near(own.pixel(79, 79), tint.r, tint.g, tint.b), "the node's own color, not only its children")
+    }
+
+    @Test func imagesFollowTheirTintInTintedMode() async throws {
+        // Red top left, green top right, blue bottom left, yellow bottom right.
+        let image = "{ type: 'image', asset: 'photo', frame: { width: 158, height: 158 }%@ }"
+        func tinted(_ tint: String) async throws -> Bitmap {
+            try await shown(image.replacingOccurrences(of: "%@", with: tint), mode: .accented)
+        }
+        let gray = try await tinted("")
+        #expect(isGray(gray.pixel(40, 40)) && isGray(gray.pixel(120, 120)))
+        #expect(near(try await tinted(", tint: 'fullColor'").pixel(40, 40), 255, 0, 0))
+        let accented = try await tinted(", tint: 'accented'")
+        let bright = accented.pixel(120, 120)
+        let dark = accented.pixel(40, 120)
+        #expect(near(bright, tint.r, tint.g, tint.b), "yellow is bright, so nearly the full tint: \(bright)")
+        #expect(dark.r < 120 && dark.r > backdrop.r - 10, "blue is dark, so a faint tint: \(dark)")
+        let full = try await shown(image.replacingOccurrences(of: "%@", with: ", tint: 'accented'"))
+        #expect(near(full.pixel(40, 40), 255, 0, 0), "tint changes nothing in full color")
+    }
+
+    @Test func accentAndImageTintReachTheHost() async throws {
+        let seen = Mutex<[String]>([])
+        let host = FaceHost(
+            button: FaceHost.still.button, form: FaceHost.still.form, root: FaceHost.still.root,
+            accent: { content in
+                seen.withLock { $0.append("accent") }
+                return content
+            },
+            tint: { tint, image in
+                seen.withLock { $0.append("image \(tint.rawValue)") }
+                return AnyView(image)
+            })
+        _ = try await shown(
+            "{ type: 'vstack', children: [{ type: 'text', value: 'Hi', accent: true }, { type: 'image', asset: 'photo', tint: 'fullColor', frame: { width: 40, height: 40 } }] }",
+            host: host)
+        #expect(Set(seen.withLock { $0 }) == ["accent", "image fullColor"])
+    }
+
+    @Test func theFallbackFaceDrawsOnTheBackdropInTintedMode() async throws {
+        let renderer = ImageRenderer(
+            content: FaceView(.placeholder, host: .still).frame(width: 158, height: 158)
+                .environment(\.renderingMode, .accented))
+        renderer.scale = 2
+        let bitmap = Bitmap(try #require(renderer.cgImage))
+        #expect(near(bitmap.pixel(20, 20), backdrop.r, backdrop.g, backdrop.b))
+        #expect(
+            bitmap.difference(Bitmap(render(try await drawing("{ type: 'spacer' }"), mode: .accented))) > 0.005,
+            "it draws its symbol and name on the backdrop")
+    }
+}

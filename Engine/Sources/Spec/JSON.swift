@@ -110,7 +110,7 @@ private struct Parser {
         }
         skipWhitespace()
         guard position < bytes.count else { throw Diagnostic("not valid JSON: the text is empty") }
-        let result = try value(depth: 0)
+        let result = try value()
         skipWhitespace()
         guard position == bytes.count else { throw failure("there is more text after the end of the JSON value") }
         return result
@@ -122,20 +122,88 @@ private struct Parser {
         while let byte = current, byte == 0x20 || byte == 0x0A || byte == 0x0D || byte == 0x09 { position += 1 }
     }
 
-    private mutating func value(depth: Int) throws(Diagnostic) -> JSONValue {
-        guard depth < Self.maxDepth else { throw failure("values are nested more than \(Self.maxDepth) deep") }
-        guard let byte = current else { throw failure("the text ends where a value should be") }
-        switch byte {
-        case ascii("{"): return try object(depth: depth)
-        case ascii("["): return try array(depth: depth)
-        case ascii("\""): return .string(try string())
-        case ascii("t"): return try literal("true", .bool(true))
-        case ascii("f"): return try literal("false", .bool(false))
-        case ascii("n"): return try literal("null", .null)
-        case ascii("-"), ascii("0")...ascii("9"): return try number()
-        case ascii("'"): throw failure("use double quotes for strings, not single quotes")
-        case ascii("/"): throw failure("JSON has no comments")
-        default: throw failure("expected a value")
+    /// A list or object the parser is inside, with what it has read so far.
+    private enum Open {
+        case array([JSONValue])
+        /// `key` is the member whose value is being read, and `keyStart` where it was written.
+        case object([String: JSONValue], key: String, keyStart: Int)
+    }
+
+    /// Reads one value with an explicit stack of open containers instead of recursion, so nesting costs heap
+    /// rather than thread stack, and parsing is safe on any thread.
+    private mutating func value() throws(Diagnostic) -> JSONValue {
+        var open: [Open] = []
+        read: while true {
+            guard open.count < Self.maxDepth else { throw failure("values are nested more than \(Self.maxDepth) deep") }
+            guard let byte = current else { throw failure("the text ends where a value should be") }
+            var finished: JSONValue
+            switch byte {
+            case ascii("{"):
+                position += 1
+                skipWhitespace()
+                guard current != ascii("}") else {
+                    position += 1
+                    finished = .object([:])
+                    break
+                }
+                let (key, keyStart) = try memberKey()
+                open.append(.object([:], key: key, keyStart: keyStart))
+                continue read
+            case ascii("["):
+                position += 1
+                skipWhitespace()
+                guard current != ascii("]") else {
+                    position += 1
+                    finished = .array([])
+                    break
+                }
+                open.append(.array([]))
+                continue read
+            case ascii("\""): finished = .string(try string())
+            case ascii("t"): finished = try literal("true", .bool(true))
+            case ascii("f"): finished = try literal("false", .bool(false))
+            case ascii("n"): finished = try literal("null", .null)
+            case ascii("-"), ascii("0")...ascii("9"): finished = try number()
+            case ascii("'"): throw failure("use double quotes for strings, not single quotes")
+            case ascii("/"): throw failure("JSON has no comments")
+            default: throw failure("expected a value")
+            }
+            // Hand the finished value to the container it is in, closing every container that ends here.
+            while let container = open.popLast() {
+                skipWhitespace()
+                switch container {
+                case .array(var items):
+                    items.append(finished)
+                    if current == ascii(",") {
+                        position += 1
+                        skipWhitespace()
+                        if current == ascii("]") { throw failure("remove the comma before \"]\"") }
+                        open.append(.array(items))
+                        continue read
+                    } else if current == ascii("]") {
+                        position += 1
+                        finished = .array(items)
+                    } else {
+                        throw failure("expected \",\" or \"]\" after a list item")
+                    }
+                case .object(var members, let key, let keyStart):
+                    guard members.updateValue(finished, forKey: key) == nil else {
+                        throw failure(at: keyStart, "the key \(Diagnostic.quote(key)) appears twice in one object")
+                    }
+                    if current == ascii(",") {
+                        position += 1
+                        let (next, nextStart) = try memberKey()
+                        open.append(.object(members, key: next, keyStart: nextStart))
+                        continue read
+                    } else if current == ascii("}") {
+                        position += 1
+                        finished = .object(members)
+                    } else {
+                        throw failure("expected \",\" or \"}\" after the value of \(Diagnostic.quote(key))")
+                    }
+                }
+            }
+            return finished
         }
     }
 
@@ -146,67 +214,23 @@ private struct Parser {
         return result
     }
 
-    private mutating func object(depth: Int) throws(Diagnostic) -> JSONValue {
-        position += 1
-        var members: [String: JSONValue] = [:]
+    /// Reads an object member's key and its colon, leaving the position at the start of its value.
+    private mutating func memberKey() throws(Diagnostic) -> (key: String, start: Int) {
         skipWhitespace()
-        if current == ascii("}") {
-            position += 1
-            return .object(members)
+        let start = position
+        guard current == ascii("\"") else {
+            if current == ascii("}") { throw failure("remove the comma before \"}\"") }
+            if current == ascii("'") { throw failure("use double quotes for keys, not single quotes") }
+            throw failure("expected a key in double quotes")
         }
-        while true {
-            skipWhitespace()
-            let keyStart = position
-            guard current == ascii("\"") else {
-                if current == ascii("}") { throw failure("remove the comma before \"}\"") }
-                if current == ascii("'") { throw failure("use double quotes for keys, not single quotes") }
-                throw failure("expected a key in double quotes")
-            }
-            let key = try string()
-            skipWhitespace()
-            guard current == ascii(":") else {
-                throw failure("expected \":\" after the key \(Diagnostic.quote(key))")
-            }
-            position += 1
-            skipWhitespace()
-            let member = try value(depth: depth + 1)
-            guard members.updateValue(member, forKey: key) == nil else {
-                throw failure(at: keyStart, "the key \(Diagnostic.quote(key)) appears twice in one object")
-            }
-            skipWhitespace()
-            if current == ascii(",") {
-                position += 1
-            } else if current == ascii("}") {
-                position += 1
-                return .object(members)
-            } else {
-                throw failure("expected \",\" or \"}\" after the value of \(Diagnostic.quote(key))")
-            }
-        }
-    }
-
-    private mutating func array(depth: Int) throws(Diagnostic) -> JSONValue {
-        position += 1
-        var items: [JSONValue] = []
+        let key = try string()
         skipWhitespace()
-        if current == ascii("]") {
-            position += 1
-            return .array(items)
+        guard current == ascii(":") else {
+            throw failure("expected \":\" after the key \(Diagnostic.quote(key))")
         }
-        while true {
-            skipWhitespace()
-            if current == ascii("]") { throw failure("remove the comma before \"]\"") }
-            items.append(try value(depth: depth + 1))
-            skipWhitespace()
-            if current == ascii(",") {
-                position += 1
-            } else if current == ascii("]") {
-                position += 1
-                return .array(items)
-            } else {
-                throw failure("expected \",\" or \"]\" after a list item")
-            }
-        }
+        position += 1
+        skipWhitespace()
+        return (key, start)
     }
 
     private mutating func string() throws(Diagnostic) -> String {

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Generates Widgie.xcodeproj from project.yml and builds the app and the widget extension for the simulator.
+# Exits non-zero on the first failure. Products land in App/.build/.
+set -euo pipefail
+
+app="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$app"
+
+printf '\n== format\n'
+config="$app/../Engine/.swift-format"
+if ! swift format lint --strict --recursive --configuration "$config" Widgie WidgieWidgets; then
+    echo "fix with: swift format format --in-place --recursive --configuration $config Widgie WidgieWidgets" >&2
+    exit 1
+fi
+
+printf '\n== generate\n'
+xcodegen generate --quiet
+
+printf '\n== simulator build\n'
+# Xcode's built-in git stalls cloning GRDB; the system git does not.
+xcodebuild -project Widgie.xcodeproj -scheme Widgie -configuration Debug \
+    -destination 'generic/platform=iOS Simulator' -derivedDataPath .build \
+    -scmProvider system -quiet build
+
+printf '\nbuild passed: %s\n' "$app/.build/Build/Products/Debug-iphonesimulator/Widgie.app"

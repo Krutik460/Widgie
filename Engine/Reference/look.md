@@ -21,7 +21,7 @@ The look is one script. It may define constants and helper functions, and it mus
 | `ctx.width`, `ctx.height` | The widget size in points: 158 x 158 for small and 338 x 158 for medium on a typical phone. Other phones differ by a few points, so read these instead of assuming them. |
 | `ctx.today` | `{ date, weekday, week }`. `date` is today as `"2026-11-18"`, `weekday` is `"Mon"` to `"Sun"`, and `week` is the seven dates of the current week, first day first. |
 
-A row is `{ id, day, daysAgo, ...fields }`. `id` is a string that a button passes back to say which row it is about. `day` is the date the row was written and `daysAgo` is how many days ago that was. Every field of the row's table is present. A bool field with no value is `false`, and any other field with no value is `null`.
+A row is `{ id, day, daysAgo, ...fields }`. `id` is a string that a button passes back to say which row it is about. `day` is the date the row belongs to, the day it was written or the day an `insertOn` button gave, and `daysAgo` is how many days before today that is. Every field of the row's table is present. A bool field with no value is `false`, and any other field with no value is `null`.
 
 This is the `ctx` of the example widget below, in the small size:
 
@@ -60,7 +60,7 @@ This is the `ctx` of the example widget below, in the small size:
 
 - `render` must be a pure function of `ctx`. The same `ctx` must give the same tree. `Math.random()`, `Date.now()`, `Date()`, and `new Date()` with no arguments fail the look, even inside `try`. Take the date from `ctx.today`. `new Date("2026-11-18")` and other dates built from values in `ctx` are allowed.
 - Only standard JavaScript built-ins exist, such as `Math`, `JSON`, `Array`, `String`, `Number`, and `Object`. There is no DOM, no `console`, no network, no timers, and no imports.
-- `render` must finish within 100 ms. A loop that never ends fails the look.
+- `render` gets a fixed budget of work and memory, not of time, so it gets the same verdict on every phone. The app checks each look with 500 steps, each 10,000 loop turns or function calls, and 8 MB of memory. A loop that never ends, or one that keeps growing a list or a string, fails the look.
 - The tree is plain data: objects, lists, strings, finite numbers, and booleans. A function, a `NaN`, or an `Infinity` anywhere in it is an error.
 - A prop whose value is `null` or `undefined` counts as absent.
 - `children` may hold nested lists, which are flattened, and `null`, `undefined`, `false`, `0`, and `""`, which are skipped. So `list.map(...)` and `test && node` both work inside `children`.
@@ -129,7 +129,7 @@ The root node is centered in the widget and is offered the whole widget. It gets
 | `capsule` | a pill that fills the space it is given | `fill`, `stroke`, `trimFrom`, `trimTo` |
 | `ellipse` | an ellipse that fills the space it is given | `fill`, `stroke`, `trimFrom`, `trimTo` |
 | `path` | any shape, from SVG path data | `d`, `viewBox`, `fill`, `stroke`, `trimFrom`, `trimTo` |
-| `image` | one of the widget's image assets | `asset`, `mode`, `crop`, `saturation`, `brightness`, `contrast` |
+| `image` | one of the widget's image assets | `asset`, `mode`, `crop`, `saturation`, `brightness`, `contrast`, `tint` |
 | `button` | makes its children tappable and looks exactly like them, layered as in a `zstack` | `action`, `rowId`, `day`, `children` |
 
 Stacks: `spacing` is the gap between children in points. A `vstack` aligns children `leading`, `center` (the default), or `trailing`. An `hstack` aligns them `top`, `center` (the default), `bottom`, or `firstBaseline`. A `zstack` takes any alignment name. A `spacer` takes the free space along its stack and pushes its siblings apart. Give it `minLength: 0` when space is tight, because by default it keeps a few points even when there is no room.
@@ -216,6 +216,7 @@ function render(ctx) {
 - `mode` is `fill` (the default), which covers the space it is given and crops what spills over, or `fit`, which shows the whole image inside the space and keeps its proportions.
 - `crop` picks a part of the image as `[x, y, width, height]`, each a fraction from 0 to 1 measured from the top left. Use it to choose the part of a photo that suits each size.
 - `saturation` (0 to 4, default 1; 0 is gray), `brightness` (-1 to 1, default 0), and `contrast` (0 to 4, default 1) adjust the image's colors. The common props `blur`, `opacity`, `blend`, `clip`, and `mask` work on an image as on any node.
+- `tint` is how the image draws in tinted mode: `desaturated` (the default) in gray, `fullColor` in its own colors, or `accented` in the tint color, brighter parts more opaque.
 
 ```js
 function render(ctx) {
@@ -242,7 +243,7 @@ function render(ctx) {
 A `button` makes its children tappable. It has no look of its own, so draw the button in its children.
 
 - `action` is an action id from the widget's `actions`.
-- `rowId` says which row the tap is about. An action that changes or deletes a row (`toggle`, `set`, `delete`) needs it. An `insert` takes none. A `form` takes it to edit that row and leaves it out to add a new one.
+- `rowId` says which row the tap is about. An action that changes or deletes a row (`toggle`, `set`, `delete`) needs it. An `insert` or `insertOn` takes none. A `form` takes it to edit that row and leaves it out to add a new one.
 - `rowId` must be the `id` of a row the look received in `ctx.data` from a query on that action's table. Write `row.id`, never a title or a made-up value.
 - `day` says which date an `insertOn` action adds its row on, such as `"2026-11-17"`. Only today and the 365 days before it can be tapped: a button for a later day, such as the rest of this week, draws but does nothing until its day comes. Take it from `ctx.today.date`, `ctx.today.week`, or a `daily` entry's `date`, so a tap on yesterday's bar logs yesterday: `{ type: 'button', action: 'logOn', day: entry.date, children: [...] }`. Every other action takes no `day`.
 - A button cannot hold another button.
@@ -298,6 +299,7 @@ Every node takes these props. They apply in this order, whatever order you write
 13. `rotation`: degrees clockwise.
 14. `offset`: `{ x, y }` in points. It moves the drawing, not the layout.
 15. `blend`: how this node mixes with what is behind it: `normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `colorDodge`, `colorBurn`, `softLight`, `hardLight`, `difference`, or `exclusion`.
+16. `accent`: `true` draws this node and everything in it in the tint color in tinted mode.
 
 To apply props in another order, wrap the node in a `zstack` and put the later props on the wrapper.
 
@@ -331,24 +333,55 @@ function render(ctx) {
 
 ### Values
 
-- Colors are hex strings, `"#RRGGBB"` or `"#RRGGBBAA"` with alpha last. There are no color names.
+- Colors are hex strings, `"#RRGGBB"` or `"#RRGGBBAA"` with alpha last. There are no color names. Anywhere a color goes, gradient stops included, `{ light: '#1B2A41', dark: '#F4F1EA' }` picks a color by the phone's light or dark setting.
 - A gradient is `{ gradient: 'linear', stops, from, to }`, `{ gradient: 'radial', stops, center, startRadius, endRadius }`, or `{ gradient: 'angular', stops, center, startAngle, endAngle }`. `stops` is a list of 2 to 16 colors spaced evenly, or of `{ color, at }` with `at` from 0 to 1. A point is an alignment name or `[x, y]` with each from 0 to 1. Defaults: `from: 'top'`, `to: 'bottom'`, `center: 'center'`, `startRadius: 0`, `endRadius: 80`, `startAngle: 0`, `endAngle: 360`.
 - Alignment names are `topLeading`, `top`, `topTrailing`, `leading`, `center`, `trailing`, `bottomLeading`, `bottom`, `bottomTrailing`.
 - A tree has at most 2000 nodes, nested at most 40 deep.
 
 ### Limits
 
-There is no scrolling, no text input, and no animation. The only fonts are the system designs and the named fonts above. The only images are the widget's assets.
+There is no scrolling, no text input, and no animation. The only fonts are the system designs and the named fonts above. The only images are the widget's assets. Images decode to at most 1.5 megapixels per render in all, and each decodes at the widget's full size, so that is about two images in `medium` and four in `small`. Each distinct `crop` of an asset counts as another image.
 
 ## Fit the widget
 
-Design for `ctx.width` by `ctx.height`. The app renders every look with no data, with your samples, and with a full state of three-digit counts, full lists, and long text wherever a person or an automation writes text, in both sizes. A render where anything spills past the widget's edge or past a clipping node is rejected, and so is text cut off where you did not set a `lineLimit`.
+Design for `ctx.width` by `ctx.height`. The app renders every look with no data, with your samples, and with a full state of three-digit counts, full lists, and 300-character text wherever a person or an automation writes text, in both sizes. A render where anything spills past the widget's edge or past a clipping node is rejected, and so is text cut off where you did not set a `lineLimit`.
 
 - Give the root `frame: { maxWidth: 'infinity', maxHeight: 'infinity' }` and an alignment, and put `padding` (12 to 16) inside it.
 - Count the height. 158 points minus padding leaves about 130 for content. Text takes about 1.2 times its size per line.
 - Show fewer list rows in `small` than in `medium`, and slice lists to what fits, as in `d.books.slice(0, 3)`.
 - Give live text `lineLimit` and `minScale`, and use `spacer` with `minLength: 0` where space is tight.
 - Use `ctx.family` to change the layout between sizes, not just the font size.
+- Show every query somewhere. A query that no state and size draws is rejected; remove it if the widget does not need it.
+- A text node's `value` holds at most 1000 characters.
+
+## Tinted and dark mode
+
+The person may set the home screen to tinted or dark. The look is not told which, so one tree must work in every mode.
+
+- Tinted mode removes `widgetBackground` and draws every other node in one color at its own opacity. Put the backdrop in `widgetBackground`, never in a full-size shape, which would become one flat sheet that hides everything on it.
+- Show state through opacity or shape, not hue alone. A done day at full opacity and an open one at 30%, or `checkmark.circle.fill` against `circle`, still read when tinted. Green against gray does not, and a symbol on an opaque disc of another color vanishes unless one of them has `accent: true`.
+- Give `accent: true` to the one or two things that matter most, such as the main number or button. They take the person's tint color.
+- Dark mode is optional. A look may keep its own colors, or use `{ light, dark }` colors to follow the setting.
+
+The app also draws every look tinted, with no rows and with the full state, and dark with the full state. A tinted render that is blank, or mostly one flat color, is rejected.
+
+```js
+function render(ctx) {
+  const d = ctx.data;
+  return {
+    type: 'vstack', align: 'leading', spacing: 6, padding: 14,
+    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },
+    widgetBackground: { light: '#EAF2FB', dark: '#14202E' },
+    children: [
+      { type: 'text', value: 'Reading', size: 13, weight: 'semibold', color: { light: '#4A6177', dark: '#9FB3C8' } },
+      { type: 'text', value: d.pagesToday + ' pages', size: 28, weight: 'bold', accent: true,
+        color: { light: '#14202E', dark: '#FFFFFF' }, lineLimit: 1, minScale: 0.5 },
+      { type: 'hstack', spacing: 4, children: d.week.map(day => ({
+        type: 'capsule', fill: '#F4A259', opacity: day.count > 0 ? 1 : 0.3, frame: { width: 14, height: 8 } })) },
+    ],
+  };
+}
+```
 
 ## Draw it in code
 
@@ -452,7 +485,7 @@ function render(ctx) {
 ```
 
 ```text
-text at root.children[0]: unknown prop "font" (text props: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, fontName; common props: aspectRatio, padding, frame, background, overlay, cornerRadius, clip, mask, opacity, shadow, blur, scale, rotation, offset, blend)
+text at root.children[0]: unknown prop "font" (text props: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, fontName; common props: aspectRatio, padding, frame, background, overlay, cornerRadius, clip, mask, opacity, shadow, blur, scale, rotation, offset, blend, accent)
 ```
 
 A button for an action that deletes a row must say which row:
@@ -480,6 +513,18 @@ function render(ctx) {
 button at root: "rowId" "Dune" is not the id of a row the look received (books rows come from: books); use a row's id field
 ```
 
+A `{ light, dark }` color needs both:
+
+```js
+function render(ctx) {
+  return { type: 'text', value: 'Dune', color: { light: '#1B2A41' } };
+}
+```
+
+```text
+text at root: "color" needs both "light" and "dark"
+```
+
 The clock is not an input:
 
 ```js
@@ -503,5 +548,5 @@ function render(ctx) {
 ```
 
 ```text
-look threw TypeError: undefined is not an object (evaluating 'fourth.title') (line 3)
+look threw TypeError: cannot read property 'title' of undefined (line 3)
 ```

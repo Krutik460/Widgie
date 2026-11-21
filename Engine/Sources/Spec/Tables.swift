@@ -202,9 +202,10 @@ extension Spec.AnyField {
             guard case .string(let text) = json else {
                 throw Diagnostic("\(name) is a text field; give a string, not \(json.described)")
             }
-            guard text.count <= Spec.Limits.textLength else {
+            guard Spec.Limits.allows(text) else {
                 throw Diagnostic(
-                    "the value for \(name) is \(text.count) characters; keep it to \(Spec.Limits.textLength) or fewer")
+                    "the value for \(name) is \(text.utf16.count) characters as JavaScript counts them (an emoji counts as 2); keep it to \(Spec.Limits.textLength) or fewer"
+                )
             }
             return Spec.FieldValue(field, text)
         case .number(let field):
@@ -226,7 +227,19 @@ extension Spec.AnyField {
     }
 }
 
+extension Spec.Limits {
+    /// Whether a text value fits `textLength`, counted in UTF-16 units, which is what JavaScript holds: an
+    /// emoji counts as 2. Every path that stores text asks this, so the rule lives here.
+    static func allows(_ text: String) -> Bool { text.utf16.count <= textLength }
+}
+
 extension Spec.Cell {
+    /// False for a text over `Limits.textLength`, which a parsed value can never be. `RowStore.receive`
+    /// refuses such a cell from sync.
+    package var withinLimits: Bool {
+        if case .text(let text) = self { Spec.Limits.allows(text) } else { true }
+    }
+
     var json: JSONValue {
         switch self {
         case .text(let text): .string(text)
