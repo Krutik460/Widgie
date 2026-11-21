@@ -44,6 +44,33 @@ enum Broken {
               ] };
             }
             """)
+
+    /// The backdrop as a full-size rect instead of `widgetBackground`, with an accent button on it. Tinted mode
+    /// turns the rect into one white sheet that hides the white count; only the accent plus shows.
+    static let backdropShape = document(look: backdropLook(plusAccent: true))
+
+    /// The same, with nothing in the accent group, so tinted mode shows only the white sheet.
+    static let backdropShapeHidesAll = document(look: backdropLook(plusAccent: false))
+
+    /// A background that turns white in dark mode under white text.
+    static let blankInDark = document(
+        look: counterLook().replacing(
+            "widgetBackground: '#102030'", with: "widgetBackground: { light: '#102030', dark: '#FFFFFF' }"))
+
+    private static func backdropLook(plusAccent: Bool) -> String {
+        """
+        function render(ctx) {
+          return { type: 'zstack', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, children: [
+            { type: 'rect', fill: '#102030' },
+            { type: 'vstack', spacing: 8, children: [
+              { type: 'text', value: String(ctx.data.n), size: 30, weight: 'bold', color: '#FFFFFF', lineLimit: 1, minScale: 0.5 },
+              { type: 'button', action: 'add', children: [
+                { type: 'symbol', name: 'plus.circle.fill', size: 30, color: '#FFFFFF', accent: \(plusAccent) }] },
+            ] },
+          ] };
+        }
+        """
+    }
 }
 
 @Suite struct RejectionTests {
@@ -93,6 +120,34 @@ enum Broken {
         #expect(line == "small, empty: the render is blank; check colors against the background")
     }
 
+    @Test func aBackdropDrawnAsAFullSizeShapeIsRejectedInTintedMode() async throws {
+        let line = try await Scratch().line(Broken.backdropShape)
+        #expect(line.hasPrefix("small, empty, tinted: "), "\(line)")
+        #expect(
+            line.hasSuffix(
+                "% of the render is one flat color in tinted mode, so a full-size shape draws the backdrop and hides what sits on it; move that color to the root's widgetBackground"
+            ), "\(line)")
+        let cover = try #require(
+            try await Engine.proof(Broken.backdropShape, family: .small, appearance: .tinted, calendar: utc).fit.cover)
+        #expect(cover > 0.8, "far above the 0.5 limit; the four fixtures stay under 0.25")
+    }
+
+    @Test func aRenderBlankInTintedModeNamesTheBackdrop() async throws {
+        let line = try await Scratch().line(Broken.backdropShapeHidesAll)
+        #expect(
+            line
+                == "small, empty, tinted: the render is blank in tinted mode, which drops widgetBackground and draws every color white at its own opacity; put the backdrop in widgetBackground, not in a full-size shape, and show state through opacity or shape"
+        )
+    }
+
+    @Test func aRenderBlankInDarkModeNamesTheColorPairs() async throws {
+        let line = try await Scratch().line(Broken.blankInDark)
+        #expect(
+            line
+                == "small, full, dark: the render is blank in dark mode; check the dark value of each { light, dark } color against the background"
+        )
+    }
+
     @Test func anActionWithNoButton() async throws {
         let source = document(
             look: counterLook().replacing(
@@ -112,7 +167,7 @@ enum Broken {
 
     @Test func aRunawayLook() async throws {
         let line = try await Scratch().line(document(look: "function render(ctx) { while (true) {} }"))
-        #expect(line.hasPrefix("small, empty: look ran longer than 100 ms"), "\(line)")
+        #expect(line.hasPrefix("small, empty: look ran longer than 500 steps"), "\(line)")
     }
 
     @Test func aRefinementThatChangesASurvivingFieldsKind() async throws {
@@ -125,7 +180,7 @@ enum Broken {
     }
 
     @Test func everyLineIsOneLine() async throws {
-        for source in [Broken.spills, Broken.cutsText, Broken.blank] {
+        for source in [Broken.spills, Broken.cutsText, Broken.blank, Broken.backdropShape, Broken.blankInDark] {
             let line = try await Scratch().line(source)
             #expect(!line.contains("\n") && !line.isEmpty)
         }
@@ -146,6 +201,17 @@ enum Broken {
             let line = try await Scratch().line(source)
             #expect(try await Engine.proof(source, state: state, family: .small, calendar: utc).verdict == line)
             #expect(try await Engine.proofs(source, calendar: utc).verdict == line)
+        }
+        let appearances: [(WidgetSource, DataState, Appearance)] = [
+            (Broken.backdropShape, .empty, .tinted), (Broken.blankInDark, .full, .dark),
+        ]
+        for (source, state, appearance) in appearances {
+            let line = try await Scratch().line(source)
+            #expect(
+                try await Engine.proof(source, state: state, family: .small, appearance: appearance, calendar: utc)
+                    .verdict == line)
+            #expect(try await Engine.proofs(source, calendar: utc).verdict == line)
+            #expect(try await Engine.proof(source, state: state, family: .small, calendar: utc).verdict == nil)
         }
     }
 
@@ -172,8 +238,10 @@ enum Broken {
     @Test func aProofMatrixRendersEveryCellEvenAfterAFailure() async throws {
         let matrix = try await Engine.proofs(Broken.blank, at: morning, calendar: utc)
         #expect(
-            matrix.renders.map { "\($0.state) \($0.family.rawValue)" } == [
-                "empty small", "empty medium", "some small", "some medium", "full small", "full medium",
+            matrix.renders.map { "\($0.state) \($0.family.rawValue) \($0.appearance.rawValue)" } == [
+                "empty small light", "empty medium light", "some small light", "some medium light",
+                "full small light", "full medium light", "empty small tinted", "empty medium tinted",
+                "full small tinted", "full medium tinted", "full small dark", "full medium dark",
             ])
         #expect(matrix.verdict == "small, empty: the render is blank; check colors against the background")
     }
@@ -249,7 +317,31 @@ enum Broken {
         let missing = try await scratch.line(document(look: look, assets: ["photo": ["about": "a sunset"]]))
         #expect(missing.hasPrefix("asset \"photo\" has no image"), "\(missing)")
     }
+
+    /// Each distinct crop of an asset is its own decode, so ten crops of one photo pass the 1.5 megapixel
+    /// budget of one render, and the image that would cross it fails the look.
+    @Test func manyDistinctCropsFailTheImageBudget() async throws {
+        let source = document(
+            look: counterLook(extra: croppedPhotos), assets: ["photo": ["about": "a sunset"]],
+            images: ["photo": photo(3000, 2000)])
+        await #expect(throws: Rejected.self) {
+            try await Engine.proof(source, family: .small, at: morning, calendar: utc)
+        }
+        do throws(Rejected) {
+            _ = try await Engine.proof(source, family: .small, at: morning, calendar: utc)
+        } catch {
+            #expect(
+                error.line.hasPrefix("small, empty: image at root.children[")
+                    && error.line.hasSuffix(
+                        ": images decode to more than 1.5 megapixels in this render; draw fewer images, or fewer distinct crops of one asset, since each crop decodes again at the widget's size"
+                    ), "\(error.line)")
+        }
+    }
 }
+
+/// Ten images of one asset, each a different half of it.
+let croppedPhotos =
+    "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => ({ type: 'image', asset: 'photo', crop: [i * 0.05, 0, 0.5, 0.5], frame: { width: 8, height: 8 } })),"
 
 /// An opaque gradient, as a camera photo would be.
 func photo(_ width: Int, _ height: Int) -> Data {

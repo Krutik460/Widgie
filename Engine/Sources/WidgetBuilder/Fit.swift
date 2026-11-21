@@ -53,7 +53,7 @@ func analyze(
             top: tenth(edges["top"] ?? 0), bottom: tenth(edges["bottom"] ?? 0),
             leading: tenth(edges["leading"] ?? 0), trailing: tenth(edges["trailing"] ?? 0)),
         cut: Array(cuts.prefix(8)), truncated: truncated, ellipsized: ellipsized,
-        ink: (inkShare(image) * 10000).rounded() / 10000, imagePixels: imagePixels,
+        ink: inkShare(image), cover: nil, imagePixels: imagePixels,
         buttons: drawing.taps.map(\.action), lookMilliseconds: lookMilliseconds,
         renderMilliseconds: renderMilliseconds)
 }
@@ -85,11 +85,31 @@ func verdict(for fit: FitReport, size: CGSize) -> String? {
             "\(text) does not fit the \(Int(cut.width))pt it was given, not even its first word; give it more width, take room from what sits beside it, or let it shrink with a lower minScale"
     }
     if fit.ink < 0.0005 { return "the render is blank; check colors against the background" }
-    if fit.imagePixels > 1_500_000 {
+    return nil
+}
+
+/// The line for a dark or tinted render, which keeps the light render's layout, or nil when it passes.
+func appearanceVerdict(for fit: FitReport, _ appearance: Appearance) -> String? {
+    if fit.ink < 0.0005 {
+        return appearance == .tinted
+            ? "the render is blank in tinted mode, which drops widgetBackground and draws every color white at its own opacity; put the backdrop in widgetBackground, not in a full-size shape, and show state through opacity or shape"
+            : "the render is blank in dark mode; check the dark value of each { light, dark } color against the background"
+    }
+    if let cover = fit.cover, cover > 0.5 {
         return
-            "images decode to \(String(format: "%.1f", Double(fit.imagePixels) / 1e6)) megapixels in this render; keep them under 1.5 by drawing fewer or smaller images"
+            "\(Int((cover * 100).rounded()))% of the render is one flat color in tinted mode, so a full-size shape draws the backdrop and hides what sits on it; move that color to the root's widgetBackground"
     }
     return nil
+}
+
+extension FitReport {
+    /// This report for the same tree drawn again in another appearance: the layout stays, the pixels change.
+    func redrawn(ink: Double, cover: Double?, renderMilliseconds: Double) -> FitReport {
+        FitReport(
+            spill: spill, layoutOverflow: layoutOverflow, edges: edges, cut: cut, truncated: truncated,
+            ellipsized: ellipsized, ink: ink, cover: cover, imagePixels: imagePixels, buttons: buttons,
+            lookMilliseconds: lookMilliseconds, renderMilliseconds: renderMilliseconds)
+    }
 }
 
 /// 8-bit RGBA PNG.
@@ -170,9 +190,31 @@ private func excess(_ frame: CGRect, beyond bounds: CGRect) -> [(edge: String, a
 }
 
 /// Share of sampled pixels that stand out from the most common color: some channel at least 32 levels of 255
-/// away. Only fully opaque pixels count, so the anti-aliased rounded corners do not. Text one shade off its
-/// background is not ink, and a white numeral on navy is.
-private func inkShare(_ image: CGImage) -> Double {
+/// away, to four places. Text one shade off its background is not ink, and a white numeral on navy is.
+func inkShare(_ image: CGImage) -> Double {
+    let samples = opaqueSamples(image)
+    guard let dominant = mostCommon(samples) else { return 0 }
+    let ink = samples.filter { distance($0, dominant) >= 32 }
+    return fourth(Double(ink.count) / Double(samples.count))
+}
+
+/// Share of sampled pixels in the most common color that is not `backdrop` (32 levels of 255 or more away from
+/// it), to four places. A full-size shape in tinted mode turns into one flat sheet and scores near 1; text,
+/// symbols, and small shapes on the backdrop score low, and so does a photo, whose colors vary.
+func coverShare(_ image: CGImage, backdrop: RGBA) -> Double {
+    let samples = opaqueSamples(image)
+    guard !samples.isEmpty else { return 0 }
+    let back = (r: Int(backdrop.r * 255), g: Int(backdrop.g * 255), b: Int(backdrop.b * 255))
+    var counts: [Int: Int] = [:]
+    for pixel in samples where distance(pixel, back) >= 32 { counts[bin(pixel), default: 0] += 1 }
+    return fourth(Double(counts.values.max() ?? 0) / Double(samples.count))
+}
+
+private typealias Pixel = (r: Int, g: Int, b: Int)
+
+/// Every third pixel in each direction. Only fully opaque pixels count, so the anti-aliased rounded corners do
+/// not.
+private func opaqueSamples(_ image: CGImage) -> [Pixel] {
     let width = image.width
     let height = image.height
     var bytes = [UInt8](repeating: 0, count: width * height * 4)
@@ -180,26 +222,33 @@ private func inkShare(_ image: CGImage) -> Double {
         let context = CGContext(
             data: &bytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
             space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-    else { return 0 }
+    else { return [] }
     context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-    var samples: [(r: Int, g: Int, b: Int)] = []
-    var counts: [Int: Int] = [:]
+    var samples: [Pixel] = []
     for y in stride(from: 0, to: height, by: 3) {
         for x in stride(from: 0, to: width, by: 3) {
             let index = (y * width + x) * 4
             guard bytes[index + 3] == 255 else { continue }
-            let pixel = (r: Int(bytes[index]), g: Int(bytes[index + 1]), b: Int(bytes[index + 2]))
-            samples.append(pixel)
-            counts[(pixel.r >> 3) << 10 | (pixel.g >> 3) << 5 | (pixel.b >> 3), default: 0] += 1
+            samples.append((r: Int(bytes[index]), g: Int(bytes[index + 1]), b: Int(bytes[index + 2])))
         }
     }
-    guard let top = counts.max(by: { $0.value < $1.value })?.key, !samples.isEmpty else { return 0 }
-    let dominant = (r: ((top >> 10) << 3) + 4, g: (((top >> 5) & 31) << 3) + 4, b: ((top & 31) << 3) + 4)
-    let ink = samples.filter {
-        max(abs($0.r - dominant.r), abs($0.g - dominant.g), abs($0.b - dominant.b)) >= 32
-    }
-    return Double(ink.count) / Double(samples.count)
+    return samples
 }
+
+/// Colors in bins of 8 levels per channel.
+private func bin(_ pixel: Pixel) -> Int { (pixel.r >> 3) << 10 | (pixel.g >> 3) << 5 | (pixel.b >> 3) }
+
+/// The center of the most common bin.
+private func mostCommon(_ samples: [Pixel]) -> Pixel? {
+    var counts: [Int: Int] = [:]
+    for pixel in samples { counts[bin(pixel), default: 0] += 1 }
+    guard let top = counts.max(by: { $0.value < $1.value })?.key else { return nil }
+    return (r: ((top >> 10) << 3) + 4, g: (((top >> 5) & 31) << 3) + 4, b: ((top & 31) << 3) + 4)
+}
+
+private func distance(_ a: Pixel, _ b: Pixel) -> Int { max(abs(a.r - b.r), abs(a.g - b.g), abs(a.b - b.b)) }
+
+private func fourth(_ value: Double) -> Double { (value * 10000).rounded() / 10000 }
 
 private func tenth(_ value: Double) -> Double { (value * 10).rounded() / 10 }
 

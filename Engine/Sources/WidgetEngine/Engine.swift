@@ -7,8 +7,8 @@ import Synchronization
 import os
 
 /// The whole runtime behind a few calls. One per process. The app and the widget extension each make one on
-/// the same App Group directory. `WidgetBuilder` adds `build`, `source(of:)`, `history(of:)`, `restore`, and
-/// `proof` to this type for the processes that import it.
+/// the same App Group directory. `WidgetBuilder` adds `build`, `proveReceived`, `source(of:)`, `history(of:)`,
+/// `restore`, and the static `proof` and `proofs` to this type for the processes that import it.
 public final class Engine: Sendable {
     /// Opens nothing yet. The store opens, and migrates if needed, on first use. A failure to open is reported
     /// by that call (a fallback face, or a thrown `EngineError`), and the next call tries again.
@@ -61,7 +61,8 @@ public final class Engine: Sendable {
         for (instant, day) in [(date, today), (today.nextDayStart, midnight)] {
             do throws(Diagnostic) {
                 let composition = try await composeDrawing(
-                    spec: stored.spec, widget: stored.key, store: store, images: images, family: family, size: size,
+                    spec: stored.spec, widget: stored.key, revision: stored.revision.hex, store: store, images: images,
+                    family: family, size: size,
                     pixelScale: 3, today: day, sandbox: sandbox, budget: .widget)
                 entries.append(Face(date: instant, content: .drawing(composition.drawing)))
             } catch {
@@ -76,21 +77,32 @@ public final class Engine: Sendable {
         return Faces(entries: entries, reloadAt: reloadAt)
     }
 
-    /// Applies a tapped action. Resolves the action by name, parses the row id and the day, and asks the
-    /// store to apply it at `date` in this engine's calendar. A form action needs `input`, checked against the form's field
-    /// kinds before anything is written; any other action ignores it. A stale tap is a quiet no-op. Throws
-    /// only when the store cannot be opened or written, or when form input has the wrong kind.
+    /// Applies a tapped action. Resolves the action by name in the revision the button was drawn from (the
+    /// tap's `revision`, which must be in the live widget's history), parses the row id and the day, and asks
+    /// the store to apply it at `date` in this engine's calendar. So what the user pressed is what runs, even
+    /// after a refinement reused the action's id for another effect. A form action needs `input`, checked
+    /// against the form's field kinds before anything is written; any other action ignores it. A stale tap
+    /// (the widget is gone, the revision is missing, malformed, or not this widget's, the action is not in that
+    /// revision) is a no-op with a log line, and so is a malformed row id or day. Throws only when
+    /// the store cannot be opened or written, or when form input names a field the form lacks or has the wrong
+    /// kind.
     public func perform(_ tap: Tap, input: [String: InputValue] = [:], at date: Date = .now) throws(EngineError) {
         let store = try self.store()
         guard let target = try target(of: tap, in: store) else { return }
         var row: RowKey?
         if let raw = tap.row {
-            guard let key = RowKey(parsing: raw) else { return }
+            guard let key = RowKey(parsing: raw) else {
+                log.info("tap ignored: row id \(raw, privacy: .public) is malformed")
+                return
+            }
             row = key
         }
         var day: Day?
         if let raw = tap.day {
-            guard let parsed = Day(iso: raw) else { return }
+            guard let parsed = Day(iso: raw) else {
+                log.info("tap ignored: day \(raw, privacy: .public) is malformed")
+                return
+            }
             day = parsed
         }
         var values: [Spec.FieldValue] = []
@@ -107,8 +119,9 @@ public final class Engine: Sendable {
         }
     }
 
-    /// The form a form button asks for, with the tapped row's current values when it edits one. Nil when the
-    /// tap is stale or its action is not a form. The app calls this when the widget's link opens it.
+    /// The form a form button asks for, as the tap's revision defines it, with the tapped row's current values
+    /// when it edits one. Nil when the tap is stale, as `perform` judges it, or its action is not a form. The
+    /// app calls this when the widget's link opens it.
     public func form(for tap: Tap) throws(EngineError) -> InputForm? {
         let store = try self.store()
         guard let target = try target(of: tap, in: store), case .form(let form) = target.action.effect else {
@@ -201,13 +214,34 @@ public final class Engine: Sendable {
         return try store.widget(key)
     }
 
-    /// The widget and action a tap names, or nil when the tap is stale: the widget is gone or the action was
-    /// removed by a refinement.
+    /// The live widget a tap names and its action as the tap's revision defines it, or nil with a log line
+    /// when the tap is stale: the widget is gone, the tap has no revision, a malformed one, or one outside the
+    /// widget's history, that revision does not parse, or it has no such action.
     private func target(of tap: Tap, in store: RowStore) throws(EngineError) -> Target? {
-        guard let key = WidgetKey(parsing: tap.widget) else { return nil }
+        func stale(_ reason: String) -> Target? {
+            log.info("tap ignored: \(reason, privacy: .public)")
+            return nil
+        }
+        guard let key = WidgetKey(parsing: tap.widget) else { return stale("no widget \(tap.widget)") }
         do throws(StoreError) {
-            guard let widget = try store.widget(key), let action = widget.spec.action(named: tap.action) else {
-                return nil
+            guard let widget = try store.widget(key) else { return stale("widget \(key.raw) is not live") }
+            guard let raw = tap.revision, let revision = Spec.Digest(hex: raw) else {
+                return stale("the tap names no revision of widget \(key.raw)")
+            }
+            let spec: Spec
+            if revision == widget.revision {
+                spec = widget.spec
+            } else {
+                guard let body = try store.revision(revision, of: key) else {
+                    return stale("revision \(revision) is not in the history of widget \(key.raw)")
+                }
+                guard let parsed = try? Spec.parse(body) else {
+                    return stale("revision \(revision) of widget \(key.raw) does not parse")
+                }
+                spec = parsed
+            }
+            guard let action = spec.action(named: tap.action) else {
+                return stale("revision \(revision) has no action \(tap.action)")
             }
             return Target(widget: widget, action: action)
         } catch {

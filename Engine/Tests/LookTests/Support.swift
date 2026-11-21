@@ -81,7 +81,8 @@ func bindings(
     let assets = Dictionary(
         uniqueKeysWithValues: images.compactMap { key, bytes in spec.asset(named: key).map { ($0.id, bytes) } })
     return Bindings(
-        widget: WidgetID(rawValue: "w1"), spec: spec, rows: rows, today: today, images: .inMemory(assets),
+        widget: WidgetID(rawValue: "w1"), revision: "r1", spec: spec, rows: rows, today: today,
+        images: .inMemory(assets),
         family: family, size: size(family), pixelScale: 2)
 }
 
@@ -114,11 +115,15 @@ let plainSpec = try! document(#"{"name": "Plain", "look": "function render() { r
 
 // MARK: Pixels
 
-@MainActor func render(_ drawing: Drawing, host: FaceHost = .still, probe: GeometryProbe? = nil) -> CGImage {
+@MainActor func render(
+    _ drawing: Drawing, host: FaceHost = .still, probe: GeometryProbe? = nil, mode: RenderingMode = .fullColor,
+    scheme: ColorScheme = .light
+) -> CGImage {
     let renderer = ImageRenderer(
         content: DrawingView(drawing: drawing, host: host)
             .environment(\.geometryProbe, probe)
-            .environment(\.colorScheme, .light))
+            .environment(\.colorScheme, scheme)
+            .environment(\.renderingMode, mode))
     renderer.scale = 2
     renderer.proposedSize = ProposedViewSize(drawing.size)
     return renderer.cgImage!

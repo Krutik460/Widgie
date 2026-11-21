@@ -24,14 +24,11 @@ struct NodeView: View {
         case .text(let run):
             TextView(run: run).modifier(Probe(path: node.path, role: .text))
         case .symbol(let symbol):
-            Image(systemName: symbol.name)
-                .font(.system(size: symbol.size, weight: symbol.weight.font))
-                .foregroundStyle(symbol.color.color)
-                .modifier(Probe(path: node.path, role: .leaf))
+            SymbolView(symbol: symbol).modifier(Probe(path: node.path, role: .leaf))
         case .shape(let geometry, let paint):
             ShapeView(geometry: geometry, paint: paint).modifier(Probe(path: node.path, role: .leaf))
         case .image(let picture):
-            PictureView(picture: picture).modifier(Probe(path: node.path, role: .leaf))
+            PictureView(picture: picture, host: host).modifier(Probe(path: node.path, role: .leaf))
         case .button(let press, let children):
             pressable(press, label: AnyView(ZStack { Nodes(children, host) }))
                 .modifier(Probe(path: node.path, role: .leaf))
@@ -73,6 +70,22 @@ private struct Styled: ViewModifier {
             .modifier(Layers(style: style, path: path, host: host))
             .modifier(Effects(style: style))
             .modifier(Transforms(style: style))
+            .modifier(AccentGroup(accent: style.accent, host: host))
+    }
+}
+
+/// `accent: true`: the node, its layers included, joins the accent group. The renderer resolves colors inside it
+/// to the tint, and the host marks it for the system (`widgetAccentable()` in the widget).
+private struct AccentGroup: ViewModifier {
+    let accent: Bool
+    let host: FaceHost
+
+    func body(content: Content) -> some View {
+        if accent {
+            host.accent(AnyView(content.environment(\.accentGroup, true)))
+        } else {
+            content
+        }
     }
 }
 
@@ -105,12 +118,13 @@ private struct Layers: ViewModifier {
 
 private struct Effects: ViewModifier {
     let style: Style
+    @Environment(\.palette) private var palette
 
     func body(content: Content) -> some View {
         content
             .apply(style.opacity) { $0.opacity($1) }
             .apply(style.shadow) {
-                $0.shadow(color: $1.color.color, radius: $1.radius, x: $1.offset.width, y: $1.offset.height)
+                $0.shadow(color: palette.color($1.color), radius: $1.radius, x: $1.offset.width, y: $1.offset.height)
             }
             .apply(style.blur) { $0.blur(radius: $1) }
     }
@@ -131,21 +145,35 @@ private struct Transforms: ViewModifier {
 private struct LayerView: View {
     let layer: Layer
     let host: FaceHost
+    @Environment(\.palette) private var palette
 
     var body: some View {
         switch layer {
-        case .fill(let fill): Rectangle().fill(fill.paint)
+        case .fill(let fill): Rectangle().fill(palette.paint(fill))
         case .node(let node): NodeView(node: node, host: host)
         }
     }
 }
 
+/// Colors resolve in a view of their own, below the node's modifiers, so an `accent` on the node reaches them.
+private struct SymbolView: View {
+    let symbol: Symbol
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Image(systemName: symbol.name)
+            .font(.system(size: symbol.size, weight: symbol.weight.font))
+            .foregroundStyle(palette.color(symbol.color))
+    }
+}
+
 private struct TextView: View {
     let run: TextRun
+    @Environment(\.palette) private var palette
 
     var body: some View {
         run.text(scale: 1)
-            .foregroundStyle(run.color.color)
+            .foregroundStyle(palette.color(run.color))
             .lineLimit(run.lineLimit)
             .minimumScaleFactor(run.minScale)
             .multilineTextAlignment(run.align.text)
@@ -222,17 +250,18 @@ private struct Painted<Filled: Shape, Outline: Shape>: View {
     let shape: Filled
     let outline: Outline
     let paint: ShapePaint
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let trim = (from: CGFloat(paint.trim.lowerBound), to: CGFloat(paint.trim.upperBound))
         ZStack {
             if let fill = paint.fill {
-                shape.trim(from: trim.from, to: trim.to).fill(fill.paint)
+                shape.trim(from: trim.from, to: trim.to).fill(palette.paint(fill))
             }
             if let stroke = paint.stroke {
                 outline.trim(from: trim.from, to: trim.to)
                     .stroke(
-                        stroke.fill.paint,
+                        palette.paint(stroke.fill),
                         style: StrokeStyle(
                             lineWidth: stroke.width, lineCap: stroke.cap.lineCap, lineJoin: .round,
                             dash: stroke.dash.map { CGFloat($0) }))
@@ -267,12 +296,30 @@ private struct PathShape: Shape {
     }
 }
 
+/// In tinted mode an image follows its `tint`: `fullColor` as drawn, `desaturated` in gray, and `accented` in the
+/// tint color with each pixel's brightness as its opacity, inside the accent group. The host maps the tint to
+/// the system's own image mode as well.
 private struct PictureView: View {
     let picture: Picture
+    let host: FaceHost
+    @Environment(\.renderingMode) private var mode
 
     var body: some View {
-        let image = Image(decorative: picture.image.cgImage, scale: 1).resizable().interpolation(.high)
-        Group {
+        switch (mode, picture.tint) {
+        case (.fullColor, _), (.accented, .fullColor):
+            adjusted
+        case (.accented, .desaturated):
+            adjusted.saturation(0)
+        case (.accented, .accented):
+            host.accent(
+                AnyView(Palette.tint.color.mask { adjusted.saturation(0).luminanceToAlpha() }))
+        }
+    }
+
+    private var adjusted: some View {
+        let image = host.tint(
+            picture.tint, Image(decorative: picture.image.cgImage, scale: 1).resizable().interpolation(.high))
+        return Group {
             switch picture.mode {
             case .fill: Color.clear.overlay { image.aspectRatio(contentMode: .fill) }.clipped()
             case .fit: image.aspectRatio(contentMode: .fit)
@@ -338,38 +385,6 @@ extension View {
             self
         }
     }
-}
-
-extension Fill {
-    var paint: AnyShapeStyle {
-        switch self {
-        case .color(let color):
-            AnyShapeStyle(color.color)
-        case .linear(let stops, let from, let to):
-            AnyShapeStyle(
-                LinearGradient(
-                    stops: stops.map(\.gradient), startPoint: UnitPoint(x: from.x, y: from.y),
-                    endPoint: UnitPoint(x: to.x, y: to.y)))
-        case .radial(let stops, let center, let startRadius, let endRadius):
-            AnyShapeStyle(
-                RadialGradient(
-                    stops: stops.map(\.gradient), center: UnitPoint(x: center.x, y: center.y), startRadius: startRadius,
-                    endRadius: endRadius))
-        case .angular(let stops, let center, let startAngle, let endAngle):
-            AnyShapeStyle(
-                AngularGradient(
-                    stops: stops.map(\.gradient), center: UnitPoint(x: center.x, y: center.y),
-                    startAngle: .degrees(startAngle), endAngle: .degrees(endAngle)))
-        }
-    }
-}
-
-extension Stop {
-    fileprivate var gradient: Gradient.Stop { Gradient.Stop(color: color.color, location: location) }
-}
-
-extension RGBA {
-    var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: a) }
 }
 
 extension Clip {

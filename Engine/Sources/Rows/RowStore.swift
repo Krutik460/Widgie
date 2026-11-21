@@ -95,8 +95,10 @@ package final class RowStore: Sendable {
 
     // MARK: Documents (written by the app)
 
-    /// Newest creation first. The order is the "default to the latest creation" policy. A widget whose head
-    /// this build cannot read (a newer format arriving by sync) is left out.
+    /// Newest creation first. The order is the "default to the latest creation" policy. Each widget is drawn
+    /// from its newest revision that passed its proof on this device (`StoredWidget.revision`), which is the
+    /// head once the head is proved. A widget with no such revision, or whose drawn revision this build cannot
+    /// read (a newer format arriving by sync), is left out.
     package func widgets() throws(StoreError) -> [StoredWidget] {
         try read { db in
             try Row.fetchAll(db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL ORDER BY w.created_at DESC")
@@ -104,7 +106,8 @@ package final class RowStore: Sendable {
         }
     }
 
-    /// Nil for an unknown or deleted widget. Throws when the head does not parse.
+    /// Nil for an unknown or deleted widget, or one with no revision proved here. Throws when the drawn
+    /// revision does not parse.
     package func widget(_ key: WidgetKey) throws(StoreError) -> StoredWidget? {
         try read { db in
             try Row.fetchOne(
@@ -116,14 +119,15 @@ package final class RowStore: Sendable {
     /// Saves a new revision and moves the widget's head to it, creating the widget when `key` is new. Hashes
     /// and writes `assets` first, fills their digests into the spec (`Spec.fillingDigests`), encodes it
     /// (`Spec.encoded`), and names the revision by the hash of those bytes. Saving bytes that already exist
-    /// adds nothing but the head move.
+    /// adds nothing but the head move. The caller proved the spec, so the revision is marked proved here.
     package func save(_ key: WidgetKey, spec: Spec, assets: [Spec.AssetID: Data]) throws(StoreError) -> Spec.Digest {
         let digests = try guarded { try assets.mapValues(writeAsset) }
         let body = spec.fillingDigests(digests).encoded()
         let revision = digest(of: body)
         let now = Date()
         try write(at: now) { db in
-            .changes(
+            try mark(revision, verdict: nil, db)
+            return .changes(
                 [.putRevision(body: body), .moveHead(key, to: revision, createdAt: milliseconds(now))]
                     + (try newBindings(key, spec, db)))
         }
@@ -157,17 +161,39 @@ package final class RowStore: Sendable {
             try Row.fetchAll(
                 db,
                 sql: """
-                    SELECT mine.tbl AS mine, theirs.tbl AS theirs, w.key, w.head, w.created_at, r.body
+                    SELECT mine.tbl AS mine, theirs.tbl AS theirs, w.key, r.digest, w.created_at, r.body
                     FROM binding mine
                     JOIN binding theirs ON theirs.dataset = mine.dataset AND theirs.widget != mine.widget
                     JOIN widget w ON w.key = theirs.widget AND w.deleted IS NULL
-                    JOIN revision r ON r.digest = w.head
+                    JOIN revision r ON r.digest = \(StoredWidget.drawn)
                     WHERE mine.widget = ?
                     ORDER BY w.created_at, mine.tbl
                     """, arguments: [key.raw]
             ).compactMap { row in
                 (try? StoredWidget(row: row)).map { Sharer(table: row["mine"], widget: $0, as: row["theirs"]) }
             }
+        }
+    }
+
+    /// The kinds of the cells already stored in the live rows of each dataset a table of `key` is bound to,
+    /// by table id and field id. They come from every writer, deleted widgets and other devices included, so
+    /// the builder checks a new kind against them too. A field with no cells is absent and may change kind.
+    package func storedKinds(of key: WidgetKey) throws(StoreError) -> [String: [String: Set<Spec.FieldKind>]] {
+        try read { db in
+            var kinds: [String: [String: Set<Spec.FieldKind>]] = [:]
+            for row in try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT DISTINCT b.tbl, c.field, c.kind FROM binding b
+                    JOIN row r ON r.dataset = b.dataset AND r.deleted IS NULL
+                    JOIN cell c ON c.row = r.key AND c.dataset = r.dataset
+                    WHERE b.widget = ?
+                    """, arguments: [key.raw])
+            {
+                guard let kind = Spec.FieldKind.allCases.first(where: { $0.code == row["kind"] }) else { continue }
+                kinds[row["tbl"], default: [:]][row["field"], default: []].insert(kind)
+            }
+            return kinds
         }
     }
 
@@ -186,7 +212,8 @@ package final class RowStore: Sendable {
         }
     }
 
-    /// Moves the head back to an earlier revision of the same widget: "undo that change".
+    /// Moves the head back to an earlier revision of the same widget: "undo that change". The widget draws
+    /// it only once it is proved here, as any head.
     package func restore(_ key: WidgetKey, to revision: Spec.Digest) throws(StoreError) {
         let now = Date()
         try write(at: now) { db in
@@ -206,6 +233,42 @@ package final class RowStore: Sendable {
         try read { db in
             try Data.fetchOne(db, sql: "SELECT body FROM revision WHERE digest = ?", arguments: [digest.hex])
         }
+    }
+
+    /// The body of `revision` when it is in `key`'s history, and nil otherwise, so a revision another widget
+    /// saved never answers for this one. Taps carry the revision they were drawn from and run as it defines
+    /// them.
+    package func revision(_ revision: Spec.Digest, of key: WidgetKey) throws(StoreError) -> Data? {
+        try read { db in
+            try Data.fetchOne(
+                db,
+                sql: """
+                    SELECT r.body FROM revision r
+                    WHERE r.digest = ? AND EXISTS (SELECT 1 FROM history h WHERE h.widget = ? AND h.revision = r.digest)
+                    """, arguments: [revision.hex, key.raw])
+        }
+    }
+
+    /// The heads of live widgets that this device has not proved: revisions another device saved, for the
+    /// app to prove before they draw. Oldest saved first.
+    package func unprovedHeads() throws(StoreError) -> [Spec.Digest] {
+        try read { db in
+            try String.fetchAll(
+                db,
+                sql: """
+                    SELECT DISTINCT r.digest FROM widget w JOIN revision r ON r.digest = w.head
+                    WHERE w.deleted IS NULL AND NOT EXISTS (SELECT 1 FROM proved p WHERE p.revision = w.head)
+                    ORDER BY r.saved_at, r.digest
+                    """
+            ).compactMap(Spec.Digest.init(hex:))
+        }
+    }
+
+    /// Records this device's proof of a revision: nil when it passed, the rejection line otherwise. Local
+    /// only, never synced. A pass can change what a widget draws, so `onCommit` runs.
+    package func recordProof(of revision: Spec.Digest, verdict: String?) throws(StoreError) {
+        try guarded { try database.write { db in try mark(revision, verdict: verdict, db) } }
+        onCommit?()
     }
 
     /// Tombstones the widget. Its bindings and rows stay: other widgets may read the same datasets. A dataset
@@ -258,10 +321,12 @@ package final class RowStore: Sendable {
     ) throws(StoreError) -> Applied {
         let at = milliseconds(instant)
         return try write(at: instant) { db in
-            func target(_ table: Spec.TableID, _ change: (RowKey) throws -> [Change]) throws -> Plan {
+            func target(_ table: Spec.TableID, _ change: (RowKey, DatasetKey) throws -> [Change]) throws -> Plan {
                 guard let row else { return .ignored("action \(action.id) needs a row") }
-                if let stale = try staleness(of: row, widget: widget, table: table, db) { return .ignored(stale) }
-                return .changes(try change(row))
+                switch try tapped(row, widget: widget, table: table, db) {
+                case .success(let dataset): return .changes(try change(row, dataset))
+                case .failure(let stale): return .ignored(stale.reason)
+                }
             }
             func insert(into table: Spec.TableID, _ values: [Spec.FieldValue], on day: Day? = nil) throws -> Plan {
                 guard let dataset = try Rows.dataset(of: widget, table: table.raw, db) else {
@@ -280,22 +345,25 @@ package final class RowStore: Sendable {
                 }
                 return try insert(into: table.id, values, on: day)
             case .set(let value):
-                return try target(value.field.table) { [.setCell($0, field: value.field.id.raw, value.value.stored)] }
+                return try target(value.field.table) {
+                    [.setCell($0, dataset: $1, field: value.field.id.raw, value.value)]
+                }
             case .toggle(let field):
-                return try target(field.table) { row in
-                    let current = try DatabaseValue.fetchOne(
-                        db, sql: "SELECT value FROM cell WHERE row = ? AND field = ?",
-                        arguments: [row.raw, field.id.raw])
-                    let on = current.flatMap(StoredValue.init)?.cell(as: .bool) == .bool(true)
-                    return [.setCell(row, field: field.id.raw, Spec.Cell.bool(!on).stored)]
+                return try target(field.table) { row, dataset in
+                    let on =
+                        try Bool.fetchOne(
+                            db,
+                            sql: "SELECT value FROM cell WHERE row = ? AND dataset = ? AND field = ? AND kind = ?",
+                            arguments: [row.raw, dataset.raw, field.id.raw, Spec.FieldKind.bool.code]) ?? false
+                    return [.setCell(row, dataset: dataset, field: field.id.raw, .bool(!on))]
                 }
             case .delete(let table):
-                return try target(table.id) { [.deleteRow($0)] }
+                return try target(table.id) { [.deleteRow($0, dataset: $1)] }
             case .form(let form):
                 guard !input.isEmpty else { return .ignored("form \(action.id) writes only with input") }
                 guard row != nil else { return try insert(into: form.table.id, input) }
-                return try target(form.table.id) { row in
-                    input.map { .setCell(row, field: $0.field.id.raw, $0.value.stored) }
+                return try target(form.table.id) { row, dataset in
+                    input.map { .setCell(row, dataset: dataset, field: $0.field.id.raw, $0.value) }
                 }
             }
         }
@@ -307,8 +375,8 @@ package final class RowStore: Sendable {
         Spec.Cell]?
     {
         try read { db in
-            guard try staleness(of: row, widget: widget, table: table.id, db) == nil else { return nil }
-            return try cells(of: [row], in: table, db)[row] ?? [:]
+            guard case .success(let dataset) = try tapped(row, widget: widget, table: table.id, db) else { return nil }
+            return try cells(of: [row], in: table, dataset: dataset, db)[row] ?? [:]
         }
     }
 
@@ -337,19 +405,44 @@ package final class RowStore: Sendable {
 
     // MARK: Sync
 
-    /// What sync pushes: every change this replica made after `watermark`, oldest first. Keys another replica
-    /// wrote last are left out, since that replica pushes them.
-    package func changes(after watermark: Stamp? = nil) throws(StoreError) -> [Stamped] {
+    /// What sync pushes: every change this replica made after `watermark`, grouped by `Change.scope` and
+    /// oldest first within each, so the server routes each dataset's changes to its members and account
+    /// changes only to this account's devices. Keys another replica wrote last are left out, since that
+    /// replica pushes them. Proof verdicts are local and never appear.
+    package func changes(after watermark: Stamp? = nil) throws(StoreError) -> [Scope: [Stamped]] {
         try read { db in
             try Rows.changes(by: local(db).replica, after: watermark ?? Stamp(raw: 0), in: db)
         }
     }
 
-    /// What sync pulls: changes stamped by any replica, merged by the same rule as local writes.
-    package func receive(_ batch: [Stamped]) throws(StoreError) {
-        guard !batch.isEmpty else { return }
-        try guarded { try database.write { db in try merge(batch, in: db) } }
+    /// The longest a remote stamp may run ahead of the local clock before `receive` holds it back.
+    package static let clockSkew: TimeInterval = 10 * 60
+
+    /// What sync pulls: changes stamped by any replica, merged by the same rule as local writes. Two kinds of
+    /// change are not merged:
+    /// - `held`: stamped more than `clockSkew` after `now`. Neither merged nor clamped (clamping would make
+    ///   replicas disagree), and the local clock does not advance past them. The sync layer offers them again
+    ///   later.
+    /// - `refused`: a text cell longer than a stored text may be, so a peer or an automation cannot pass the
+    ///   limits a tap obeys. Dropped for good.
+    @discardableResult
+    package func receive(_ batch: [Stamped], now: Date) throws(StoreError) -> Received {
+        let horizon = milliseconds(now.addingTimeInterval(Self.clockSkew))
+        var accepted: [Stamped] = []
+        var received = Received()
+        for item in batch {
+            if item.stamp.milliseconds > horizon {
+                received.held.append(item)
+            } else if case .setCell(_, _, _, let cell) = item.change, !cell.withinLimits {
+                received.refused.append(item)
+            } else {
+                accepted.append(item)
+            }
+        }
+        guard !accepted.isEmpty else { return received }
+        try guarded { try database.write { db in try merge(accepted, in: db) } }
         onCommit?()
+        return received
     }
 
     // MARK: The write funnel
@@ -389,7 +482,16 @@ package final class RowStore: Sendable {
 private func insertion(into dataset: DatasetKey, _ values: [Spec.FieldValue], day: Day, at: Int64) -> [Change] {
     let key = RowKey.mint(milliseconds: at)
     return [.insertRow(key, dataset: dataset, day: day, at: at)]
-        + values.map { .setCell(key, field: $0.field.id.raw, $0.value.stored) }
+        + values.map { .setCell(key, dataset: dataset, field: $0.field.id.raw, $0.value) }
+}
+
+/// Records this device's proof of `revision`, inside the caller's write transaction.
+private func mark(_ revision: Spec.Digest, verdict: String?, _ db: Database) throws {
+    try db.execute(
+        sql: """
+            INSERT INTO proved(revision, verdict) VALUES (?, ?)
+            ON CONFLICT(revision) DO UPDATE SET verdict = excluded.verdict
+            """, arguments: [revision.hex, verdict])
 }
 
 func dataset(of widget: WidgetKey, table: String, _ db: Database) throws -> DatasetKey? {
@@ -406,17 +508,25 @@ private func newBindings(_ widget: WidgetKey, _ spec: Spec, _ db: Database) thro
     }
 }
 
-/// Why a tap on `key` is stale, or nil when the row is live and belongs to the dataset (widget, table) is
-/// bound to.
-private func staleness(of key: RowKey, widget: WidgetKey, table: Spec.TableID, _ db: Database) throws -> String? {
-    guard
-        let row = try Row.fetchOne(db, sql: "SELECT dataset, deleted FROM row WHERE key = ?", arguments: [key.raw])
-    else { return "row \(key.raw) does not exist" }
-    if row["deleted"] as Int64? != nil { return "row \(key.raw) was deleted" }
-    guard let bound = try dataset(of: widget, table: table.raw, db), row["dataset"] as String? == bound.raw else {
-        return "row \(key.raw) is not a row of \(table)"
+private struct Stale: Error {
+    let reason: String
+}
+
+/// The dataset a tapped row belongs to when the row is live and of the dataset (widget, table) is bound to;
+/// otherwise why the tap is stale.
+private func tapped(_ key: RowKey, widget: WidgetKey, table: Spec.TableID, _ db: Database) throws -> Result<
+    DatasetKey, Stale
+> {
+    let bound = try dataset(of: widget, table: table.raw, db)
+    let found = try Row.fetchAll(db, sql: "SELECT dataset, day, deleted FROM row WHERE key = ?", arguments: [key.raw])
+    guard let bound, let row = found.first(where: { $0["dataset"] == bound.raw }) else {
+        return .failure(
+            Stale(
+                reason: found.contains { $0["day"] as Int? != nil }
+                    ? "row \(key.raw) is not a row of \(table)" : "row \(key.raw) does not exist"))
     }
-    return nil
+    if row["deleted"] as Int64? != nil { return .failure(Stale(reason: "row \(key.raw) was deleted")) }
+    return .success(bound)
 }
 
 private func guarded<T>(_ body: () throws -> T) throws(StoreError) -> T {
@@ -439,18 +549,26 @@ private func date(_ milliseconds: Int64) -> Date {
 
 package struct StoredWidget: Sendable {
     package let key: WidgetKey
+    /// The revision the widget draws: its newest history entry that passed its proof on this device. That is
+    /// the head once the head is proved here.
     package let revision: Spec.Digest
     /// Asset digests live inside the spec's assets.
     package let spec: Spec
     package let createdAt: Date
 
+    /// The drawn revision of widget `w`, as a scalar subquery. The head is always the newest history entry.
+    fileprivate static let drawn = """
+        (SELECT h.revision FROM history h JOIN proved p ON p.revision = h.revision AND p.verdict IS NULL
+         WHERE h.widget = w.key ORDER BY h.stamp DESC, h.replica DESC LIMIT 1)
+        """
+
     fileprivate static let select = """
-        SELECT w.key, w.head, w.created_at, r.body FROM widget w JOIN revision r ON r.digest = w.head
+        SELECT w.key, r.digest, w.created_at, r.body FROM widget w JOIN revision r ON r.digest = \(drawn)
         """
 
     fileprivate init(row: Row) throws {
-        guard let key = WidgetKey(parsing: row["key"]), let revision = Spec.Digest(hex: row["head"]) else {
-            throw StoreError(message: "widget \(row["key"] as String) has a malformed key or head")
+        guard let key = WidgetKey(parsing: row["key"]), let revision = Spec.Digest(hex: row["digest"]) else {
+            throw StoreError(message: "widget \(row["key"] as String) has a malformed key or revision")
         }
         do throws(Diagnostic) {
             spec = try Spec.parse(row["body"])
@@ -500,6 +618,19 @@ package struct DayCount: Sendable, Equatable {
         self.day = day
         self.count = count
         self.sum = sum
+    }
+}
+
+/// What `receive` did not merge.
+package struct Received: Sendable, Equatable {
+    /// Stamped too far ahead of the local clock. Offer them again later.
+    package var held: [Stamped]
+    /// Over a limit. Dropped for good.
+    package var refused: [Stamped]
+
+    package init(held: [Stamped] = [], refused: [Stamped] = []) {
+        self.held = held
+        self.refused = refused
     }
 }
 

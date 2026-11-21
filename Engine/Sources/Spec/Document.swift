@@ -53,6 +53,19 @@ extension Spec {
             "field \"\(field.path)\" is \(was) in widget \(Diagnostic.quote(other.name)), which shares this data, and is \(field.kind) here; keep the kind or use a new field id"
         )
     }
+
+    /// A field of `table` keeps the kind of the cells already stored under it, whoever wrote them: a deleted
+    /// widget, another device, another user. `kinds` maps field ids to the kinds stored. A field with no
+    /// cells may change kind, since nothing can be misread.
+    package func checkCompatible(_ table: String, holding kinds: [String: Set<FieldKind>]) throws(Diagnostic) {
+        guard let mine = self.table(named: table) else { return }
+        for field in mine.fields {
+            guard let held = kinds[field.id.raw]?.subtracting([field.kind]).map(\.rawValue).min() else { continue }
+            throw Diagnostic(
+                "field \"\(field.path)\" already holds \(held) values, and is \(field.kind) here; keep the kind or use a new field id"
+            )
+        }
+    }
 }
 
 /// The first field of `table` whose id `other` declares with another kind, and that other kind.
@@ -130,6 +143,18 @@ extension Spec {
             example: "{\"today\": {\"count\": \"items\", \"window\": \"today\"}}")
         {
             queries.append(try Query.parse(id, json, resolver))
+        }
+        let cells = queries.reduce(0) { total, query in
+            switch query.shape {
+            case .latest(let table, _, _): total + table.fields.count
+            case .list(let table, _, _, let limit, _): total + limit * table.fields.count
+            default: total
+            }
+        }
+        guard cells <= Limits.queryCells else {
+            throw Diagnostic(
+                "list and latest queries return up to \(cells) field values together (rows times their table's fields, a latest counting one row); keep it to \(Limits.queryCells) or fewer by lowering list limits"
+            )
         }
         var actions: [Action] = []
         for (id, json) in try top.blocks(

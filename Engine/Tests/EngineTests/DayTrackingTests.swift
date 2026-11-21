@@ -70,14 +70,17 @@ import WidgetEngine
     @Test @MainActor func aTapForADayOutsideTheLastYearOrInTheFutureWritesNothing() async throws {
         let scratch = Scratch()
         let id = try await scratch.build(Self.source)
+        let revision = try scratch.engine.history(of: id).first?.id
         let commits = scratch.commits
         for day in ["2026-11-19", "2025-11-17", "yesterday", "2026-02-30"] {
-            try scratch.engine.perform(Tap(widget: id.rawValue, action: "late", row: nil, day: day), at: morning)
+            try scratch.engine.perform(
+                Tap(widget: id.rawValue, revision: revision, action: "late", row: nil, day: day), at: morning)
         }
-        try scratch.engine.perform(Tap(widget: id.rawValue, action: "late", row: nil), at: morning)
+        try scratch.engine.perform(Tap(widget: id.rawValue, revision: revision, action: "late", row: nil), at: morning)
         #expect(scratch.commits == commits)
 
-        try scratch.engine.perform(Tap(widget: id.rawValue, action: "late", row: nil, day: "2025-11-18"), at: morning)
+        try scratch.engine.perform(
+            Tap(widget: id.rawValue, revision: revision, action: "late", row: nil, day: "2025-11-18"), at: morning)
         #expect(scratch.commits == commits + 1, "365 days back is the oldest day a tap may log")
     }
 

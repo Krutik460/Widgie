@@ -26,6 +26,12 @@ struct Mistake: CustomTestStringConvertible, Sendable {
         Mistake(
             label: "line and column on a later line", json: "{\n  \"name\": \"x\"\n  \"look\": \"y\"\n}",
             line: #"not valid JSON at line 3, column 3: expected "," or "}" after the value of "name""#),
+        Mistake(
+            label: "trailing comma in a list", json: #"{"name": ["x",]}"#,
+            line: #"not valid JSON at line 1, column 15: remove the comma before "]""#),
+        Mistake(
+            label: "nested too deep", json: String(repeating: "[", count: 257) + String(repeating: "]", count: 257),
+            line: "not valid JSON at line 1, column 257: values are nested more than 256 deep"),
         Mistake(label: "not an object", json: "[]", line: "the document must be a JSON object, not a list"),
     ]
 
@@ -83,6 +89,14 @@ struct Mistake: CustomTestStringConvertible, Sendable {
     ]
 
     static let queriesCases: [Mistake] = [
+        Mistake(
+            label: "list and latest queries return too much",
+            json: withTables(
+                #""queries": {\#((0..<5).map { #""l\#($0)": {"list": "items", "window": "all", "limit": 100}"# }.joined(separator: ", ")), "last": {"latest": "items", "window": "all"}}"#
+            ),
+            line:
+                "list and latest queries return up to 2004 field values together (rows times their table's fields, a latest counting one row); keep it to 1000 or fewer by lowering list limits"
+        ),
         Mistake(
             label: "dangling table",
             json: document(

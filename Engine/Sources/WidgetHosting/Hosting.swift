@@ -13,15 +13,16 @@ public enum Hosting {
     /// reloads after an intent on its own.
     public static let engine = Engine(directory: appGroupDirectory(), onCommit: isExtension ? nil : reloadWidgets)
 
-    /// The link a form button opens: `<scheme>://form?widget=...&action=...&row=...`, with the scheme from
-    /// the `EngineURLScheme` Info.plist key.
+    /// The link a form button opens: `<scheme>://form?widget=...&revision=...&action=...&row=...`, with the
+    /// scheme from the `EngineURLScheme` Info.plist key.
     public static func formURL(for tap: Tap) -> URL {
         var link = URLComponents()
         link.scheme = scheme
         link.host = "form"
-        link.queryItems =
-            [URLQueryItem(name: "widget", value: tap.widget), URLQueryItem(name: "action", value: tap.action)]
-            + (tap.row.map { [URLQueryItem(name: "row", value: $0)] } ?? [])
+        let items: [(String, String?)] = [
+            ("widget", tap.widget), ("revision", tap.revision), ("action", tap.action), ("row", tap.row),
+        ]
+        link.queryItems = items.compactMap { name, value in value.map { URLQueryItem(name: name, value: $0) } }
         return link.url ?? URL(filePath: "/")
     }
 
@@ -33,7 +34,7 @@ public enum Hosting {
         else { return nil }
         func value(_ name: String) -> String? { link.queryItems?.first { $0.name == name }?.value }
         guard let widget = value("widget"), let action = value("action") else { return nil }
-        return Tap(widget: widget, action: action, row: value("row"))
+        return Tap(widget: widget, revision: value("revision"), action: action, row: value("row"))
     }
 
     private static let scheme = Bundle.main.object(forInfoDictionaryKey: "EngineURLScheme") as? String ?? "engine"
@@ -61,13 +62,14 @@ public struct HostingIntents: AppIntentsPackage {}
 
 // MARK: The one intent
 
-/// Every tap on every user-created widget that writes in place. Its four parameters are exactly `Tap`. Form
+/// Every tap on every user-created widget that writes in place. Its five parameters are exactly `Tap`. Form
 /// buttons never reach it: they are links that open the app.
 public struct RunAction: AppIntent {
     public static let title: LocalizedStringResource = "Run widget action"
     public static let isDiscoverable = false
 
     @Parameter(title: "Widget") var widgetID: String
+    @Parameter(title: "Revision") var revision: String?
     @Parameter(title: "Action") var actionID: String
     @Parameter(title: "Row") var rowID: String?
     @Parameter(title: "Day") var day: String?
@@ -76,13 +78,14 @@ public struct RunAction: AppIntent {
 
     init(_ tap: Tap) {
         widgetID = tap.widget
+        revision = tap.revision
         actionID = tap.action
         rowID = tap.row
         day = tap.day
     }
 
     public func perform() async throws -> some IntentResult {
-        try Hosting.engine.perform(Tap(widget: widgetID, action: actionID, row: rowID, day: day))
+        try Hosting.engine.perform(Tap(widget: widgetID, revision: revision, action: actionID, row: rowID, day: day))
         return .result()
     }
 }
@@ -162,21 +165,44 @@ public struct CreationWidget: Widget {
     public init() {}
     public var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "creation", intent: PickWidget.self, provider: Provider()) { entry in
-            FaceView(entry.face, host: .widget)
+            WidgetFace(face: entry.face)
         }
         .contentMarginsDisabled()
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
 
+/// The face in the mode WidgetKit draws it in, which only the view can read.
+struct WidgetFace: View {
+    let face: Face
+    @Environment(\.widgetRenderingMode) private var mode
+
+    var body: some View {
+        FaceView(face, host: .widget).environment(\.renderingMode, mode == .fullColor ? .fullColor : .accented)
+    }
+}
+
 extension FaceHost {
-    /// The only place a tree button becomes an App Intent or a link, and the background becomes a container
-    /// background.
+    /// The only place a tree button becomes an App Intent or a link, the background becomes a container
+    /// background, and `accent` and image `tint` become WidgetKit's accented rendering.
     static let widget = FaceHost(
         button: { tap, label in AnyView(Button(intent: RunAction(tap)) { label }.buttonStyle(.plain)) },
         form: { tap, label in AnyView(Link(destination: Hosting.formURL(for: tap)) { label }) },
-        root: { content, background in AnyView(content.containerBackground(for: .widget) { background }) }
+        root: { content, background in AnyView(content.containerBackground(for: .widget) { background }) },
+        accent: { content in AnyView(content.widgetAccentable()) },
+        tint: { tint, image in AnyView(image.widgetAccentedRenderingMode(tint.widgetMode)) }
     )
+}
+
+extension ImageTint {
+    /// `accented` maps the image's brightness to the tint, as the proof emulates it.
+    fileprivate var widgetMode: WidgetAccentedRenderingMode {
+        switch self {
+        case .fullColor: .fullColor
+        case .desaturated: .desaturated
+        case .accented: .accentedDesaturated
+        }
+    }
 }
 
 extension Family {

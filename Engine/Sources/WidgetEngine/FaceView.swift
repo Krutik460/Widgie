@@ -2,24 +2,36 @@ import SwiftUI
 
 /// What differs between the places a face is shown. Closures, so the renderer imports neither AppIntents
 /// nor WidgetKit:
-/// - the widget wraps a button in `Button(intent:)`, a form button in a `Link` that opens the app, and puts
-///   the background in `containerBackground`,
+/// - the widget wraps a button in `Button(intent:)`, a form button in a `Link` that opens the app, puts the
+///   background in `containerBackground`, marks `accent: true` nodes `widgetAccentable()`, and gives each
+///   image its `widgetAccentedRenderingMode`,
 /// - the app wraps both in closure buttons and draws the background itself,
 /// - proofs and the render tool use `.still`.
 public struct FaceHost: Sendable {
     public typealias Wrap = @MainActor @Sendable (_ tap: Tap, _ label: AnyView) -> AnyView
     public typealias Compose = @MainActor @Sendable (_ content: AnyView, _ background: AnyView) -> AnyView
+    public typealias Accent = @MainActor @Sendable (_ content: AnyView) -> AnyView
+    public typealias Tint = @MainActor @Sendable (_ tint: ImageTint, _ image: Image) -> AnyView
 
     /// A button whose action writes in place.
     public let button: Wrap
     /// A button whose action asks for input, which only the app can show.
     public let form: Wrap
     public let root: Compose
+    /// A node with `accent: true`, its layers included. Unchanged by default.
+    public let accent: Accent
+    /// Each image, resizable, with the tint the look gave it. Unchanged by default.
+    public let tint: Tint
 
-    public init(button: @escaping Wrap, form: @escaping Wrap, root: @escaping Compose) {
+    public init(
+        button: @escaping Wrap, form: @escaping Wrap, root: @escaping Compose, accent: @escaping Accent = { $0 },
+        tint: @escaping Tint = { AnyView($1) }
+    ) {
         self.button = button
         self.form = form
         self.root = root
+        self.accent = accent
+        self.tint = tint
     }
 
     /// Buttons draw their children and do nothing. The background is drawn under the content and the
@@ -80,25 +92,30 @@ package struct DrawingView: View {
     }
 }
 
-/// White when the look sets no `widgetBackground`.
+/// White when the look sets no `widgetBackground`. Tinted mode draws the backdrop instead, as the system
+/// removes the widget background there.
 struct BackgroundView: View {
     let layer: Layer?
     let host: FaceHost
+    @Environment(\.renderingMode) private var mode
+    @Environment(\.palette) private var palette
 
     var body: some View {
-        switch layer {
-        case nil: Color.white
-        case .fill(let fill)?: Rectangle().fill(fill.paint)
+        switch mode == .accented ? nil : layer {
+        case nil: mode == .accented ? Palette.backdrop.color : Color.white
+        case .fill(let fill)?: Rectangle().fill(palette.paint(fill))
         case .node(let node)?: NodeView(node: node, host: host).frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
 
 /// The calm face for an unknown widget, an empty store, or a look that failed on this data. It names the
-/// widget when the name is known and never shows why it failed.
+/// widget when the name is known and never shows why it failed. White at two opacities, so it reads the same
+/// in tinted mode.
 struct FallbackView: View {
     let name: String?
     let host: FaceHost
+    @Environment(\.renderingMode) private var mode
 
     var body: some View {
         host.root(
@@ -106,7 +123,7 @@ struct FallbackView: View {
                 VStack(spacing: 8) {
                     Image(systemName: "square.dashed")
                         .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(Color(white: 0.56))
+                        .foregroundStyle(Color.white.opacity(0.5))
                     Text(name ?? "Widget")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.white)
@@ -116,7 +133,7 @@ struct FallbackView: View {
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)),
-            AnyView(Color(red: 0.11, green: 0.11, blue: 0.12)))
+            AnyView(mode == .accented ? Palette.backdrop.color : Color(red: 0.11, green: 0.11, blue: 0.12)))
     }
 }
 

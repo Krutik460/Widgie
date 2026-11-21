@@ -13,13 +13,13 @@ import Testing
         let a = try Bench()
         let b = try Bench(widget: a.widget)
         try a.tap("add", at: at(0))
-        try b.store.receive(a.store.changes())
+        try b.store.receive(a.store.feed())
         return (a, b, try #require(b.rows("newest", at: at(59)).first).key)
     }
 
     func exchange(_ a: Bench, _ b: Bench, firstToB: Bool) throws {
-        let fromA = try a.store.changes()
-        let fromB = try b.store.changes()
+        let fromA = try a.store.feed()
+        let fromB = try b.store.feed()
         if firstToB {
             try b.store.receive(fromA)
             try a.store.receive(fromB)
@@ -34,7 +34,7 @@ import Testing
     }
 
     func titleStamp(_ feed: [Stamped]) -> Stamp? {
-        feed.first { if case .setCell(_, field: "title", _) = $0.change { true } else { false } }?.stamp
+        feed.first { if case .setCell(_, _, field: "title", _) = $0.change { true } else { false } }?.stamp
     }
 
     @Test(arguments: [true, false]) func aLaterStampWinsACell(firstToB: Bool) throws {
@@ -57,8 +57,8 @@ import Testing
         let (a, b, row) = try pair()
         try a.tap("rename", row: row, at: at(10))
         try b.tap("edit", row: row, input: b.values(of: "typed"), at: at(10))
-        let fromA = try a.store.changes()
-        let fromB = try b.store.changes()
+        let fromA = try a.store.feed()
+        let fromB = try b.store.feed()
         #expect(titleStamp(fromA) != nil)
         #expect(titleStamp(fromA) == titleStamp(fromB), "the two writes carry the same stamp")
         let winner = try #require(fromA.first?.replica) > (try #require(fromB.first?.replica)) ? "Renamed" : "Typed"
@@ -81,12 +81,12 @@ import Testing
     @Test func aTapAfterAWriteFromAFastClockStillTakesEffect() throws {
         let (a, b, row) = try pair()
         try a.tap("finish", row: row, at: "2026-11-18T11:00:00-05:00")
-        try b.store.receive(a.store.changes())
+        try b.store.receive(a.store.feed())
         try b.tap("flip", row: row, at: at(30))
         #expect(
             try b.rows("newest", at: at(59)).first?.flag("done") == false,
             "the tap won although its wall clock is behind")
-        try a.store.receive(b.store.changes())
+        try a.store.receive(b.store.feed())
         #expect(try a.rows("newest", at: at(59)).first?.flag("done") == false)
     }
 
@@ -96,8 +96,10 @@ import Testing
         let history: [[Revision]]
     }
 
+    /// What the store holds once every received head passed its proof here, since what draws depends on that.
     func state(_ bench: Bench, widgets keys: [WidgetKey]) throws -> State {
-        State(
+        try bench.store.proveAll()
+        return State(
             reads: try bench.snapshot(at: at(59)),
             widgets: try bench.store.widgets().map { "\($0.key.raw) \($0.revision) \($0.createdAt)" },
             history: try keys.map { try bench.store.revisions(of: $0) })
@@ -109,8 +111,8 @@ import Testing
         let c = try Bench(widget: a.widget)
         for minute in 0..<3 { try a.tap("add", at: at(minute)) }
         try a.tap("drink", at: at(3))
-        try b.store.receive(a.store.changes())
-        try c.store.receive(a.store.changes())
+        try b.store.receive(a.store.feed())
+        try c.store.receive(a.store.feed())
         let items = try a.rows("oldest", at: at(59)).map(\.key)
         let glass = try #require(a.rows("lastGlass", at: at(59)).first).key
 
@@ -132,7 +134,7 @@ import Testing
         _ = try c.store.save(other, spec: renamed, assets: [:])
         try c.store.delete(other)
 
-        let all = try [a, b, c].flatMap { try $0.store.changes() }
+        let all = try [a, b, c].flatMap { try $0.store.feed() }
         let keys = [a.widget, other]
         try a.store.receive(all)
         let expected = try state(a, widgets: keys)
@@ -161,18 +163,18 @@ import Testing
 
     @Test func theFeedHoldsWhatThisReplicaWroteLastAfterTheWatermark() throws {
         let (a, b, row) = try pair()
-        let mine = try a.store.changes()
+        let mine = try a.store.feed()
         #expect(Set(mine.map(\.replica)).count == 1)
         try b.tap("rename", row: row, at: at(10))
         try b.tap("drink", at: at(11))
-        try a.store.receive(b.store.changes())
+        try a.store.receive(b.store.feed())
         #expect(
-            Set(try a.store.changes()) == Set(mine.filter { titleStamp([$0]) == nil }),
+            Set(try a.store.feed()) == Set(mine.filter { titleStamp([$0]) == nil }),
             "B now holds the title, and nothing else B wrote is A's")
 
         let watermark = try #require(mine.map(\.stamp).max())
         try a.tap("add", at: at(12))
-        let later = try a.store.changes(after: watermark)
+        let later = try a.store.feed(after: watermark)
         #expect(later.count == 3, "the new row and its two values")
         #expect(later.allSatisfy { $0.stamp > watermark && $0.replica == mine.first?.replica })
     }

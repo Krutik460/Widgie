@@ -92,7 +92,7 @@ import Testing
         try water.tap("drink", at: noon)
 
         let phone = try Bench(widget: dashboard.widget)
-        try phone.store.receive(water.store.changes())
+        try phone.store.receive(water.store.feed())
         #expect(try phone.store.dataset(of: dashboard.widget, table: glasses) == shared)
         #expect(try phone.number("glassesToday", at: noon) == 1)
     }

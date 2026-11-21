@@ -92,7 +92,7 @@ import Testing
         #expect(try bench.number("sizeTwoDays", at: noon) == 8)
     }
 
-    @Test func theMonthIsTheCalendarMonthThatHoldsToday() throws {
+    @Test func theMonthIsTheCalendarMonthThatHoldsTodayUpToToday() throws {
         let bench = try Bench(spec: parse(dayDocument))
         for time in [
             "2026-10-31T23:30:00-04:00", "2026-11-01T00:30:00-04:00", "2026-11-30T23:00:00-05:00",
@@ -101,14 +101,41 @@ import Testing
             try bench.tap("drink", at: time)
         }
         #expect(try bench.number("glassesMonth", at: "2026-10-31T23:45:00-04:00") == 1)
-        #expect(try bench.number("glassesMonth", at: "2026-11-01T08:00:00-05:00") == 2, "Nov 1 to 30")
+        #expect(try bench.number("glassesMonth", at: "2026-11-01T08:00:00-05:00") == 1, "Nov 30 is still ahead")
+        #expect(try bench.number("glassesMonth", at: "2026-11-30T23:30:00-05:00") == 2, "Nov 1 to 30")
         #expect(try bench.number("glassesMonth", at: "2026-12-01T10:00:00-05:00") == 1)
         #expect(try bench.number("glassesTwoDays", at: "2026-12-01T10:00:00-05:00") == 2, "Nov 30 and Dec 1")
 
         let leap = try Bench(spec: parse(dayDocument))
         try leap.tap("drink", at: "2028-02-29T12:00:00-05:00")
         try leap.tap("drink", at: "2028-03-01T12:00:00-05:00")
-        #expect(try leap.number("glassesMonth", at: "2028-02-01T12:00:00-05:00") == 1, "February 2028 has 29 days")
+        #expect(try leap.number("glassesMonth", at: "2028-02-29T13:00:00-05:00") == 1, "February 2028 has 29 days")
+    }
+
+    /// A row written ahead for a later day, as the server writes a week of words: every window ends today.
+    @Test func aRowOnALaterDayShowsOnlyOnceItsDayIsToday() throws {
+        let tomorrow = "2026-11-19T12:00:00-05:00"
+        let bench = try Bench()
+        try bench.tap("add", at: tomorrow)
+        try bench.tap("drink", at: tomorrow)
+        for query in ["glassesToday", "glassesWeek", "glassesAll", "open", "milk", "size", "openSize", "todaySize"] {
+            #expect(try bench.number(query, at: noon) == 0, "\(query) today")
+            #expect(try bench.number(query, at: tomorrow) > 0, "\(query) tomorrow")
+        }
+        for query in ["lastGlass", "newest", "oldest", "bySize", "latestOpen", "itemsWeek"] {
+            #expect(try bench.rows(query, at: noon).isEmpty, "\(query) today")
+            #expect(try bench.rows(query, at: tomorrow).count == 1, "\(query) tomorrow")
+        }
+
+        let days = try Bench(spec: parse(dayDocument))
+        try days.tap("add", at: tomorrow)
+        try days.tap("drink", at: tomorrow)
+        for query in ["glassesMonth", "glassesTwoDays", "sizeTwoDays", "streak"] {
+            #expect(try days.number(query, at: noon) == 0, "\(query) today")
+            #expect(try days.number(query, at: tomorrow) > 0, "\(query) tomorrow")
+        }
+        #expect(try days.days("glassesDaily", at: noon).map(\.count) == [0, 0, 0])
+        #expect(try days.days("glassesDaily", at: tomorrow).map(\.count) == [0, 0, 1])
     }
 
     @Test func theEmptyStateReadsAsNothing() throws {

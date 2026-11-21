@@ -230,6 +230,23 @@ struct Bench {
     }
 }
 
+extension RowStore {
+    /// The whole feed, every scope merged, oldest first.
+    func feed(after watermark: Stamp? = nil) throws -> [Stamped] {
+        try changes(after: watermark).values.joined().sorted { $0.stamp < $1.stamp }
+    }
+
+    /// Receives at the real clock, which is past every instant the tests write at.
+    func receive(_ batch: [Stamped]) throws {
+        try receive(batch, now: Date())
+    }
+
+    /// Proves every unproved head, as `Engine.proveReceived` would when each passes.
+    func proveAll() throws {
+        for revision in try unprovedHeads() { try recordProof(of: revision, verdict: nil) }
+    }
+}
+
 extension RowValue {
     func text(_ field: String) -> String? {
         values.first { $0.key.raw == field }.flatMap { if case .text(let text) = $0.value { text } else { nil } }

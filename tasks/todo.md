@@ -1,6 +1,6 @@
 # Widgie v1 spec and plan
 
-Status: the engine package is built and tested on the Mac (2026-11-18). The describe-to-widget loop runs end to end with a stand-in model. Nothing has run on an iPhone, because Xcode is not installed.
+Status: the engine package is built and tested on the Mac (2026-11-18). The describe-to-widget loop runs end to end with a stand-in model. The app and widget extension run on the iOS simulator with real home screen taps (2026-11-21). Nothing has run on a physical iPhone yet.
 Written 2026-11-18.
 
 ## Direction from the user (2026-11-18)
@@ -31,8 +31,8 @@ Every row below was checked against Apple docs or forum answers on 2026-11-18. S
 
 | Brief said | What is true | Consequence |
 |---|---|---|
-| iCloud sharing is free and good enough for iPhone | CloudKit cannot reload another user's widget. That needs our own APNs server. Apple also says the widget should not do sync work. | Our own backend for sync. iCloud saves nothing once a server exists. |
-| Our backend covers Android later | The product is now iOS only, so this reason is gone. | The backend still wins on the other three reasons: push to a friend's widget, no sync in the widget, and hosting our own model. |
+| iCloud sharing is free and good enough for iPhone | CloudKit cannot reload another user's widget. That needs our own APNs server. A forum answer advises against full sync in the widget, but Apple documents network requests in timeline providers (revised 2026-11-20, decision A in phase 1d). | Our own backend for sync. iCloud saves nothing once a server exists. The widget makes one bounded pull per reload. |
+| Our backend covers Android later | The product is now iOS only, so this reason is gone. | The backend still wins on the other three reasons: push to a friend's widget, a small pull endpoint the widget can call, and hosting our own model. |
 | AI block calls an LLM | It cannot run in the widget. The extension has about 30 MB and no time budget for a model call. | The server runs AI blocks on a schedule, stores the row, and pushes the widget. |
 | Taps do not work while locked | Correct. A Toggle still flips on screen even if the user cancels the unlock, and there is no API to reset it. | Prototype Button against Toggle before choosing the control. |
 | Blocks keep it safe with Apple | Functionality as blocks still helps. Look code is allowed in practice when it cannot reach the network or native APIs. Scriptable runs user JavaScript in widgets today, and the developer agreement section 3.3.1(B) permits interpreted code that stays inside the app's purpose. | Look code is a pure function from data to a view tree. It gets no network, no storage, and no native calls. |
@@ -109,12 +109,55 @@ Each phase ends in a check on the real artifact. Riskiest unknown first.
 
 ### Phase 0. Prerequisites and scaffold
 
-- [ ] Install Xcode and an iOS 26 or 27 simulator (user action, see blockers)
-- [ ] Confirm Apple Developer Program membership (user action)
+- [x] Install Xcode (Xcode 27.2, iOS 27.2 SDK, 2026-11-20)
+- [x] Install the iOS 27.2 simulator runtime (`xcodebuild -downloadPlatform iOS`, about 8 GB)
+- [ ] Confirm Apple Developer Program membership (user action, needed only for the device step)
 - [ ] Decide the open decisions below
-- [ ] Create the Xcode project with app target, widget extension, App Group, and the shared package
-- [ ] Add lint, format, and a test command that runs the package tests
-- [ ] Check: empty app and a placeholder widget run on a simulator and on a device
+- [x] Create the Xcode project with app target, widget extension, App Group, and the shared package (`App/project.yml`)
+- [x] Add lint, format, and a test command that runs the package tests (`scripts/check`)
+- [ ] Check: empty app and a placeholder widget run on a simulator and on a device (simulator done 2026-11-21, device still open)
+
+**Found with Xcode (2026-11-20).**
+
+- `Engine/scripts/check` passes under the Xcode toolchain: 230 tests.
+- The whole package builds for the iOS Simulator SDK (`xcodebuild -scheme WidgetEngine-Package -destination 'generic/platform=iOS Simulator'`). QuickJS, GRDB, and the WidgetKit and App Intents hosting code all compile for iOS.
+- That build prints 592 warnings, all `-Wshorten-64-to-32` inside the vendored QuickJS sources. The vendored code stays unmodified, so the fix is to silence warnings for the `CQuickJS` target only.
+- Xcode's built-in git stalled cloning GRDB. `-scmProvider system` works.
+- `scripts/check` passes `-F` to the Command Line Tools copy of Swift Testing. With Xcode selected that mixes two toolchains. It should add the flags only when the Command Line Tools are the active developer directory.
+
+**Phase 0 spec: the app project.**
+
+- **Layout.** `App/` at the repo root holds the project. The project is generated from a checked-in `App/project.yml` by XcodeGen, and the `.xcodeproj` is git-ignored, so the project is reviewable text and never conflicts. The engine stays a local package reference to `../Engine`.
+- **Targets.**
+  - `Widgie` app, SwiftUI, iOS 26. Links `WidgetEngine`, `WidgetBuilder`, `WidgetHosting`. A single screen for now: the list of widgets from `engine.widgets()`, a button that installs one of the four reference fixtures, and a live `FaceView` preview of each. It handles form links with `Hosting.formTap(from:)` and shows the form.
+  - `WidgieWidgets` extension. Links only `WidgetEngine` and `WidgetHosting` (never `WidgetBuilder`). Its bundle holds `CreationWidget` and nothing else.
+  - Both list `HostingIntents` in `AppIntentsPackage.includedPackages`.
+- **Identity.** Bundle id prefix `com.<you>.widgie` (codename until decision 2), App Group `group.com.<you>.widgie`, URL scheme `widgie`. Both targets carry `EngineAppGroup` and `EngineURLScheme` in Info.plist. Signing: automatic, team left empty for the simulator; the team id goes in one place in `project.yml` for the device step.
+- **Fixtures in the app.** The four reference fixtures ship in the app bundle as debug-only resources, so the simulator can be tested before the AI builder exists. The app installs them through `engine.build`, the same path a real build takes.
+- **Commands.** `App/scripts/build` generates the project and builds both targets for the simulator. `Engine/scripts/check` stays the engine gate. A top-level `scripts/check` runs both.
+- **Check on the simulator.** Install all four fixtures, add the widget in small and medium to the simulator home screen, tap water plus and minus, habit check, to-do toggle, and confirm the face updates without opening the app. Tap a form button and confirm the app opens on the right form. Screenshot each, in full color and tinted. Record extension memory from the simulator as a first number (the 30 MB check itself needs a device).
+- **simslim** (installed 2026-11-20) cuts a simulator's memory by turning off daemons. For this app always boot with `simslim on <udid> --except widgets,siri --keep com.apple.linkd`: `widgets` holds `chronod` (widget refresh), `siri` holds `siriactionsd` (runs App Intents, so widget taps), and `linkd` in the `other` group indexes App Intents. Without linkd iOS has no default `PickWidget`, so every widget stays a grey placeholder ("Intent configuration is required but was not provided"). Phase 4 also keeps `store` for push. Two-user sharing tests are where it pays most.
+- **Not in this phase.** Onboarding, the describe screen, the AI builder, the font allowlist check, Button against Toggle on a locked device.
+
+**Review (2026-11-21).** The simulator check passed on an iPhone 18 Pro, iOS 27.2, booted slim. `scripts/check` passes: 230 engine tests and a warning-free app build.
+
+- All four reference widgets build through `engine.build` on iOS, so the proof and QuickJS run on iOS as well as macOS.
+- The widget gallery and the home screen draw real faces from the extension. The picker lists every widget and switches one. A new widget defaults to the latest creation.
+- Taps on the home screen change the data and redraw in about a second without opening the app: habit check and uncheck, to-do toggle, and to-do delete of one row. The store shows each write came from the extension.
+- The to-do + button opens the app on the right form. A saved form reloads the widget.
+- Real iOS tinted mode draws every face legibly, and taps work in it. The engine's tinted emulation matched.
+- Extension memory on the simulator, debug build: 18 MB footprint, 20 MB peak, against the 30 MB cap. The device number is still owed.
+- The app screen now stacks both sizes in a plain column. A `List` left too little width for a medium face, which cut it off.
+
+Found along the way:
+
+- simslim's `other` group holds `linkd`. Without it every widget stays a grey placeholder ("Intent configuration is required but was not provided"). The boot command now keeps it (above, and in project memory).
+- The first widget placed saved Meditate, the only widget at the moment iOS first asked for a default, before linkd ran. A widget placed after that saved the latest creation, so `defaultResult()` is correct.
+- A long press on a widget's button ran its tap once on the simulator (17:58:09). Confirm on a device that opening a widget's menu never runs its action.
+- Habit look, tinted: once today is checked, its outline is gone, so on a streak today looks like any other done day. A fixture look fix, low priority.
+- Done to-do titles wrap to two lines to make room for the remove button. A fixture look detail, low priority.
+
+Still open from this phase: the device step (needs the Apple Developer account and a team id in `App/project.yml`), the water widget on the home screen (only installed in the app), and the medium size on the home screen.
 
 ### Phase 1. Interpreter with hand-written specs, no AI
 
@@ -127,13 +170,13 @@ The unknown is whether one interpreter can render and act inside widget limits.
 - [x] Engine package `Engine/`: document parser, row store, look sandbox, tree validator, renderer, builder, render tool (164 tests, `Engine/scripts/check`)
 - [x] Four reference widgets as fixtures, proved in every data state and both sizes
 - [x] Widget hosting code (intent, picker, timeline provider) written and compiled, never executed
-- [ ] Pick the JavaScript engine on a device: JavaScriptCore against an embedded engine with a step and memory limit (see prototype results)
+- [x] Pick the JavaScript engine: QuickJS-ng with step and memory budgets (phase 1d). A device must still confirm speed and memory
 - [x] View tree renderer with the prototype vocabulary plus dashed strokes, blend modes, and image color adjustment
 - [x] Image assets in the view tree, sized under the widget pixel cap
 - [ ] Font allowlist checked against fonts that ship on iOS
 - [ ] Xcode project: app target, widget extension, App Group, linking `Engine/`
 - [ ] Tinted and lock screen modes for every node type (needs a device)
-- [ ] `RunAction` intent and the entity picker running in a real widget
+- [ ] `RunAction` intent and the entity picker running in a real widget (simulator done 2026-11-21, device still open)
 - [ ] Prototype Button against Toggle on a locked and unlocked device, pick one
 - [ ] Add-to-home-screen onboarding
 - [ ] Check: the four reference widgets work on a device, taps included, under 30 MB
@@ -205,6 +248,98 @@ Real trackers need per-day sums, filtered charts, goal streaks, rolling and mont
 - Known gap: in `full`, a field streak cannot reach its goal when the only value the widget writes is 0 or negative, or needs more than 100 rows a day (a +10 ml button with a 2000 ml goal). The streak then reads 0 in that state. Layout still gets stressed by the other queries.
 - Decimal sums against a goal rely on SQLite's `total()`, which adds exactly enough that ten 0.1 doses reach a goal of 1 (tested).
 - Fixed in passing: a limit error said "at most 24 querys". It now uses the plural key ("queries").
+
+### Phase 1d. Review findings: one-way doors before anything ships (approved and done 2026-11-20)
+
+An outside review (two models) raised eight findings. Each was checked against the code. All eight hold, and three are worse than reported. This phase fixes what gets expensive once looks are generated for real users or sharing ships, and records two design decisions.
+
+**Verified, with what the code adds.**
+
+1. **No data path to a closed app.** `RowStore.receive` has no caller outside tests. Worse: `week` and `month` cover the whole calendar week and month, so a row written ahead of time for tomorrow already counts today, and `all` has no upper bound at all. Only `streak` and `daily` stop at today.
+2. **The sandbox cannot be stopped.** Confirmed in `Sandbox.swift`. A timeout leaves a thread spinning until the process dies. In a widget extension that burns the CPU budget and keeps the abandoned VM's memory.
+3. **No render-time memory caps.** Worse: an image decodes to the whole widget's pixels whatever its frame, and the decode cache keys on `crop`, so a look that crops per row decodes once per row. The 1.5 MP check runs only in the proof's fit report. The `full` state writes a 41-character text, not the 300 allowed, so the proof never sees the largest data either. `textLength` counts characters, so 300 emoji can be several KB.
+4. **No tinted or dark rules.** Confirmed. Proofs force `.light`. WidgetKit tells the timeline provider neither the rendering mode nor the color scheme, so the look cannot branch on them: one tree has to work in every mode, and the renderer resolves the mode in the view.
+5. **Sync format gaps.** All five confirmed. On field kinds: a bool `true` read as a number gives 1, and read as a date gives 1970-01-02. A deleted widget's kinds are not checked at all, and neither are rows that arrive by sync.
+6. **Old buttons run the new action.** Confirmed: `Engine.target(of:)` resolves the action name against the current head.
+7. **Narrow proof.** Confirmed. Left to phase 2, as recommended.
+8. **Docs and code disagree.** The Opus review's item 11 is not in the repo, so the exact spots are unknown. An audit covers it here.
+
+**Design.**
+
+- **Query windows end today (1).** `week`, `month`, and `all` gain an upper bound of today, as `days` already has. `latest` and `list` follow, since they take a window. A row written ahead for a later day shows on its day, so the server can write a week of words and the midnight timeline entry flips to the next word with no network.
+- **Typed cells (5a).** Each cell stores its kind beside its value (`cell.kind`: text, number, bool, date). A read takes a cell only when its kind is the field's kind, so a changed field reads as blank, as the plan already promises, on every path: local, restored, and synced. This needs no schema table and no new conflict rule. The builder's kind check runs against the kinds already present in the dataset's cells as well as live sharers, so it also covers deleted widgets and synced rows. A field with no cells can change kind, because nothing can be misread.
+- **Every row change names its dataset (5b, 5c).** `setCell` and `deleteRow` gain `dataset`, like `insertRow`. The merge applies a row change only when it names the row's own dataset, or the row is not here yet; a cell remembers the dataset it claimed and reads only when it matches its row. So a change the server authorized for dataset B can never touch a row of dataset A. `Change.scope` is derived: `.dataset(key)` for rows and cells, `.account` for revisions, heads, bindings, and widget deletes. The feed returns changes grouped by scope, so the server routes datasets to their members and account state only to the user's own devices. Bindings never leave the account.
+- **Remote designs are proved before they draw (5d).** A local, unsynced `proved(revision, verdict)` table. A local save marks its revision proved. A widget draws its head when the head is proved here, and otherwise its newest proved revision. With none, it stays hidden. The app proves pending revisions with the same `prove` path as `build`, for one's own other devices and for a shared widget alike. A rejected revision is never drawn. The extension never proves, so it shows the last proved revision meanwhile.
+- **Remote input is bounded (5e, plus one more).** `receive(_:now:)` holds back changes stamped more than 10 minutes ahead of the local clock and returns them, so the sync layer retries later. They are not clamped, since clamping would make replicas disagree. It also refuses text cells over the text limit, so an automation or a peer cannot slip past the limits a tap obeys.
+- **Taps carry their revision (6).** `Tap` gains the revision digest the button was drawn from, and `RunAction` and the form link carry it. `perform` runs the action as that revision defines it, provided the revision is in the widget's history. What the user pressed is what runs. A tap with no revision, or one outside the history, is ignored.
+- **Render-time caps (3).** `AssetImages` takes a pixel budget for the whole `faces` call (1.5 MP, the number the proof uses today). A decode past it returns nothing and the validator fails with one line, so the proof and the widget enforce the same cap in the same place, and the fit check's own pixel rule goes. `composeDrawing` refuses a context over 1 MB of JSON, the same way. A static cap at parse time keeps the worst case out of reach: list and latest queries together may return at most 1,000 cells. `textLength` counts UTF-16 units, which is what JavaScript holds. `full` writes text at the real limit, so the proof renders the largest data a widget can hold.
+- **Rendering-mode rules (4).** This is the contract the model learns, so it is set before real users. Dark mode stays optional, so a yellow sticky note can stay yellow.
+  - A color may be `{ "light": "#...", "dark": "#..." }`. The renderer picks one from the view's color scheme.
+  - Any node may set `accent: true`, which becomes `widgetAccentable()`.
+  - An image may set `tint`: `fullColor`, `desaturated` (the default), or `accented`, which becomes `widgetAccentedRenderingMode`.
+  - Rules in `look.md`: the backdrop goes in `widgetBackground`, never in a full-size shape, because tinted mode removes the background and draws every other node as a single color. State must show through opacity or shape, not hue alone.
+  - The renderer takes its mode from a package environment value. The widget host maps WidgetKit's mode into it, and proofs set it directly. In proofs, accented mode is emulated: the background is replaced by a dark backdrop, non-accent nodes become white at their own opacity, accent nodes become a tint color, and images follow `tint`.
+  - The proof adds a tinted cell and a dark cell per family. Each runs the ink check, plus a coverage check for tinted mode: a render that is mostly one solid color has its backdrop in a shape. Thresholds are set from the four fixtures and the eval set.
+  - The device still has to confirm the emulation.
+
+**Decision A. How data reaches a closed app (finding 1).** Default: the timeline provider makes one bounded pull before it renders: one request for this account's changes since its watermark, a 4 second hard timeout, merged in one short transaction, and on any failure it renders what it has. A widget push from the server triggers the reload. The server also writes AI block rows ahead of their day, which the today cap makes safe. The research line "Apple says the widget should not do sync work" gives way: it is a forum answer, and it is about full sync. Apple documents network requests in timeline providers. The alternatives fail the definition of done. A WidgetKit push carries no data. A silent push to the app is throttled, and never arrives after the user force-quits the app. Recorded in `docs/engine/` and the research table. The client code waits for phase 3, since it needs the backend.
+
+**Decision B. JavaScript engine (finding 2).** Default: QuickJS-ng (MIT, about 70K lines of C) as a C target, vendored into `Engine/`.
+- Its interrupt handler stops a look after a fixed number of steps on the same thread, so no thread is abandoned. `JS_SetMemoryLimit` caps memory.
+- Budgets count steps, not milliseconds, so a proof on the Mac gives the same verdict as the phone. JavaScriptCore runs without its JIT in a third-party iOS app anyway, so the speed gap narrows on the device.
+- The swap stays inside `Sandbox.swift`, as designed.
+- Prototype on the Mac: every `LookTests` case and the four fixtures pass byte-identical, with time and memory measured against JavaScriptCore. The device bakeoff then confirms the speed.
+- This adds the first vendored C dependency, so it needs your go-ahead.
+
+**Steps.**
+
+- [x] Query windows end today, with tests for a row on a later day in every window and shape
+- [x] Typed cells: `cell.kind`, kind-checked reads, filters, sums, and sorts, plus the build's kind check against kinds present in the dataset (migration 1 edited in place, as in phase 1b)
+- [x] Dataset on `setCell` and `deleteRow`, the dataset guard in `merge`, `Change.scope`, and the feed grouped by scope
+- [x] `receive(_:now:)`: hold back future stamps, refuse oversized text, and return what was held
+- [x] `proved` table, head resolution to the newest proved revision, and `Engine.proveReceived()` in `WidgetBuilder`
+- [x] `Tap.revision` through `RunAction`, the form link, and `perform`
+- [x] Render-time caps: image pixel budget in `AssetImages`, context size in `composeDrawing`, static cell cap, UTF-16 `textLength`, and `full` at the real text limit
+- [x] Rendering modes: color pairs, `accent`, image `tint`, the mode environment, the emulated tinted and dark proof cells, and `look.md` and `blocks.md` rules with mistake lines
+- [x] Re-run the four fixtures and the 19-request eval on both stand-in models with the new mode rules; note any looks the tinted cell rejects
+- [x] Decision A and B written into `docs/engine/RATIONALE.md` and `SYNTHESIS.md`, and the research table updated
+- [x] QuickJS-ng prototype behind `Sandbox.swift` (after your go-ahead on the dependency)
+- [x] Audit `docs/engine/` against the code and fix every disagreement
+- [x] Check: `Engine/scripts/check` passes. Fixture renders change only where the new rules require it, and each change is explained.
+
+**Review (2026-11-20).** Done as designed, with the changes below. `Engine/scripts/check` passes with 230 tests (187 before), and the whole suite also passes under the address sanitizer. Two Opus agents worked in parallel worktrees, then two more worked in this checkout.
+
+- **Rows are keyed by (key, dataset), not guarded.** As written, the guard did not converge. Two cells naming different datasets for one row ended differently depending on arrival order, and so did a forged delete. Now a change naming another dataset lands on an identity no read sees. The state is the same in every order.
+- **Caps made consistent.** The cell cap is 1,000 values, not 2,000, and the context cap is 1 MB, not 512 KB. At 2,000 values, ordinary 300-unit text reached about 620 KB and failed at render a widget the static cap allowed. The worst case is now about 900 KB. Only text full of characters JSON escapes can still reach the cap, and the render refuses that with one line.
+- **QuickJS memory is metered by our own allocator.** At its own limit, QuickJS usually throws `null`, which a look's own `throw null` would look the same as. Budgets: proof 500 steps and 8 MB, widget 2,000 steps and 12 MB. Every fixture takes 1 step and about 250 KB.
+  - On this Mac, an endless loop stops in 8 ms at the proof budget, against a thread that spun forever before.
+  - Ten runaways leave 0.03 MB behind, against 4.1 MB with JavaScriptCore.
+  - Error wording is now QuickJS's.
+- **Found and fixed in review.**
+  - QuickJS gives every look `performance.now()`, a clock read the prelude did not block. It now fails like `Date.now()`.
+  - The JSON parser and the tree validator overflowed a 512 KB thread stack under the sanitizer. The parser is now iterative, and the validator's recursive frame is small.
+  - Look renders differed by a pixel level between test runs, because the shared renderer picks GPU or CPU paths by what it drew before. A test-only constructor sets `RB_DISABLE_GPU=1`. Three runs are byte-identical. This switch is undocumented, so if Apple removes it the flakiness returns, and nothing worse.
+- **Fixtures.** Full-color renders are byte-identical through the engine swap and the mode work.
+  - Water's drink button now marks its disc `accent`. Before, the dark plus and the blue disc both turned white in tinted mode.
+  - `full` renders of to-do and word of the day changed, because `full` now writes 300-unit text. Both still end in an ellipsis with no spill.
+- **Eval** (`Engine/.artifacts/evals/phase-1d/`, one run, 38 builds, 0 failed):
+  - The weaker model had 12 first try, 5 after one repair, and 2 after two.
+  - The stronger model had 18 first try and 1 after one repair.
+  - Both are within run-to-run noise of the last baseline.
+  - The tinted cover check fired once, on the weaker model's sticky-note to-do, which drew its paper as a full-size shape. The second repair fixed it.
+- **Behaviour change.** A tap from an older revision still in the history runs that revision's action. Before, it was a no-op if the action had been removed. Taps drawn before this change carry no revision and are ignored, which matters only for timelines already on screen. No release exists yet.
+- **Not covered by the checks.** A symbol that vanishes on an opaque disc of another color in tinted mode (the water case) is taught in `look.md`, not detected.
+- **Needs a device.**
+  - Whether the tinted emulation matches iOS 26 tinted and clear.
+  - Time per QuickJS step without JIT, and whether 2,000 steps stays well inside a reload.
+  - A 12 MB runaway plus a full render inside the 30 MB extension.
+  - Several image-heavy widgets reloading at once.
+
+**Left to their phases.**
+
+- Phase 2: proof at several sizes per family (real phones vary by about 15%), a check that buttons are visible and large enough to tap, and repairs that send the model the render as an image.
+- Phase 3: the client half of decision A, and memory with several image-heavy widgets on one home screen, measured on a device. Each render is capped, but WidgetKit may hold several renders at once.
+- Phase 4: test vectors for the merge (changes in, state out) exported from the Swift tests, so the backend's merge is checked against the same cases.
 
 ### Phase 2. AI builder
 

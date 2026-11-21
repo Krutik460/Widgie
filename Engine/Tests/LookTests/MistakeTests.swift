@@ -55,7 +55,7 @@ struct Mistake: Sendable, CustomTestStringConvertible {
         ),
         Mistake(
             "unknown prop", returning: "{ type: 'vstack', children: [{ type: 'text', value: 'Hi', font: 'Futura' }] }",
-            #"text at root.children[0]: unknown prop "font" (text props: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, fontName; common props: aspectRatio, padding, frame, background, overlay, cornerRadius, clip, mask, opacity, shadow, blur, scale, rotation, offset, blend)"#
+            #"text at root.children[0]: unknown prop "font" (text props: value, size, weight, design, italic, color, lineLimit, minScale, align, strikethrough, kerning, fontName; common props: aspectRatio, padding, frame, background, overlay, cornerRadius, clip, mask, opacity, shadow, blur, scale, rotation, offset, blend, accent)"#
         ),
         Mistake(
             "bad color", returning: "{ type: 'text', value: 'Hi', color: 'red' }",
@@ -65,6 +65,28 @@ struct Mistake: Sendable, CustomTestStringConvertible {
             returning: "{ type: 'circle', stroke: { color: '#FFF', width: 2 }, frame: { width: 20, height: 20 } }",
             ##"circle at root: "stroke.color" must be a hex color like "#RRGGBB" or "#RRGGBBAA", not the string "#FFF""##
         ),
+        Mistake(
+            "a color pair missing dark", returning: "{ type: 'text', value: 'Hi', color: { light: '#1B2A41' } }",
+            #"text at root: "color" needs both "light" and "dark""#),
+        Mistake(
+            "a bad color in a pair",
+            returning: "{ type: 'rect', fill: { light: '#FFFFFF', dark: 'black' }, frame: { width: 20, height: 20 } }",
+            ##"rect at root: "fill.dark" must be a hex color like "#RRGGBB" or "#RRGGBBAA", not the string "black""##),
+        Mistake(
+            "a color pair with another key",
+            returning: "{ type: 'text', value: 'Hi', color: { light: '#000000', dark: '#FFFFFF', tinted: '#FF0000' } }",
+            #"text at root: "color" has no key "tinted" (keys: light, dark)"#),
+        Mistake(
+            "a bad color pair in a gradient stop",
+            returning:
+                "{ type: 'rect', fill: { gradient: 'linear', stops: [{ light: '#000000' }, '#FFFFFF'] }, frame: { width: 20, height: 20 } }",
+            #"rect at root: "fill.stops[0]" needs both "light" and "dark""#),
+        Mistake(
+            "an image tint that does not exist", returning: "{ type: 'image', asset: 'photo', tint: 'gray' }",
+            #"image at root: "tint" must be one of fullColor, desaturated, accented, not the string "gray""#),
+        Mistake(
+            "accent that is not a bool", returning: "{ type: 'text', value: 'Hi', accent: 'yes' }",
+            #"text at root: "accent" must be true or false, not the string "yes""#),
         Mistake(
             "button naming a missing action",
             returning: "{ type: 'button', action: 'refill', children: [{ type: 'symbol', name: 'plus' }] }",
@@ -151,7 +173,7 @@ struct Mistake: Sendable, CustomTestStringConvertible {
         Mistake(
             "a thrown exception",
             look: "function render(ctx) {\n  const d = ctx.data;\n  return { type: 'text', value: d.today.count };\n}",
-            "look threw TypeError: undefined is not an object (evaluating 'd.today.count') (line 3)"),
+            "look threw TypeError: cannot read property 'count' of undefined (line 3)"),
         Mistake(
             "a missing render", look: "function draw(ctx) { return { type: 'spacer' }; }",
             "look defines no function render(ctx); define it at the top level of the script"),
@@ -163,7 +185,7 @@ struct Mistake: Sendable, CustomTestStringConvertible {
         ),
         Mistake(
             "an endless loop", look: "function render(ctx) {\n  while (true) {}\n}",
-            "look ran longer than 250 ms; render(ctx) must finish quickly, so look for an endless loop"),
+            "look ran longer than 2000 steps; render(ctx) must finish quickly, so look for an endless loop"),
     ]
 }
 
@@ -204,12 +226,14 @@ struct Mistake: Sendable, CustomTestStringConvertible {
         ).get()
         #expect(
             drawing.taps == [
-                Tap(widget: "w1", action: "toggle", row: "item-1"), Tap(widget: "w1", action: "undo", row: "glass-1"),
-                Tap(widget: "w1", action: "drink", row: nil), Tap(widget: "w1", action: "add", row: nil),
-                Tap(widget: "w1", action: "add", row: "item-1"),
-                Tap(widget: "w1", action: "late", row: nil, day: "2026-11-16"),
-                Tap(widget: "w1", action: "late", row: nil, day: "2026-11-17"),
-                Tap(widget: "w1", action: "late", row: nil, day: "2026-11-18"),
+                Tap(widget: "w1", revision: "r1", action: "toggle", row: "item-1"),
+                Tap(widget: "w1", revision: "r1", action: "undo", row: "glass-1"),
+                Tap(widget: "w1", revision: "r1", action: "drink", row: nil),
+                Tap(widget: "w1", revision: "r1", action: "add", row: nil),
+                Tap(widget: "w1", revision: "r1", action: "add", row: "item-1"),
+                Tap(widget: "w1", revision: "r1", action: "late", row: nil, day: "2026-11-16"),
+                Tap(widget: "w1", revision: "r1", action: "late", row: nil, day: "2026-11-17"),
+                Tap(widget: "w1", revision: "r1", action: "late", row: nil, day: "2026-11-18"),
             ], "days after today and more than a year back draw without a tap")
     }
 

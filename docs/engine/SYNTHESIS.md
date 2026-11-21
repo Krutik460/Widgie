@@ -11,7 +11,7 @@ Why it is the base:
 - **Smallest interface.** One `Engine` object. Each of the four entry points is one call. The builder methods exist only for code that imports `WidgetBuilder`, and the widget extension does not link it.
 - **Stored local day.** A row records the calendar day it was written on, in the writer's local calendar. "Today" is an integer comparison in SQL, and travel never breaks a streak.
 - **Proof equals build.** The render tool and the builder share one code path, so an eval and a real build cannot disagree about what passes.
-- **Concrete JavaScript boundary.** Text in, text out, one file to swap when the engine is chosen. No protocol until a second engine exists.
+- **Concrete JavaScript boundary.** Text in, text out, one file to swap if the engine changes. No protocol until a second engine exists. The engine is QuickJS-ng (see below).
 
 ## Convergence
 
@@ -40,9 +40,10 @@ Both designs arrived at the same answers on these points without seeing each oth
 
 - **Field filter.** `count`, `sum`, `latest`, and `list` take an optional `where` with one field compared for equality against a literal. Nothing more expressive. This is what makes "open to-dos" and "done to-dos" correct past the list limit.
 - **The build loop runs on the phone.** Fit can only be measured where SwiftUI runs. The app sends the description to the backend, the backend returns the model's document, and the app validates, proves, and sends back any error line. The backend does not measure fit.
-- **A shared widget is re-proved on arrival.** A document received from another user goes through `build` before it is saved.
+- **A shared widget is re-proved on arrival.** A document received from another user goes through `build` before it is saved. A revision that arrives by sync draws only once `Engine.proveReceived` has proved it on this phone.
 - **No seed rows in the document.** The empty state is a state every look must handle, and the proof checks it.
-- **Runaway looks.** The builder rejects a look that exceeds its time budget. What the widget does about a look that runs away after it shipped depends on the engine choice, which needs a device. No quarantine table until then.
+- **Data reaches a closed app by one bounded pull in the widget (2026-11-20).** The timeline provider makes one request for this account's changes since its watermark before it renders, with a 4 second hard timeout, merges them in one short transaction, and on any failure renders what the store has. A widget push from the server triggers the reload. The server writes AI block rows ahead of their day, and every query window ends today, so a pre-written word appears at midnight with no network. Rejected: a WidgetKit push carries no data; a silent push to the app is throttled and never arrives after the user force-quits the app, so neither meets "a new word the next day without opening the app". Apple's advice against sync in the extension is a forum answer about full sync; Apple documents network requests in timeline providers. The client code waits for the backend (phase 3).
+- **Runaway looks.** Looks run on QuickJS-ng, vendored, with a step budget and a memory budget instead of a time limit (2026-11-20). The builder rejects a look that exceeds the proof's budget. A look that runs away after it shipped stops at the widget's budget on every reload, its thread ends, and the widget shows a fallback face, so there is no quarantine table. A device must still confirm the time per step and the memory peak inside the extension.
 
 ## Rejected
 
@@ -57,7 +58,8 @@ The arena calls for a judge from a different model family. None is available in 
 
 ## Open questions carried forward
 
-- JavaScriptCore against an embedded engine. Needs a device.
-- How tinted and lock screen modes reach the look. Needs a device.
+- QuickJS-ng's speed and memory on a device. Decided: QuickJS-ng replaced JavaScriptCore. Open: the time per step and the memory peak in the 30 MB extension, on an iPhone.
+- Tinted mode. Decided: the look is never told the mode, so one tree works in every mode; the renderer emulates tinted mode (`accent: true`, image `tint`, `{ light, dark }` colors) and the proof draws tinted and dark cells. Open: whether a device matches the emulation in iOS 26 tinted and clear.
+- How lock screen families reach the look. Only `small` and `medium` exist today.
 - Whether an automation should see its table's recent rows, so word of the day does not repeat.
 - Whether the backend should check the block grammar against a schema generated from the Swift types.

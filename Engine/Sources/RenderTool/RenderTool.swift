@@ -34,7 +34,7 @@ struct RenderTool {
 
         USAGE
           render-tool <widget dir> <small|medium> <out.png> [--sample <name> | --full | --state <rows.json>]
-                      [--date <ISO 8601>] [--time-zone <identifier>]
+                      [--appearance <light|dark|tinted>] [--date <ISO 8601>] [--time-zone <identifier>]
           render-tool proof <widget dir> <out dir> [--date <ISO 8601>] [--time-zone <identifier>]
           render-tool --help
 
@@ -42,17 +42,20 @@ struct RenderTool {
 
         RENDER MODE
           Draws one data state in one family: the empty state unless --sample, --full, or --state picks
-          another. --state reads rows in the grammar of one "samples" entry. Writes the PNG (3x, light),
+          another. --state reads rows in the grammar of one "samples" entry. --appearance draws it in
+          full color light (the default) or dark, or in the emulated tinted mode. Writes the PNG (3x),
           prints the fit report as one line of JSON on stdout, and prints the verdict or the error on
           stderr.
 
         PROOF MODE
           Runs exactly what the app's builder runs before it saves a widget: the empty state, every
-          sample, and the synthesized full state, each in small and medium, then action coverage and
-          the content check. Every cell is rendered even after one fails. Writes into <out dir>:
-            <state>-<family>.png   one per render that produced an image. <state> is "empty", "full",
-                                   or "sample-" and the sample name in lowercase with every run of
-                                   other characters turned into "-".
+          sample, and the synthesized full state, each in small and medium, then empty and full again
+          tinted and full again dark, then action coverage and the content check. Every cell is rendered
+          even after one fails. Writes into <out dir>:
+            <state>-<family>.png   one per light render that produced an image. <state> is "empty",
+                                   "full", or "sample-" and the sample name in lowercase with every
+                                   run of other characters turned into "-".
+            <state>-<family>-<tinted|dark>.png   one per tinted or dark render.
             report.json            the verdict and every render, described below.
           Prints one line on stdout: "accepted", or the verdict line the builder would send the model.
 
@@ -62,18 +65,20 @@ struct RenderTool {
             "timeZone": the time zone days were computed in,
             "widget":   the widget's name, or null when widget.json does not parse,
             "verdict":  null when the builder would save the widget, else its one-line rejection,
-            "renders":  [ in matrix order: empty, each sample, full; small before medium
+            "renders":  [ in matrix order: empty, each sample, full, then empty and full tinted, then
+                          full dark; small before medium
               {
                 "state":   "empty", "full", or the sample name,
                 "family":  "small" or "medium",
+                "appearance": "light", "tinted", or "dark",
                 "png":     the file name, or null when the look failed before drawing,
                 "verdict": null, or the line this render alone would get,
                 "error":   null, or the line when the look failed before drawing,
                 "fit":     null when the look failed, else {
                   "spill", "layoutOverflow" {width, height}, "edges" {top, bottom, leading, trailing},
                   "cut" [{path, node, label, within, edge, spill}], "truncated" and "ellipsized"
-                  [{path, value, linesNeeded, linesShown, lineLimit, width, height}], "ink",
-                  "imagePixels", "buttons" [action ids], "lookMilliseconds", "renderMilliseconds"
+                  [{path, value, linesNeeded, linesShown, lineLimit, width, height}], "ink", "cover"
+                  (tinted renders only), "imagePixels", "buttons" [action ids], "lookMilliseconds", "renderMilliseconds"
                 }
               }
             ]
@@ -115,6 +120,7 @@ private enum Command {
             return
         }
         let sample = try options.value("--sample")
+        let named = try options.value("--appearance")
         let full = options.flag("--full")
         let state = try options.value("--state")
         try options.done(positionals: 3)
@@ -123,6 +129,13 @@ private enum Command {
         }
         guard let family = Family(rawValue: options.positional[1]) else {
             throw Usage(line: "the family must be small or medium, not \"\(options.positional[1])\"")
+        }
+        var appearance = Appearance.light
+        if let named {
+            guard let picked = Appearance(rawValue: named) else {
+                throw Usage(line: "the appearance must be light, dark, or tinted, not \"\(named)\"")
+            }
+            appearance = picked
         }
         var chosen = DataState.empty
         if let sample { chosen = .sample(sample) }
@@ -136,7 +149,8 @@ private enum Command {
         self = .render(
             Render(
                 widget: URL(filePath: options.positional[0]), family: family,
-                output: URL(filePath: options.positional[2]), state: chosen, date: date, calendar: calendar))
+                output: URL(filePath: options.positional[2]), state: chosen, appearance: appearance, date: date,
+                calendar: calendar))
     }
 }
 
@@ -202,6 +216,7 @@ private struct Render {
     let family: Family
     let output: URL
     let state: DataState
+    let appearance: Appearance
     let date: Date
     let calendar: Calendar
 
@@ -215,7 +230,8 @@ private struct Render {
         }
         let proof: Proof
         do throws(Rejected) {
-            proof = try await Engine.proof(source, state: state, family: family, at: date, calendar: calendar)
+            proof = try await Engine.proof(
+                source, state: state, family: family, appearance: appearance, at: date, calendar: calendar)
         } catch {
             standardError("error: \(error.line)")
             return 1
@@ -257,18 +273,19 @@ private struct ProofRun {
         var used: Set<String> = []
         var renders: [Report.Render] = []
         for render in matrix.renders {
+            let suffix = render.appearance == .light ? "" : "-\(render.appearance.rawValue)"
             switch render.outcome {
             case .success(let proof):
-                let file = unique("\(slug(render.state))-\(render.family.rawValue)", in: &used) + ".png"
+                let file = unique("\(slug(render.state))-\(render.family.rawValue)\(suffix)", in: &used) + ".png"
                 renders.append(
                     Report.Render(
-                        state: render.state, family: render.family.rawValue, png: file, verdict: proof.verdict,
-                        error: nil, fit: proof.fit, bytes: proof.png))
+                        state: render.state, family: render.family.rawValue, appearance: render.appearance.rawValue,
+                        png: file, verdict: proof.verdict, error: nil, fit: proof.fit, bytes: proof.png))
             case .failure(let rejected):
                 renders.append(
                     Report.Render(
-                        state: render.state, family: render.family.rawValue, png: nil, verdict: rejected.line,
-                        error: rejected.line, fit: nil, bytes: nil))
+                        state: render.state, family: render.family.rawValue, appearance: render.appearance.rawValue,
+                        png: nil, verdict: rejected.line, error: rejected.line, fit: nil, bytes: nil))
             }
         }
         let report = Report(
@@ -328,18 +345,20 @@ private struct Report: Encodable {
     struct Render: Encodable {
         let state: String
         let family: String
+        let appearance: String
         let png: String?
         let verdict: String?
         let error: String?
         let fit: FitReport?
         let bytes: Data?
 
-        enum CodingKeys: String, CodingKey { case state, family, png, verdict, error, fit }
+        enum CodingKeys: String, CodingKey { case state, family, appearance, png, verdict, error, fit }
 
         func encode(to encoder: any Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(state, forKey: .state)
             try container.encode(family, forKey: .family)
+            try container.encode(appearance, forKey: .appearance)
             try container.encode(png, forKey: .png)
             try container.encode(verdict, forKey: .verdict)
             try container.encode(error, forKey: .error)

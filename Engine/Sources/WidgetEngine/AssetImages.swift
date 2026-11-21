@@ -5,10 +5,25 @@ import Rows
 import Spec
 import Synchronization
 
-/// Image assets for one render call. Decodes each referenced asset once, as a thumbnail no larger than the
-/// display needs, and applies `crop` before caching. Two sources, one behavior: stored widgets read
-/// content-addressed files; proofs read the bytes of a `WidgetSource` before anything is saved.
+/// Image assets for one render call: one `faces` call, or one proof cell. Decodes each referenced asset once
+/// per crop and display size, as a thumbnail no larger than the display needs, and applies `crop` before
+/// caching. Two sources, one behavior: stored widgets read content-addressed files; proofs read the bytes of a
+/// `WidgetSource` before anything is saved.
+///
+/// Everything it decodes counts against `pixelBudget` for its whole lifetime. The cache keys on the crop and
+/// the display size, so each distinct crop of one asset is its own decode and counts again. A decode past the budget returns
+/// `.overBudget` and holds nothing, so the widget and its proof enforce the same cap in the same place.
 package final class AssetImages: Sendable {
+    /// The most image pixels one render call may hold decoded: 1.5 megapixels, about 6 MB.
+    package static let pixelBudget = 1_500_000
+
+    package enum Failure: Error {
+        /// The asset is missing or its bytes are not an image.
+        case unreadable
+        /// The decode would take this call past `pixelBudget`.
+        case overBudget
+    }
+
     private enum Source: Sendable {
         case files([Spec.AssetID: URL])
         case bytes([Spec.AssetID: Data])
@@ -21,7 +36,7 @@ package final class AssetImages: Sendable {
     }
 
     private let source: Source
-    private let decoded = Mutex<[Key: DecodedImage]>([:])
+    private let decoded = Mutex<(images: [Key: DecodedImage], pixels: Int)>(([:], 0))
 
     private init(_ source: Source) { self.source = source }
 
@@ -37,21 +52,25 @@ package final class AssetImages: Sendable {
     package static func inMemory(_ bytes: [Spec.AssetID: Data]) -> AssetImages { AssetImages(.bytes(bytes)) }
 
     /// Every pixel decoded so far, which is what this render call holds in memory for images.
-    package var decodedPixels: Int {
-        decoded.withLock { $0.values.reduce(0) { $0 + $1.cgImage.width * $1.cgImage.height } }
-    }
+    package var decodedPixels: Int { decoded.withLock { $0.pixels } }
 
     /// `crop` is in fractions of the image, from the top left. `maxPixels` is the most the display can show;
     /// the decode is just large enough that the cropped part covers it, and never larger than the source.
-    package func image(_ id: Spec.AssetID, crop: CGRect?, maxPixels: CGSize) -> DecodedImage? {
+    package func image(_ id: Spec.AssetID, crop: CGRect?, maxPixels: CGSize) throws(Failure) -> DecodedImage {
         let region = crop ?? CGRect(x: 0, y: 0, width: 1, height: 1)
         let key = Key(
             id: id, crop: [region.minX, region.minY, region.width, region.height],
             pixels: [maxPixels.width, maxPixels.height])
-        if let hit = decoded.withLock({ $0[key] }) { return hit }
-        guard let image = decode(id, region: region, maxPixels: maxPixels) else { return nil }
-        decoded.withLock { $0[key] = image }
-        return image
+        if let hit = decoded.withLock({ $0.images[key] }) { return hit }
+        guard let image = decode(id, region: region, maxPixels: maxPixels) else { throw .unreadable }
+        let pixels = image.cgImage.width * image.cgImage.height
+        return try decoded.withLock { (decoded) throws(Failure) -> DecodedImage in
+            if let hit = decoded.images[key] { return hit }
+            guard decoded.pixels + pixels <= Self.pixelBudget else { throw .overBudget }
+            decoded.images[key] = image
+            decoded.pixels += pixels
+            return image
+        }
     }
 
     private func decode(_ id: Spec.AssetID, region: CGRect, maxPixels: CGSize) -> DecodedImage? {

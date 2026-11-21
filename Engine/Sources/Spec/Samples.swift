@@ -27,8 +27,8 @@ extension Spec {
 
     /// Rows that stress layout: every list filled to its limit, three-digit counts, streaks, and daily
     /// totals, and in every field the longest value the widget can store there. Rows for a filtered query
-    /// match its filter, and every day of a goal streak reaches the goal. It catches spills the model's own
-    /// samples miss.
+    /// match its filter, and every day of a goal streak reaches the goal, as far as 100 rows a day allow. It
+    /// catches spills the model's own samples miss.
     package var full: Sample {
         var rows: [SampleRow] = []
         for table in tables {
@@ -122,17 +122,22 @@ extension Spec {
 }
 
 extension Spec.AnyField {
-    /// The value the `full` state writes: long text, a three-digit number, true, and the date with the
-    /// longest English name, Wednesday, September 30.
+    /// The value the `full` state writes: text of realistic words at exactly `Limits.textLength`, a
+    /// three-digit number, true, and the date with the longest English name, Wednesday, September 30.
     fileprivate var longestValue: Spec.FieldValue {
         switch self {
-        case .text(let field): Spec.FieldValue(field, "Water the plants on the balcony and porch")
+        case .text(let field): Spec.FieldValue(field, longestText)
         case .number(let field): Spec.FieldValue(field, 999)
         case .bool(let field): Spec.FieldValue(field, true)
         case .date(let field): Spec.FieldValue(field, Day(year: 2026, month: 9, day: 30))
         }
     }
 }
+
+/// 300 UTF-16 units, the most a text field holds, in words a person would write, so `full` renders the
+/// longest text the widget can store.
+private let longestText =
+    "Water the plants on the balcony and porch, then call the landlord about the leaking kitchen tap, pick up the dry cleaning before six, book a table for Saturday night, renew the library books due Monday, buy oat milk, eggs, bread, and coffee beans, and send Gran the photos from our trip to the lakes."
 
 extension Spec.Cell {
     /// How much room the value takes on screen, to pick the widest of one field's fixed values.

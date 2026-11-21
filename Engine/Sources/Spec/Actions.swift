@@ -31,7 +31,7 @@ extension Spec {
             }
         }
 
-        /// Derived from the case, so the tree validator and `perform` agree on whether a button needs a
+        /// Derived from the case, so the tree validator and `apply` agree on whether a button needs a
         /// `rowId`.
         package var rowUse: RowUse {
             switch self {

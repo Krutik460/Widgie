@@ -9,7 +9,7 @@ import WidgetEngine
 ///     assets/<asset id>.png | .jpg
 ///
 /// Raw on purpose: this is the boundary where untrusted text enters, and it is parsed into typed blocks
-/// inside `build` and `proof`, never by callers.
+/// inside `build`, `proof`, and `proofs`, never by callers.
 public struct WidgetSource: Sendable {
     public var json: Data
     public var images: [String: Data]
@@ -87,6 +87,17 @@ public enum DataState: Sendable {
     case file(URL)
 }
 
+/// How a proof draws a render. WidgetKit tells the look neither, so the same tree must work in all three.
+public enum Appearance: String, Sendable, CaseIterable {
+    /// Full color in the light color scheme: the cell every data state gets.
+    case light
+    /// Full color in the dark color scheme. `{ light, dark }` colors take their dark value.
+    case dark
+    /// The tinted home screen, emulated: the background replaced by a dark backdrop, every color white at its
+    /// own opacity, `accent: true` nodes in a tint color, and images by their `tint`. A device must confirm it.
+    case tinted
+}
+
 /// One saved revision of a widget, for "undo that change".
 public struct WidgetRevision: Sendable, Hashable, Identifiable {
     /// The revision's content hash. The same document always has the same id, on every device.
@@ -99,8 +110,9 @@ public struct WidgetRevision: Sendable, Hashable, Identifiable {
 public struct ProofMatrix: Sendable {
     /// The widget's name, or nil when the document does not parse.
     public let name: String?
-    /// In matrix order: `empty`, each sample, then `full`, each in every family. Empty when the source was
-    /// rejected before any render.
+    /// In matrix order: `empty`, each sample, then `full`, each in every family, all light; then `empty` and
+    /// `full` tinted, and `full` dark, each in every family. Empty when the source was rejected before any
+    /// render.
     public let renders: [ProofRender]
     public let verdict: String?
 }
@@ -109,6 +121,7 @@ public struct ProofRender: Sendable {
     /// `empty`, `full`, or the sample's name.
     public let state: String
     public let family: Family
+    public let appearance: Appearance
     /// The render, or the line when the look failed before there was anything to measure.
     public let outcome: Result<Proof, Rejected>
 }

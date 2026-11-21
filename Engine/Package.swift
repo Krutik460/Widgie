@@ -4,7 +4,7 @@ import PackageDescription
 // Public products: WidgetEngine, WidgetBuilder, WidgetHosting, and render-tool. Spec, Rows, and Sandbox are
 // package-internal: they declare `package`, never `public`, so code outside this package links them only
 // through the public products and cannot call into them. `scripts/check` enforces that and each target's
-// imports against docs/engine/MODULES.md.
+// imports against docs/engine/MODULES.md. CQuickJS is the vendored C engine that only Sandbox links.
 let package = Package(
     name: "WidgetEngine",
     platforms: [.iOS(.v26), .macOS(.v26)],
@@ -20,14 +20,21 @@ let package = Package(
     targets: [
         .target(name: "Spec"),
         .target(name: "Rows", dependencies: ["Spec", .product(name: "GRDB", package: "GRDB.swift")]),
-        .target(name: "Sandbox"),
+        // QuickJS-ng, vendored unmodified at a pinned tag (Vendor/QuickJS/README.md).
+        .target(
+            name: "CQuickJS", path: "Vendor/QuickJS", exclude: ["README.md", "LICENSE"],
+            // The vendored sources stay unmodified, so their warnings are silenced here instead of fixed.
+            cSettings: [.define("_GNU_SOURCE"), .unsafeFlags(["-w"])]),
+        .target(name: "Sandbox", dependencies: ["CQuickJS"]),
         .target(name: "WidgetEngine", dependencies: ["Spec", "Rows", "Sandbox"]),
         .target(name: "WidgetBuilder", dependencies: ["WidgetEngine", "Spec", "Rows", "Sandbox"]),
         .target(name: "WidgetHosting", dependencies: ["WidgetEngine"]),
         .executableTarget(name: "RenderTool", dependencies: ["WidgetEngine", "WidgetBuilder"]),
         .testTarget(name: "SpecTests", dependencies: ["Spec"]),
         .testTarget(name: "RowsTests", dependencies: ["Rows", "Spec"]),
-        .testTarget(name: "LookTests", dependencies: ["Sandbox", "WidgetEngine", "Rows", "Spec"]),
+        // Linked only for its load-time switch that keeps test renders on the CPU (cpu_rendering.c).
+        .target(name: "CPURendering", path: "Tests/CPURendering"),
+        .testTarget(name: "LookTests", dependencies: ["Sandbox", "WidgetEngine", "Rows", "Spec", "CPURendering"]),
         .testTarget(
             name: "EngineTests",
             dependencies: ["WidgetEngine", "WidgetBuilder", "WidgetHosting", "RenderTool", "Rows", "Sandbox", "Spec"]),

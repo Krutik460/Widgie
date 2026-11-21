@@ -1,6 +1,6 @@
 # Modules
 
-One Swift package, `Engine/`, with seven targets and four test targets. Names are placeholders.
+One Swift package, `Engine/`, with seven Swift targets, one vendored C target, four test targets, and one C target that only the tests link. Names are placeholders.
 
 ```mermaid
 flowchart BT
@@ -19,7 +19,7 @@ flowchart BT
   Tool --> Engine
   Rows -.-> GRDB[(GRDB)]
   Rows -.-> Crypto[(CryptoKit)]
-  Sandbox -.-> JSC[(JavaScriptCore<br/>or embedded engine)]
+  Sandbox --> QJS["CQuickJS<br/>(vendored C)"]
 ```
 
 ## Targets
@@ -30,9 +30,10 @@ flowchart BT
 |---|---|---|---|
 | `Spec` | The widget document: the exchange JSON grammar, format upgrades, parsing into typed blocks (`Spec.Table`, `Spec.Field<V>`, `Spec.Shape`, `Spec.Effect`, `Spec.Sample`), canonical encoding, refinement compatibility, the synthesized `empty` and `full` states, state files, `Day`, `Weekday`, and `Today`, `Diagnostic`, `JSONValue`. | Foundation | `package` only. Initializers are `internal`, so only this target constructs these types, and only while parsing. |
 | `Rows` | Everything persisted: the SQLite schema and migrations, content-addressed revisions and widget heads, rows and cells with clock stamps, the single LWW merge, query compilation and evaluation, effect application, the replica id and hybrid logical clock, content-addressed asset files and the hashing that names them, and every rule that makes two processes safe. | Spec, GRDB, CryptoKit, Foundation | `package` only. The schema and `merge` are `internal`. |
-| `Sandbox` | Running a look: source, context JSON, and budget in, tree JSON out. The purity prelude, the time watchdog, the VM lifecycle. The JavaScript engine choice lives here and nowhere else; an embedded engine would replace JavaScriptCore in this row. | JavaScriptCore, Foundation | `package` only. Knows nothing about widgets, queries, or the vocabulary. |
-| `WidgetEngine` | The runtime: `Engine` (`faces`, `perform`, `form`, `widgets`, `delete`) and its commit hook, the look contract (context encoding, the tree vocabulary, the one tree validator that produces a `Drawing` and checks button rows against the rows the look received), image decoding for renders, the SwiftUI renderer (`FaceView`, `FaceHost`), the geometry probe hook, fallback faces. | Spec, Rows, Sandbox, SwiftUI, CoreGraphics, ImageIO, Synchronization, Foundation, os | Public: `Engine` and about a dozen value types. Everything else `package` or private. |
-| `WidgetBuilder` | Turning a model reply or a shared widget into a saved revision: `Engine.build`, `Engine.source(of:)`, `Engine.history(of:)`, `Engine.restore`, `Engine.proof`, `Engine.proofs`, `WidgetSource`, image ingest (downscale and encode), the proof matrix, fit analysis, the verdict line, action coverage, PNG encoding. | WidgetEngine, Spec, Rows, Sandbox, SwiftUI, CoreGraphics, ImageIO, Foundation | Public: the builder entry points and their value types, added to `Engine` by extension. |
+| `Sandbox` | Running a look: source, context JSON, and budget in, tree JSON out. The purity prelude, the step and memory budgets, a fresh QuickJS runtime per run. The JavaScript engine lives here and nowhere else. | CQuickJS, Foundation | `package` only. Knows nothing about widgets, queries, or the vocabulary. |
+| `CQuickJS` | QuickJS-ng, vendored unmodified at a pinned tag in `Engine/Vendor/QuickJS` (see its README), outside `Sources/` so the format lint and these rules skip it. | none | C. Not a product; only `Sandbox` links it. |
+| `WidgetEngine` | The runtime: `Engine` (`faces`, `perform`, `form`, `widgets`, `delete`, and the static `suspend` and `resume`) and its commit hook, the look contract (context encoding, the tree vocabulary, the one tree validator that produces a `Drawing` and checks button rows against the rows the look received), image decoding for renders, the SwiftUI renderer (`FaceView`, `FaceHost`), the geometry probe hook, fallback faces. | Spec, Rows, Sandbox, SwiftUI, CoreGraphics, ImageIO, Synchronization, Foundation, os | Public: `Engine` and about a dozen value types. Everything else `package` or private. |
+| `WidgetBuilder` | Turning a model reply or a shared widget into a saved revision: `Engine.build`, `Engine.source(of:)`, `Engine.history(of:)`, `Engine.restore`, `Engine.proveReceived`, `Engine.proof`, `Engine.proofs`, `WidgetSource`, image ingest (downscale and encode), the proof matrix, fit analysis, the verdict line, action coverage, PNG encoding. | WidgetEngine, Spec, Rows, Sandbox, SwiftUI, CoreGraphics, ImageIO, Foundation | Public: the builder entry points and their value types, added to `Engine` by extension. |
 | `WidgetHosting` | Everything WidgetKit and App Intents: `Hosting.engine` with the app's reload hook, `RunAction`, the form link (`Hosting.formURL`, `Hosting.formTap`), `PickWidget`, `WidgetChoice` and its query, `HostingIntents`, the timeline provider, `CreationWidget`, `FaceHost.widget`, the family mapping. | WidgetEngine, SwiftUI, WidgetKit, AppIntents, Foundation | Public: what WidgetKit and App Intents require to be visible. |
 | `RenderTool` | The command line: arguments, files, exit code. | WidgetBuilder, WidgetEngine, Foundation | Executable. |
 
@@ -41,7 +42,8 @@ Each area has its own test target, so units of work that run in parallel never s
 - `SpecTests` tests `Spec` through `Spec.parse`, the encoder, and `Today`. It parses the four reference widgets in `Engine/Fixtures/` and every example in `Engine/Reference/blocks.md`.
 - `RowsTests` tests `Rows`.
 - `LookTests` tests `Sandbox` and the tree validator.
-- `EngineTests` tests `WidgetEngine`, `WidgetBuilder`, and `WidgetHosting`.
+- `EngineTests` tests `WidgetEngine`, `WidgetBuilder`, `WidgetHosting`, and the render tool.
+- `CPURendering` (`Engine/Tests/CPURendering`, C, linked by `LookTests`) holds no tests. When the test bundle loads it sets RenderBox's `RB_DISABLE_GPU`, so `ImageRenderer` draws every test render on the CPU. Otherwise RenderBox draws some content on the GPU depending on what the process drew before, the two round edge pixels one level apart, and the PNGs in `Engine/.artifacts/look` changed between runs of the same code.
 
 ## Who links what
 
@@ -57,7 +59,7 @@ Each area has its own test target, so units of work that run in parallel never s
 `Engine/scripts/check` enforces the first two rules and fails on a violation.
 
 - **Internals are unreachable.** `Spec`, `Rows`, and `Sandbox` are not products and declare nothing `public`, so app code cannot call them even though their modules are built. The check fails on any `public` in a target whose Visibility starts with "`package` only", because one stray `public` would become importable API.
-- **Imports follow the table.** Every `import` in a target must appear in its "May import" cell. So only `Rows` imports GRDB and CryptoKit, only `Sandbox` imports JavaScriptCore, only `WidgetHosting` imports WidgetKit or AppIntents, and only `WidgetEngine`, `WidgetBuilder`, and `WidgetHosting` import SwiftUI.
+- **Imports follow the table.** Every `import` in a target must appear in its "May import" cell. So only `Rows` imports GRDB and CryptoKit, only `Sandbox` imports CQuickJS, only `WidgetHosting` imports WidgetKit or AppIntents, and only `WidgetEngine`, `WidgetBuilder`, and `WidgetHosting` import SwiftUI.
 - **No public name collides with SwiftUI or Foundation.** Found while type-checking the sketch: `Scene`, `Form`, `Host`, `ContentMode`, and `BlendMode` all collided. Public types are named `Face*`, `Input*`, `Widget*`, or are specific enough not to (`Tap`, `Proof`, `FitReport`).
 - **A type named like its module keeps its helpers inside it.** `Spec` is a struct in module `Spec`, and `Sandbox` is an actor in module `Sandbox`. Swift then reads `Spec.Table` as a member of the struct, never as a module-qualified name. So the block types are nested in `Spec` (`Spec.Table`, `Spec.Shape`, `Spec.Form`), which also keeps them clear of SwiftUI's `Table`, `Shape`, and `Form`. `Sandbox.Budget` and `Sandbox.Failure` are nested for the same reason.
 - **No SwiftUI macros.** The Command Line Tools ship no SwiftUI macro plugin (`@Entry` failed to expand here), so environment keys and previews are written by hand.
@@ -73,12 +75,11 @@ scripts/check
 It runs, in order, `swift format lint --strict`, the release build, the tests, and the module rules. The two build commands it uses are:
 
 ```sh
-swift build -c release --build-system native
-CLT=/Library/Developer/CommandLineTools/Library/Developer/Frameworks
-swift test --build-system native -Xswiftc -F$CLT -Xlinker -rpath -Xlinker $CLT
+swift build -c release
+swift test
 ```
 
-Plain `swift build` fails here, so both use the native build system. The test command needs the flags because the native build system does not find the Command Line Tools copy of `Testing.framework` on its own (observed: `no such module 'Testing'` without the flags). GRDB is pinned in `Engine/Package.resolved`.
+They need Xcode selected (`xcode-select -p`). With only the Command Line Tools, plain `swift build` failed and the tests needed extra flags to find `Testing.framework`. GRDB is pinned in `Engine/Package.resolved`.
 
 ## The 30 MB widget extension
 
@@ -87,9 +88,9 @@ What the extension holds in memory while rendering, and the cap each owner enfor
 | Item | Owner | Cap |
 |---|---|---|
 | Process baseline (Swift runtime, SwiftUI, WidgetKit, archived view) | platform | measure first; everything else fits in what remains |
-| JavaScript VM and one context | `Sandbox` | one VM per process, one fresh context per run, released after the run. About 3 MB on macOS in the prototype. |
+| JavaScript runtime | `Sandbox` | one fresh QuickJS runtime per run, freed before the run returns. Capped at 12 MB (`Budget.widget`); the reference looks peak at 229 to 256 KB on macOS. |
 | SQLite page cache | `Rows` | `cache_size` 512 KB per connection, at most two readers in the extension |
-| Decoded images | `WidgetEngine` (`AssetImages`) | decoded once per `faces` call and shared by both entries, at display pixels after crop. The builder rejects a widget whose assets would decode to more than 1.5 megapixels in total at the largest family (about 6 MB). |
+| Decoded images | `WidgetEngine` (`AssetImages`) | decoded once per `faces` call and shared by both entries, at display pixels after crop, within a 1.5 megapixel budget (about 6 MB) for the whole call; each distinct crop counts. A decode past it fails the look, in the widget and in the proof alike. |
 | Tree and drawing | `WidgetEngine` | the builder's proof rejects trees over 2,000 nodes |
 | Code | linker | unreferenced code costs clean pages only; `WidgetBuilder` is not linked at all |
 
