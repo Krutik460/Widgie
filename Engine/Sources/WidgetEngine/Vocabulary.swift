@@ -7,7 +7,7 @@ import Spec
 /// beyond the grammar. Unknown types and props fail with the allowed lists drawn from here, and
 /// Reference/look.md teaches the same lists; a test fails if its tables and this registry disagree.
 package enum Vocabulary {
-    /// The named fonts. iOS and macOS both ship every family on this list.
+    /// The named fonts. iOS and macOS both ship every family on this list; `namedFontShipsHere` checks it.
     package static let fonts: [(name: String, style: String)] = [
         ("Bradley Hand", "handwriting, a quick pen"), ("Noteworthy", "handwriting, neat notes"),
         ("Marker Felt", "handwriting, felt marker"), ("Chalkduster", "display, chalk on a blackboard"),

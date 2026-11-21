@@ -97,7 +97,7 @@ Other fields resolve last writer wins per field, with the server as authority.
 ### Stack
 
 - App and extension in Swift and SwiftUI, minimum iOS 26.
-- Shared Swift package for spec types, validator, query engine, and renderer. It should build and test on this Mac without Xcode. The Command Line Tools ship SwiftUI, WidgetKit, AppIntents, and Swift Testing (checked on disk). An actual package build is not yet run.
+- Shared Swift package for spec types, validator, query engine, and renderer. It builds and tests on the Mac with Xcode or with the Command Line Tools alone, and builds for the iOS Simulator.
 - GRDB in the App Group container.
 - Backend on Cloudflare Workers with Durable Objects.
 - Our own model behind one build endpoint on the backend. The app never knows which model answers. The model must accept an image as input, or a vision step must sit in front of it.
@@ -154,8 +154,8 @@ Found along the way:
 - simslim's `other` group holds `linkd`. Without it every widget stays a grey placeholder ("Intent configuration is required but was not provided"). The boot command now keeps it (above, and in project memory).
 - The first widget placed saved Meditate, the only widget at the moment iOS first asked for a default, before linkd ran. A widget placed after that saved the latest creation, so `defaultResult()` is correct.
 - A long press on a widget's button ran its tap once on the simulator (17:58:09). Confirm on a device that opening a widget's menu never runs its action.
-- Habit look, tinted: once today is checked, its outline is gone, so on a streak today looks like any other done day. A fixture look fix, low priority.
-- Done to-do titles wrap to two lines to make room for the remove button. A fixture look detail, low priority.
+- Habit look, tinted: once today is checked, its outline is gone, so on a streak today looks like any other done day. Fixed 2026-11-21: today is a smaller square inside a ring, and the gap marks it in every mode.
+- Done to-do titles wrap to two lines to make room for the remove button. Fixed 2026-11-21: a done title keeps one line in both sizes and ends in an ellipsis.
 
 Still open from this phase: the device step (needs the Apple Developer account and a team id in `App/project.yml`), the water widget on the home screen (only installed in the app), and the medium size on the home screen.
 
@@ -173,8 +173,7 @@ The unknown is whether one interpreter can render and act inside widget limits.
 - [x] Pick the JavaScript engine: QuickJS-ng with step and memory budgets (phase 1d). A device must still confirm speed and memory
 - [x] View tree renderer with the prototype vocabulary plus dashed strokes, blend modes, and image color adjustment
 - [x] Image assets in the view tree, sized under the widget pixel cap
-- [ ] Font allowlist checked against fonts that ship on iOS
-- [ ] Xcode project: app target, widget extension, App Group, linking `Engine/`
+- [x] Font allowlist checked against fonts that ship on iOS: all 12 families resolve on the iOS 27.2 simulator (2026-11-21). `namedFontShipsHere` checks it on every `scripts/check` run on macOS, and on iOS with `xcodebuild test -scheme WidgetEngine-Package -destination 'platform=iOS Simulator,...' -only-testing:LookTests/ReferenceTests`
 - [ ] Tinted and lock screen modes for every node type (needs a device)
 - [ ] `RunAction` intent and the entity picker running in a real widget (simulator done 2026-11-21, device still open)
 - [ ] Prototype Button against Toggle on a locked and unlocked device, pick one
@@ -404,7 +403,7 @@ Contact sheets: `prototypes/look-language/index.html` (round one) and `prototype
 **Round two. Fit, fonts, reference images.** JavaScript only, 18 looks, one run each.
 
 - **Fit.** 11 of 12 first drafts spilled past the widget edge by more than 2 points. After one repair call that states the measured spill, 0 of 12 did. A repair sometimes fits by dropping content, and the check does not catch that yet.
-- **Fonts.** A 12-family allowlist closed the handwriting gap. Availability on iOS is not yet checked.
+- **Fonts.** A 12-family allowlist closed the handwriting gap. All 12 ship on iOS (checked on the simulator, 2026-11-21).
 - **Reference images.** All 6 looks were valid on the first try. For a screenshot and for artwork the models recreated the look in code. For a photo both models placed the photo as a layer with a dark scrim and live data on top.
 - **Gaps the references exposed.** No dashed or dotted stroke, no blend modes, no image color adjustment, no backdrop blur. A widget cannot be non-rectangular, so a torn or scalloped edge can only be faked.
 
@@ -445,13 +444,12 @@ Contact sheets: `prototypes/look-language/index.html` (round one) and `prototype
 
 **Still open.**
 
-- Everything that needs a phone: the widget extension, real taps, the 30 MB limit, tinted mode, iOS fonts and symbols, the JavaScript engine choice.
+- Everything that needs a phone: the 30 MB limit, tinted mode on a device, speed and memory of the JavaScript engine. The widget extension, real taps, tinted mode, and iOS fonts now run on the simulator.
 - A cut-text error line reports the width the text took, not the room it had.
 - The synthesized `full` state writes one row per past day, so history bars stay short in that state.
 
 ## Blockers that need the user
 
-- Xcode is not installed on this Mac. Only the Command Line Tools are present. The disk has 28 GB free, and Xcode plus one simulator runtime needs roughly 20 to 25 GB, so space is tight.
 - A paid Apple Developer account is needed for App Groups on a device, push, and App Attest.
 - A Cloudflare account is needed from phase 2. No Anthropic API key is needed while local Claude Code stands in for the model.
 

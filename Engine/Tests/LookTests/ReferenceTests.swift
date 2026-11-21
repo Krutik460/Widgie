@@ -1,3 +1,4 @@
+import CoreText
 import Foundation
 import Sandbox
 import Spec
@@ -170,5 +171,14 @@ struct LookExample: Sendable, CustomTestStringConvertible {
     @Test func fontTableIsTheAllowlist() {
         let names = LookReference.table(under: "### Named fonts").compactMap { LookReference.codeSpans($0[0]).first }
         #expect(names == Vocabulary.fonts.map(\.name))
+    }
+
+    /// Every allowlisted family is installed on the platform the tests run on. A missing family would not
+    /// fail a render: SwiftUI would quietly draw the system font. `scripts/check` runs this on macOS, and
+    /// `xcodebuild test` on an iOS simulator runs it against the fonts iOS ships.
+    @Test(arguments: Vocabulary.fonts.map(\.name)) func namedFontShipsHere(_ family: String) {
+        let wanted = CTFontDescriptorCreateWithAttributes([kCTFontFamilyNameAttribute: family] as CFDictionary)
+        let found = CTFontDescriptorCreateMatchingFontDescriptor(wanted, nil)
+        #expect(found.flatMap { CTFontDescriptorCopyAttribute($0, kCTFontFamilyNameAttribute) as? String } == family)
     }
 }
