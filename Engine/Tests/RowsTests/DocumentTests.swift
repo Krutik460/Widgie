@@ -52,6 +52,42 @@ import Testing
         #expect(try Spec.parse(stored).asset(named: "logo")?.digest == abc, "the revision names its image")
     }
 
+    func counter(fields: String) throws -> Spec {
+        try parse(
+            #"{"name": "Counter", "look": "function render(ctx) { return { type: 'spacer' }; }", "tables": {"taps": {"fields": \#(fields)}}}"#
+        )
+    }
+
+    @Test func aRefinementCheckedBeforeACompetingOneCommittedIsRefusedWhenItSaves() throws {
+        let store = try RowStore.scratch()
+        let key = WidgetKey.mint()
+        let first = try store.save(key, spec: counter(fields: "{}"), assets: [:])
+        let blue = try counter(fields: "{}")
+        #expect(try store.refusal(of: blue, replacing: key) == nil, "it fits the head it was checked against")
+        let competing = try store.replace(key, with: counter(fields: #"{"note": "text"}"#), assets: [:])
+        #expect(competing == nil)
+
+        #expect(
+            try store.replace(key, with: blue, assets: [:])
+                == "field \"taps.note\" is gone; keep every field id so the stored values carry over")
+        #expect(try store.widget(key)?.spec == (try counter(fields: #"{"note": "text"}"#)), "the head did not move")
+        #expect(try store.revisions(of: key).count == 2)
+        #expect(try store.revisions(of: key).last?.digest == first)
+    }
+
+    @Test func aRefinementOfAWidgetDeletedSinceItWasCheckedThrowsAndLeavesItDeleted() throws {
+        let store = try RowStore.scratch()
+        let key = WidgetKey.mint()
+        _ = try store.save(key, spec: counter(fields: "{}"), assets: [:])
+        let blue = try counter(fields: #"{"note": "text"}"#)
+        #expect(try store.refusal(of: blue, replacing: key) == nil)
+        try store.delete(key)
+
+        #expect(throws: StoreError.self) { try store.replace(key, with: blue, assets: [:]) }
+        #expect(try store.widget(key) == nil)
+        #expect(try store.widgets().isEmpty)
+    }
+
     @Test func widgetsListsLiveWidgetsNewestFirst() throws {
         let store = try RowStore.scratch()
         let older = WidgetKey.mint()
