@@ -229,6 +229,30 @@ class ResumeTests(unittest.TestCase):
         self.assertIn(f"expects a new table instead of glasses: fail, {NO_NEW_TABLE}", page)
         self.assertIn("Table check on accepted refines: haiku 0 of 1 (missed refine-water).", page)
 
+    def test_a_picture_renamed_with_the_same_bytes_keeps_its_recorded_snapshot(self):
+        picture = self.run_dir / "source" / "couple.jpg"
+        picture.parent.mkdir()
+        shutil.copyfile(EVALS / "images" / "R4-couple.jpg", picture)
+        self.build(Case("couple", "basic", "a countdown", picture, None))
+        renamed = picture.rename(picture.with_suffix(".jpeg"))
+        self.build(Case("couple", "basic", "a countdown", renamed, None))
+        self.assertEqual(self.call.call_count, 1)
+        case_dir = self.run_dir / "couple"
+        snapshot = case_dir / json.loads((case_dir / "case.json").read_text())["image"]
+        self.assertEqual(snapshot.read_bytes(), renamed.read_bytes())
+
+    def test_a_run_that_named_its_snapshot_after_the_source_gets_the_snapshot_its_record_names(self):
+        case = Case("couple", "basic", "a countdown", EVALS / "images" / "R4-couple.jpg", None)
+        self.build(case)
+        case_dir = self.run_dir / "couple"
+        (case_dir / "request.jpg").rename(case_dir / "request.jpeg")
+        record = json.loads((case_dir / "case.json").read_text())
+        (case_dir / "case.json").write_text(json.dumps({**record, "image": "request.jpeg"}))
+        self.build(case)
+        self.assertEqual(self.call.call_count, 1)
+        snapshot = case_dir / json.loads((case_dir / "case.json").read_text())["image"]
+        self.assertEqual(snapshot.read_bytes(), case.image.read_bytes())
+
     def test_a_changed_proof_date_proves_the_base_and_builds_again(self):
         case = Case("refine-water", "refine", "make it blue", None, FIXTURES / "water")
         self.build(case)
