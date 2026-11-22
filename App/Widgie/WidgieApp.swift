@@ -8,6 +8,10 @@ struct WidgieApp: App {
     @Environment(\.scenePhase) private var phase
     @State private var library = Library()
 
+    init() {
+        Preview.removeLeftovers()
+    }
+
     var body: some Scene {
         WindowGroup {
             LibraryView(library: library)
