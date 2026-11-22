@@ -174,9 +174,9 @@ package final class RowStore: Sendable {
     /// Why `spec` cannot replace the live widget `key` as the store holds it now, or nil when it can. It must
     /// keep the tables and fields of the widget's head (`Spec.checkCompatible(replacing:)`), even a head
     /// another device saved that is not proved here yet, and a head this device cannot read refuses it. It
-    /// must agree on field kinds with every other live widget bound to one of its datasets (`sharers(of:)`),
-    /// and keep the kinds of the cells already stored there (`storedKinds(of:)`). Throws when `key` names no
-    /// live widget.
+    /// must agree on field kinds with every other live widget bound to one of its datasets, both its head and
+    /// the revision it draws (`sharers(of:)`), and keep the kinds of the cells already stored there
+    /// (`storedKinds(of:)`). Throws when `key` names no live widget.
     package func refusal(of spec: Spec, replacing key: WidgetKey) throws(StoreError) -> String? {
         try read { db in try Rows.refusal(of: spec, replacing: key, db, missing: "no widget \(key.raw) to replace") }
     }
@@ -656,8 +656,9 @@ func dataset(of widget: WidgetKey, table: String, _ db: Database) throws -> Data
 }
 
 /// `RowStore.refusal(of:replacing:)` inside the caller's transaction, throwing `missing` when `key` names no
-/// live widget. It checks against the head, not the drawn revision: a head received from another device can
-/// add a field before its proof passes here, and the replacement must keep that field too.
+/// live widget. It checks against heads, not only drawn revisions: a head received from another device can
+/// add a field before its proof passes here, and the replacement must keep that field, and agree with a
+/// sharer's head on its kind, too.
 private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database, missing: String) throws -> String? {
     guard
         let found = try Row.fetchOne(
@@ -669,15 +670,39 @@ private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database, mi
     else { throw StoreError(message: missing) }
     let head: Spec
     do throws(Diagnostic) {
-        guard let body = found["body"] as Data? else { throw Diagnostic("its revision has not arrived") }
-        head = try Spec.parse(body)
+        head = try parsed(found["body"])
     } catch {
         return "the widget's newest version cannot be read on this device (\(error.line)), so it cannot be replaced yet"
+    }
+    var sharedHeads: [(table: String, spec: Spec, as: String)] = []
+    for row in try Row.fetchAll(
+        db,
+        sql: """
+            SELECT mine.tbl AS mine, theirs.tbl AS theirs, r.body
+            FROM binding mine
+            JOIN binding theirs ON theirs.dataset = mine.dataset AND theirs.widget != mine.widget
+            JOIN widget w ON w.key = theirs.widget AND w.deleted IS NULL
+            LEFT JOIN revision r ON r.digest = w.head
+            WHERE mine.widget = ?
+            ORDER BY w.created_at, mine.tbl
+            """, arguments: [key.raw])
+    {
+        do throws(Diagnostic) {
+            sharedHeads.append((row["mine"], try parsed(row["body"]), row["theirs"]))
+        } catch {
+            return "a widget sharing this data cannot be read on this device (\(error.line)), "
+                + "so this one cannot be replaced yet"
+        }
     }
     let sharers = try sharers(of: key, db)
     let stored = try storedKinds(of: key, db)
     do throws(Diagnostic) {
         try spec.checkCompatible(replacing: head)
+        for sharer in sharedHeads {
+            try spec.checkCompatible(sharer.table, with: sharer.spec, table: sharer.as)
+        }
+        // A sharer drawing an older revision runs its taps as that revision, and a restore can leave it
+        // declaring a kind its head does not.
         for sharer in sharers {
             try spec.checkCompatible(sharer.table, with: sharer.widget.spec, table: sharer.as)
         }
@@ -688,6 +713,12 @@ private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database, mi
         return error.line
     }
     return nil
+}
+
+/// A revision body as a spec, or why it cannot be read: it has not arrived, or this build cannot parse it.
+private func parsed(_ body: Data?) throws(Diagnostic) -> Spec {
+    guard let body else { throw Diagnostic("its revision has not arrived") }
+    return try Spec.parse(body)
 }
 
 private func sharers(of key: WidgetKey, _ db: Database) throws -> [Sharer] {
