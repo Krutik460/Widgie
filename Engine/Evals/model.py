@@ -40,20 +40,26 @@ def user_message(request: dict) -> list[dict]:
     words = request.get("words")
     if not isinstance(words, str) or not words.strip():
         raise ValueError('"words" must be a non-empty string')
-    if request.get("current") is not None:
-        raise ValueError('"current" (refine) is not supported yet')
-
-    text = words
+    current = request.get("current")
+    if current is not None and (not isinstance(current, str) or not current.strip()):
+        raise ValueError('"current" must be the document being refined, as a non-empty string')
     repair = request.get("repair")
+    if repair is not None and (
+            not isinstance(repair, dict) or not all(isinstance(repair.get(k), str) for k in ("document", "line"))):
+        raise ValueError('"repair" must hold "document" and "line" strings')
+
+    # A create is the person's words alone. A refine adds the document being changed, and a repair adds the
+    # rejected attempt and its line, keeping the refine's document so the model never loses the original.
+    sections = [f"The person's request:\n\n{words}"]
+    if current is not None:
+        sections.append(f"The current document:\n\n```json\n{current}\n```")
     if repair is not None:
-        if not isinstance(repair, dict) or not all(isinstance(repair.get(k), str) for k in ("document", "line")):
-            raise ValueError('"repair" must hold "document" and "line" strings')
-        text = (
-            f"The person's request:\n\n{words}\n\n"
-            f"Your previous document:\n\n```json\n{repair['document']}\n```\n\n"
-            f"The line from the app:\n\n{repair['line']}\n\n"
-            "Reply with the complete corrected document."
-        )
+        sections += [
+            f"Your previous document:\n\n```json\n{repair['document']}\n```",
+            f"The line from the app:\n\n{repair['line']}",
+            "Reply with the complete corrected document.",
+        ]
+    text = "\n\n".join(sections) if len(sections) > 1 else words
 
     content = []
     image = request.get("image")

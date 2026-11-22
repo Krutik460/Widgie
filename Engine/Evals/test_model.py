@@ -19,7 +19,7 @@ def finished(stdout: str, returncode: int = 0) -> subprocess.CompletedProcess:
 
 
 class UserMessageTests(unittest.TestCase):
-    def test_claude_receives_the_bytes_run_py_sent_before_the_move(self):
+    def test_claude_receives_the_pinned_bytes_for_each_request_shape(self):
         requests = json.loads((TESTDATA / "requests.json").read_text())
         for name, request in requests.items():
             with self.subTest(name), mock.patch("model.subprocess.run") as run:
@@ -37,10 +37,6 @@ class UserMessageTests(unittest.TestCase):
             self.assertIn(flag, command)
         self.assertNotIn("CLAUDECODE", env)
 
-    def test_a_refine_is_refused_until_the_prompt_has_a_refine_mode(self):
-        with self.assertRaisesRegex(ValueError, "refine"):
-            model.user_message({"words": "make it blue", "current": "{}"})
-
     def test_a_malformed_request_is_refused(self):
         for request in [
             [],
@@ -51,6 +47,8 @@ class UserMessageTests(unittest.TestCase):
             {"words": "a", "image": {"mime": "image/png", "base64": "not base64!"}},
             {"words": "a", "image": {"mime": "image/png", "base64": ""}},
             {"words": "a", "repair": {"document": "{}"}},
+            {"words": "a", "current": ""},
+            {"words": "a", "current": {"name": "Water"}},
         ]:
             with self.subTest(request=request), self.assertRaises(ValueError):
                 model.user_message(request)
