@@ -63,6 +63,13 @@ class CallTests(unittest.TestCase):
         self.assertEqual((reply["api_seconds"], reply["models"], reply["transport_retries"]),
                          (4.2, ["claude-haiku-5-5"], 0))
 
+    def test_the_writer_is_the_model_with_the_most_output_tokens(self):
+        usage = {"claude-haiku-5-5": {"outputTokens": 14}, "claude-sonnet-5-5": {"outputTokens": 4800}}
+        answer = {**ANSWER, "modelUsage": usage}
+        with mock.patch("model.subprocess.run", return_value=finished(json.dumps(answer) + "\n")):
+            reply = model.call("sonnet", "prompt", [], tries=1, timeout=110, workdir="/tmp")
+        self.assertEqual(reply["model"], "claude-sonnet-5-5")
+
     def test_a_failed_try_is_tried_again_while_tries_remain(self):
         failure = finished(json.dumps({**ANSWER, "is_error": True}) + "\n", returncode=1)
         with mock.patch("model.subprocess.run", side_effect=[failure, finished(json.dumps(ANSWER))]), \

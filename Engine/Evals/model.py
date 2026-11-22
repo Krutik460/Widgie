@@ -120,12 +120,19 @@ def call(model: str, prompt: str, content: list[dict], *, tries: int, timeout: f
                 "output_tokens": usage.get("output_tokens") or 0,
                 "cost_usd": result.get("total_cost_usd"),
                 "models": sorted((result.get("modelUsage") or {}).keys()),
+                "model": writer(result.get("modelUsage") or {}),
                 "transport_retries": retry,
             }
         failure = f"exit {proc.returncode}: {json.dumps(result)[:300] if result else proc.stdout[-300:]} {proc.stderr[-300:]}"
         if retry < tries - 1:
             time.sleep(5)
     raise ModelError(f"{model} gave no answer in {tries} {'try' if tries == 1 else 'tries'}; last: {failure}")
+
+
+def writer(usage: dict) -> str:
+    """The model that wrote the reply. Claude Code adds a small call of its own on another model, so take the
+    one with the most output tokens."""
+    return max(usage, key=lambda name: (usage[name] or {}).get("outputTokens") or 0, default="")
 
 
 def extract(reply: str) -> str:
