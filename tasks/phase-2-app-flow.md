@@ -98,42 +98,42 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 
 **Files.**
 
-- [ ] Create `Engine/Evals/model.py`. It holds prompt composition, message assembly, the `claude -p` call, and reply extraction, moved out of `run.py` unchanged.
-- [ ] Edit `Engine/Evals/run.py` so it imports `model.py` and keeps its behavior.
-- [ ] Create `Engine/Evals/bridge.py`, a standard-library HTTP server with no new dependencies.
+- [x] Create `Engine/Evals/model.py`. It holds prompt composition, message assembly, the `claude -p` call, and reply extraction, moved out of `run.py` unchanged. Done in `446b683`.
+- [x] Edit `Engine/Evals/run.py` so it imports `model.py` and keeps its behavior. Done in `446b683`. A fake `claude` received byte-identical arguments, stdin, and environment from the old and new `run.py`, and all 57 output files match apart from timings (`Engine/.artifacts/p1/``shim-equivalence.txt`).
+- [x] Create `Engine/Evals/bridge.py`, a standard-library HTTP server with no new dependencies. Done in `bea9ab2`.
 
 **Build.**
 
-- [ ] `model.py` exposes `compose_prompt()`, `user_message(request: dict) -> list`, `call(model, prompt, content) -> dict`, and `extract(reply) -> str`. `user_message` takes the `ModelRequest` JSON shape above, so `run.py` and the bridge produce the same bytes for the same request.
-- [ ] `bridge.py` serves `POST /v1/reply` on `127.0.0.1:8787`. It takes a `ModelRequest` body and returns `{"reply": "<raw text>", "seconds": <float>, "model": "<id>"}`. It also serves `GET /health`.
-- [ ] `bridge.py --model haiku|sonnet` picks the stand-in, with `sonnet` as the default. Each request is logged as one line with the time, the kind (create, refine, or repair), the seconds, and the token counts.
-- [ ] Transport errors return HTTP 502 with `{"error": "<one line>"}`. A reply with no fence is still a 200, and the app's build rejects it like any other bad document.
-- [ ] `call()` takes the number of tries and the timeout. `run.py` keeps three tries and 900 s. The bridge makes one try with a 110 s timeout, under the app's 120 s, so a retry never outlives the request.
+- [x] `model.py` exposes `compose_prompt()`, `user_message(request: dict) -> list`, `call(model, prompt, content) -> dict`, and `extract(reply) -> str`. `user_message` takes the `ModelRequest` JSON shape above, so `run.py` and the bridge produce the same bytes for the same request. Done. A refine request raises an error until P2, so it can never pass for a working refine.
+- [x] `bridge.py` serves `POST /v1/reply` on `127.0.0.1:8787`. It takes a `ModelRequest` body and returns `{"reply": "<raw text>", "seconds": <float>, "model": "<id>"}`. It also serves `GET /health`. Done (`Engine/.artifacts/p1/``bridge-sonnet.log`).
+- [x] `bridge.py --model haiku|sonnet` picks the stand-in, with `sonnet` as the default. Each request is logged as one line with the time, the kind (create, refine, or repair), the seconds, and the token counts. Done. A log line reads `create 200 total 54.21 s, model 54.2 s, in 20116 out 7068`.
+- [x] Transport errors return HTTP 502 with `{"error": "<one line>"}`. A reply with no fence is still a 200, and the app's build rejects it like any other bad document. Done. A bad body returns 400. The 502 path is covered by the timeout unit test and was not triggered live.
+- [x] `call()` takes the number of tries and the timeout. `run.py` keeps three tries and 900 s. The bridge makes one try with a 110 s timeout, under the app's 120 s, so a retry never outlives the request. Done. The bridge also ignores a client that hangs up mid-reply.
 
 **You see.**
 
-- [ ] `curl -s localhost:8787/health` prints `ok`.
-- [ ] `curl -s -X POST localhost:8787/v1/reply -d '{"words":"a water tracker with a big blue drop"}'` returns a reply whose extracted JSON passes `render-tool proof`.
+- [x] `curl -s localhost:8787/health` prints `ok`. Done, printed `ok`.
+- [x] `curl -s -X POST localhost:8787/v1/reply -d '{"words":"a water tracker with a big blue drop"}'` returns a reply whose extracted JSON passes `render-tool proof`. Done on Sonnet. Proof printed `accepted` (`Engine/.artifacts/p1/``bridge/sonnet-create-blue-drop/`).
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] A small test asserts that `user_message` gives byte-identical output for the create and repair shapes that `run.py` produced before the move. Run it with `python3 -I -m unittest discover -s Engine/Evals -p 'test_*.py'`, which `Engine/scripts/check` also runs. The path form `-m unittest Engine/Evals/test_model.py` cannot import the test under `-I`, and without `-I` the test cannot import `model`. Discovery puts `Engine/Evals` on the import path.
+- [x] A small test asserts that `user_message` gives byte-identical output for the create and repair shapes that `run.py` produced before the move. Run it with `python3 -I -m unittest discover -s Engine/Evals -p 'test_*.py'`, which `Engine/scripts/check` also runs. The path form `-m unittest Engine/Evals/test_model.py` cannot import the test under `-I`, and without `-I` the test cannot import `model`. Discovery puts `Engine/Evals` on the import path. Done. 7 tests pass, inside `Engine/scripts/check` too.
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Run `run.py` on the four reference cases with `--models haiku`. Pass when every case is accepted within three attempts, like phase-1d.
-- [ ] Post one create request, one request with the R1 image from `Engine/Evals/images/`, and one repair request built from a deliberately broken document. Pass when each extracted document goes through `render-tool proof`, or, for the repair, when the reply fixes the line it was given.
+- [x] Run `run.py` on the four reference cases with `--models haiku`. Pass when every case is accepted within three attempts, like phase-1d. Done. Run `p1-move` accepted 3 of 4, and word of the day failed on Haiku with a two-line text verdict three times. Run `p1-move-2` and the old code's run `p1-before` each accepted 4 of 4 within two attempts. The inputs are proven byte-identical, so the miss is Haiku variance (`Engine/.artifacts/evals/`).
+- [x] Post one create request, one request with the R1 image from `Engine/Evals/images/`, and one repair request built from a deliberately broken document. Pass when each extracted document goes through `render-tool proof`, or, for the repair, when the reply fixes the line it was given. Done on Sonnet. Create and R1 image `accepted`, and the R1 reply copies the picture's LCD look closely. The repair restored the removed `rowId` and was `accepted` (`Engine/.artifacts/p1/``bridge/`, re-proved by hand).
 
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Wall seconds per bridge call against the `run.py` call seconds for the same case and model.
-- [ ] Rule. The bridge adds under 1 s over `run.py`. A larger gap means the bridge does extra work. Find it before moving on.
+- [x] Metric. Wall seconds per bridge call against the `run.py` call seconds for the same case and model. Done. Bridge wall minus model seconds was -0.02 to +0.05 s live, within the 0.1 s rounding. Against an instant fake `claude`, the bridge's own work is 0.9 to 3.1 ms per call (`Engine/.artifacts/p1/``overhead-shim.txt`, `perf-pairs.txt`). Call time follows output length at about 4.2 ms per output token on both paths.
+- [x] Rule. The bridge adds under 1 s over `run.py`. A larger gap means the bridge does extra work. Find it before moving on. Passed.
 
 **Review gate.** None. P1 is not review-gated.
 
 **Merge.**
 
-- [ ] `scripts/check` passes. Commit on a branch off `main`. `phase-1d-review-fixes` landed as PR #1 on 2026-11-21.
+- [x] `scripts/check` passes. Commit on a branch off `main`. `phase-1d-review-fixes` landed as PR #1 on 2026-11-21. Done.
 
 ## Add a refine mode to the prompt and prove it (P2)
 
