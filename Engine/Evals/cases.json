@@ -152,7 +152,36 @@
       "group": "refine",
       "base": "water",
       "request": "track coffee instead of water",
-      "expect_new_table": true
+      "expect_new_table": true,
+      "replaces": "glasses"
+    },
+    {
+      "id": "refine-yoga",
+      "group": "refine",
+      "base": "habit",
+      "request": "track yoga instead of meditation",
+      "expect_new_table": true,
+      "replaces": "checkins"
+    },
+    {
+      "id": "refine-quote",
+      "group": "refine",
+      "base": "wotd",
+      "request": "change it to a daily quote",
+      "expect_new_table": true,
+      "replaces": "words"
+    },
+    {
+      "id": "refine-cups",
+      "group": "refine",
+      "base": "water",
+      "request": "say cups instead of glasses"
+    },
+    {
+      "id": "refine-size",
+      "group": "refine",
+      "base": "water",
+      "request": "log the size of each glass"
     },
     {
       "id": "refine-nicer",
