@@ -32,7 +32,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 
-import sheet
 from model import MEDIA_TYPES, ModelError, call, compose_prompt, extract, user_message
 
 EVALS = Path(__file__).resolve().parent
@@ -355,10 +354,30 @@ def verdict_kind(line: str) -> str:
     return re.sub(r"\d+(\.\d+)?", "N", line)
 
 
+def check_tables(run_dir: Path, refines: list[tuple[dict, bool, str | None]]) -> dict:
+    """`table_changes` of each accepted refine build, given with its case's `expect_new_table` and `replaces`, by
+    model and case, and how many pass. A failed build saved no widget, so its tables neither pass nor fail."""
+    checks = {}
+    for build, expect_new_table, replaces in refines:
+        if not build["accepted_attempt"]:
+            continue
+        case_dir = run_dir / build["case"]
+        before = parsed((case_dir / "before" / "current" / "widget.json").read_text())
+        after = parsed((case_dir / build["model"] / str(build["accepted_attempt"]) / "widget" / "widget.json").read_text())
+        check = checks.setdefault(build["model"], {"passed": 0, "of": 0, "misses": [], "cases": {}})
+        check["cases"][build["case"]] = changes = table_changes(before, after, expect_new_table, replaces)
+        check["of"] += 1
+        if changes["problems"]:
+            check["misses"].append(build["case"])
+        else:
+            check["passed"] += 1
+    return checks
+
+
 def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[str]) -> dict:
     builds = []
     group_of = {case.id: case.group for case in cases}
-    table_checks = {}
+    refines = []
     for case in cases:
         for model in models:
             path = run_dir / case.id / model / "build.json"
@@ -366,17 +385,9 @@ def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[
                 continue
             build = read_json(path)
             builds.append(build)
-            # A failed build saved no widget, so its tables neither pass nor fail.
-            if case.base and build["accepted_attempt"]:
-                before = parsed((run_dir / case.id / "before" / "current" / "widget.json").read_text())
-                after = parsed((path.parent / str(build["accepted_attempt"]) / "widget" / "widget.json").read_text())
-                check = table_checks.setdefault(model, {"passed": 0, "of": 0, "misses": [], "cases": {}})
-                check["cases"][case.id] = changes = table_changes(before, after, case.expect_new_table, case.replaces)
-                check["of"] += 1
-                if changes["problems"]:
-                    check["misses"].append(case.id)
-                else:
-                    check["passed"] += 1
+            if case.base:
+                refines.append((build, case.expect_new_table, case.replaces))
+    table_checks = check_tables(run_dir, refines)
     table = {
         group: {
             model: Counter(b["status"] for b in builds if group_of[b["case"]] == group and b["model"] == model)
@@ -491,6 +502,7 @@ def main() -> None:
         shutil.rmtree(workdir, ignore_errors=True)
 
     summarize(run_dir, groups, selected, models)
+    import sheet  # here, not at the top, because sheet imports run
     print(f"contact sheet: {sheet.write(run_dir)}")
     if pending:
         print(f"{pending} builds did not finish; run the same command again to resume")

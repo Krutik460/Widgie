@@ -2,7 +2,7 @@
 """Writes index.html into a run folder: one row per case, one column per model, with the final renders of one
 sample and of the full state in both sizes, the build's status, and every verdict line. A refine row puts the
 base widget before the models' results, showing the same sample where the result still has it, and each accepted
-refine says which tables and fields it added and whether that meets the case, as `results.json` records it. Each
+refine says which tables and fields it added and whether that meets the case, checked as `run.py` checks it. Each
 row comes from a case's `case.json` and shows the request and picture its builds were made from, so a case
 that `cases.json` has changed or dropped since still shows as the run made it; `cases.json` only orders the rows.
 Cases the run never started are left out. Paths are relative, so the folder can be moved or zipped whole.
@@ -16,6 +16,8 @@ import os
 import sys
 from collections import Counter
 from pathlib import Path
+
+from run import check_tables
 
 EVALS = Path(__file__).resolve().parent
 STATUSES = ["first try", "repaired once", "repaired twice", "failed"]
@@ -74,8 +76,9 @@ def write(run_dir: Path) -> Path:
         if build["case"] in recorded:
             builds[(build["case"], build["model"])] = build
     models = sorted({model for _, model in builds} | {p.parent.name for p in run_dir.glob("*/*/1")})
-    results = run_dir / "results.json"
-    table_checks = json.loads(results.read_text()).get("table_checks", {}) if results.exists() else {}
+    table_checks = check_tables(run_dir, [(build, recorded[case_id]["expect_new_table"], recorded[case_id]["replaces"])
+                                          for (case_id, _), build in sorted(builds.items())
+                                          if recorded[case_id]["base"]])
     rank = {case["id"]: index for index, case in enumerate(config["cases"])}
     groups = config["groups"] + sorted({r["group"] for r in recorded.values()} - set(config["groups"]))
     page = [

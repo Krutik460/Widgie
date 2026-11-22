@@ -218,6 +218,17 @@ class ResumeTests(unittest.TestCase):
         self.assertIn("<tr><td>regrouped</td><td>1</td>", page)
         self.assertNotIn("<tr><td>refine</td>", page)
 
+    def test_a_filtered_resume_keeps_the_table_check_of_a_refine_from_an_earlier_run(self):
+        refine = Case("refine-water", "refine", "track coffee", None, FIXTURES / "water", True, "glasses")
+        self.build(refine)
+        water = Case("water", "basic", "a water tracker", None, None)
+        self.build(water)
+        with contextlib.redirect_stdout(io.StringIO()):
+            summarize(self.run_dir, ["basic"], [water], ["haiku"])
+        page = sheet.write(self.run_dir).read_text()
+        self.assertIn(f"expects a new table instead of glasses: fail, {NO_NEW_TABLE}", page)
+        self.assertIn("Table check on accepted refines: haiku 0 of 1 (missed refine-water).", page)
+
     def test_a_changed_proof_date_proves_the_base_and_builds_again(self):
         case = Case("refine-water", "refine", "make it blue", None, FIXTURES / "water")
         self.build(case)
