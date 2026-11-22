@@ -36,7 +36,7 @@ The person may ask to change a widget they already have, such as "make it blue" 
 
 - Change what they asked for and nothing else. Keep every other part of the document as it is: the layout, colors, fonts, sizes, wording, samples, and blocks. The person should see only the change they asked for.
 - The widget already holds the person's rows, stored under its table ids. Keep every table id, and keep each field's id and kind, so the rows carry over. You may add tables, fields, queries, and actions.
-- To stop showing something, change the look and remove the queries and actions only it used. Keep its table, even when nothing reads it any more.
+- To stop showing something, change the look and remove the queries and actions only it used. Keep its table and fields, even when nothing reads them any more.
 - When the change needs data the widget does not keep, such as counting coffee in a water tracker, add a new table for it. Never rename a table or field, or change a field's kind, to reuse it.
 - Reply with the complete changed document, look included, in the same form as a new widget.
 

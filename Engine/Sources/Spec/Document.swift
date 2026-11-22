@@ -31,21 +31,29 @@ extension Spec {
         ]).encoded()
     }
 
-    /// A refinement may add tables and fields and remove fields, but it keeps every table id of `old`, because
-    /// the stored rows are bound to the table id, and a field id that survives keeps its kind, because stored
-    /// values were written with that kind. A kept table that nothing reads is legal, so hiding data is a
-    /// look change. The rule reads only the two documents, so every store reaches the same verdict.
+    /// A refinement may add tables and fields, but it keeps every table id of `old`, because the stored rows
+    /// are bound to the table id, and every field id of those tables with its kind, because the stored values
+    /// are keyed by the field id and were written with that kind. A kept table or field that nothing reads is
+    /// legal, so hiding data is a look change. The rule reads only the two documents, so every store reaches
+    /// the same verdict.
     package func checkCompatible(replacing old: Spec) throws(Diagnostic) {
-        if let gone = old.tables.first(where: { table(named: $0.id.raw) == nil }) {
-            throw Diagnostic(
-                "table \(Diagnostic.quote(gone.id.raw)) is gone; keep every table id so the stored rows carry over")
-        }
-        for table in tables {
-            guard let before = old.table(named: table.id.raw), let (field, was) = clash(table, before) else {
-                continue
+        for before in old.tables {
+            guard let table = table(named: before.id.raw) else {
+                throw Diagnostic(
+                    "table \(Diagnostic.quote(before.id.raw)) is gone; keep every table id so the stored rows carry over"
+                )
             }
-            throw Diagnostic(
-                "field \"\(field.path)\" was \(was) and is now \(field.kind); keep the kind or use a new field id")
+            for was in before.fields {
+                guard let field = table.field(named: was.id.raw) else {
+                    throw Diagnostic(
+                        "field \"\(was.path)\" is gone; keep every field id so the stored values carry over")
+                }
+                guard field.kind == was.kind else {
+                    throw Diagnostic(
+                        "field \"\(field.path)\" was \(was.kind) and is now \(field.kind); keep the kind or use a new field id"
+                    )
+                }
+            }
         }
     }
 
