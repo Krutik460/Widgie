@@ -48,5 +48,80 @@
     "name": "a multi-line document keeps its line breaks",
     "reply": "```json\n{\n  \"a\": 1\n}\n```",
     "document": "{\n  \"a\": 1\n}"
+  },
+  {
+    "name": "two json fences of the same length give the first",
+    "reply": "```json\n{\"a\": 1}\n```\n```json\n{\"b\": 2}\n```",
+    "document": "{\"a\": 1}"
+  },
+  {
+    "name": "lone CR line endings are rejoined with LF",
+    "reply": "Here:\r```json\r{\"name\": \"Tiny\"}\r```\r",
+    "document": "{\"name\": \"Tiny\"}"
+  },
+  {
+    "name": "an indented closing fence with trailing spaces closes",
+    "reply": "```json\n{\"name\": \"Tiny\"}\n   ```   \nmore",
+    "document": "{\"name\": \"Tiny\"}"
+  },
+  {
+    "name": "an uppercase JSON info string is not a json fence",
+    "reply": "```JSON\n{\n  \"name\": \"Water\",\n  \"look\": \"function render(ctx) { return ctx; }\"\n}\n```\n```json\n{\"name\": \"Tiny\"}\n```",
+    "document": "{\"name\": \"Tiny\"}"
+  },
+  {
+    "name": "a space before the info string opens nothing, and the bare fence after it opens an empty block",
+    "reply": "``` json\n{\"name\": \"Tiny\"}\n```",
+    "document": ""
+  },
+  {
+    "name": "a fence line with an info string does not close a block",
+    "reply": "```json\n{\"name\": \"Tiny\"}\n```js\nstill inside\n```\nafter",
+    "document": "{\"name\": \"Tiny\"}\n```js\nstill inside"
+  },
+  {
+    "name": "an info string with digits, hyphens, and underscores is not json",
+    "reply": "```json5\n{\n  \"name\": \"Water\",\n  \"look\": \"function render(ctx) { return ctx; }\"\n}\n```\n```json_x\n{\"name\": \"Tiny\"}\n```",
+    "document": "{\n  \"name\": \"Water\",\n  \"look\": \"function render(ctx) { return ctx; }\"\n}"
+  },
+  {
+    "name": "an empty json fence gives an empty document",
+    "reply": "```json\n```",
+    "document": ""
+  },
+  {
+    "name": "an empty reply gives an empty document",
+    "reply": "",
+    "document": ""
+  },
+  {
+    "name": "a reply that ends on the closing fence with no newline",
+    "reply": "```json\n{\"name\": \"Tiny\"}\n```",
+    "document": "{\"name\": \"Tiny\"}"
+  },
+  {
+    "name": "no-break spaces trim from a reply with no fence, as Python's str.strip does",
+    "reply": "\u00a0\u00a0{\"name\": \"Tiny\"}\u00a0\n",
+    "document": "{\"name\": \"Tiny\"}"
+  },
+  {
+    "name": "a no-break space and an em space after a fence line still open it",
+    "reply": "```json\u00a0\u2003\n{\"name\": \"Tiny\"}\n\u00a0```\u00a0",
+    "document": "{\"name\": \"Tiny\"}"
+  },
+  {
+    "name": "information separators count as whitespace when trimming",
+    "reply": "\u001c\u001f{\"name\": \"Tiny\"}\u001d ",
+    "document": "{\"name\": \"Tiny\"}"
+  },
+  {
+    "name": "a line separator inside a JSON string splits the line and comes back as LF",
+    "reply": "```json\n{\"name\": \"Two\u2028lines\"}\n```",
+    "document": "{\"name\": \"Two\nlines\"}"
+  },
+  {
+    "name": "a vertical tab, form feed, and next line also end a line",
+    "reply": "```json\n{\"a\":\u000b1,\f\"b\":\u00852}\n```",
+    "document": "{\"a\":\n1,\n\"b\":\n2}"
   }
 ]
