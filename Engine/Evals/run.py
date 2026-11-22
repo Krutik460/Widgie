@@ -28,10 +28,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import sheet
+from model import MEDIA_TYPES, ModelError, call, compose_prompt, extract, user_message
 
 EVALS = Path(__file__).resolve().parent
 ENGINE = EVALS.parent
-REFERENCE = ENGINE / "Reference"
 RENDER_TOOL = ENGINE / ".build" / "release" / "render-tool"
 ARTIFACTS = ENGINE / ".artifacts" / "evals"
 
@@ -40,7 +40,6 @@ PROOF_DATE = "2026-11-18T09:00:00Z"
 # The first try, then at most two repairs.
 ATTEMPTS = 3
 STATUS = {1: "first try", 2: "repaired once", 3: "repaired twice", None: "failed"}
-MEDIA_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 
 
 @dataclass(frozen=True)
@@ -61,10 +60,6 @@ class Run:
 
 class Deferred(Exception):
     """The run reached --stop-after before this build's next model call."""
-
-
-class ModelError(Exception):
-    pass
 
 
 class ProofError(Exception):
@@ -90,103 +85,17 @@ def load_cases() -> tuple[list[str], list[Case]]:
     return groups, cases
 
 
-def compose_system_prompt() -> str:
-    """Reference/build-prompt.md with each {{include file}} line replaced and every HTML comment removed."""
-    text = (REFERENCE / "build-prompt.md").read_text()
-    text = re.sub(r"^\{\{include ([^}]+)\}\}$", lambda m: (REFERENCE / m.group(1)).read_text(), text, flags=re.M)
-    return re.sub(r"<!--.*?-->\s*", "", text, flags=re.S).strip() + "\n"
-
-
-def repair_message(case: Case, document: str, verdict: str) -> str:
-    return (
-        f"The person's request:\n\n{case.request}\n\n"
-        f"Your previous document:\n\n```json\n{document}\n```\n\n"
-        f"The line from the app:\n\n{verdict}\n\n"
-        "Reply with the complete corrected document."
-    )
-
-
-def message_content(case: Case, text: str) -> list[dict]:
-    content = []
+def model_request(case: Case, previous: tuple[str, str] | None) -> dict:
+    """The case as the app would ask for it: a create, or a repair of the previous document and its verdict."""
+    request: dict = {"words": case.request}
     if case.image:
-        data = base64.b64encode(case.image.read_bytes()).decode()
-        media_type = MEDIA_TYPES[case.image.suffix.lower()]
-        content.append({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": data}})
-    content.append({"type": "text", "text": text})
-    return content
-
-
-def call_model(model: str, system_prompt: str, content: list[dict], workdir: str) -> dict:
-    """One near-raw model call through Claude Code: our system prompt, no tools, no project context.
-
-    Transport failures are retried twice. Only the call that answered is timed.
-    """
-    command = [
-        "claude", "-p", "--model", model, "--safe-mode", "--system-prompt", system_prompt,
-        "--tools", "", "--strict-mcp-config", "--disable-slash-commands", "--no-session-persistence",
-        "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
-    ]
-    message = json.dumps({"type": "user", "message": {"role": "user", "content": content}}) + "\n"
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-    failure = ""
-    for retry in range(3):
-        started = time.monotonic()
-        try:
-            proc = subprocess.run(
-                command, input=message, capture_output=True, text=True, cwd=workdir, env=env, timeout=900)
-        except subprocess.TimeoutExpired:
-            failure = "timed out after 900 s"
-            continue
-        seconds = time.monotonic() - started
-        result = None
-        for line in proc.stdout.splitlines():
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if event.get("type") == "result":
-                result = event
-        if result and not result.get("is_error") and isinstance(result.get("result"), str) and result["result"].strip():
-            usage = result.get("usage") or {}
-            return {
-                "text": result["result"],
-                "seconds": round(seconds, 1),
-                "api_seconds": round((result.get("duration_api_ms") or 0) / 1000, 1),
-                "input_tokens": sum(
-                    usage.get(key) or 0
-                    for key in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")),
-                "output_tokens": usage.get("output_tokens") or 0,
-                "cost_usd": result.get("total_cost_usd"),
-                "models": sorted((result.get("modelUsage") or {}).keys()),
-                "transport_retries": retry,
-            }
-        failure = f"exit {proc.returncode}: {json.dumps(result)[:300] if result else proc.stdout[-300:]} {proc.stderr[-300:]}"
-        time.sleep(5)
-    raise ModelError(f"{model} failed three times; last: {failure}")
-
-
-def extract_document(reply: str) -> str:
-    """The fenced json block of a reply, else its longest fenced block, else the whole reply.
-
-    A JSON string holds no raw line break, so inside the document no line can start with a fence.
-    """
-    lines = reply.splitlines()
-    blocks: list[tuple[str, str]] = []
-    index = 0
-    while index < len(lines):
-        opening = re.fullmatch(r"```([A-Za-z0-9_-]*)\s*", lines[index])
-        if not opening:
-            index += 1
-            continue
-        end = index + 1
-        while end < len(lines) and lines[end].strip() != "```":
-            end += 1
-        blocks.append((opening.group(1), "\n".join(lines[index + 1:end])))
-        index = end + 1
-    if not blocks:
-        return reply.strip()
-    tagged = [body for info, body in blocks if info == "json"]
-    return max(tagged or [body for _, body in blocks], key=len)
+        request["image"] = {
+            "mime": MEDIA_TYPES[case.image.suffix.lower()],
+            "base64": base64.b64encode(case.image.read_bytes()).decode(),
+        }
+    if previous:
+        request["repair"] = {"document": previous[0], "line": previous[1]}
+    return request
 
 
 def parsed(document: str) -> dict:
@@ -246,12 +155,13 @@ def run_attempt(run: Run, case: Case, model: str, directory: Path, previous: tup
     else:
         if run.deadline is not None and time.monotonic() > run.deadline:
             raise Deferred()
-        text = case.request if previous is None else repair_message(case, *previous)
+        content = user_message(model_request(case, previous))
+        text = next(block["text"] for block in content if block["type"] == "text")
         directory.mkdir(parents=True, exist_ok=True)
         (directory / "message.md").write_text(text + (f"\n\n[image: {case.image.name}]\n" if case.image else "\n"))
-        reply = call_model(model, run.system_prompt, message_content(case, text), run.workdir)
+        reply = call(model, run.system_prompt, content, tries=3, timeout=900, workdir=run.workdir)
         write_json(reply_path, reply)
-    document = extract_document(reply["text"])
+    document = extract(reply["text"])
     write_widget(directory / "widget", document, case)
     verdict = prove(directory / "widget", directory / "proof")
     fields = parsed(document)
@@ -395,7 +305,7 @@ def main() -> None:
 
     run_dir = ARTIFACTS / args.run
     run_dir.mkdir(parents=True, exist_ok=True)
-    system_prompt = compose_system_prompt()
+    system_prompt = compose_prompt()
     prompt_path = run_dir / "system-prompt.md"
     if prompt_path.exists() and prompt_path.read_text() != system_prompt:
         sys.exit(f"{run_dir} was run with a different system prompt; give this run a new name")

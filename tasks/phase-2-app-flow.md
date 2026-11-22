@@ -117,7 +117,7 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] A small test asserts that `user_message` gives byte-identical output for the create and repair shapes that `run.py` produced before the move. Run it with `python3 -I -m unittest Engine/Evals/test_model.py`.
+- [ ] A small test asserts that `user_message` gives byte-identical output for the create and repair shapes that `run.py` produced before the move. Run it with `python3 -I -m unittest discover -s Engine/Evals -p 'test_*.py'`, which `Engine/scripts/check` also runs. The path form `-m unittest Engine/Evals/test_model.py` cannot import the test under `-I`, and without `-I` the test cannot import `model`. Discovery puts `Engine/Evals` on the import path.
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
