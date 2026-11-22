@@ -98,6 +98,23 @@ import WidgetEngine
                 .looksLike(try await expected(bluer, rows: #"{"glasses": [{"daysAgo": 0, "repeat": 3}]}"#)))
     }
 
+    @Test func aRepairDuringARefineStillSendsCurrent() async throws {
+        let blank = try await Scratch().line(Broken.blank)
+        let scratch = Scratch()
+        let id = try await scratch.build(good)
+        let current = text(try #require(try scratch.engine.source(of: id)))
+        let model = ScriptedModel([.reply(fenced(Broken.blank)), .reply(fenced(good))])
+
+        let outcome = try await scratch.engine.build("make it blue", replacing: id, model: model)
+        #expect(outcome == .accepted(id, attempts: 2))
+        #expect(
+            model.requests == [
+                ModelRequest(words: "make it blue", current: current),
+                ModelRequest(
+                    words: "make it blue", current: current, repair: Repair(document: text(Broken.blank), line: blank)),
+            ])
+    }
+
     @Test func aReplyWithProseAroundTheFenceOrTwoFencesGivesTheDocumentThePythonHarnessTakes() throws {
         struct Case: Decodable {
             let name: String
