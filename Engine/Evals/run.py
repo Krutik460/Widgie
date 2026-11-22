@@ -8,7 +8,7 @@ base as the app stores it, from `render-tool refine`, and each reply is checked 
 replacement of the base. The summary checks each accepted refine's tables against the case's `expect_new_table`
 and `replaces`. Everything lands in Engine/.artifacts/evals/<run name>/. Running the same name again picks up where
 the last run stopped: finished builds and finished model calls are kept. A case whose first model request, base
-fixture, or render tool changed since then starts over, for every model.
+fixture, render tool, or proof date changed since then starts over, for every model.
 
     run.py <run name> [--models haiku,sonnet] [--group name,name] [--cases id,id] [--jobs 6] [--stop-after SECONDS]
 
@@ -219,7 +219,7 @@ def tree_digest(root: Path) -> str:
 
 def prepare_before(run: Run, case: Case) -> None:
     directory = before_dir(run, case)
-    inputs = {"base": tree_digest(case.base), "render_tool": run.render_tool}
+    inputs = {"base": tree_digest(case.base), "render_tool": run.render_tool, "proof_date": PROOF_DATE}
     record_path = directory / "inputs.json"
     if record_path.exists() and read_json(record_path) == inputs:
         return
@@ -231,8 +231,8 @@ def prepare_before(run: Run, case: Case) -> None:
 
 def prepare_case(run: Run, case: Case) -> None:
     """Keeps every build in the case folder true to its `case.json`, which records the inputs they were made from:
-    the request and picture, the base, and digests of the first model request, the base, and the render tool. When
-    a digest changed, every model's builds of the case are removed. The scoring fields are not inputs, since the
+    the request and picture, the base, digests of the first model request, the base, and the render tool, and the
+    proof date. When one of them changed, every model's builds of the case are removed. The scoring fields are not inputs, since the
     summary checks them afresh."""
     if case.base:
         prepare_before(run, case)
@@ -242,6 +242,7 @@ def prepare_case(run: Run, case: Case) -> None:
         "request": digest(json.dumps(user_message(model_request(case, current, None))).encode()),
         "base": tree_digest(case.base) if case.base else None,
         "render_tool": run.render_tool,
+        "proof_date": PROOF_DATE,
     }
     record_path = case_dir / "case.json"
     if record_path.exists() and read_json(record_path)["inputs"] == inputs:
