@@ -2,27 +2,28 @@ import Foundation
 import Spec
 import WidgetEngine
 
-/// The first try, then at most two repairs, as `Engine/Evals/run.py` runs it.
-private let maxAttempts = 3
-
 extension Engine {
+    /// The first try, then at most two repairs, as `Engine/Evals/run.py` runs it.
+    public static let maxBuildAttempts = 3
+
     /// The build loop: asks `model` for a widget, builds its reply with `build(_:replacing:)`, and sends each
-    /// rejection back as a repair, until a reply is saved or three attempts were rejected.
+    /// rejection back as a repair, until a reply is saved or `maxBuildAttempts` attempts were rejected.
     ///
     /// - `replacing` refines that widget: the model gets its stored document as `current`, and the accepted
     ///   reply replaces it under the same id, keeping its rows.
     /// - `repairing` makes the first call a repair of the `replacing` widget's stored document with that line,
-    ///   for a document another store rejected. That call is attempt 1 of 3. It needs `replacing`.
+    ///   for a document another store rejected. That call is attempt 1. It needs `replacing`.
     /// - `image` goes to the model with every call. A reply that declares the asset `reference` gets it as that
     ///   asset's bytes; any other reply builds without it, and a refine that sent no image keeps the stored one.
     ///
     /// `progress` runs on the caller's actor, in order, and every step has run when the loop returns, so a
     /// main-actor screen can set its state from it directly.
     ///
-    /// Only a rejected reply uses an attempt. An error from `model` is rethrown as it is. Cancellation is
-    /// checked around each model call and throws `CancellationError` with nothing saved; a `build` already
-    /// under way finishes, and its outcome is returned. Throws `EngineError` when `replacing` names no widget
-    /// or the store fails.
+    /// Only a rejected reply uses an attempt. An error from `model` is rethrown as it is. After a cancel the
+    /// loop throws `CancellationError` with nothing saved, with one exception: a `build` already under way
+    /// finishes, and when it saves, `.accepted` returns, so the caller decides whether to keep that widget.
+    /// A reply rejected after a cancel throws `CancellationError`, never `.gaveUp`. Throws `EngineError` when
+    /// `replacing` names no widget or the store fails.
     public func build(
         _ words: String, image: Attachment? = nil, replacing: WidgetID? = nil, repairing line: String? = nil,
         model: some WidgetModel, isolation: isolated (any Actor)? = #isolation,
@@ -60,7 +61,8 @@ extension Engine {
             case .saved(let id):
                 return .accepted(id, attempts: attempt)
             case .rejected(let rejection):
-                if attempt == maxAttempts { return .gaveUp(lastLine: rejection, attempts: attempt) }
+                try Task.checkCancellation()
+                if attempt == Self.maxBuildAttempts { return .gaveUp(lastLine: rejection, attempts: attempt) }
                 request.repair = Repair(document: document, line: rejection)
                 attempt += 1
             }
