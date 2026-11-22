@@ -452,23 +452,10 @@ The change renames the table to count cups:
 table "glasses" is gone; keep every table id so the stored rows carry over
 ```
 
-A change that gives a table a new meaning. The app accepts it, because every id is kept, so no line comes back, but the stored rows now mean something else. The widget counted glasses of water:
+A change that gives a table a new meaning passes every check, because every id is kept, but the stored rows then mean something else. Asked to track coffee instead of water, a change that calls `glasses` coffee in the name and the look turns every glass already logged into a cup of coffee. The widget counted glasses:
 
 ```json
 {
-  "name": "Water",
-  "tables": { "glasses": { "fields": {} } },
-  "queries": { "today": { "count": "glasses", "window": "today" } },
-  "actions": { "drink": { "insert": "glasses" } }
-}
-```
-
-The person asks to track coffee instead, and the change calls `glasses` coffee in the name and the look. Every glass of water already logged now counts as a cup of coffee:
-
-<!-- replaces the json block above -->
-```json
-{
-  "name": "Coffee",
   "tables": { "glasses": { "fields": {} } },
   "queries": { "today": { "count": "glasses", "window": "today" } },
   "actions": { "drink": { "insert": "glasses" } }
@@ -480,7 +467,6 @@ The right change adds a table for the new data, points the queries and actions a
 <!-- replaces the json block above -->
 ```json
 {
-  "name": "Coffee",
   "tables": { "glasses": { "fields": {} }, "cups": { "fields": {} } },
   "queries": { "today": { "count": "cups", "window": "today" } },
   "actions": { "drink": { "insert": "cups" } }
