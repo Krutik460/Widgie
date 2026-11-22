@@ -194,6 +194,19 @@ import Testing
         #expect(try b.rows("oldest", at: noon).first?.text("title")?.count == 300)
     }
 
+    @Test func aNumberThatIsNotFiniteIsRefused() throws {
+        let (a, b, row, dataset) = try pair()
+        try b.store.receive(a.store.feed())
+        let before = try b.rows("oldest", at: noon).first?.number("size")
+        let at = try stamp("2026-11-18T13:00:00-05:00")
+        let nan = Stamped(
+            change: .setCell(row, dataset: dataset, field: "size", .number(.nan)), stamp: at, replica: "z")
+        let received = try b.store.receive([nan], now: Date())
+        // By stamp, because a NaN cell never equals itself.
+        #expect(received.held.isEmpty && received.refused.map(\.stamp) == [at])
+        #expect(try b.rows("oldest", at: noon).first?.number("size") == before)
+    }
+
     // MARK: Proved revisions
 
     @Test func aReceivedHeadDrawsOnlyOnceProvedHere() throws {
