@@ -249,3 +249,87 @@ The widget-face row uses `#0C2536` as the water widget's background. I estimated
 ### Pick
 
 **Sky.** It reads the calmest and most clearly to a first-time user. It gives the dark widget faces the most contrast (10.8:1), so they look like what they are. The ink caret is the strongest figure on its ground. And it moves furthest from the loudness the user rejected in chartreuse. Coral is the playful runner-up. Its secondary text sits at 4.8:1, just above the bar. Night is the most atmospheric, and the marigold caret is lovely, but the widgets need an outline to separate from the ground. Night would make a good dark-mode counterpart to Sky, using the same caret in marigold.
+
+## Round 4. Sky light and dark, with color touches
+
+The user chose Sky for light mode and asked for Sky as dark mode too, instead of Night. Color should arrive in small, fun ways while the ground stays calm. Both modes come from the same generator with identical layout, so they stay a pair.
+
+| Mode | File | Render |
+| --- | --- | --- |
+| Light | `c2-caret-sky.html` | `c2-caret-sky.png` |
+| Dark | `c2-caret-sky-dark.html` | `c2-caret-sky-dark.png` |
+| Both, as Xcode colors | `WidgieColors.xcassets` (29 colorsets) | made by `gen/tokens.py` |
+
+### Dark ground, and why it is not darker
+
+I sampled the widget faces straight from the engine PNGs. The water widget runs from `#0A2636` to `#082130`, coffee is `#20120C`, and word of the day is `#12284A`. The engine's `-dark` renders are identical to the light ones, so swapping renders cannot fix separation. On a near-black blue ground such as `#142540`, the faces measure 1.0 to 1.2:1 and melt into it.
+
+The ground is therefore `#2B4E82`, a deep cobalt dusk. It is dark enough for white text to measure 7.8:1, and light enough that the faces measure 1.8 to 2.2:1. A darker elevation shadow under each face (`WidgetShadow`, 50% at y 10, blur 24) does the rest. There is no border. This is how elevation works on a dark surface, and the renders show every face clearly lifted. The cost is that this dark mode is a dusk rather than a true black.
+
+### The three color touches (both modes)
+
+1. **Every chip has its own soft color.** The examples are mint, butter, and pink, and the refine suggestions are lilac and peach, all with ink labels. Outlined controls stay neutral, so color always means "tap to use this".
+2. **The caret has blush cheeks.** Two coral dots sit under the eyes. They get a bit bigger when it is happy and disappear when it slumps on failure. The cheek is the same coral, `#FF7F8E`, in both modes.
+3. **Caret confetti on Saved.** It is a burst of little rounded bars, shaped like tiny carets, in five bright versions of the chip hues.
+
+No new text was added for any of these.
+
+### Contrast, measured
+
+Translucent tokens were composited over their ground before measuring.
+
+| Pair | Light | Dark |
+| --- | --- | --- |
+| Caret on ground | 11.9 | 7.4 |
+| Text on ground | 11.9 | 7.8 |
+| Secondary text on ground | 5.9 | 5.5 |
+| Button label on button | 11.9 | 14.0 |
+| Outline (photo button, field, sample menu) on ground | 3.0 | 3.0 |
+| Chip label on chip fills (lowest to highest) | 10.9 to 13.9 | 9.0 to 12.4 |
+| Failure caret on failure ground | 7.4 | 6.3 |
+| Failure text on failure ground | 9.4 | 10.1 |
+| Failure button label | 9.4 | 7.6 |
+| Dark widget faces on ground | 10.1 to 12.5 | 1.8 to 2.2, plus the elevation shadow |
+| Disabled label on disabled fill | 3.8 | 2.9 (disabled controls are exempt) |
+| Cheek on caret (decorative) | 7.2 | 2.1 |
+| Confetti on ground (decorative) | 1.1 to 2.3 | 3.4 to 5.7 |
+
+The first pass measured the outlines at only 1.6 and 1.9. They became solid tokens at the lowest strength that reaches 3:1 for control edges.
+
+Light-mode confetti is low in contrast against the sky ground. It is decorative and on screen for under a second, and it reads by hue and saturation in the renders. The butter piece (1.1:1) is the faintest. Give it a darker edge if it gets lost on device.
+
+### Tokens for the asset catalog
+
+`WidgieColors.xcassets` is a ready catalog with Any and Dark appearances for every token. It compiles cleanly with `xcrun actool` for iOS 17. Drop it into the app target and use `Color("WidgieGround")`, or point Xcode's generated symbols at it. The table below is the same data. `gen/tokens.py` is the single source and writes both.
+
+| Asset name | Light (Any) | Dark | Use |
+| --- | --- | --- | --- |
+| `WidgieGround` | `#C4D8F3` | `#2B4E82` | Page background |
+| `WidgieCaret` | `#121A2E` | `#E9F2FF` | The character, text cursor, wordmark bar |
+| `WidgieCaretEye` | `#C4D8F3` | `#2B4E82` | Caret eyes (same as Ground) |
+| `WidgieCaretCheek` | `#FF7F8E` | `#FF7F8E` | Blush cheeks, hidden when slumped |
+| `WidgieCaretShadow` | `#121A2E` at 16% | `#08142A` at 38% | Ground shadow under the caret |
+| `WidgieTextPrimary` | `#121A2E` | `#F2F7FF` | Headlines, user turns |
+| `WidgieTextSecondary` | `#3E4C6B` | `#BFD3F0` | Placeholder, replies, Cancel |
+| `WidgieButtonFill` | `#121A2E` | `#E9F2FF` | Primary button, Save |
+| `WidgieButtonLabel` | `#C4D8F3` | `#14223D` | Primary button label and blinking bar |
+| `WidgieOutline` | `#6B7990` | `#869DBE` | Photo button, field, sample menu (3:1) |
+| `WidgieFillDisabled` | `#9DAEC8` | `#5C79A2` | Disabled primary button |
+| `WidgieGridDot` | `#121A2E` at 10% | `#E9F2FF` at 9% | Dot grid |
+| `WidgieWidgetShadow` | `#121A2E` at 18% | `#040A18` at 50% | Elevation under widget faces |
+| `WidgieChipLabel` | `#121A2E` | `#121A2E` | Text on every color chip |
+| `WidgieChipMint` | `#A9E9CD` | `#8EDCB9` | Chip fill 1 |
+| `WidgieChipButter` | `#FFE594` | `#F7D877` | Chip fill 2 |
+| `WidgieChipPink` | `#FFC2CE` | `#F7AEBE` | Chip fill 3 |
+| `WidgieChipLilac` | `#D2C6FF` | `#BFB1FA` | Chip fill 4 |
+| `WidgieChipPeach` | `#FFCEA8` | `#F7BD90` | Chip fill 5 |
+| `WidgiePopMint` | `#2FBF80` | `#5ED9A2` | Saved confetti 1 |
+| `WidgiePopButter` | `#FFBE1A` | `#FFCF4A` | Saved confetti 2 |
+| `WidgiePopPink` | `#FF6F8C` | `#FF8BA3` | Saved confetti 3 |
+| `WidgiePopLilac` | `#8F78FF` | `#A897FF` | Saved confetti 4 |
+| `WidgiePopPeach` | `#FF9447` | `#FFA866` | Saved confetti 5 |
+| `WidgieFailureGround` | `#D3D5DA` | `#363A42` | Drained page on failure |
+| `WidgieFailureCaret` | `#3A3D45` | `#BCC1CB` | Slumped caret and broken bridge |
+| `WidgieFailureText` | `#2A2D35` | `#EFF1F5` | Failure headline |
+| `WidgieFailureButtonFill` | `#2A2D35` | `#BCC1CB` | Try again |
+| `WidgieFailureButtonLabel` | `#D3D5DA` | `#2A2D33` | Try again label |
