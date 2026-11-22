@@ -18,6 +18,10 @@ Background reading: the plan's P5 section, and [PR 5](5-phase-2-p4-preview.md) f
 - **App unit tests.** [WidgieTests](../../App/WidgieTests) is a hosted unit test target that [App/scripts/build](../../App/scripts/build) runs on the simulator, so `scripts/check` runs it. It drives `DescribeSession`, `Preview`, and `Library` with a scripted model and temporary engines. `Preview` and `Library` take the shared engine, and the session takes its preview and the `SharedWrites.open` gate, each defaulting to the real one.
 - **Engine tidying.** One `attempt` turns a `StoreError` into an `EngineError` ([Engine.swift](../../Engine/Sources/WidgetEngine/Engine.swift)). `prove` records every render through one helper and encodes PNGs only for `Engine.proofs` and `Engine.proof`, so a build or a Save encodes none ([Proof.swift](../../Engine/Sources/WidgetBuilder/Proof.swift)). `Engine.maxBuildAttempts` gives the app its "(2 of 3)".
 - **Every widget reloads after a home screen tap.** [Hosting.swift](../../Engine/Sources/WidgetHosting/Hosting.swift) now passes the WidgetKit reload to the extension's engine too.
+- **Form input is never dropped or saved on the wrong day.** [FormSheet.swift](../../App/Widgie/FormSheet.swift) adds `FormFormat`, one `NumberFormatter` in the person's locale that shows and reads numbers, so "12,5" in France saves 12.5. Text that is not wholly a number keeps the form open and marks the field. Dates convert through a Gregorian calendar in the device time zone, the days the engine counts, whatever calendar the picker shows.
+- **An accepted photo widget never falls back for running out of image budget across its timeline.** The proof gives each render a fresh 1.5 megapixel budget, but one `faces` call shares one across every entry. The picture's over-budget error now carries `Diagnostic.Kind.overImageBudget` through `composeDrawing`, and `faces` ends the timeline at the first later entry that would pass the budget, with `reloadAt` at its date ([Engine.swift](../../Engine/Sources/WidgetEngine/Engine.swift)). A current face that passes it on its own still falls back.
+- **Only the latest photo selection attaches.** `PhotoButton` in [DescribeView.swift](../../App/Widgie/Describe/DescribeView.swift) loads in `.task(id: item)`, so a newer selection cancels a slow earlier load before it can set the picture or the "didn't load" alert.
+- **An interrupted snapshot copy leaves nothing a resume trusts.** [run.py](../../Engine/Evals/run.py) copies a missing picture snapshot to a temporary sibling, then `os.replace`s it into place.
 
 ## 1. The person describes a widget and tries it
 
@@ -52,6 +56,7 @@ Key decisions:
 - **A cancel after the engine accepted a reply is the app's to honor.** The engine keeps its rule that a `build` under way finishes and `.accepted` returns. The app then decides, and it checks for the cancel with no await between the check and the publish, so a Cancel that lands while the faces draw never shows the new draft.
 - **The rollback brings back datasets, not rows.** `load` moves each table to a new dataset and leaves the old one in place, so pointing the tables back at the checkpoint's datasets brings back every row the person saw, taps included, without copying anything. The rollback drops the bindings the checkpoint did not have, which only a scratch store may do, since sync carries no unbind. The checkpoint is a public scratch-only engine call because the app links only the public products (USAGE 2c).
 - **A failed copy never falls into create mode.** With `editing` still set, a create-mode Save would have replaced the library widget with a new one.
+- **The photo load is keyed by the selection.** `.task(id:)` cancels the earlier load when the selection changes, and the load publishes only if it was not cancelled. A selection token would do the same with more state.
 
 ## 2. The person saves and places it
 
@@ -94,6 +99,31 @@ Key decisions:
 
 - **The extension reloads every widget after a write.** WidgetKit's reload after an intent covers only the tapped widget's timeline. The chronod log showed `getTimelines(1)` for the small family alone, so the medium beside it kept its old count until its timeline ran out. The premise "WidgetKit reloads after an intent on its own" was true only for the tapped widget. [Engine.swift](../../Engine/Sources/WidgetEngine/Engine.swift), [USAGE.md](../engine/USAGE.md), and [RATIONALE.md](../engine/RATIONALE.md) say so now.
 
+- **A number that does not parse keeps the form open.** The old form parsed with `Double.init`, so a French "12,5" was dropped and the form closed as if it saved. `NumberFormatter` was picked over `FloatingPointFormatStyle` because the format style parses a prefix: "12.5" in French reads as 12 and "12abc" as 12. The field says "Enter a number, like 12,5" in the person's locale.
+- **Dates are Gregorian days in the device time zone.** The engine's `.date(year:month:day:)` is Gregorian. The old form took components from `Calendar.current`, so on a Buddhist calendar 22 November 2026 was saved as year 2569.
+
+## 4. WidgetKit asks for a photo widget's timeline
+
+```mermaid
+flowchart TD
+  P["Provider.timeline"] --> F["Engine.faces(from: now): one AssetImages, one 1.5 MP budget"]
+  F --> C0["current face: composeDrawing"]
+  C0 -->|"over budget on its own"| FB["fallback face, as before"]
+  C0 -->|"drawn, reads the clock"| Q["each quarter hour for two hours"]
+  Q -->|"drawn"| Q
+  Q -->|"Diagnostic.kind == .overImageBudget"| CUT["stop: no more entries, reloadAt = that quarter hour"]
+  Q -->|"done"| MID["midnight entry"]
+  MID -->|"over budget"| CUT2["reloadAt = midnight"]
+  CUT --> P2["WidgetKit asks again at the cut: a fresh budget draws that entry"]
+```
+
+[Engine.swift](../../Engine/Sources/WidgetEngine/Engine.swift), [Diagnostic.swift](../../Engine/Sources/Spec/Diagnostic.swift), [Vocabulary.swift](../../Engine/Sources/WidgetEngine/Vocabulary.swift), [USAGE.md](../engine/USAGE.md) section 1.
+
+Key decisions:
+
+- **The cap stays, and the timeline gets shorter.** Each crop counts again, so a look that picks a crop by the hour spends the shared budget entry by entry. Ending the timeline at the first entry that does not fit costs one extra timeline request, and keeps memory under the same cap the proof checks.
+- **The failure is typed, not matched by its text.** `Diagnostic` gets a `kind`, which `within` keeps as the error climbs the tree, so the line stays the same for the model while `faces` can tell a budget failure from a mistake. Every other later failure still becomes a fallback entry, because a fresh call would fail the same way.
+
 ## Verification
 
 - `scripts/check` passes: the engine gate, the app build, and the app tests.
@@ -111,6 +141,9 @@ Key decisions:
 - `Face.traits` is tested on the six reference widgets in `TraitsTests`.
 - Perf, one run per reference prompt on sonnet (`perf.txt`): Build it to the first live preview took 25.5 to 37.8 s, median 33.4 s, against the 36.8 s `run.py` median. App seconds, the total minus the model's, were 0.48 to 1.20, median 0.55, under the 3 s rule.
 - The staleness fix: after the fix, two taps on the small moved the medium from 4 to 5 to 6 with the store, without opening the app (`fixed-after-tap.png`, `fixed-after-second-tap.png`). Before it, the medium stayed behind (`stale-after-page-swipe.png`).
+- Round 5 fixes, each test shown to fail with its fix disabled: `FormFormatTests` in WidgieTests (fr_FR numbers both ways, partial numbers refused, and a Buddhist-calendar date round trip as the same Gregorian day) fail with the old `Double.init` parse and `Calendar.current`. `aClockPhotoWhoseEntriesOutgrowTheImageBudgetEndsItsTimelineEarly` in EngineTests (five crops of 474 by 632 pixels fit and the sixth does not, so the timeline ends at 10:15 with no fallback, and a call from 10:15 draws) fails on the old engine with fallback entries from 10:15 to midnight. `test_a_missing_snapshot_whose_copy_is_cut_short_is_copied_whole_on_resume` fails on the old copy with a 100-byte snapshot kept.
+- The form on the iPhone 18 Pro simulator with the region set to France (`AppleLocale fr_FR`, restored after): a throwaway fixture with one number field (not committed), "12.5" kept the form open with "Enter a number, like 12,5" under the field, and "12,5" saved, after which the widget showed "kg 12.5".
+- The photo picker race has no test: it lives in a SwiftUI view, and the fix is the standard `.task(id:)` cancellation.
 - Dynamic Type checked at XXL on the library, describe, and preview screens. Nothing truncated or overlapped.
 - Open: on the simulator, the tapped widget shows its new count one redraw late. Its timeline holds the count, which shows after a page swipe (`stale-after-tap.png`, `stale-after-page-swipe.png`). Check on a device.
 - Unverified live: a build that outlives the app going to the background, a Save rejected by the shared store, which runs the repair turn, a photo that fails to load, and a library widget that fails to copy. These paths are in code only. Reduce Motion and the VoiceOver step announcements were checked in code only.
