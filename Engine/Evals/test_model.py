@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -62,6 +63,17 @@ class CallTests(unittest.TestCase):
         self.assertEqual((reply["input_tokens"], reply["output_tokens"]), (20010, 900))
         self.assertEqual((reply["api_seconds"], reply["models"], reply["transport_retries"]),
                          (4.2, ["claude-haiku-5-5"], 0))
+
+    def test_an_event_that_is_not_an_object_is_skipped(self):
+        stdout = "null\n[]\n7\n" + json.dumps(ANSWER) + "\n"
+        with mock.patch("model.subprocess.run", return_value=finished(stdout)):
+            reply = model.call("haiku", "p", [], tries=1, timeout=110, workdir="/tmp")
+        self.assertEqual(reply["text"], ANSWER["result"])
+
+    def test_a_missing_claude_is_a_model_error(self):
+        with tempfile.TemporaryDirectory() as empty, mock.patch.dict("model.os.environ", {"PATH": empty}):
+            with self.assertRaisesRegex(model.ModelError, "could not start claude"):
+                model.call("haiku", "p", [], tries=3, timeout=110, workdir="/tmp")
 
     def test_the_writer_is_the_model_with_the_most_output_tokens(self):
         usage = {"claude-haiku-5-5": {"outputTokens": 14}, "claude-sonnet-5-5": {"outputTokens": 4800}}
