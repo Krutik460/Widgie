@@ -78,7 +78,10 @@ struct RenderTool {
         REFINE MODE
           Runs what the app runs when a person refines a widget. Builds the old widget into a scratch
           engine, then builds the new one in its place with the builder's replacing check: every table
-          id kept, every field id kept with its kind, then the full proof. Writes into <out dir>:
+          id kept, every field id kept with its kind, then the full proof. The scratch engine holds no
+          other widget and no rows, so the builder's two store checks always pass here: agreement with
+          widgets that share the data, and with the kinds of the cells already stored. Only the app can
+          fail those. Writes into <out dir>:
             current/               the old widget as the app sends it to the model to refine: the stored
                                    source, widget.json and assets/, with digests and time zone filled in.
             the PNGs and report.json of proof mode, for the widget that would draw: the saved one when
@@ -316,7 +319,7 @@ private struct ProofRun {
 }
 
 /// Builds the old widget into a scratch engine, then the new one with `replacing:`, as a refine runs on the
-/// phone, so the replacing check runs here exactly as it runs there.
+/// phone, so the document-only replacing check runs here exactly as it runs there.
 private struct RefineRun {
     let old: URL
     let new: URL
