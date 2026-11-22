@@ -363,6 +363,7 @@ An outside review (two models) raised eight findings. Each was checked against t
   - [ ] Refine follow-ups from the PR 4 review:
     - [ ] A widget holds at most 8 tables of 16 fields, and a refine can never drop a table or a field, so repeated "track X instead" refines can get stuck at the cap, and a person cannot delete a tracker's history.
     - [ ] `run.py`: `prepare_before` reuses a stale `before/` after a base fixture changes, the summary prints zero rows for groups the run did not select, and `--group` on an existing run name overwrites `results.json` with only that group.
+- [ ] The home screen edit sheet lists widgets by name only, so three "Water" widgets look the same (seen in P4, `Engine/.artifacts/app-flow/p4/05-widget-picker-while-draft-open.png`). Give each entry something that tells it apart before people build several of one kind.
 - [ ] Grow the eval set toward 40 requests and add a visual score, since the engine accepts some widgets that look wrong
 - [ ] App Attest and per-device quotas on the endpoint
 - [ ] Check: the four reference prompts and the eval set meet a valid-spec bar set from the first baseline run
