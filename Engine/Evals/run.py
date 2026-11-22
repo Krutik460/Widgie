@@ -7,7 +7,8 @@ and the verdict line back, at most twice. A refine case starts from a base fixtu
 base as the app stores it, from `render-tool refine`, and each reply is checked with `render-tool refine` as a
 replacement of the base. The summary checks each accepted refine's tables against the case's `expect_new_table`
 and `replaces`. Everything lands in Engine/.artifacts/evals/<run name>/. Running the same name again picks up where
-the last run stopped: finished builds and finished model calls are kept.
+the last run stopped: finished builds and finished model calls are kept. A case whose first model request, base
+fixture, or render tool changed since then starts over, for every model.
 
     run.py <run name> [--models haiku,sonnet] [--group name,name] [--cases id,id] [--jobs 6] [--stop-after SECONDS]
 
@@ -16,6 +17,7 @@ Needs the release render tool: `swift build -c release --build-system native` in
 
 import argparse
 import base64
+import hashlib
 import json
 import os
 import re
@@ -69,6 +71,8 @@ class Run:
     system_prompt: str
     workdir: str
     deadline: float | None
+    # A digest of the render tool that proves every reply.
+    render_tool: str
 
 
 class Deferred(Exception):
@@ -204,13 +208,55 @@ def before_dir(run: Run, case: Case) -> Path:
     return run.directory / case.id / "before"
 
 
+def digest(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def tree_digest(root: Path) -> str:
+    files = sorted(p for p in root.rglob("*") if p.is_file())
+    return digest("".join(f"{p.relative_to(root)}\0{digest(p.read_bytes())}\n" for p in files).encode())
+
+
 def prepare_before(run: Run, case: Case) -> None:
     directory = before_dir(run, case)
-    if (directory / "report.json").exists():
+    inputs = {"base": tree_digest(case.base), "render_tool": run.render_tool}
+    record_path = directory / "inputs.json"
+    if record_path.exists() and read_json(record_path) == inputs:
         return
     verdict = prove(case.base, directory, case.base)
     if verdict is not None:
         sys.exit(f"the base of {case.id} is rejected as a refine of itself: {verdict}")
+    write_json(record_path, inputs)
+
+
+def prepare_case(run: Run, case: Case) -> None:
+    """Keeps every build in the case folder true to its `case.json`, which records the inputs they were made from:
+    the request and picture, the base, and digests of the first model request, the base, and the render tool. When
+    a digest changed, every model's builds of the case are removed. The scoring fields are not inputs, since the
+    summary checks them afresh."""
+    if case.base:
+        prepare_before(run, case)
+    case_dir = run.directory / case.id
+    current = (before_dir(run, case) / "current" / "widget.json").read_text() if case.base else None
+    inputs = {
+        "request": digest(json.dumps(user_message(model_request(case, current, None))).encode()),
+        "base": tree_digest(case.base) if case.base else None,
+        "render_tool": run.render_tool,
+    }
+    record_path = case_dir / "case.json"
+    if record_path.exists() and read_json(record_path)["inputs"] == inputs:
+        return
+    case_dir.mkdir(parents=True, exist_ok=True)
+    for child in case_dir.iterdir():
+        if child.is_dir() and child.name != "before":
+            shutil.rmtree(child)
+        elif child.is_file():
+            child.unlink()
+    image = f"request{case.image.suffix.lower()}" if case.image else None
+    if case.image:
+        shutil.copyfile(case.image, case_dir / image)
+    write_json(record_path, {"request": case.request, "image": image, "base": case.base.name if case.base else None,
+                             "inputs": inputs})
 
 
 def write_json(path: Path, value) -> None:
@@ -419,10 +465,9 @@ def main() -> None:
     workdir = tempfile.mkdtemp(prefix="widget-eval-")
     try:
         deadline = time.monotonic() + args.stop_after if args.stop_after else None
-        run = Run(run_dir, system_prompt, workdir, deadline)
+        run = Run(run_dir, system_prompt, workdir, deadline, digest(RENDER_TOOL.read_bytes()))
         for case in selected:
-            if case.base:
-                prepare_before(run, case)
+            prepare_case(run, case)
         pending = 0
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
             futures = {pool.submit(run_build, run, c, m): (c, m) for c in selected for m in models}
