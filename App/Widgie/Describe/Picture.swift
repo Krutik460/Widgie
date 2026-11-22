@@ -39,7 +39,7 @@ struct Thumbnail: View {
             if let image = UIImage(data: attachment.bytes) {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Palette.off
+                Palette.disabled
             }
         }
         .frame(width: size, height: size)

@@ -3,8 +3,8 @@ import SwiftUI
 import WidgetBuilder
 import WidgetEngine
 
-/// The describe flow: describe, build, try it, save. One screen per step, with the step bar across the top
-/// and a banner from the bottom when a turn fails. `close` gets the saved widget, or nil when nothing was saved.
+/// The describe flow, one action per screen: describe, watch it build, try it, saved. A failure drains the
+/// screen to grey. `close` gets the saved widget, or nil when nothing was saved.
 struct DescribeView: View {
     @Bindable var session: DescribeSession
     let close: (WidgetID?) -> Void
@@ -14,62 +14,40 @@ struct DescribeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     enum Screen {
-        case describe, building, tryIt, saved
+        case describe, building, tryIt, saved, failure
     }
 
     private var screen: Screen {
         switch session.phase {
         case .building: .building
         case .saved: .saved
+        case .failed: .failure
         case .opening: .tryIt
-        case .composing, .saving, .failed: session.draft == nil ? .describe : .tryIt
+        case .composing, .saving: session.draft == nil ? .describe : .tryIt
         }
-    }
-
-    private var failure: DescribeSession.Failure? {
-        if case .failed(let failure) = session.phase { failure } else { nil }
     }
 
     var body: some View {
         ZStack {
             switch screen {
             case .describe:
-                VStack(spacing: 0) {
-                    topBar(.describe)
-                    DescribeScreen(session: session)
-                }
-                .transition(.opacity)
+                DescribeScreen(session: session, close: attemptClose).transition(.opacity)
             case .building:
-                VStack(spacing: 0) {
-                    topBar(.build)
-                    BuildingScreen(session: session)
-                }
-                .transition(.opacity)
+                BuildingScreen(session: session).transition(.opacity)
             case .tryIt:
-                VStack(spacing: 0) {
-                    topBar(session.phase == .saving ? .save : .tryIt)
-                    TryItScreen(session: session)
-                }
-                .transition(.opacity)
+                TryItScreen(session: session, close: attemptClose).transition(.opacity)
             case .saved:
-                SavedScreen(session: session) { close(savedID) }
-                    .transition(.opacity)
+                SavedScreen(session: session) { close(savedID) }.transition(.opacity)
+            case .failure:
+                if case .failed(let failure) = session.phase {
+                    FailureScreen(failure: failure, session: session).transition(.opacity)
+                }
             }
         }
-        .saturation(failure == nil ? 1 : 0.75)
-        .brightness(failure == nil ? 0 : -0.04)
-        .overlay(alignment: .bottom) {
-            if let failure {
-                FailureBanner(failure: failure, keptDraft: session.draft != nil, session: session)
-                    .transition(.move(edge: .bottom))
-            }
-        }
-        .background((screen == .saved ? Palette.sky : Palette.ground).ignoresSafeArea())
-        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(duration: 0.4, bounce: 0.25), value: screen)
-        .animation(reduceMotion ? nil : .spring(duration: 0.45, bounce: 0.35), value: failure)
-        .fontDesign(.rounded)
-        .foregroundStyle(Palette.ink)
-        .tint(Palette.sky)
+        .ground(screen == .failure ? Palette.failureGround : Palette.ground)
+        .animation(reduceMotion ? .linear(duration: 0.2) : .easeInOut(duration: 0.5), value: screen)
+        .foregroundStyle(Palette.text)
+        .tint(Palette.caret)
         .sensoryFeedback(trigger: session.phase) { old, new in
             switch new {
             case .saved: .success
@@ -108,487 +86,355 @@ struct DescribeView: View {
         Binding(get: { session.preview.form != nil }, set: { if !$0 { session.preview.form = nil } })
     }
 
-    /// The close button and the step bar. Closing asks first once there is something to lose.
-    private func topBar(_ step: FlowStep) -> some View {
-        HStack(spacing: 12) {
-            Button {
-                let changed =
-                    session.editing == nil ? session.draft != nil : session.turns.contains { $0.result == .accepted }
-                if changed { confirmDiscard = true } else { close(nil) }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 19, weight: .heavy))
-                    .foregroundStyle(Palette.muted)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .disabled(screen == .building || session.phase == .saving)
-            .opacity(screen == .building ? 0.35 : 1)
-            .accessibilityLabel("Discard")
-            StepBar(step: step)
-        }
-        .padding(.leading, 8)
-        .padding(.trailing, 18)
-        .padding(.top, 2)
-        .padding(.bottom, 8)
+    /// Closes, asking first once there is something to lose.
+    private func attemptClose() {
+        let changed = session.editing == nil ? session.draft != nil : session.turns.contains { $0.result == .accepted }
+        if changed { confirmDiscard = true } else { close(nil) }
     }
 }
 
 // MARK: Describe
 
+/// One big field with the caret as its cursor, three example chips, a photo button, and Build it.
 private struct DescribeScreen: View {
     @Bindable var session: DescribeSession
+    let close: () -> Void
 
     @FocusState private var typing: Bool
-    @State private var item: PhotosPickerItem?
 
-    private static let ideas: [(symbol: String, color: Color, label: String, words: String)] = [
-        ("drop.fill", Palette.sky, "Water tracker with a big drop", "a water tracker with a big blue drop"),
-        ("book.closed.fill", Palette.berry, "Word of the day, dark card", "a word of the day on a dark card"),
-        ("figure.mind.and.body", Palette.tangerine, "Meditation streak", "a meditation streak with a calm look"),
-        (
-            "cup.and.saucer.fill", Color(light: 0x8A5A2B, dark: 0xC98B4E), "Coffee counter, cozy brown",
-            "a coffee counter in cozy brown"
-        ),
+    private static let examples: [(label: String, words: String, color: ChipColor)] = [
+        ("Water tracker", "a water tracker with a big blue drop", .mint),
+        ("Word of the day", "a word of the day on a dark card", .butter),
+        ("To-do list", "a to-do list for today", .pink),
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 12) {
-                    Mascot(mood: .idle, size: 74)
-                    Bubble(text: "What should your widget do?")
-                }
-                .padding(.bottom, 16)
-
-                ZStack(alignment: .topLeading) {
-                    if session.words.isEmpty {
-                        Text("Like: a water tracker with a big blue drop")
-                            .foregroundStyle(Palette.placeholder)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 8)
-                            .allowsHitTesting(false)
-                    }
-                    TextEditor(text: $session.words)
+        VStack(alignment: .leading, spacing: 0) {
+            CloseButton(action: close)
+                .padding(.leading, Column.margin - 13)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top, spacing: -16) {
+                        Caret(
+                            pose: typing || !session.words.isEmpty ? .lean(.right) : .idle, size: 74, grounded: false
+                        )
+                        .padding(.leading, -24)
+                        .padding(.top, -12)
+                        TextField(
+                            "Describe a widget", text: $session.words,
+                            prompt: Text("Describe a widget").foregroundStyle(Palette.secondary), axis: .vertical
+                        )
+                        .font(size: 34, weight: .bold, relativeTo: .largeTitle)
+                        .tracking(-1)
+                        .foregroundStyle(Palette.text)
                         .focused($typing)
-                        .scrollContentBackground(.hidden)
-                        .foregroundStyle(Palette.ink)
-                        .accessibilityLabel("Describe your widget")
-                }
-                .font(.title3.weight(.heavy))
-                .frame(minHeight: 120)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 10)
-                .card()
-
-                pictureRow.padding(.top, 19)
-
-                Text("Need an idea?")
-                    .font(.subheadline.weight(.black))
-                    .foregroundStyle(Palette.muted)
-                    .padding(.top, 22)
-                    .padding(.bottom, 8)
-                    .padding(.leading, 2)
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
-                    ForEach(Self.ideas, id: \.label) { idea in
-                        Button {
-                            session.words = idea.words
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: idea.symbol)
-                                    .font(.system(size: 17, weight: .bold))
-                                    .foregroundStyle(idea.color)
-                                    .frame(width: 26)
-                                Text(idea.label)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .multilineTextAlignment(.leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(.vertical, 10)
-                        }
-                        .buttonStyle(
-                            ChunkyButtonStyle(
-                                chunk: .card, corner: 16, lip: 4, height: 64, font: .subheadline.weight(.heavy)))
+                        .submitLabel(.go)
+                        .accessibilityLabel("Describe a widget")
+                        .padding(.top, 4)
                     }
+                    FlowLayout(spacing: 10) {
+                        ForEach(Self.examples, id: \.label) { example in
+                            Button(example.label) {
+                                session.words = example.words
+                                typing = true
+                            }
+                            .buttonStyle(ChipButtonStyle(color: example.color))
+                        }
+                    }
+                    .padding(.top, 30)
                 }
+                .padding(.top, 22)
+                .frame(width: Column.width, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 4)
-            .padding(.bottom, 12)
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                HStack(spacing: 12) {
+                    PhotoButton(picture: $session.picture)
+                    Button("Build it") {
+                        typing = false
+                        session.send()
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(!session.canSend)
+                }
+                .frame(width: Column.width)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity)
+            }
         }
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
-            Button("Build it") {
-                typing = false
-                session.send()
+        .onAppear { typing = true }
+        .onChange(of: session.words) { _, words in
+            // The field wraps long descriptions, so return builds instead of starting a new line.
+            guard words.contains("\n") else { return }
+            session.words = words.replacingOccurrences(of: "\n", with: "")
+            guard session.canSend else { return }
+            typing = false
+            session.send()
+        }
+    }
+}
+
+/// The photo button: the outlined picture icon, or the attached photo with a button to remove it.
+struct PhotoButton: View {
+    @Binding var picture: Attachment?
+
+    @State private var item: PhotosPickerItem?
+
+    var body: some View {
+        Group {
+            if let picture {
+                Thumbnail(attachment: picture, size: 60)
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            self.picture = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Palette.buttonLabel)
+                                .frame(width: 22, height: 22)
+                                .background(Circle().fill(Palette.buttonFill))
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .offset(x: 14, y: -14)
+                        .accessibilityLabel("Remove picture")
+                    }
+            } else {
+                PhotosPicker(selection: $item, matching: .images) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 21, weight: .semibold))
+                        .foregroundStyle(Palette.text)
+                        .frame(width: 60, height: 60)
+                        .overlay(Outline())
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Add a picture")
             }
-            .buttonStyle(ChunkyButtonStyle())
-            .disabled(!session.canSend)
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 8)
-            .background(Palette.ground)
         }
         .onChange(of: item) { _, item in
             guard let item else { return }
             Task {
-                session.picture = await Picture.load(item)
+                picture = await Picture.load(item)
                 self.item = nil
             }
         }
     }
+}
 
-    @ViewBuilder private var pictureRow: some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
-        if let picture = session.picture {
-            HStack(spacing: 12) {
-                Thumbnail(attachment: picture)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Picture added").font(.body.weight(.black))
-                    Text("I'll match its look").font(.subheadline.weight(.bold)).foregroundStyle(Palette.muted)
-                }
-                Spacer(minLength: 0)
-                Button {
-                    session.picture = nil
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(Palette.muted)
-                        .frame(width: 40, height: 40)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Remove picture")
-            }
-            .padding(.leading, 14)
-            .padding(.trailing, 6)
-            .padding(.vertical, 12)
-            .card(corner: 18, lip: 4)
-        } else {
-            PhotosPicker(selection: $item, matching: .images) {
-                HStack(spacing: 12) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 19, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Palette.skyLip).offset(y: 4)
-                                RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Palette.sky)
-                            }
-                        }
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Add a picture").font(.body.weight(.black)).foregroundStyle(Palette.ink)
-                        Text("I'll match its look").font(.subheadline.weight(.bold)).foregroundStyle(Palette.muted)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 14)
-                .padding(.top, 12)
-                .padding(.bottom, 14)
-                .background(shape.fill(Palette.surface.opacity(0.55)))
-                .overlay(shape.strokeBorder(Palette.dash, style: StrokeStyle(lineWidth: 3, dash: [7, 6])))
-                .contentShape(shape)
-            }
-            .buttonStyle(.plain)
+/// Lays its children in rows, left to right, wrapping when the next one does not fit.
+struct FlowLayout: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let frames = place(subviews, width: proposal.width ?? .infinity)
+        return CGSize(width: proposal.width ?? frames.map(\.maxX).max() ?? 0, height: frames.map(\.maxY).max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (frame, subview) in zip(place(subviews, width: bounds.width), subviews) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(frame.size))
         }
     }
-}
 
-/// Pip's speech bubble, with its tail pointing left at Pip.
-struct Bubble: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.body.weight(.heavy))
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .card(corner: 18, lip: 4)
-            .overlay(alignment: .leading) {
-                ZStack {
-                    Tail(closed: true).fill(Palette.surface)
-                    Tail(closed: false).stroke(Palette.line, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
-                }
-                .frame(width: 11, height: 18)
-                .offset(x: -9)
+    private func place(_ subviews: Subviews, width: CGFloat) -> [CGRect] {
+        var frames: [CGRect] = []
+        var origin = CGPoint.zero
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(ProposedViewSize(width: width, height: nil))
+            if origin.x > 0, origin.x + size.width > width {
+                origin = CGPoint(x: 0, y: origin.y + rowHeight + spacing)
+                rowHeight = 0
             }
-    }
-}
-
-/// The bubble's tail: a wedge pointing left. Open, it is just the two outer edges, for the border.
-private struct Tail: Shape {
-    let closed: Bool
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        if closed { path.closeSubpath() }
-        return path
+            frames.append(CGRect(origin: origin, size: CGSize(width: min(size.width, width), height: size.height)))
+            origin.x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return frames
     }
 }
 
 // MARK: Building
 
+/// The caret drawing the widget's outline, and one status line that follows the build's steps.
 private struct BuildingScreen: View {
     let session: DescribeSession
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// The first step is a repair only when Save was turned down and the loop is fixing the draft for it.
-    private var forSave: Bool {
-        if case .repairing = session.steps.first { true } else { false }
-    }
-
-    private var title: String {
-        forSave ? "Getting it ready to save" : session.draft == nil ? "Painting your widget" : "Painting your change"
-    }
-
     /// What a build usually takes: a new widget about 40 seconds on Sonnet, a change or a fix about 15.
     private var expected: TimeInterval { session.draft == nil ? 40 : 15 }
 
+    private var status: String {
+        if case .building(let step) = session.phase { step.title } else { "" }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            Painting()
-                .frame(height: 220)
-                .padding(.top, 6)
-            VStack(spacing: 4) {
-                Text(title).font(.title.weight(.black))
-                Text("This takes about \(Int(expected)) seconds")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(Palette.muted)
+            Spacer(minLength: 0)
+            TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { timeline in
+                let elapsed = max(0, timeline.date.timeIntervalSince(session.buildStarted))
+                Sketch(progress: reduceMotion ? 0.62 : 0.06 + 0.9 * (1 - exp(-elapsed / expected)))
             }
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 18)
-            .padding(.bottom, 18)
-
-            VStack(alignment: .leading, spacing: 0) {
-                let shown = Array(session.steps.suffix(3).enumerated())
-                ForEach(shown, id: \.offset) { index, step in
-                    StepRow(title: step.title, done: index < shown.count - 1)
-                }
-                Meter(started: session.buildStarted, expected: expected)
-                    .padding(.top, 8)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 16)
-            .card()
-            .padding(.horizontal, 18)
-            .animation(reduceMotion ? nil : .spring(duration: 0.35), value: session.steps)
-
-            Spacer(minLength: 16)
+            Text(status)
+                .font(size: 21, weight: .bold, relativeTo: .title3)
+                .tracking(-0.4)
+                .multilineTextAlignment(.center)
+                .contentTransition(.opacity)
+                .animation(.easeInOut(duration: 0.25), value: status)
+                .padding(.top, 46)
+                .padding(.horizontal, Column.margin)
+                .accessibilityAddTraits(.updatesFrequently)
+            Spacer(minLength: 0)
+            Spacer(minLength: 0)
             Button("Cancel") { session.cancel() }
-                .buttonStyle(ChunkyButtonStyle(chunk: .plain))
-                .padding(.horizontal, 18)
-                .padding(.bottom, 8)
-        }
-    }
-
-    private struct StepRow: View {
-        let title: String
-        let done: Bool
-
-        var body: some View {
-            HStack(spacing: 12) {
-                if done {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(.white)
-                        .frame(width: 30, height: 30)
-                        .background {
-                            ZStack {
-                                Circle().fill(Palette.skyLip).offset(y: 3)
-                                Circle().fill(Palette.sky)
-                            }
-                        }
-                } else {
-                    Spinner().frame(width: 30, height: 30)
-                }
-                Text(title)
-                    .font(.body.weight(.heavy))
-                    .foregroundStyle(done ? Palette.muted : Palette.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.vertical, 8)
-            .accessibilityElement(children: .combine)
-            .accessibilityValue(done ? "Done" : "In progress")
-        }
-    }
-
-    private struct Spinner: View {
-        @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-        var body: some View {
-            TimelineView(.animation(paused: reduceMotion)) { timeline in
-                let turns = timeline.date.timeIntervalSinceReferenceDate / 0.8
-                ZStack {
-                    Circle().stroke(Palette.tangerine.opacity(0.25), lineWidth: 4)
-                    Circle().trim(from: 0, to: 0.72).stroke(
-                        Palette.tangerine, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                }
-                .padding(2)
-                .rotationEffect(.degrees(reduceMotion ? 0 : turns.truncatingRemainder(dividingBy: 1) * 360))
-            }
-        }
-    }
-
-    /// Fills toward 95% on the usual build time and never claims done; the screen leaves when the build does.
-    private struct Meter: View {
-        let started: Date
-        let expected: TimeInterval
-
-        var body: some View {
-            TimelineView(.periodic(from: .now, by: 0.2)) { timeline in
-                let elapsed = max(0, timeline.date.timeIntervalSince(started))
-                let fraction = 0.05 + 0.9 * (1 - exp(-elapsed / expected))
-                GeometryReader { box in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Palette.track)
-                        ZStack(alignment: .top) {
-                            RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Palette.skyLip)
-                            RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Palette.sky).padding(.bottom, 5)
-                            RoundedRectangle(cornerRadius: 2).fill(.white.opacity(0.55)).frame(height: 4)
-                                .padding(.horizontal, 8).padding(.top, 4)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                        .frame(width: max(18, box.size.width * fraction))
-                        .animation(.linear(duration: 0.2), value: fraction)
-                    }
-                }
-                .frame(height: 18)
-                .accessibilityElement()
-                .accessibilityLabel("Progress")
-                .accessibilityValue("\(Int(fraction * 100)) percent")
-            }
+                .font(size: 17, weight: .semibold)
+                .foregroundStyle(Palette.secondary)
+                .frame(minWidth: 120, minHeight: 44)
+                .contentShape(Rectangle())
+                .padding(.bottom, 14)
         }
     }
 }
 
-/// A widget outline that Pip paints in, stroke by stroke.
-private struct Painting: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var scheme
+/// A widget's outline drawn so far, its parts going from dashed to solid, with the caret riding the end of
+/// the line.
+private struct Sketch: View {
+    let progress: Double
+
+    private static let size = Family.medium.standardSize
+    private static let headroom: CGFloat = 150
+    private static let caret: CGFloat = 170
 
     var body: some View {
-        TimelineView(.animation(paused: reduceMotion)) { timeline in
-            let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
-            let sweep = 0.3 + 0.48 * (0.5 - 0.5 * cos(time * .pi / 2.4))
+        let size = Self.size
+        let outline = Self.outline
+        let tip = outline.trimmedPath(from: 0, to: progress).currentPoint ?? .zero
+        let side: Caret.Side = tip.x < size.width * 0.7 ? .right : .left
+        let foot = Caret.foot(.draw(side))
+        ZStack(alignment: .topLeading) {
             ZStack(alignment: .topLeading) {
-                outline(sweep: reduceMotion ? 0.6 : sweep)
-                    .frame(width: 268, height: 126)
-                    .offset(x: 0, y: 30)
-                Mascot(mood: .working, size: 128)
-                    .offset(x: 196, y: 54)
-                Circle().fill(Palette.tangerine).frame(width: 10, height: 10).offset(x: 8, y: 176)
-                Circle().fill(Palette.sky).frame(width: 7, height: 7).offset(x: 38, y: 190)
+                outline.stroke(
+                    Palette.caret.opacity(0.18), style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [2, 8]))
+                outline.trimmedPath(from: 0, to: progress).stroke(
+                    Palette.caret, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                parts
             }
-            .frame(width: 324, height: 220, alignment: .topLeading)
+            .frame(width: size.width, height: size.height)
+            .offset(y: Self.headroom)
+            Caret(pose: .draw(side), size: Self.caret, grounded: false)
+                .position(
+                    x: tip.x + Self.caret * (0.5 - foot.x), y: Self.headroom + tip.y + Self.caret * (0.5 - foot.y))
         }
+        .frame(width: size.width, height: size.height + Self.headroom, alignment: .topLeading)
         .accessibilityHidden(true)
     }
 
-    private func outline(sweep: Double) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
-        return ZStack(alignment: .leading) {
-            shape.fill(Palette.surface.opacity(0.4))
-            blocks(Palette.dash.opacity(0.6))
-            ZStack(alignment: .topLeading) {
-                LinearGradient(
-                    colors: [Color(rgb: 0x0D2C4A), Color(rgb: 0x16466E)], startPoint: .leading, endPoint: .trailing)
-                blocks(nil)
-            }
-            .frame(width: 268, height: 126, alignment: .leading)
-            .mask(alignment: .leading) {
-                UnevenRoundedRectangle(bottomTrailingRadius: 30, topTrailingRadius: 30)
-                    .frame(width: 268 * sweep)
-            }
-        }
-        .clipShape(shape)
-        .overlay(shape.strokeBorder(Palette.dash, style: StrokeStyle(lineWidth: 4, dash: [9, 7])))
-    }
+    /// The widget's edge, drawn clockwise from the bottom of the left side, so the caret spends most of a build
+    /// on the top edge, above the parts it reveals.
+    private static let outline: Path = {
+        let (width, height, radius) = (size.width, size.height, 22.0)
+        var path = Path()
+        path.move(to: CGPoint(x: 0, y: height - radius))
+        path.addLine(to: CGPoint(x: 0, y: radius))
+        path.addArc(tangent1End: .zero, tangent2End: CGPoint(x: radius, y: 0), radius: radius)
+        path.addLine(to: CGPoint(x: width - radius, y: 0))
+        path.addArc(tangent1End: CGPoint(x: width, y: 0), tangent2End: CGPoint(x: width, y: radius), radius: radius)
+        path.addLine(to: CGPoint(x: width, y: height - radius))
+        path.addArc(
+            tangent1End: CGPoint(x: width, y: height), tangent2End: CGPoint(x: width - radius, y: height),
+            radius: radius)
+        path.addLine(to: CGPoint(x: radius, y: height))
+        path.addArc(
+            tangent1End: CGPoint(x: 0, y: height), tangent2End: CGPoint(x: 0, y: height - radius), radius: radius)
+        return path
+    }()
 
-    /// The placeholder content: a label, a big number, a dot, and a bar chart. Painted, it takes real colors.
-    private func blocks(_ flat: Color?) -> some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 6).fill(flat ?? Color(rgb: 0x7FD0FF)).frame(width: 60, height: 12)
-                .offset(x: 18, y: 16)
-            RoundedRectangle(cornerRadius: 8).fill(flat ?? .white).frame(width: 90, height: 26).offset(x: 18, y: 38)
-            Circle().fill(flat ?? Color(rgb: 0x4FC3FF)).frame(width: 30, height: 30).offset(x: 18, y: 80)
-            HStack(alignment: .bottom, spacing: 6) {
-                ForEach([0.5, 0.8, 0.6, 1.0, 0.7, 0.9], id: \.self) { height in
-                    RoundedRectangle(cornerRadius: 3).fill(flat ?? Color(rgb: 0x4FC3FF)).frame(
-                        width: 9, height: 60 * height)
+    /// A label, a big number, two buttons, and a week of bars, each solid once the line has passed above it.
+    private var parts: some View {
+        let bars: [CGFloat] = [30, 54, 40, 66, 48, 72, 22]
+        return ZStack(alignment: .topLeading) {
+            part(RoundedRectangle(cornerRadius: 4), at: 0.19).frame(width: 58, height: 12).offset(x: 20, y: 22)
+            part(RoundedRectangle(cornerRadius: 6), at: 0.23).frame(width: 84, height: 34).offset(x: 20, y: 52)
+            part(Circle(), at: 0.16).frame(width: 30, height: 30).offset(x: 23, y: 110)
+            part(Circle(), at: 0.7).frame(width: 22, height: 22).offset(x: 69, y: 114)
+            HStack(alignment: .bottom, spacing: 8) {
+                ForEach(Array(bars.enumerated()), id: \.offset) { index, height in
+                    part(RoundedRectangle(cornerRadius: 4), at: 0.32 + Double(index) * 0.022)
+                        .frame(width: 12, height: height)
                 }
             }
-            .frame(width: 96, height: 60, alignment: .bottom)
-            .offset(x: 154, y: 50)
+            .frame(height: 72, alignment: .bottom)
+            .offset(x: 186, y: 62)
         }
-        .frame(width: 268, height: 126, alignment: .topLeading)
+    }
+
+    @ViewBuilder private func part(_ shape: some Shape, at threshold: Double) -> some View {
+        if progress >= threshold {
+            shape.fill(Palette.caret)
+        } else {
+            shape.stroke(Palette.caret.opacity(0.35), style: StrokeStyle(lineWidth: 2, dash: [3, 4]))
+        }
     }
 }
 
 // MARK: Failure
 
-private struct FailureBanner: View {
+/// The screen drained to grey, the caret slumped at a broken bridge, what went wrong in one line, the last
+/// widget that worked, and one way forward.
+private struct FailureScreen: View {
     let failure: DescribeSession.Failure
-    let keptDraft: Bool
     let session: DescribeSession
 
     var body: some View {
-        VStack(spacing: 18) {
-            HStack(alignment: .center, spacing: 14) {
-                Mascot(mood: .worried, size: 84)
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(spacing: 0) {
+            HStack {
+                CloseButton(color: Palette.failureText, label: "Back") { session.dismissFailure() }
+                Spacer()
+            }
+            .padding(.leading, Column.margin - 13)
+            .opacity(failure == .unavailable ? 0 : 1)
+            ScrollView {
+                VStack(spacing: 0) {
+                    BrokenBridge().padding(.top, 34)
                     Text(failure.title)
-                        .font(.title3.weight(.black))
-                        .foregroundStyle(Palette.berryText)
-                    if let detail {
-                        Text(detail).font(.body.weight(.bold))
+                        .font(size: 30, weight: .heavy, relativeTo: .title)
+                        .tracking(-1)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Palette.failureText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 22)
+                    #if DEBUG
+                        if failure == .unreachable {
+                            Text("Check that the bridge is running.")
+                                .font(size: 16, weight: .semibold)
+                                .foregroundStyle(Palette.failureText.opacity(0.75))
+                                .padding(.top, 8)
+                        }
+                    #endif
+                    if let face = session.preview.faces[.medium] {
+                        FaceView(face, host: .app(tap: { _ in }, form: { _ in }))
+                            .allowsHitTesting(false)
+                            .frame(width: Family.medium.standardSize.width, height: Family.medium.standardSize.height)
+                            .faceShadow()
+                            .padding(.top, 34)
+                            .accessibilityLabel("Your last widget, kept as it was")
                     }
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
+                .frame(width: Column.width)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 12)
             }
-            Button(action: act) { Text(actionTitle) }
-                .buttonStyle(ChunkyButtonStyle(chunk: .danger))
+            .scrollBounceBehavior(.basedOnSize)
+            Button(actionTitle, action: act)
+                .buttonStyle(PrimaryButtonStyle(fill: Palette.failureButtonFill, label: Palette.failureButtonLabel))
+                .frame(width: Column.width)
+                .padding(.bottom, 8)
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 22)
-        .padding(.bottom, 12)
-        .frame(maxWidth: .infinity)
-        .background {
-            UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30, style: .continuous)
-                .fill(Palette.berryTint)
-                .overlay(alignment: .top) {
-                    UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30, style: .continuous)
-                        .stroke(Palette.berry.opacity(0.35), lineWidth: 4)
-                }
-                .ignoresSafeArea(edges: .bottom)
-        }
-        .overlay(alignment: .topTrailing) {
-            if failure != .unavailable {
-                Button(action: session.dismissFailure) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(Palette.berryText.opacity(0.8))
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Close")
-                .padding(.top, 4)
-                .padding(.trailing, 6)
-            }
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private var detail: String? {
-        let safe = keptDraft ? "Your last widget is safe." : nil
-        return [failure.detail, safe].compactMap(\.self).joined(separator: " ").nilIfEmpty
     }
 
     private var actionTitle: String {
@@ -607,6 +453,35 @@ private struct FailureBanner: View {
     }
 }
 
-extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
+/// A bridge with a gap in it, and the caret bent over the gap.
+private struct BrokenBridge: View {
+    var body: some View {
+        let width = Column.width
+        let deck: CGFloat = 170
+        ZStack(alignment: .topLeading) {
+            Canvas { context, _ in
+                let round = StrokeStyle(lineWidth: 5, lineCap: .round)
+                var span = Path()
+                span.move(to: CGPoint(x: -8, y: deck))
+                span.addLine(to: CGPoint(x: width * 0.46, y: deck))
+                span.move(to: CGPoint(x: width * 0.66, y: deck))
+                span.addLine(to: CGPoint(x: width + 8, y: deck))
+                context.stroke(span, with: .color(Palette.failureCaret), style: round)
+                var ends = Path()
+                ends.move(to: CGPoint(x: width * 0.46, y: deck))
+                ends.addLine(to: CGPoint(x: width * 0.46 + 9, y: deck + 18))
+                ends.move(to: CGPoint(x: width * 0.66, y: deck))
+                ends.addLine(to: CGPoint(x: width * 0.66 - 8, y: deck + 17))
+                context.stroke(
+                    ends, with: .color(Palette.failureCaret.opacity(0.5)),
+                    style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+            }
+            let size: CGFloat = 190
+            let foot = Caret.foot(.slump)
+            Caret(pose: .slump, size: size, color: Palette.failureCaret, eye: Palette.failureGround)
+                .position(x: width * 0.36 + size * (0.5 - foot.x), y: deck + size * (0.5 - foot.y))
+        }
+        .frame(width: width, height: deck + 24)
+        .accessibilityHidden(true)
+    }
 }

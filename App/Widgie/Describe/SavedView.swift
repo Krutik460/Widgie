@@ -1,8 +1,8 @@
 import SwiftUI
 import WidgetEngine
 
-/// The celebration after Save: rays, a burst of confetti, Pip jumping, the widget bouncing in, and how to put
-/// it on the home screen.
+/// After Save: the caret jumps in a burst of caret confetti, the widget, "Saved.", one line on putting it on
+/// the home screen, and Done.
 struct SavedScreen: View {
     let session: DescribeSession
     let done: () -> Void
@@ -10,189 +10,168 @@ struct SavedScreen: View {
     @State private var arrived = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private static let caret: CGFloat = 220
+
     var body: some View {
         VStack(spacing: 0) {
-            StepBar(step: .done)
-                .padding(.horizontal, 18)
-                .padding(.top, 2)
-                .padding(.bottom, 8)
             ScrollView {
                 VStack(spacing: 0) {
-                    Mascot(mood: .cheering, size: 132)
-                        .scaleEffect(arrived || reduceMotion ? 1 : 0.4)
-                    Text(session.editing == nil ? "Widget saved!" : "Changes saved!")
-                        .font(.largeTitle.weight(.black))
-                        .shadow(color: .black.opacity(0.12), radius: 0, y: 3)
-                        .padding(.top, 4)
-                    Text(session.editing == nil ? "It's in your library now." : "Your home screen has it already.")
-                        .font(.body.weight(.bold))
-                        .opacity(0.9)
-                        .padding(.top, 2)
+                    ZStack {
+                        Confetti(burst: arrived)
+                        KeyframeAnimator(initialValue: Hop(), trigger: arrived) { hop in
+                            ZStack {
+                                Caret(pose: .jump, size: Self.caret, lift: hop.lift, squash: hop.squash)
+                                Motion().opacity(hop.lift > 20 ? 1 : 0)
+                            }
+                        } keyframes: { _ in
+                            KeyframeTrack(\.lift) {
+                                LinearKeyframe(0, duration: 0.16)
+                                SpringKeyframe(Self.caret * 0.24, duration: 0.3, spring: .snappy)
+                                CubicKeyframe(Self.caret * 0.24, duration: 0.08)
+                                CubicKeyframe(0, duration: 0.24)
+                                CubicKeyframe(0, duration: 0.3)
+                            }
+                            KeyframeTrack(\.squash) {
+                                CubicKeyframe(0.86, duration: 0.16)
+                                CubicKeyframe(1.1, duration: 0.3)
+                                CubicKeyframe(1.04, duration: 0.08)
+                                CubicKeyframe(0.9, duration: 0.24)
+                                SpringKeyframe(1, duration: 0.3, spring: .bouncy)
+                            }
+                        }
+                    }
+                    .frame(width: Column.width, height: Self.caret)
+                    Impact()
+                        .frame(width: Column.width + 28, height: 26)
+                        .padding(.top, -8)
                     if let face = session.preview.faces[.medium] {
                         FaceView(face, host: .app(tap: { _ in }, form: { _ in }))
                             .allowsHitTesting(false)
-                            .frame(
-                                width: Family.medium.standardSize.width, height: Family.medium.standardSize.height
-                            )
-                            .shadow(color: .black.opacity(0.18), radius: 0, y: 7)
-                            .padding(.top, 22)
-                            .offset(y: arrived || reduceMotion ? 0 : 60)
-                            .opacity(arrived || reduceMotion ? 1 : 0)
+                            .frame(width: Family.medium.standardSize.width, height: Family.medium.standardSize.height)
+                            .faceShadow()
+                            .padding(.top, -6)
                     }
-                    if session.editing == nil {
-                        HowTo().padding(.top, 26)
-                    }
+                    Text("Saved.")
+                        .font(size: 60, weight: .heavy, relativeTo: .largeTitle)
+                        .tracking(-2)
+                        .padding(.top, 34)
+                    Text(
+                        session.editing == nil
+                            ? "Press and hold your home screen, then tap Edit to add it."
+                            : "Your home screen shows the change."
+                    )
+                    .font(size: 18, weight: .semibold)
+                    .foregroundStyle(Palette.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
+                    .padding(.horizontal, 8)
                 }
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 22)
+                .frame(width: Column.width)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 20)
                 .padding(.bottom, 12)
             }
             .scrollBounceBehavior(.basedOnSize)
-            Button("Continue", action: done)
-                .buttonStyle(
-                    ChunkyButtonStyle(
-                        chunk: Chunk(
-                            face: .white, lip: Color(rgb: 0x0A6FA8).opacity(0.55), text: Color(rgb: 0x0A7FC2)))
-                )
-                .padding(.horizontal, 18)
+            Button("Done", action: done)
+                .buttonStyle(PrimaryButtonStyle())
+                .frame(width: Column.width)
                 .padding(.bottom, 8)
         }
-        .background {
-            ZStack {
-                Rays().frame(width: 900, height: 900).offset(y: -170)
-                Confetti(burst: arrived || reduceMotion)
-            }
-            .allowsHitTesting(false)
-        }
-        .foregroundStyle(.white)
         .onAppear {
-            withAnimation(reduceMotion ? nil : .spring(duration: 0.7, bounce: 0.5)) { arrived = true }
+            guard !reduceMotion else { return }
+            arrived = true
         }
     }
-}
 
-/// The one line on adding the widget: hold the home screen, tap Edit, Add Widget, pick Widgie.
-private struct HowTo: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Put it on your home screen").font(.body.weight(.black))
-            HStack(alignment: .top, spacing: 0) {
-                step(Image(systemName: "hand.point.up.left.fill"), "Hold the home screen")
-                arrow
-                step(Text("Edit").font(.subheadline.weight(.black)), "Tap Edit")
-                arrow
-                step(Image(systemName: "plus"), "Add Widget")
-                arrow
-                step(Text("W").font(.headline.weight(.black)), "Pick Widgie", brand: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "To put it on your home screen, hold the home screen, tap Edit, tap Add Widget, and pick Widgie.")
+    private struct Hop {
+        var lift: CGFloat = 0
+        var squash: CGFloat = 1
     }
 
-    private var arrow: some View {
-        Image(systemName: "chevron.right")
-            .font(.system(size: 12, weight: .black))
-            .frame(height: 52)
-            .frame(maxWidth: .infinity)
-    }
-
-    private func step(_ icon: some View, _ label: String, brand: Bool = false) -> some View {
-        VStack(spacing: 6) {
-            icon
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(brand ? .white : Color(rgb: 0x0A7FC2))
-                .frame(width: 52, height: 52)
-                .background {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.black.opacity(0.15)).offset(y: 4)
-                        RoundedRectangle(cornerRadius: 16, style: .continuous).fill(
-                            brand ? Color(rgb: 0xFF7A1A) : .white)
-                    }
-                }
-            Text(label)
-                .font(.footnote.weight(.heavy))
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(width: 70)
-    }
-}
-
-/// Slow-turning rays behind the celebration, fading out from the middle.
-private struct Rays: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        TimelineView(.animation(paused: reduceMotion)) { timeline in
-            let angle = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate / 30 * 360
+    /// Three short lines under the caret while it is in the air.
+    private struct Motion: View {
+        var body: some View {
             Canvas { context, size in
-                let center = CGPoint(x: size.width / 2, y: size.height / 2)
-                let radius = max(size.width, size.height)
-                for index in 0..<23 {
-                    let start = Angle.degrees(Double(index) * 16)
-                    var wedge = Path()
-                    wedge.move(to: center)
-                    wedge.addArc(
-                        center: center, radius: radius, startAngle: start, endAngle: start + .degrees(8),
-                        clockwise: false)
-                    wedge.closeSubpath()
-                    context.fill(wedge, with: .color(.white.opacity(0.16)))
+                let mid = size.width / 2
+                var lines = Path()
+                for (x, top, bottom) in [(-27.0, 0.74, 0.88), (27.0, 0.74, 0.88), (0.0, 0.78, 0.95)] {
+                    lines.move(to: CGPoint(x: mid + x, y: size.height * top))
+                    lines.addLine(to: CGPoint(x: mid + x, y: size.height * bottom))
                 }
+                context.stroke(
+                    lines, with: .color(Palette.caret.opacity(0.45)),
+                    style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
             }
-            .rotationEffect(.degrees(angle.truncatingRemainder(dividingBy: 360)))
-            .mask {
-                RadialGradient(
-                    stops: [.init(color: .black, location: 0.2), .init(color: .clear, location: 0.55)],
-                    center: .center, startRadius: 0, endRadius: 450)
+            .accessibilityHidden(true)
+        }
+    }
+
+    /// The tick marks at the widget's top corners, where the landing lands.
+    private struct Impact: View {
+        var body: some View {
+            Canvas { context, size in
+                var ticks = Path()
+                for (from, to) in [
+                    ((10.0, 24.0), (0.0, 14.0)), ((26.0, 14.0), (22.0, 0.0)),
+                    (
+                        (size.width - 10, 24.0), (size.width, 14.0)
+                    ), ((size.width - 26, 14.0), (size.width - 22, 0.0)),
+                ] {
+                    ticks.move(to: CGPoint(x: from.0, y: from.1))
+                    ticks.addLine(to: CGPoint(x: to.0, y: to.1))
+                }
+                context.stroke(ticks, with: .color(Palette.caret), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
             }
+            .accessibilityHidden(true)
         }
     }
 }
 
-/// Confetti that bursts out from behind Pip once, then rests where it landed.
+/// Little caret-shaped bars in the Pop colors that burst out once and settle around the caret. With Reduce
+/// Motion they are simply there.
 private struct Confetti: View {
     let burst: Bool
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private struct Piece {
         let color: Color
-        let size: CGSize
         let angle: Double
         let distance: CGFloat
-        let spin: Double
+        let tilt: Double
+        let length: CGFloat
     }
 
-    private static let pieces: [Piece] = {
-        let colors = [Color(rgb: 0xFFCB2E), Color(rgb: 0xFF7A1A), .white, Color(rgb: 0xF0384F)]
-        var generator = SystemRandomNumberGenerator()
-        return (0..<22).map { index in
-            let round = index % 3 == 1
-            return Piece(
-                color: colors[index % colors.count],
-                size: round ? CGSize(width: 10, height: 10) : CGSize(width: 11, height: 19),
-                angle: Double(index) / 22 * 2 * .pi + Double.random(in: -0.12...0.12, using: &generator),
-                distance: CGFloat.random(in: 120...190, using: &generator),
-                spin: Double.random(in: -200...200, using: &generator))
-        }
-    }()
+    /// A fixed scatter, so the burst looks the same every time. No angle points straight up or down, where the
+    /// caret stands.
+    private static let pieces: [Piece] = [
+        200, 215, 160, 145, 330, 345, 15, 30, 185, 355, 230, 310, 130, 50, 172, 2,
+    ].enumerated().map { index, degrees in
+        Piece(
+            color: Palette.pops[index % Palette.pops.count],
+            angle: Double(degrees) * .pi / 180,
+            distance: [118, 146, 128, 156, 110, 138][index % 6],
+            tilt: [-28, 34, -12, 22, -38, 16, 40, -20][index % 8],
+            length: [14, 18, 12, 16][index % 4])
+    }
 
     var body: some View {
+        let shown = burst || reduceMotion
         ZStack {
             ForEach(Array(Self.pieces.enumerated()), id: \.offset) { _, piece in
-                RoundedRectangle(cornerRadius: piece.size.width == piece.size.height ? 5 : 4)
+                RoundedRectangle(cornerRadius: 2)
                     .fill(piece.color)
-                    .frame(width: piece.size.width, height: piece.size.height)
-                    .rotationEffect(.degrees(burst ? piece.spin : 0))
+                    .frame(width: 4, height: piece.length)
+                    .rotationEffect(.degrees(shown ? piece.tilt : 0))
                     .offset(
-                        x: burst ? cos(piece.angle) * piece.distance : 0,
-                        y: burst ? sin(piece.angle) * piece.distance : 0
+                        x: shown ? cos(piece.angle) * piece.distance * 1.15 : 0,
+                        y: shown ? sin(piece.angle) * piece.distance * 0.72 - 6 : 0
                     )
-                    .opacity(burst ? 1 : 0)
+                    .opacity(shown ? 1 : 0)
             }
         }
-        .offset(y: 120)
-        .animation(.easeOut(duration: 0.9), value: burst)
+        .animation(.easeOut(duration: 0.8).delay(0.42), value: burst)
+        .accessibilityHidden(true)
     }
 }

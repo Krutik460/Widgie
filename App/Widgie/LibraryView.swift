@@ -1,55 +1,47 @@
 import SwiftUI
 import WidgetEngine
 
+/// The widgets as they look on the home screen, and New widget. With none yet, the caret asks for one.
 struct LibraryView: View {
     let library: Library
 
     @State private var session: DescribeSession?
 
-    private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible())]
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("My widgets").font(.largeTitle.weight(.black))
-                    Spacer()
-                    #if DEBUG
-                        debugMenu
-                    #endif
+        ZStack(alignment: .bottom) {
+            if library.items.isEmpty {
+                VStack(spacing: 0) {
+                    header
+                    Spacer(minLength: 12)
+                    Caret(size: 270)
+                    Text("Tell me a widget.")
+                        .font(size: 40, weight: .heavy, relativeTo: .largeTitle)
+                        .tracking(-1.4)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 34)
+                    Spacer(minLength: 108)
                 }
-                .padding(.top, 10)
-                .padding(.bottom, 16)
-
-                if library.items.isEmpty {
-                    empty
-                } else {
-                    hero
-                    Text("Saved")
-                        .font(.subheadline.weight(.black))
-                        .foregroundStyle(Palette.muted)
-                        .padding(.top, 26)
-                        .padding(.bottom, 8)
-                        .padding(.leading, 2)
-                    LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(library.items) { item in
-                            tile(item)
-                        }
+                .padding(.horizontal, Column.margin)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        header
+                        rows.padding(.top, 14)
                     }
+                    .frame(width: Column.width)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 116)
                 }
+                .refreshable { await library.reload() }
             }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 24)
+            newWidget
         }
-        .background(Palette.ground.ignoresSafeArea())
-        .fontDesign(.rounded)
-        .foregroundStyle(Palette.ink)
-        .refreshable { await library.reload() }
+        .ground()
+        .foregroundStyle(Palette.text)
         .task { await library.reload() }
         .fullScreenCover(item: $session) { session in
-            DescribeView(session: session) { saved in
+            DescribeView(session: session) { _ in
                 self.session = nil
-                library.justSaved = saved ?? library.justSaved
                 library.refresh()
             }
         }
@@ -68,81 +60,80 @@ struct LibraryView: View {
         )
     }
 
-    private var hero: some View {
-        HStack(spacing: 14) {
-            Mascot(mood: .idle, size: 92)
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Got an idea?\nLet's paint it.")
-                    .font(.title3.weight(.black))
-                    .fixedSize(horizontal: false, vertical: true)
-                Button {
-                    session = DescribeSession()
-                } label: {
-                    Label("New widget", systemImage: "plus")
-                }
-                .buttonStyle(ChunkyButtonStyle(height: 50, font: .subheadline.weight(.black)))
-            }
-        }
-        .padding(16)
-        .card()
-    }
-
-    private var empty: some View {
-        VStack(spacing: 0) {
-            Mascot(mood: .idle, size: 130)
-            Text("Your home screen is waiting")
-                .font(.title2.weight(.black))
-                .padding(.top, 8)
-            Text("Tell me an idea in plain words.\nI'll paint you a widget.")
-                .font(.body.weight(.bold))
-                .foregroundStyle(Palette.muted)
+    /// The wordmark, and the caret leaning in from the corner toward it.
+    private var header: some View {
+        HStack(alignment: .top, spacing: 0) {
+            Wordmark().padding(.top, 2)
+            Spacer(minLength: 8)
+            #if DEBUG
+                debugMenu.padding(.top, 2)
+            #endif
+            Caret(pose: library.items.isEmpty ? .idle : .lean(.left), size: 88)
                 .padding(.top, 6)
-                .padding(.bottom, 20)
-            Button("Make my first widget") { session = DescribeSession() }
-                .buttonStyle(ChunkyButtonStyle())
+                .padding(.trailing, -18)
+                .opacity(library.items.isEmpty ? 0 : 1)
         }
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 22)
-        .frame(maxWidth: .infinity)
-        .card()
     }
 
-    /// A small live face: its buttons work as on the home screen, and a tap anywhere else opens it to change.
-    private func tile(_ item: Library.Item) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let face = item.face {
-                FaceView(face, host: .app(tap: { library.perform($0) }, form: { library.showForm(for: $0) }))
-                    .frame(width: Family.small.standardSize.width, height: Family.small.standardSize.height)
-                    .frame(maxWidth: .infinity)
-            }
-            HStack(spacing: 6) {
-                Text(item.summary.name)
-                    .font(.subheadline.weight(.black))
-                    .lineLimit(1)
-                if library.justSaved == item.id {
-                    Text("New")
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(Color(rgb: 0x14204A))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Palette.sun))
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 4)
+    /// The faces in home screen sizes: a medium, then a pair of smalls, and again.
+    private var rows: some View {
+        let items = library.items
+        let rows = stride(from: 0, to: items.count, by: 3).map { start in
+            (medium: items[start], smalls: Array(items[min(start + 1, items.count)..<min(start + 3, items.count)]))
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .card(corner: 24)
-        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        return VStack(alignment: .leading, spacing: 22) {
+            ForEach(rows, id: \.medium.id) { row in
+                tile(row.medium, .medium)
+                if !row.smalls.isEmpty {
+                    HStack(spacing: Column.width - 2 * Family.small.standardSize.width) {
+                        ForEach(row.smalls) { tile($0, .small) }
+                    }
+                }
+            }
+        }
+    }
+
+    private var newWidget: some View {
+        Button("New widget") { session = DescribeSession() }
+            .buttonStyle(PrimaryButtonStyle())
+            .frame(width: Column.width)
+            .padding(.top, 36)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity)
+            .background {
+                LinearGradient(
+                    stops: [
+                        .init(color: Palette.ground.opacity(0), location: 0),
+                        .init(color: Palette.ground, location: 0.48),
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
+            }
+    }
+
+    /// A live face: its buttons work as on the home screen, and a tap anywhere else opens it to change.
+    @ViewBuilder private func tile(_ item: Library.Item, _ family: Family) -> some View {
+        let size = family.standardSize
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        Group {
+            if let face = item.faces[family] {
+                FaceView(face, host: .app(tap: { library.perform($0) }, form: { library.showForm(for: $0) }))
+            } else {
+                shape.fill(Palette.disabled.opacity(0.4))
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .faceShadow()
+        .contentShape(shape)
         .onTapGesture { session = DescribeSession(editing: item.id) }
         .contextMenu {
-            Button("Change it", systemImage: "paintbrush.pointed") { session = DescribeSession(editing: item.id) }
+            Button("Change it", systemImage: "pencil") { session = DescribeSession(editing: item.id) }
             Button("Delete", systemImage: "trash", role: .destructive) { library.delete(item.id) }
         }
         .accessibilityElement(children: .contain)
+        .accessibilityLabel(item.summary.name)
         .accessibilityAction(named: "Change it") { session = DescribeSession(editing: item.id) }
     }
 
@@ -155,15 +146,21 @@ struct LibraryView: View {
                     }
                 }
             } label: {
-                Image(systemName: "ladybug.fill")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Palette.muted)
+                Image(systemName: "ladybug")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Debug")
         }
     #endif
+}
+
+/// The describe flow and the library share one column, the medium widget's width, centered on the screen.
+enum Column {
+    static let width = Family.medium.standardSize.width
+    static let margin: CGFloat = 32
 }
 
 extension FaceHost {
