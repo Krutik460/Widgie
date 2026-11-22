@@ -182,6 +182,33 @@ import WidgetEngine
         #expect(scratch.commits == 0)
     }
 
+    @Test func aCancelWhileAReplyIsCheckedKeepsTheBuildThatSavesButNeverGivesUp() async throws {
+        func run(_ script: [ScriptedModel.Answer], cancelAt step: BuildStep) async -> (
+            Scratch, Result<LoopOutcome, any Error>
+        ) {
+            let scratch = Scratch()
+            let model = ScriptedModel(script)
+            let task = Task {
+                try await scratch.engine.build("a tap counter", model: model) { reached in
+                    if reached == step { withUnsafeCurrentTask { $0?.cancel() } }
+                }
+            }
+            return (scratch, await task.result)
+        }
+
+        let (kept, accepted) = await run([.reply(fenced(good))], cancelAt: .checking(attempt: 1))
+        guard case .success(.accepted(let id, attempts: 1)) = accepted else {
+            Issue.record("expected the build under way to finish and be accepted, got \(accepted)")
+            return
+        }
+        #expect(try kept.engine.widgets().map(\.id) == [id])
+
+        let bad = ScriptedModel.Answer.reply(fenced(Broken.blank))
+        let (empty, last) = await run([bad, bad, bad], cancelAt: .checking(attempt: Engine.maxBuildAttempts))
+        #expect(throws: CancellationError.self) { try last.get() }
+        #expect(try empty.engine.widgets().isEmpty)
+    }
+
     @Test func aModelErrorThrownAfterCancellationComesOutAsCancellationError() async throws {
         let scratch = Scratch()
         let model = StalledModel(then: .failure(URLError(.cancelled)))
