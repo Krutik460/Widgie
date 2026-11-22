@@ -20,7 +20,9 @@ extension Engine {
             guard let body = try attempt({ () throws(StoreError) in try store.revision(revision) }),
                 let spec = try? Spec.parse(body),
                 spec.assets.allSatisfy({ asset in
-                    asset.digest.map { FileManager.default.fileExists(atPath: store.assetURL($0).path()) } ?? true
+                    asset.digest.map {
+                        FileManager.default.fileExists(atPath: store.assetURL($0).path(percentEncoded: false))
+                    } ?? true
                 })
             else { continue }
             let images: [Spec.AssetID: Data]
