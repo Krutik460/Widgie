@@ -45,7 +45,7 @@ package final class RowStore: Sendable {
 
     /// `onCommit` runs on the writing thread after every transaction that commits a write. A stale tap
     /// writes nothing and does not run it. With `ownsDirectory` the store deletes `directory` when it is
-    /// released.
+    /// released, and `suspend()` does not stop its writes.
     ///
     /// Opening and migrating run under a file coordinator, as GRDB's sharing guide prescribes: two
     /// connections switching a new file to WAL at once fail with SQLITE_BUSY, which no busy timeout covers.
@@ -56,7 +56,9 @@ package final class RowStore: Sendable {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             var configuration = Configuration()
             configuration.busyMode = .timeout(2)
-            configuration.observesSuspensionNotifications = true
+            // A store that owns its directory lives in the app's private temporary folder, which no other process
+            // opens, so iOS has no shared lock to guard and a background build can keep saving.
+            configuration.observesSuspensionNotifications = !ownsDirectory
             configuration.maximumReaderCount = 2
             configuration.prepareDatabase { db in try db.execute(sql: "PRAGMA cache_size = -512") }
             var opened: Result<DatabasePool, any Error>?
@@ -89,8 +91,9 @@ package final class RowStore: Sendable {
         }
     }
 
-    /// Once suspended, every store in this process refuses writes (reads still work), so iOS never finds the
-    /// app holding a lock while suspended. The app calls this when it moves to the background.
+    /// Once suspended, every store in this process that does not own its directory refuses writes (reads
+    /// still work), so iOS never finds the app holding a lock on the shared database while suspended. The app
+    /// calls this when it moves to the background.
     package static func suspend() {
         NotificationCenter.default.post(name: Database.suspendNotification, object: nil)
     }
