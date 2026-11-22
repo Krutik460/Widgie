@@ -39,7 +39,7 @@ extension Engine {
         }
     }
 
-    /// Records the draft's head and the rows it shows, so `restore(_:)` can undo a build and the `load` that
+    /// Records the draft's head and the rows it shows, so `rollBack(to:)` can undo a build and the `load` that
     /// showed it. A sample load moves tables to new datasets and leaves the old ones in place, so the rows
     /// recorded here, taps included, are still there to point back at.
     ///
@@ -59,8 +59,8 @@ extension Engine {
 
     /// Moves the draft back to its checkpoint's head and the rows it showed then, in one transaction. Tables
     /// the checkpoint did not have lose their datasets, so a later build may add them again with other kinds.
-    public func restore(_ checkpoint: Checkpoint) throws(EngineError) {
-        guard isScratch else { throw EngineError(message: "only a scratch engine restores a checkpoint") }
+    public func rollBack(to checkpoint: Checkpoint) throws(EngineError) {
+        guard isScratch else { throw EngineError(message: "only a scratch engine rolls back to a checkpoint") }
         let store = try self.store()
         try attempt { () throws(StoreError) in
             try store.rollBack(checkpoint.widget, to: checkpoint.head, bindings: checkpoint.datasets)

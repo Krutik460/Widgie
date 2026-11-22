@@ -59,7 +59,7 @@ final class Preview {
 
     /// Puts the draft back as `checkpoint` recorded it, rows included, and draws it again.
     func rollBack(to checkpoint: Checkpoint) async throws(EngineError) {
-        try engine.restore(checkpoint)
+        try engine.rollBack(to: checkpoint)
         await redraw()
     }
 
