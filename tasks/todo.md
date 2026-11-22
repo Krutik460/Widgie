@@ -353,7 +353,7 @@ An outside review (two models) raised eight findings. Each was checked against t
 - [x] Fit check that catches dropped content (a query no render shows, an action with no button)
 - [x] Eval set of 19 requests, run on a weaker and a stronger stand-in model
 - [ ] Backend endpoint that forwards the request and image to our own model. The build loop itself runs in the app, because fit can only be measured where SwiftUI runs.
-- [ ] App flow: describe in words or attach a reference image, live preview, refine by chat ("make it blue")
+- [ ] App flow: describe in words or attach a reference image, live preview, refine by chat ("make it blue"). Plan in `tasks/phase-2-app-flow.md`
 - [ ] Grow the eval set toward 40 requests and add a visual score, since the engine accepts some widgets that look wrong
 - [ ] App Attest and per-device quotas on the endpoint
 - [ ] Check: the four reference prompts and the eval set meet a valid-spec bar set from the first baseline run
