@@ -224,13 +224,14 @@ struct PhotoButton: View {
                 .accessibilityLabel("Add a picture")
             }
         }
-        .onChange(of: item) { _, item in
+        // A newer selection cancels this load, so a slow earlier photo never replaces it or its error.
+        .task(id: item) {
             guard let item else { return }
-            Task {
-                picture = await Picture.load(item)
-                unreadable = picture == nil
-                self.item = nil
-            }
+            let loaded = await Picture.load(item)
+            guard !Task.isCancelled else { return }
+            picture = loaded
+            unreadable = loaded == nil
+            self.item = nil
         }
         .alert("That photo didn't load.", isPresented: $unreadable) {
             Button("OK", role: .cancel) {}
