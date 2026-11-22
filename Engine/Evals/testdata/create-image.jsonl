@@ -1,0 +1,1 @@
+{"type": "user", "message": {"role": "user", "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMwSDgAAAIUAVF6s6xeAAAAAElFTkSuQmCC"}}, {"type": "text", "text": "make my widget look like this. its a habit tracker"}]}}
