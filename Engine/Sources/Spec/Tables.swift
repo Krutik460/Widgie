@@ -216,6 +216,9 @@ extension Spec.AnyField {
             guard case .number(let number) = json else {
                 throw Diagnostic("\(name) is a number field; give a number like 250, not \(json.described)")
             }
+            guard number.isFinite else {
+                throw Diagnostic("\(name) is a number field; give a finite number like 250, not \(number)")
+            }
             return Spec.FieldValue(field, number)
         case .bool(let field):
             guard case .bool(let flag) = json else {
@@ -238,10 +241,14 @@ extension Spec.Limits {
 }
 
 extension Spec.Cell {
-    /// False for a text over `Limits.textLength`, which a parsed value can never be. `RowStore.receive`
-    /// refuses such a cell from sync.
+    /// False for a text over `Limits.textLength` or a number that is not finite, which a parsed value can
+    /// never be. `RowStore.receive` refuses such a cell from sync.
     package var withinLimits: Bool {
-        if case .text(let text) = self { Spec.Limits.allows(text) } else { true }
+        switch self {
+        case .text(let text): Spec.Limits.allows(text)
+        case .number(let number): number.isFinite
+        case .bool, .date: true
+        }
     }
 
     var json: JSONValue {

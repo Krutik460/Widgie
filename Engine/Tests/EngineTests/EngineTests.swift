@@ -172,6 +172,27 @@ import WidgetEngine
                 .looksLike(try await expected(after, rows: #"{"taps": [{"daysAgo": 0}], "misses": [{"daysAgo": 0}]}"#)))
     }
 
+    @Test @MainActor func aFormRefusesANumberThatIsNotFinite() async throws {
+        let scratch = Scratch()
+        let todo = String(decoding: try fixture("todo").json, as: UTF8.self)
+        let counted = todo.replacing(#""title": "text","#, with: #""title": "text", "count": "number","#)
+            .replacing(
+                #"""
+                "fields": [
+                        "title"
+                """#, with: #""fields": ["title", "count""#)
+        #expect(counted.contains(#""count": "number""#) && counted.contains(#"["title", "count""#))
+        let id = try await scratch.build(WidgetSource(json: Data(counted.utf8)))
+        let form = try #require(try scratch.engine.form(for: try button("add", on: await scratch.face(id)).tap))
+
+        for number in [Double.nan, .infinity, -.infinity] {
+            #expect(throws: EngineError.self) {
+                try scratch.engine.perform(form.tap, input: ["title": .text("Count"), "count": .number(number)])
+            }
+        }
+        try scratch.engine.perform(form.tap, input: ["title": .text("Count"), "count": .number(3)], at: morning)
+    }
+
     @Test @MainActor func aFormOpensAsTheRevisionItWasDrawnFromDefinesIt() async throws {
         let scratch = Scratch()
         let source = try fixture("todo")
