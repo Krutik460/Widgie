@@ -157,6 +157,20 @@ import WidgetEngine
         #expect(steps == [.repairing(attempt: 1, line: line), .checking(attempt: 1)])
     }
 
+    @Test func repairingWithoutReplacingOrAnUnknownReplacingIdThrowsBeforeAnyModelCall() async throws {
+        let scratch = Scratch()
+        let model = ScriptedModel([.reply(fenced(good))])
+        await #expect(throws: EngineError.self) {
+            try await scratch.engine.build("a tap counter", repairing: "missing \"look\"", model: model)
+        }
+        #expect(model.requests.isEmpty)
+        await #expect(throws: EngineError.self) {
+            try await scratch.engine.build("make it blue", replacing: WidgetID(rawValue: "missing"), model: model)
+        }
+        #expect(model.requests.isEmpty)
+        #expect(scratch.commits == 0)
+    }
+
     @Test func aCancelDuringTheModelCallSavesNothing() async throws {
         let scratch = Scratch()
         let model = StalledModel(then: .success(fenced(good)))
