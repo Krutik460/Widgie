@@ -1,4 +1,4 @@
-# PR draft: describe a widget, watch it build, try it, refine it, save it
+# PR 8: describe a widget, watch it build, try it, refine it, save it
 
 Branch `phase-2-p5-describe` into `main`. This is P5 of [tasks/phase-2-app-flow.md](../../tasks/phase-2-app-flow.md). The look is The Caret in Sky, decided in [docs/design/app-feel/README.md](../design/app-feel/README.md), with the tokens in [directions.md](../design/app-feel/directions.md) round 4.
 
