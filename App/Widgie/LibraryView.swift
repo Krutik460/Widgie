@@ -4,6 +4,10 @@ import WidgetEngine
 struct LibraryView: View {
     let library: Library
 
+    #if DEBUG
+        @State private var lab: PreviewLab.Opening?
+    #endif
+
     var body: some View {
         NavigationStack {
             // A plain column, not a List: the list's insets leave less than a medium face's 338 points.
@@ -20,6 +24,11 @@ struct LibraryView: View {
                                 Text(item.summary.name).font(.headline)
                                 Spacer()
                                 Menu {
+                                    #if DEBUG
+                                        Button("Preview a copy", systemImage: "eye") {
+                                            lab = PreviewLab.Opening(start: .copy(item.id), preview: Preview())
+                                        }
+                                    #endif
                                     Button("Delete", systemImage: "trash", role: .destructive) {
                                         library.delete(item.id)
                                     }
@@ -30,8 +39,11 @@ struct LibraryView: View {
                             }
                             ForEach(Family.allCases, id: \.self) { family in
                                 if let face = item.faces[family] {
-                                    FaceView(face, host: .app(library))
-                                        .frame(width: family.standardSize.width, height: family.standardSize.height)
+                                    FaceView(
+                                        face,
+                                        host: .app(tap: { library.perform($0) }, form: { library.showForm(for: $0) })
+                                    )
+                                    .frame(width: family.standardSize.width, height: family.standardSize.height)
                                 }
                             }
                         }
@@ -45,9 +57,20 @@ struct LibraryView: View {
             .toolbar {
                 if !library.fixtures.isEmpty {
                     Menu {
-                        ForEach(library.fixtures, id: \.folder) { fixture in
-                            Button(fixture.name) { library.install(fixture.folder) }
+                        Section("Install") {
+                            ForEach(library.fixtures, id: \.folder) { fixture in
+                                Button(fixture.name) { library.install(fixture.folder) }
+                            }
                         }
+                        #if DEBUG
+                            Section("Preview without saving") {
+                                ForEach(library.fixtures, id: \.folder) { fixture in
+                                    Button(fixture.name) {
+                                        lab = PreviewLab.Opening(start: .fixture(fixture.folder), preview: Preview())
+                                    }
+                                }
+                            }
+                        #endif
                     } label: {
                         Label("Install reference widget", systemImage: "plus")
                     }
@@ -66,28 +89,34 @@ struct LibraryView: View {
             .alert(
                 "Something went wrong", isPresented: .constant(library.message != nil),
                 actions: { Button("OK") { library.message = nil } },
-                message: { Text(library.message ?? "") })
+                message: { Text(library.message ?? "") }
+            )
+            #if DEBUG
+                .sheet(item: $lab) { opening in PreviewLab(opening: opening, library: library) }
+            #endif
         }
     }
 }
 
 extension FaceHost {
-    /// Taps write straight to the store, form buttons open the form sheet, and the background is drawn
-    /// under the content, clipped like a widget.
-    @MainActor static func app(_ library: Library) -> FaceHost {
+    /// Taps run in the app, form buttons open its form sheet, and the background is drawn under the content,
+    /// clipped like a widget.
+    @MainActor static func app(
+        tap: @escaping @MainActor @Sendable (Tap) -> Void, form: @escaping @MainActor @Sendable (Tap) -> Void
+    ) -> FaceHost {
         FaceHost(
-            button: { tap, label in
+            button: { tapped, label in
                 AnyView(
                     Button {
-                        library.perform(tap)
+                        tap(tapped)
                     } label: {
                         label
                     }.buttonStyle(.plain))
             },
-            form: { tap, label in
+            form: { tapped, label in
                 AnyView(
                     Button {
-                        library.showForm(for: tap)
+                        form(tapped)
                     } label: {
                         label
                     }.buttonStyle(.plain))

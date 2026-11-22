@@ -54,13 +54,20 @@ final class Library {
         }
     }
 
+    /// A bundled fixture's source, or nil when this build bundles none.
+    static func fixture(_ folder: String) throws(Rejected) -> WidgetSource? {
+        guard let url = Bundle.main.url(forResource: folder, withExtension: nil, subdirectory: "Fixtures") else {
+            return nil
+        }
+        return try WidgetSource(directory: url)
+    }
+
     /// Builds a bundled fixture through `engine.build`, the path a model-written widget takes.
     func install(_ fixture: String) {
         Task {
-            guard let folder = Bundle.main.url(forResource: fixture, withExtension: nil, subdirectory: "Fixtures")
-            else { return }
             do {
-                switch try await engine.build(try WidgetSource(directory: folder)) {
+                guard let source = try Self.fixture(fixture) else { return }
+                switch try await engine.build(source) {
                 case .saved: await reload()
                 case .rejected(let line): message = line
                 }
