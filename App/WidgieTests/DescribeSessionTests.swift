@@ -54,6 +54,45 @@ import WidgetEngine
         #expect(try session.preview.engine.history(of: draft).count == 2, "the blue revision was saved, then undone")
     }
 
+    @Test func aCancelWhileARefinementIsCheckedKeepsTheRowTappedBefore() async throws {
+        let cancel = CancelAtNextPhase()
+        let bigger = ScriptedModel.Answer(reply: tally(size: 32).reply) { await cancel.arm() }
+        let session = DescribeSession(
+            model: ScriptedModel([tally(), bigger]), preview: Preview(library: shared.engine))
+        cancel.session = session
+        session.words = "a tap counter"
+        session.send()
+        try await until({ session.settled }, "the first turn never finished")
+        let draft = try #require(session.draft)
+        let engine = session.preview.engine
+        #expect(!paintsRed(session.preview.faces[.small]), "the sample's two rows")
+        let revision = try #require(try engine.history(of: draft).first).id
+        session.preview.perform(Tap(widget: draft.rawValue, revision: revision, action: "add", row: nil))
+        try await until({ paintsRed(session.preview.faces[.small]) }, "the tap never showed")
+
+        session.send("make the number bigger")
+        try await until({ session.settled }, "the second turn never finished")
+
+        #expect(session.latest?.result == .cancelled)
+        #expect(paintsRed(session.preview.faces[.small]), "the tapped row is still on show")
+        let stored = await engine.faces(for: draft, family: .small, size: Family.small.standardSize, from: .now)
+        #expect(paintsRed(stored.current), "and still stored")
+    }
+
+    /// An engine that is not scratch refuses every sample load, so the accepted draft cannot go on show.
+    @Test func aDraftWhoseSampleDoesNotLoadFailsTheTurn() async throws {
+        let drafts = SharedStore()
+        let session = DescribeSession(
+            model: ScriptedModel([counter()]), preview: Preview(library: shared.engine, engine: drafts.engine))
+        session.words = "a tap counter"
+        session.send()
+        try await until({ session.settled }, "the turn never finished")
+
+        #expect(session.phase == .failed(.broken))
+        #expect(session.latest?.result == .failed(.broken))
+        #expect(session.draft == nil)
+    }
+
     @Test func aGiveUpPutsTheWordsBack() async throws {
         let model = ScriptedModel([unbuildable, unbuildable, unbuildable])
         let session = DescribeSession(model: model, preview: Preview(library: shared.engine))
@@ -165,4 +204,18 @@ import WidgetEngine
         resume?.resume()
         resume = nil
     }
+}
+
+/// The counter, painted red once it holds more than the two rows of its sample, so a face shows whether a tap
+/// on top of the sample is there. `size` is the number's.
+private func tally(size: Int = 30) -> ScriptedModel.Answer {
+    let document = counterDocument()
+        .replacing("widgetBackground: '#102030'", with: "widgetBackground: ctx.data.n > 2 ? '#B02020' : '#2050B0'")
+        .replacing("size: 30", with: "size: \(size)")
+    return ScriptedModel.Answer(reply: "```json\n\(document)\n```")
+}
+
+private func paintsRed(_ face: Face?) -> Bool {
+    guard let hue = face?.traits.hue else { return false }
+    return hue < 30 || hue > 330
 }

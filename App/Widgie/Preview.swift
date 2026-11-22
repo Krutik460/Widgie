@@ -13,7 +13,7 @@ private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describ
 @MainActor @Observable
 final class Preview {
     /// Where the draft lives. The build loop runs on this engine, so every accepted attempt saves only here.
-    let engine = Engine.scratch()
+    let engine: Engine
     /// The shared store a Save writes to, and a refinement copies from.
     private let library: Engine
 
@@ -26,16 +26,17 @@ final class Preview {
     var form: InputForm?
     var message: String?
 
-    init(library: Engine = Hosting.engine) {
+    init(library: Engine = Hosting.engine, engine: Engine = .scratch()) {
         self.library = library
+        self.engine = engine
     }
 
     /// Shows a draft the scratch engine holds. A new draft starts on its first sample, so it does not look
     /// empty. Showing the same draft again after a refinement keeps the chosen state when the new revision
     /// still has it, and loads it afresh. Nothing on show changes until its faces are drawn, and then all of it
-    /// changes at once. Returns false, with nothing on show changed, when the task was cancelled or another
-    /// drawing started before then; the draft's rows may already hold the new state.
-    @discardableResult
+    /// changes at once. Returns true once the draft is on show. Returns false, with nothing on show changed,
+    /// when the state did not load (logged), the task was cancelled, or another drawing started before then;
+    /// the draft's rows may already hold the new state.
     func show(_ widget: WidgetID) async -> Bool {
         let states: [DataState]
         let state: DataState
@@ -45,9 +46,8 @@ final class Preview {
             state = kept ? self.state : states.dropFirst().first ?? .empty
             try engine.load(state, into: widget)
         } catch {
-            message = error.message
-            await redraw()
-            return true
+            log.error("show: \(error.message, privacy: .public)")
+            return false
         }
         guard let faces = await draw(widget), !Task.isCancelled else { return false }
         self.widget = widget
@@ -55,6 +55,12 @@ final class Preview {
         self.state = state
         self.faces = faces
         return true
+    }
+
+    /// Puts the draft back as `checkpoint` recorded it, rows included, and draws it again.
+    func rollBack(to checkpoint: Checkpoint) async throws(EngineError) {
+        try engine.restore(checkpoint)
+        await redraw()
     }
 
     func select(_ state: DataState) async {
@@ -79,8 +85,7 @@ final class Preview {
             }
             switch try await engine.build(source) {
             case .saved(let draft):
-                await show(draft)
-                return draft
+                return await show(draft) ? draft : nil
             case .rejected(let line):
                 log.error("copy: the preview rejected it: \(line, privacy: .public)")
                 return nil
