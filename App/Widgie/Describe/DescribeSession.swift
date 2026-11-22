@@ -26,21 +26,31 @@ final class DescribeSession: Identifiable {
 
     /// Why a turn or a save did not finish, in the words the person sees. Never a verdict line.
     enum Failure: Equatable {
+        /// The model service gave no answer.
         case unreachable
+        /// The model service answered with an error.
+        case refused
         case gaveUp
+        /// The shared store still rejected the draft after one repair turn.
+        case unsaved
         /// iOS ended the background time before the build finished.
         case interrupted
         /// The store failed, which is not something rewording can fix.
         case broken
+        /// The library widget could not be copied into the preview, so there is nothing to refine.
+        case unopened
         /// This build names no model service.
         case unavailable
 
         var title: String {
             switch self {
             case .unreachable: "Couldn't reach the widget builder."
+            case .refused: "The widget builder ran into a problem."
             case .gaveUp: "I couldn't make that work."
+            case .unsaved: "I couldn't save this widget."
             case .interrupted: "The build stopped in the background."
             case .broken: "Something went wrong on this phone."
+            case .unopened: "I couldn't open that widget."
             case .unavailable: "Building widgets is not available in this build."
             }
         }
@@ -49,7 +59,7 @@ final class DescribeSession: Identifiable {
     struct Turn: Identifiable {
         let id = UUID()
         let words: String
-        let image: Attachment?
+        let image: Picture?
         var result: TurnResult
     }
 
@@ -73,7 +83,7 @@ final class DescribeSession: Identifiable {
     private(set) var buildStarted = Date.now
 
     var words = ""
-    var picture: Attachment?
+    var picture: Picture?
 
     /// The last accepted widget in the preview's scratch engine.
     var draft: WidgetID? { preview.widget }
@@ -97,8 +107,11 @@ final class DescribeSession: Identifiable {
 
     func open() async {
         guard let editing, phase == .opening else { return }
-        _ = await preview.copy(editing)
-        phase = .composing
+        if await preview.copy(editing) == nil {
+            fail(.unopened, job: nil)
+        } else {
+            phase = .composing
+        }
     }
 
     /// Sends the composer, or `suggestion` when the person taps a suggestion.
@@ -146,6 +159,7 @@ final class DescribeSession: Identifiable {
         preview.perform(tap, input: input)
     }
 
+    /// Leaves `composing` or `failed` before it returns, so a second tap finds the guards closed.
     private func start(_ job: Job) {
         guard let model else {
             if case .turn(let index) = job { turns[index].result = .failed(.unavailable) }
@@ -153,24 +167,24 @@ final class DescribeSession: Identifiable {
             return
         }
         failedJob = nil
-        expired = false
-        background = UIApplication.shared.beginBackgroundTask(withName: "Build widget") { [weak self] in
-            MainActor.assumeIsolated { self?.expire() }
+        switch job {
+        case .turn(let index):
+            turns[index].result = .pending
+            begin(.writing(attempt: 1))
+        case .save:
+            phase = .saving
         }
         work = Task {
             switch job {
             case .turn(let index): await runTurn(index, model: model)
             case .save: await runSave(model: model)
             }
-            endBackground()
         }
     }
 
     private func runTurn(_ index: Int, model: some WidgetModel) async {
         let turn = turns[index]
-        turns[index].result = .pending
-        begin(.writing(attempt: 1))
-        let result = await loop(turn.words, image: turn.image, replacing: draft, model: model)
+        let result = await loop(turn.words, image: turn.image?.attachment, replacing: draft, model: model)
         turns[index].result = result
         if case .failed(let failure) = result {
             fail(failure, job: .turn(index))
@@ -182,16 +196,18 @@ final class DescribeSession: Identifiable {
     /// Proves the draft against the shared store. A line only that store can give (a widget sharing the data,
     /// the kinds of cells already stored) becomes one repair turn on the scratch engine, then Save again.
     private func runSave(model: some WidgetModel) async {
-        guard let draft else { return }
-        phase = .saving
-        var outcome = await preview.save(replacing: editing)
-        if case .rejected(let line) = outcome {
+        guard let draft else {
+            phase = .composing
+            return
+        }
+        var outcome = await saveToLibrary()
+        if case .rejected(let line)? = outcome {
             begin(.repairing(attempt: 1, line: line))
             let words = turns.last { $0.result == .accepted }?.words ?? "Keep this widget as it is."
             switch await loop(words, replacing: draft, repairing: line, model: model) {
             case .accepted:
                 phase = .saving
-                outcome = await preview.save(replacing: editing)
+                outcome = await saveToLibrary()
             case .failed(let failure):
                 return fail(failure, job: .save)
             case .cancelled, .pending:
@@ -200,9 +216,27 @@ final class DescribeSession: Identifiable {
             }
         }
         switch outcome {
-        case .saved(let id): phase = .saved(id)
-        case .rejected: fail(.gaveUp, job: .save)
-        case nil: phase = .composing
+        case .saved(let id)?: phase = .saved(id)
+        case .rejected?: fail(.unsaved, job: nil)
+        case nil: fail(.broken, job: .save)
+        }
+    }
+
+    /// Proves the draft against the shared store and saves it there. That store takes no writes in the
+    /// background, so a save that meets the background waits for the app to come back, then saves. Nil when
+    /// the store failed or there is no draft.
+    private func saveToLibrary() async -> BuildOutcome? {
+        while true {
+            await SharedWrites.open()
+            do {
+                return try await preview.save(replacing: editing)
+            } catch {
+                guard SharedWrites.suspended else {
+                    log.error("save failed: \(error.message, privacy: .public)")
+                    return nil
+                }
+                log.info("save met the background, waiting for the app to come back")
+            }
         }
     }
 
@@ -211,6 +245,8 @@ final class DescribeSession: Identifiable {
         _ words: String, image: Attachment? = nil, replacing: WidgetID?, repairing line: String? = nil,
         model: some WidgetModel
     ) async -> TurnResult {
+        beginBackground()
+        defer { endBackground() }
         let before = replacing.flatMap { try? preview.engine.history(of: $0).first }
         let started = ContinuousClock.now
         func seconds() -> String { (ContinuousClock.now - started).formatted(.units(fractionalPart: .show(length: 2))) }
@@ -238,8 +274,12 @@ final class DescribeSession: Identifiable {
             return expired ? .failed(.interrupted) : .cancelled
         } catch is EngineError {
             return .failed(.broken)
-        } catch {
+        } catch let error as URLError {
+            log.error("the model service gave no answer: \(error.localizedDescription, privacy: .public)")
             return .failed(.unreachable)
+        } catch {
+            log.error("the model service failed: \(String(describing: error), privacy: .public)")
+            return .failed(.refused)
         }
     }
 
@@ -251,6 +291,15 @@ final class DescribeSession: Identifiable {
     private func fail(_ failure: Failure, job: Job?) {
         failedJob = job
         phase = .failed(failure)
+    }
+
+    /// The build keeps going in the background for as long as iOS allows. One build runs at a time, so one
+    /// slot holds its task.
+    private func beginBackground() {
+        expired = false
+        background = UIApplication.shared.beginBackgroundTask(withName: "Build widget") { [weak self] in
+            MainActor.assumeIsolated { self?.expire() }
+        }
     }
 
     private func expire() {
@@ -272,7 +321,7 @@ extension BuildStep {
         switch self {
         case .writing: "Writing your widget"
         case .checking: "Checking it fits"
-        case .repairing(let attempt, _): "Fixing a layout problem (\(attempt) of 3)"
+        case .repairing(let attempt, _): "Fixing a problem (\(attempt) of 3)"
         }
     }
 }
