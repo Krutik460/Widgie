@@ -33,11 +33,9 @@ extension Engine {
         } catch {
             throw EngineError(message: error.line)
         }
-        do throws(StoreError) {
+        try attempt { () throws(StoreError) in
             try store.replaceRows(
                 of: key, tables: found.spec.tables, with: sample, today: Today(at: date, calendar: calendar))
-        } catch {
-            throw EngineError(message: error.message)
         }
     }
 }

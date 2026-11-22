@@ -38,11 +38,3 @@ extension Engine {
         }
     }
 }
-
-private func attempt<T>(_ body: () throws(StoreError) -> T) throws(EngineError) -> T {
-    do throws(StoreError) {
-        return try body()
-    } catch {
-        throw EngineError(message: error.message)
-    }
-}

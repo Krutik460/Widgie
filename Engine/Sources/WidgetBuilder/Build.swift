@@ -49,11 +49,8 @@ extension Engine {
             }
             let sharers: [Sharer]
             let stored: [String: [String: Set<Spec.FieldKind>]]
-            do throws(StoreError) {
-                sharers = try store.sharers(of: parsed)
-                stored = try store.storedKinds(of: parsed)
-            } catch {
-                throw EngineError(message: error.message)
+            (sharers, stored) = try attempt { () throws(StoreError) in
+                (try store.sharers(of: parsed), try store.storedKinds(of: parsed))
             }
             do throws(Diagnostic) {
                 try spec.checkCompatible(replacing: found.spec)
@@ -80,11 +77,7 @@ extension Engine {
             zoned, images: images, today: Today(at: date, calendar: calendar), sandbox: sandbox,
             stopAtFirstFailure: true)
         if let verdict = matrix.verdict { return .rejected(verdict) }
-        do throws(StoreError) {
-            _ = try store.save(key, spec: zoned, assets: images)
-        } catch {
-            throw EngineError(message: error.message)
-        }
+        _ = try attempt { () throws(StoreError) in try store.save(key, spec: zoned, assets: images) }
         return .saved(WidgetID(rawValue: key.raw))
     }
 
@@ -114,10 +107,8 @@ extension Engine {
     public func history(of widget: WidgetID) throws(EngineError) -> [WidgetRevision] {
         let store = try self.store()
         guard let key = WidgetKey(parsing: widget.rawValue) else { return [] }
-        do throws(StoreError) {
-            return try store.revisions(of: key).map { WidgetRevision(id: $0.digest.hex, savedAt: $0.savedAt) }
-        } catch {
-            throw EngineError(message: error.message)
+        return try attempt { () throws(StoreError) in try store.revisions(of: key) }.map {
+            WidgetRevision(id: $0.digest.hex, savedAt: $0.savedAt)
         }
     }
 
@@ -129,19 +120,11 @@ extension Engine {
         guard let key = WidgetKey(parsing: widget.rawValue), let digest = Spec.Digest(hex: revision.id) else {
             throw EngineError(message: "revision \(revision.id) was never a head of widget \(widget.rawValue)")
         }
-        do throws(StoreError) {
-            try store.restore(key, to: digest)
-        } catch {
-            throw EngineError(message: error.message)
-        }
+        try attempt { () throws(StoreError) in try store.restore(key, to: digest) }
     }
 
     func widget(_ key: WidgetKey, in store: RowStore) throws(EngineError) -> StoredWidget? {
-        do throws(StoreError) {
-            return try store.widget(key)
-        } catch {
-            throw EngineError(message: error.message)
-        }
+        try attempt { () throws(StoreError) in try store.widget(key) }
     }
 }
 
