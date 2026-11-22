@@ -197,7 +197,9 @@ To undo a refinement the person cancelled, take a checkpoint before the build an
 let checkpoint = try scratch.checkpoint(of: draft)
 // build a refinement of draft, load a sample into it to show it, then the person cancels
 try scratch.rollBack(to: checkpoint)                  // the old head, and the rows the preview showed before
-``` To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
+```
+
+To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
 
 ```swift
 let faces = await engine.faces(for: id, family: .small, size: Family.small.standardSize, from: .now)
