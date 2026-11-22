@@ -196,7 +196,7 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 **Build.**
 
 - [x] `Engine.build(_ words: String, image: Attachment? = nil, replacing: WidgetID? = nil, repairing: String? = nil, model: some WidgetModel, progress: @Sendable (BuildStep) -> Void = { _ in }) async throws -> LoopOutcome`, an overload of `build(_ source:replacing:)`, which is one attempt of it. On accept it returns the `WidgetID` that `build` saved. It reads `source(of: replacing)` for `current`, calls the model, extracts the document, calls `build`, and on `.rejected(line)` sends a repair. It stops after three attempts, which is the first try plus two repairs, matching `run.py`.
-- [x] Reply extraction in Swift matches `model.extract` exactly. Take the longest `json` fence, then the longest fence of any kind, then the raw text.
+- [x] Reply extraction in Swift matches `model.extract` exactly. Take the longest `json` fence, then the longest fence of any kind, then the raw text, trimmed of ASCII whitespace. Lines end only at LF, so a JSON string that holds U+2028 is not split (`feb45f6`). 25 shared cases in `Engine/Evals/testdata/extract.json` pass on both sides.
 - [x] Images sent to the model are the person's attachment. On accept, a document that declares `assets.reference` gets that attachment as the `reference` image in its `WidgetSource`.
 - [x] An optional `repairing: String?` makes the first call a repair of the `replacing` widget's document with that line. P5 uses it when Save is rejected.
 - [x] Cancellation is cooperative. A cancelled task throws `CancellationError` and saves nothing.
@@ -221,7 +221,7 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `render-tool loop` runs the build loop against the real bridge for the four reference prompts. Pass when all four are accepted and the attempt counts match the `run.py` range. Pending: the command is in place, and the run waits on P1's bridge.
+- [x] `render-tool loop` runs the build loop against the real bridge for the four reference prompts. Pass when all four are accepted and the attempt counts match the `run.py` range. Passed on Haiku: water, to-do, and word of the day accepted in 2 attempts, habit in 1. Live `build` took 0.06 to 0.21 s per attempt (`Engine/.artifacts/p3-live/`).
 
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
