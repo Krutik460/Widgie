@@ -75,4 +75,15 @@ private let shared = #"""
         let mine = try #require(bench.rows("last", at: morning).first)
         #expect(mine.at <= (try instant(morning)), "midday would be four hours ahead")
     }
+
+    /// New York springs forward on 2026-03-08: midnight to noon is 660 minutes, less than `full`'s 719, and
+    /// its today rows must still land on today.
+    @Test func fullStaysOnTodayOnASpringForwardDay() throws {
+        let spec = try parse(shared)
+        let bench = try Bench(spec: spec)
+        let noon = "2026-03-08T12:00:00-04:00"
+        try bench.store.seed(spec.full, widget: bench.widget, today: bench.today(noon))
+        #expect(try bench.number("sent", at: noon) >= 100)
+        #expect(try bench.number("received", at: noon) >= 100)
+    }
 }

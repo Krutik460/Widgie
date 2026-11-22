@@ -36,7 +36,8 @@ extension Spec {
         }
     }
 
-    /// Who wrote a row, as a `where` asks it: the person on this device, or anyone else who shares the data.
+    /// Who wrote a row, as a `where` asks it: the person, or anyone else who shares the data. The engine
+    /// approximates the person by the store's replica until sharing maps an account's replicas (RATIONALE).
     package enum Author: String, Hashable, Sendable, CaseIterable {
         case me
         case others

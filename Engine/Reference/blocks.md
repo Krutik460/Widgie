@@ -42,7 +42,7 @@ A table is a list of rows. Each field has one kind.
 
 Every row also belongs to a day: the day it was written on, or the day an `insertOn` button gave. That day decides which windows the row falls in, so a table with no fields still counts things: one row per glass of water, one row per check-in.
 
-These field ids are reserved: `at`, `by`, `day`, `daysAgo`, `id`, `minutesAgo`, `newest`, `oldest`, `repeat`. The app records who wrote each row and when, so never add a field for the time or the person.
+These field ids are reserved: `at`, `by`, `day`, `daysAgo`, `id`, `minutesAgo`, `newest`, `now`, `oldest`, `repeat`. The app records who wrote each row and when, so never add a field for the time or the person.
 
 ```json
 {

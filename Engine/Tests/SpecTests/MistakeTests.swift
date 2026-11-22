@@ -83,7 +83,7 @@ struct Mistake: CustomTestStringConvertible, Sendable {
         Mistake(
             label: "reserved field id", json: document(#""tables": {"items": {"fields": {"day": "date"}}}"#),
             line:
-                #"table "items": field id "day" is reserved (reserved: at, by, day, daysAgo, id, minutesAgo, newest, oldest, repeat)"#
+                #"table "items": field id "day" is reserved (reserved: at, by, day, daysAgo, id, minutesAgo, newest, now, oldest, repeat)"#
         ),
         Mistake(
             label: "table as a list", json: document(#""tables": {"items": ["title"]}"#),

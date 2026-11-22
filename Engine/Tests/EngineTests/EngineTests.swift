@@ -251,6 +251,19 @@ import WidgetEngine
         }
     }
 
+    /// A look that greets the morning with text too long to fit passes at noon, so only the 00:01 render
+    /// catches it, and its line names the time.
+    @Test @MainActor func aMorningOnlySpillIsCaughtAtTheDaysFirstMinute() async throws {
+        let greeting =
+            "ctx.now < '12:00' ? { type: 'text', value: 'Good morning! ' + 'Have a wonderful day ahead. '.repeat(20), size: 20, color: '#FFFFFF' } : { type: 'text', value: 'Hi', size: 20, color: '#FFFFFF' }"
+        let source = document(look: counterLook(greeting))
+        let matrix = try await Engine.proofs(source, at: instant("2026-11-18T15:00:00Z"), calendar: utc)
+        let verdict = try #require(matrix.verdict)
+        #expect(verdict.hasPrefix("small, empty at 00:01: "), "\(verdict)")
+        #expect(matrix.renders.contains { $0.state == "empty at 00:01" })
+        #expect(!matrix.renders.contains { $0.state.hasSuffix("at 23:59") }, "passing day-edge renders are not listed")
+    }
+
     @Test @MainActor func aLookThatIgnoresTheClockGetsOnlyMidnight() async throws {
         let scratch = Scratch()
         let id = try await scratch.build(try fixture("habit"))
