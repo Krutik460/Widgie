@@ -30,12 +30,15 @@ extension Engine {
             throw Rejected(line: error.line)
         }
         do throws(ProofStop) {
-            let cell = try await proveCell(
+            let (cell, image) = try await proveCell(
                 spec, images: images, state: chosen, family: family, size: size ?? family.standardSize,
                 today: Today(at: date, calendar: calendar).noon, sandbox: Sandbox())
-            guard appearance != .light else { return cell.proof }
-            let shown = try await proveAppearance(cell, appearance)
-            return Proof(png: shown.png, fit: shown.fit, verdict: cell.proof.verdict ?? shown.verdict)
+            let shown =
+                appearance == .light
+                ? Rendered(image: image, fit: cell.fit, verdict: cell.verdict)
+                : try await proveAppearance(cell, appearance)
+            guard let png = encodePNG(shown.image) else { throw .broken("the renderer produced no image") }
+            return Proof(png: png, fit: shown.fit, verdict: cell.verdict ?? shown.verdict)
         } catch {
             switch error {
             case .rejected(let line): throw Rejected(line: line)
@@ -76,8 +79,7 @@ extension Engine {
             return ProofMatrix(name: spec.name, renders: [], verdict: error.line)
         }
         let matrix = try await prove(
-            spec, images: images, today: Today(at: date, calendar: calendar), sandbox: Sandbox(),
-            stopAtFirstFailure: false)
+            spec, images: images, today: Today(at: date, calendar: calendar), sandbox: Sandbox(), keepsRenders: true)
         return ProofMatrix(name: spec.name, renders: matrix.renders, verdict: matrix.verdict)
     }
 }
@@ -223,8 +225,16 @@ struct Cell: Sendable {
     let family: Family
     let size: CGSize
     let today: Today
-    let proof: Proof
+    let fit: FitReport
+    let verdict: String?
     let composition: Composition
+}
+
+/// One render's picture and what was measured in it. The picture is encoded only for a caller that keeps it.
+struct Rendered {
+    let image: CGImage
+    let fit: FitReport
+    let verdict: String?
 }
 
 /// The one acceptance path. `build` runs it before it saves, and `Engine.proofs` runs it for the render tool,
@@ -234,48 +244,54 @@ struct Cell: Sendable {
 /// is the verdict. When every render passes, coverage and the content check run on the whole matrix.
 /// Every proof renders at noon of `today`'s day (`Today.noon`), so the verdict never depends on the hour. A
 /// look that reads the clock is also drawn in every state at 00:01 and 23:59 of that day.
+///
+/// Without `keepsRenders`, as `build` and `proveReceived` call it, it stops at the first problem and returns
+/// no renders, so it encodes no PNG. With it, as `Engine.proofs` calls it, it draws every cell and returns
+/// each render with its PNG.
 func prove(
-    _ spec: Spec, images: [Spec.AssetID: Data], today: Today, sandbox: Sandbox, stopAtFirstFailure: Bool
+    _ spec: Spec, images: [Spec.AssetID: Data], today: Today, sandbox: Sandbox, keepsRenders: Bool
 ) async throws(EngineError) -> (renders: [ProofRender], verdict: String?) {
     let today = today.noon
     var renders: [ProofRender] = []
     var cells: [Cell] = []
     var verdict: String?
-    /// Runs one render, lists it (a passing one only when `listsPass`), and returns its line.
+    /// Runs one render, keeps it when `keepsRenders` (a passing one only when `listsPass`), and returns its
+    /// line.
     func record(
         _ state: String, _ family: Family, _ appearance: Appearance = .light, listsPass: Bool = true,
-        _ render: () async throws(ProofStop) -> Proof
+        _ render: () async throws(ProofStop) -> Rendered
     ) async throws(EngineError) -> String? {
-        let outcome: Result<Proof, Rejected>
-        do throws(ProofStop) {
-            outcome = .success(try await render())
-        } catch {
-            switch error {
-            case .rejected(let line): outcome = .failure(Rejected(line: line))
-            case .broken(let message): throw EngineError(message: "the proof could not run: \(message)")
-            }
-        }
-        let line: String?
-        switch outcome {
-        case .success(let proof): line = proof.verdict
-        case .failure(let rejected): line = rejected.line
-        }
-        if listsPass || line != nil {
+        func keep(_ outcome: Result<Proof, Rejected>) {
             renders.append(ProofRender(state: state, family: family, appearance: appearance, outcome: outcome))
         }
-        return line
+        do throws(ProofStop) {
+            let rendered = try await render()
+            if keepsRenders, listsPass || rendered.verdict != nil {
+                guard let png = encodePNG(rendered.image) else { throw .broken("the renderer produced no image") }
+                keep(.success(Proof(png: png, fit: rendered.fit, verdict: rendered.verdict)))
+            }
+            return rendered.verdict
+        } catch {
+            switch error {
+            case .rejected(let line):
+                if keepsRenders { keep(.failure(Rejected(line: line))) }
+                return line
+            case .broken(let message):
+                throw EngineError(message: "the proof could not run: \(message)")
+            }
+        }
     }
     for state in ProofState.all(of: spec) {
         for family in Family.allCases {
             let line = try await record(state.name, family) { () throws(ProofStop) in
-                let cell = try await proveCell(
+                let (cell, image) = try await proveCell(
                     spec, images: images, state: state, family: family, size: family.standardSize, today: today,
                     sandbox: sandbox)
                 cells.append(cell)
-                return cell.proof
+                return Rendered(image: image, fit: cell.fit, verdict: cell.verdict)
             }
             verdict = verdict ?? line
-            if verdict != nil, stopAtFirstFailure { return (renders, verdict) }
+            if verdict != nil, !keepsRenders { return (renders, verdict) }
         }
     }
     for (appearance, states) in appearanceCells {
@@ -286,7 +302,7 @@ func prove(
                     try await proveAppearance(cell, appearance)
                 }
                 verdict = verdict ?? line
-                if verdict != nil, stopAtFirstFailure { return (renders, verdict) }
+                if verdict != nil, !keepsRenders { return (renders, verdict) }
             }
         }
     }
@@ -302,14 +318,14 @@ func prove(
                     sample: state.sample)
                 for family in Family.allCases {
                     let line = try await record(timed.name, family, listsPass: false) { () throws(ProofStop) in
-                        try await proveCell(
+                        let (cell, image) = try await proveCell(
                             spec, images: images, state: timed, family: family, size: family.standardSize,
-                            today: other, sandbox: sandbox
-                        ).proof
+                            today: other, sandbox: sandbox)
+                        return Rendered(image: image, fit: cell.fit, verdict: cell.verdict)
                     }
                     guard let line else { continue }
                     verdict = verdict ?? line
-                    if stopAtFirstFailure { return (renders, verdict) }
+                    if !keepsRenders { return (renders, verdict) }
                 }
             }
         }
@@ -321,12 +337,12 @@ func prove(
 
 /// One cell of the proof matrix: seed a scratch store with the state through the real write path, run
 /// `composeDrawing` with the proof budget, render with `FaceHost.still` and a `GeometryProbe` in the
-/// environment, measure, and encode the PNG.
+/// environment, and measure. Returns the picture beside the cell, so the cell does not hold it.
 @MainActor
 func proveCell(
     _ spec: Spec, images: [Spec.AssetID: Data], state: ProofState, family: Family, size: CGSize, today: Today,
     sandbox: Sandbox
-) async throws(ProofStop) -> Cell {
+) async throws(ProofStop) -> (cell: Cell, image: CGImage) {
     let store: RowStore
     let widget = WidgetKey.mint()
     do throws(StoreError) {
@@ -352,14 +368,16 @@ func proveCell(
     let composed = clock.now
     let probe = GeometryProbe()
     let image = try draw(composition.drawing, .light, probe: probe)
-    guard let png = encodePNG(image) else { throw .broken("the renderer produced no image") }
     let fit = analyze(
         probe, drawing: composition.drawing, image: image, imagePixels: decoded.decodedPixels,
         lookMilliseconds: milliseconds(composed - started), renderMilliseconds: milliseconds(clock.now - composed))
     let verdict = verdict(for: fit, size: size).map { state.prefix(family) + $0 }
-    return Cell(
-        state: state, family: family, size: size, today: today, proof: Proof(png: png, fit: fit, verdict: verdict),
-        composition: composition)
+    return (
+        Cell(
+            state: state, family: family, size: size, today: today, fit: fit, verdict: verdict,
+            composition: composition),
+        image
+    )
 }
 
 /// The cells drawn again in another appearance, by state name, after the light matrix.
@@ -369,16 +387,15 @@ private let appearanceCells: [(Appearance, [String])] = [(.tinted, ["empty", "fu
 /// layout are the light cell's; only the pixels change. Runs the blank check, and for tinted the cover check,
 /// and keeps the light cell's fit report otherwise.
 @MainActor
-func proveAppearance(_ cell: Cell, _ appearance: Appearance) throws(ProofStop) -> Proof {
+func proveAppearance(_ cell: Cell, _ appearance: Appearance) throws(ProofStop) -> Rendered {
     let clock = ContinuousClock()
     let started = clock.now
     let image = try draw(cell.composition.drawing, appearance, probe: nil)
-    guard let png = encodePNG(image) else { throw .broken("the renderer produced no image") }
     let ink = inkShare(image)
     let cover = appearance == .tinted ? coverShare(image, backdrop: Palette.backdrop) : nil
-    let fit = cell.proof.fit.redrawn(ink: ink, cover: cover, renderMilliseconds: milliseconds(clock.now - started))
+    let fit = cell.fit.redrawn(ink: ink, cover: cover, renderMilliseconds: milliseconds(clock.now - started))
     let verdict = appearanceVerdict(for: fit, appearance).map { cell.state.prefix(cell.family, appearance) + $0 }
-    return Proof(png: png, fit: fit, verdict: verdict)
+    return Rendered(image: image, fit: fit, verdict: verdict)
 }
 
 /// One render at `renderScale` with `FaceHost.still`, in the appearance's rendering mode and color scheme.
