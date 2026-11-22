@@ -1,6 +1,7 @@
 import Foundation
 import GRDB
 import Spec
+import Synchronization
 
 /// Everything persisted in the App Group directory: the SQLite database and the asset files.
 ///
@@ -49,9 +50,23 @@ package final class RowStore: Sendable {
     ///
     /// Opening and migrating run under a file coordinator, as GRDB's sharing guide prescribes: two
     /// connections switching a new file to WAL at once fail with SQLITE_BUSY, which no busy timeout covers.
+    ///
+    /// While `suspend()` holds, a store that is not scratch refuses to open, with a suspended `StoreError`.
     package static func open(
         directory: URL, onCommit: (@Sendable () -> Void)? = nil, isScratch: Bool = false
     ) throws(StoreError) -> RowStore {
+        if isScratch { return try opening(directory: directory, onCommit: onCommit, isScratch: true) }
+        // The open holds the lock until its pool observes suspension, so a suspend never lands between the
+        // check and the pool's first write.
+        return try suspension.withLock { suspended throws(StoreError) in
+            if suspended { throw StoreError(message: "the store is suspended", suspended: true) }
+            return try opening(directory: directory, onCommit: onCommit, isScratch: false)
+        }
+    }
+
+    private static func opening(directory: URL, onCommit: (@Sendable () -> Void)?, isScratch: Bool)
+        throws(StoreError) -> RowStore
+    {
         try guarded {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             var configuration = Configuration()
@@ -91,16 +106,25 @@ package final class RowStore: Sendable {
         }
     }
 
-    /// Once suspended, every store in this process but the scratch ones refuses writes (reads still work), so
-    /// iOS never finds the app holding a lock on the shared database while suspended. The app calls this when
-    /// it moves to the background.
+    /// Once suspended, every store in this process but the scratch ones refuses writes (reads still work), and
+    /// one not open yet refuses to open, so iOS never finds the app holding a lock on the shared database
+    /// while suspended. The app calls this when it moves to the background.
     package static func suspend() {
-        NotificationCenter.default.post(name: Database.suspendNotification, object: nil)
+        suspension.withLock { suspended in
+            suspended = true
+            NotificationCenter.default.post(name: Database.suspendNotification, object: nil)
+        }
     }
 
     package static func resume() {
-        NotificationCenter.default.post(name: Database.resumeNotification, object: nil)
+        suspension.withLock { suspended in
+            suspended = false
+            NotificationCenter.default.post(name: Database.resumeNotification, object: nil)
+        }
     }
+
+    /// GRDB's notification reaches only the pools open when it is posted, so `open` reads this instead.
+    private static let suspension = Mutex(false)
 
     // MARK: Documents (written by the app)
 
