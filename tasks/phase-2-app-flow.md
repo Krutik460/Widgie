@@ -51,7 +51,7 @@ public struct ModelRequest: Codable, Sendable {
 	public var current: String?         // the document JSON being refined, nil for a new widget
 	public var repair: Repair?          // set only on a repair call
 }
-public struct Attachment: Codable, Sendable { public var mime: String; public var base64: String }
+public struct Attachment: Codable, Sendable { public var mime: String; public var bytes: Data }  // "base64" on the wire
 public struct Repair: Codable, Sendable { public var document: String; public var line: String }
 
 public protocol WidgetModel: Sendable {
@@ -188,51 +188,51 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 
 **Files.**
 
-- [ ] Create `Engine/Sources/WidgetBuilder/Model.swift` for `ModelRequest`, `Attachment`, `Repair`, and `WidgetModel`.
-- [ ] Create `Engine/Sources/WidgetBuilder/Loop.swift` for the loop and reply extraction.
-- [ ] Create `Engine/Tests/EngineTests/LoopTests.swift`.
-- [ ] Edit `docs/engine/USAGE.md` to replace the illustrative `create` sketch with the real API, and `docs/engine/MODULES.md` if the target table needs it.
+- [x] Create `Engine/Sources/WidgetBuilder/Model.swift` for `ModelRequest`, `Attachment`, `Repair`, and `WidgetModel`.
+- [x] Create `Engine/Sources/WidgetBuilder/Loop.swift` for the loop and reply extraction.
+- [x] Create `Engine/Tests/EngineTests/LoopTests.swift`.
+- [x] Edit `docs/engine/USAGE.md` to replace the illustrative `create` sketch with the real API, and `docs/engine/MODULES.md` if the target table needs it.
 
 **Build.**
 
-- [ ] `Engine.loop(_ words: String, image: Attachment?, replacing: WidgetID?, model: some WidgetModel, progress: @Sendable (BuildStep) -> Void) async throws -> LoopOutcome`. On accept it returns the `WidgetID` that `build` saved. It reads `source(of: replacing)` for `current`, calls the model, extracts the document, calls `build`, and on `.rejected(line)` sends a repair. It stops after three attempts, which is the first try plus two repairs, matching `run.py`.
-- [ ] Reply extraction in Swift matches `model.extract` exactly. Take the longest `json` fence, then the longest fence of any kind, then the raw text.
-- [ ] Images sent to the model are the person's attachment. On accept, a document that declares `assets.reference` gets that attachment as the `reference` image in its `WidgetSource`.
-- [ ] An optional `repairing: String?` makes the first call a repair of the `replacing` widget's document with that line. P5 uses it when Save is rejected.
-- [ ] Cancellation is cooperative. A cancelled task throws `CancellationError` and saves nothing.
-- [ ] A transport error from `WidgetModel` is thrown, not counted as an attempt. Only a rejected document counts.
+- [x] `Engine.build(_ words: String, image: Attachment? = nil, replacing: WidgetID? = nil, repairing: String? = nil, model: some WidgetModel, progress: @Sendable (BuildStep) -> Void = { _ in }) async throws -> LoopOutcome`, an overload of `build(_ source:replacing:)`, which is one attempt of it. On accept it returns the `WidgetID` that `build` saved. It reads `source(of: replacing)` for `current`, calls the model, extracts the document, calls `build`, and on `.rejected(line)` sends a repair. It stops after three attempts, which is the first try plus two repairs, matching `run.py`.
+- [x] Reply extraction in Swift matches `model.extract` exactly. Take the longest `json` fence, then the longest fence of any kind, then the raw text.
+- [x] Images sent to the model are the person's attachment. On accept, a document that declares `assets.reference` gets that attachment as the `reference` image in its `WidgetSource`.
+- [x] An optional `repairing: String?` makes the first call a repair of the `replacing` widget's document with that line. P5 uses it when Save is rejected.
+- [x] Cancellation is cooperative. A cancelled task throws `CancellationError` and saves nothing.
+- [x] A transport error from `WidgetModel` is thrown, not counted as an attempt. Only a rejected document counts.
 
 **You see.**
 
-- [ ] `LoopTests` runs a scripted fake model and every case passes.
+- [x] `LoopTests` runs a scripted fake model and every case passes.
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `LoopTests` covers these cases, each named as a sentence. Run `Engine/scripts/check`.
-  - [ ] A good first reply is accepted in one attempt, and the widget is saved.
-  - [ ] Two bad replies then a good one are accepted in three attempts, and each repair carries the previous document and its exact line.
-  - [ ] Three bad replies give up with the last line, and nothing is saved.
-  - [ ] A refine sends `current`, and the accepted widget keeps its rows.
-  - [ ] A reply with prose around the fence, and a reply with two fences, extract the same document as `model.py` does. Share the cases with the Python test as one JSON file.
-  - [ ] A loop started with `repairing:` sends the stored document and that line on its first call.
-  - [ ] A cancel during the model call saves nothing.
-  - [ ] A transport error is thrown and does not use an attempt.
-  - [ ] An attached image reaches the saved widget only when the document declares `assets.reference`.
+- [x] `LoopTests` covers these cases, each named as a sentence. Run `Engine/scripts/check`.
+  - [x] A good first reply is accepted in one attempt, and the widget is saved.
+  - [x] Two bad replies then a good one are accepted in three attempts, and each repair carries the previous document and its exact line.
+  - [x] Three bad replies give up with the last line, and nothing is saved.
+  - [x] A refine sends `current`, and the accepted widget keeps its rows.
+  - [x] A reply with prose around the fence, and a reply with two fences, extract the same document as `model.py` does. Share the cases with the Python test as one JSON file.
+  - [x] A loop started with `repairing:` sends the stored document and that line on its first call.
+  - [x] A cancel during the model call saves nothing.
+  - [x] A transport error is thrown and does not use an attempt.
+  - [x] An attached image reaches the saved widget only when the document declares `assets.reference`.
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Write a throwaway Swift test, or a `render-tool loop` command, that runs `Engine.loop` against the real bridge for the four reference prompts. Pass when all four are accepted and the attempt counts match the `run.py` range.
+- [ ] `render-tool loop` runs the build loop against the real bridge for the four reference prompts. Pass when all four are accepted and the attempt counts match the `run.py` range. Pending: the command is in place, and the run waits on P1's bridge.
 
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Time spent in `build` per attempt, apart from the model call.
-- [ ] Rule. Under 1.5 s per attempt on the Mac for the reference widgets. Record the number. The phone number comes in P6.
+- [x] Metric. Time spent in `build` per attempt, apart from the model call.
+- [x] Rule. Under 1.5 s per attempt on the Mac for the reference widgets. Record the number. The phone number comes in P6. Recorded on an M4 with the release `render-tool loop` and a stand-in bridge that answers at once, 7 runs per fixture: 0.15 to 0.23 s for the first attempt in a process (median 0.17 to 0.20 s per fixture) and 0.09 to 0.14 s for the next (median 0.10 to 0.12 s). Rendering dominates: in `render-tool proof` the 14 SwiftUI renders take 85 to 107 ms and the 8 look runs 36 to 43 ms, of which 32 to 35 ms is the first run alone, a cost paid once per process.
 
 **Review gate.** None. P3 is not review-gated.
 
 **Merge.**
 
-- [ ] `scripts/check` passes. The module rules accept the new files.
+- [x] `scripts/check` passes. The module rules accept the new files.
 
 ## Add a tappable preview for an unsaved draft (P4)
 
@@ -291,7 +291,7 @@ A draft must not appear in the home screen widget picker before the person saves
 
 - [ ] `BridgeModel` conforms to `WidgetModel`. It posts to the bridge with `URLSession`, a 120 s timeout, and `Content-Type: application/json`, which the bridge requires. The base URL comes from a Debug-only Info.plist key, `WidgieModelBridge`, set to `http://127.0.0.1:8787`. A Release build has no bridge key and shows "Building widgets is not available in this build".
 - [ ] Debug builds set `NSAppTransportSecurity` with `NSAllowsLocalNetworking` so the simulator can reach the Mac over plain HTTP. Confirm on the simulator that the request goes through. Do not add an arbitrary-loads exception.
-- [ ] `DescribeSession` drives `Engine.loop` on the preview's scratch engine and maps each `BuildStep` to `phase`. It keeps the in-flight build alive with `UIApplication.beginBackgroundTask` when the app leaves the foreground, because a build takes about 40 s.
+- [ ] `DescribeSession` drives `Engine.build(_ words:...)` on the preview's scratch engine and maps each `BuildStep` to `phase`. It keeps the in-flight build alive with `UIApplication.beginBackgroundTask` when the app leaves the foreground, because a build takes about 40 s.
 - [ ] The library gets a **New widget** button that opens the describe screen in create mode. Tapping a widget in the library opens it in refine mode with its current face as the draft. Move "Install reference widget" into a Debug-only menu.
 - [ ] The describe screen has the following parts, top to bottom.
   - [ ] The preview, with small and medium faces and a picker for the empty state and each sample. Before the first draft, a placeholder invites a description.

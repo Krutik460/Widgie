@@ -176,28 +176,50 @@ FaceView(faces.current, host: FaceHost(
 
 ## 3. The builder
 
-Runs in the app, because fit can only be measured where SwiftUI runs, and in the eval harness on the Mac. The app sends the user's description, and any reference image, to the backend. The backend returns the model's document. The app validates and proves it, and sends any rejection line back for a repair. The backend never measures fit. The model's reply arrives as a `WidgetSource`: the document JSON plus image bytes keyed by asset id. One engine call per attempt.
+Runs in the app, because fit can only be measured where SwiftUI runs, and in the eval harness on the Mac. The app sends the model service a `ModelRequest`: the person's words, any picture they attached, the document being refined, and, on a repair, the rejected document with its line. The service returns the model's raw reply. The app takes the document out of it, validates and proves it, and sends any rejection back as a repair. The service never measures fit. `build(_ words:...)` runs that loop, and `build(_ source:replacing:)` is one attempt of it.
 
 ```swift
 import WidgetEngine
 import WidgetBuilder
 
-func create(_ prompt: Prompt, replacing existing: WidgetID? = nil) async throws -> WidgetID? {
-    var request = BuildRequest(prompt, current: try existing.flatMap { try Hosting.engine.source(of: $0) })
-    for _ in 0..<3 {                                       // first try, then at most two repairs
-        let reply: WidgetSource = try await backend.generate(request)
-        switch try await Hosting.engine.build(reply, replacing: existing) {
-        case .saved(let id):
-            return id                                      // onCommit already reloaded WidgetKit
-        case .rejected(let line):
-            request.repair(line)    // e.g. `medium, sample "busy": content spills 14pt past the bottom edge; ...`
-        }
-    }
-    return nil
+// The app's model service: posts the request as JSON to the backend, or to the dev bridge in a Debug build,
+// and returns the reply text. It throws only when the service did not answer.
+struct BridgeModel: WidgetModel {
+    func reply(to request: ModelRequest) async throws -> String { ... }
 }
+
+let outcome = try await engine.build(
+    "a water tracker with a big blue drop", image: Attachment(mime: "image/jpeg", bytes: jpeg), model: BridgeModel()
+) { step in
+    // .writing(attempt: 1), .checking(attempt: 1), then on a rejection
+    // .repairing(attempt: 2, line: "medium, sample \"busy\": content spills 14pt past the bottom edge; ..."), ...
+}
+switch outcome {
+case .accepted(let id, let attempts):   // saved in `engine`; onCommit ran
+case .gaveUp(let lastLine, let attempts):   // three rejections; nothing was saved
+}
+
+// A refinement: the model gets the stored document as `current`, and the reply replaces the widget under the
+// same id, keeping its rows.
+try await engine.build("make it blue", replacing: id, model: BridgeModel())
+
+// A document another store rejected (the real store on Save): the first call repairs the stored document
+// with that line.
+try await engine.build("make it blue", replacing: draft, repairing: line, model: BridgeModel())
 ```
 
-What the backend sends the model. The system prompt is `Engine/Reference/build-prompt.md`, with each `{{include <file>}}` line replaced by that file from the same folder (`blocks.md`, `look.md`) and every HTML comment removed. The user message is the person's words, with their picture as an image block when they attached one. The reply is one fenced `json` block holding the whole document, look included as a string. When the document declares the asset `reference`, the picture travels as that asset's bytes. A repair message holds the person's request, the previous document, and the verdict line. `Engine/Evals/run.py` runs exactly this loop on the Mac, with `claude -p` standing in for the model and `render-tool proof` standing in for `build`.
+The loop makes at most three attempts, the first try and two repairs, as `Engine/Evals/run.py` does. Only a rejected reply uses an attempt. An error the model service throws is rethrown as it is, and nothing is saved. A repair holds the person's words, the same `current` as the first call, the document the model sent last, and the exact line `build` rejected it with. The document is the reply's longest fenced `json` block, else its longest fenced block of any kind, else the whole reply trimmed, by the same rule as `extract` in `Engine/Evals/model.py`; `Engine/Evals/testdata/extract.json` holds the cases both are tested against. The picture goes to the model with every call. A reply that declares the asset `reference` gets the picture as that asset's bytes, any other reply builds without it, and a refinement that sends no picture keeps the stored one. Cancelling the task throws `CancellationError` before or after a model call, and nothing is saved; a `build` already under way finishes and its outcome is returned. `render-tool loop` runs the same loop against the dev bridge on the Mac.
+
+The request on the wire, as the dev bridge (`Engine/Evals/bridge.py`) and the backend accept it. Every key but `words` is left out when it is nil:
+
+```json
+{ "words": "make it blue",
+  "image": { "mime": "image/jpeg", "base64": "/9j/4AAQ..." },
+  "current": "{\"name\": \"Water\", ...}",
+  "repair": { "document": "{\"name\": \"Water\", ...}", "line": "small, empty: the render is blank; ..." } }
+```
+
+What the service sends the model. The system prompt is `Engine/Reference/build-prompt.md`, with each `{{include <file>}}` line replaced by that file from the same folder (`blocks.md`, `look.md`) and every HTML comment removed. The user message is the person's words, with their picture as an image block when they attached one. The reply is one fenced `json` block holding the whole document, look included as a string. A repair message holds the person's request, the previous document, and the verdict line. The service owns this wording, so a prompt change never needs an app release. `Engine/Evals/run.py` runs the same loop on the Mac, with `claude -p` standing in for the model and `render-tool proof` standing in for `build`.
 
 `build` hides: format upgrade and parsing into typed blocks, the one-line error for the first problem, checking that a replacement keeps every surviving field's kind and agrees with the widgets that share its data and with the cells already stored, ingesting images (downscale to the widget pixel cap and encode), filling in what the model does not write (asset digests and the automation time zone), and the proof matrix.
 
@@ -289,6 +311,15 @@ print(matrix.verdict ?? "accepted")
 ```
 
 `Engine.proofs` runs the same `prove` as `build`, including coverage and the content check, but renders every cell even after one fails, so an eval sees them all. `matrix.verdict` is still the first problem, the exact line `build` would return. It throws only when the proof machinery itself cannot run. The tool writes `<state>-<family>.png` for each light render that produced an image, `<state>-<family>-<tinted|dark>.png` for the others, where a sample's `<state>` is `sample-` and its name made file-safe (`sample-goal-met`), and a `report.json` described by `render-tool --help`. A widget directory is the exchange format on disk: `widget.json` plus `assets/<asset id>.png|jpg`. The same format is a model reply, a refinement context, a debugging export, and a widget another user shared. `Engine/Fixtures/` holds the four reference widgets in this format.
+
+Loop mode runs the app's build loop on the Mac, for checking a model service by hand:
+
+```swift
+// render-tool loop <words> <out dir> [--image <png|jpg>] [--bridge http://127.0.0.1:8787] [--time-zone ...]
+let outcome = try await scratch.build(words, image: image, model: Bridge(url: bridge)) { step in ... }
+```
+
+It builds into a fresh engine in a temporary folder, prints each step on stderr with the seconds since the start, then the seconds each attempt spent with the model and in `build`. It prints `accepted in <n> attempts` or `gave up after 3 attempts: <line>`, and writes an accepted widget to `<out dir>` as a widget directory. It exits 0 when accepted, 1 when it gave up, and 2 when the bridge did not answer.
 
 ## The widget document (exchange format)
 
