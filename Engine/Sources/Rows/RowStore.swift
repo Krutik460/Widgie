@@ -675,6 +675,10 @@ private func guarded<T>(_ body: () throws -> T) throws(StoreError) -> T {
         return try body()
     } catch let error as StoreError {
         throw error
+    } catch let error as DatabaseError where [.SQLITE_ABORT, .SQLITE_INTERRUPT].contains(error.resultCode) {
+        // GRDB refuses a statement with one of these two codes while `suspend()` holds, and this store never
+        // interrupts or aborts a statement itself.
+        throw StoreError(message: String(describing: error), suspended: true)
     } catch {
         throw StoreError(message: String(describing: error))
     }
@@ -793,4 +797,6 @@ package enum Applied: Sendable, Equatable {
 
 package struct StoreError: Error, Sendable {
     package let message: String
+    /// The write was refused because `RowStore.suspend()` holds. The same write can succeed after `resume()`.
+    package var suspended = false
 }

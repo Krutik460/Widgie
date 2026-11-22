@@ -248,7 +248,7 @@ public final class Engine: Sendable {
                 opened = store
                 return store
             } catch {
-                throw EngineError(message: "the store did not open: \(error.message)")
+                throw EngineError(message: "the store did not open: \(error.message)", isSuspended: error.suspended)
             }
         }
     }
@@ -327,7 +327,7 @@ package func attempt<T>(_ body: () throws(StoreError) -> T) throws(EngineError) 
     do throws(StoreError) {
         return try body()
     } catch {
-        throw EngineError(message: error.message)
+        throw EngineError(message: error.message, isSuspended: error.suspended)
     }
 }
 

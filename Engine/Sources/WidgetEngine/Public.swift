@@ -100,6 +100,12 @@ public struct Face: Sendable {
 
 public struct EngineError: Error, Sendable {
     public let message: String
+    /// The store refused a write because `Engine.suspend()` holds. The same call can succeed after
+    /// `Engine.resume()`; every other error is not worth retrying as it is.
+    public let isSuspended: Bool
 
-    package init(message: String) { self.message = message }
+    package init(message: String, isSuspended: Bool = false) {
+        self.message = message
+        self.isSuspended = isSuspended
+    }
 }

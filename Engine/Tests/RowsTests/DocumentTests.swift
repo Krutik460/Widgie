@@ -34,7 +34,8 @@ import Testing
         #expect(try store.revisions(of: key).map(\.digest) == [one, two], "the first entry is the current head")
 
         let elsewhere = try store.save(.mint(), spec: spec(named: "Three"), assets: [:])
-        #expect(throws: StoreError.self) { try store.restore(key, to: elsewhere) }
+        let refused = #expect(throws: StoreError.self) { try store.restore(key, to: elsewhere) }
+        #expect(refused?.suspended == false, "only a suspended store's refusal is worth retrying")
         #expect(try store.widget(key)?.revision == one)
     }
 
