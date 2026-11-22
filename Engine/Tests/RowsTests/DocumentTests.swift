@@ -89,6 +89,23 @@ import Testing
         #expect(try store.widgets().isEmpty)
     }
 
+    @Test func aRefinementOfAReceivedHeadNotProvedHereMustKeepTheFieldsItAdded() throws {
+        let store = try RowStore.scratch()
+        let pad = try RowStore.scratch()
+        let key = WidgetKey.mint()
+        let first = try store.save(key, spec: counter(fields: "{}"), assets: [:])
+        Thread.sleep(forTimeInterval: 0.01)
+        let noted = try pad.save(key, spec: counter(fields: #"{"note": "text"}"#), assets: [:])
+        try store.receive(Array(pad.changes().values.joined()), now: Date())
+        #expect(try store.unprovedHeads() == [noted])
+        #expect(try store.widget(key)?.revision == first, "the proved revision still draws")
+
+        let line = "field \"taps.note\" is gone; keep every field id so the stored values carry over"
+        #expect(try store.refusal(of: counter(fields: "{}"), replacing: key) == line)
+        #expect(try store.replace(key, with: counter(fields: "{}"), assets: [:]) == line)
+        #expect(try store.revisions(of: key).first?.digest == noted, "the received head did not move")
+    }
+
     @Test func widgetsListsLiveWidgetsNewestFirst() throws {
         let store = try RowStore.scratch()
         let older = WidgetKey.mint()
