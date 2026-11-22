@@ -9,7 +9,7 @@ import bridge
 from model import ModelError
 
 REPLY = {"text": "```json\n{}\n```", "seconds": 4.2, "input_tokens": 20000, "output_tokens": 900,
-         "models": ["claude-sonnet-5-5"]}
+         "models": ["claude-haiku-5-5", "claude-sonnet-5-5"], "model": "claude-sonnet-5-5"}
 
 
 class BridgeTests(unittest.TestCase):

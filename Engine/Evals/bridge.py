@@ -73,7 +73,7 @@ def handler(model: str, prompt: str, workdir: str) -> type[BaseHTTPRequestHandle
                 reply = call(model, prompt, content, tries=TRIES, timeout=TIMEOUT, workdir=workdir)
             except ModelError as error:
                 return self.answer(started, request, 502, {"error": one_line(str(error))})
-            body = {"reply": reply["text"], "seconds": reply["seconds"], "model": ",".join(reply["models"]) or model}
+            body = {"reply": reply["text"], "seconds": reply["seconds"], "model": reply["model"] or model}
             self.answer(started, request, 200, body, reply)
 
         def answer(self, started: float, request, status: int, body: dict, reply: dict | None = None):
