@@ -89,15 +89,21 @@ final class DescribeSession: Identifiable {
     var draft: WidgetID? { preview.widget }
 
     private let model: (any WidgetModel)?
+    /// Returns once the shared store takes writes.
+    private let sharedWritesOpen: @MainActor () async -> Void
     private var work: Task<Void, Never>?
     private var failedJob: Job?
     private var background = UIBackgroundTaskIdentifier.invalid
     private var expired = false
 
-    init(editing: WidgetID? = nil, model: (any WidgetModel)? = BridgeModel.configured) {
+    init(
+        editing: WidgetID? = nil, model: (any WidgetModel)? = BridgeModel.configured, preview: Preview = Preview(),
+        sharedWritesOpen: @escaping @MainActor () async -> Void = SharedWrites.open
+    ) {
         self.editing = editing
         self.model = model
-        preview = Preview()
+        self.preview = preview
+        self.sharedWritesOpen = sharedWritesOpen
         phase = editing == nil ? .composing : .opening
     }
 
@@ -223,19 +229,18 @@ final class DescribeSession: Identifiable {
     }
 
     /// Proves the draft against the shared store and saves it there. That store takes no writes in the
-    /// background, so a save that meets the background waits for the app to come back, then saves. Nil when
-    /// the store failed or there is no draft.
+    /// background, so a save it refuses as suspended waits for the app to come back, then saves. Nil when the
+    /// store failed or there is no draft.
     private func saveToLibrary() async -> BuildOutcome? {
         while true {
-            await SharedWrites.open()
+            await sharedWritesOpen()
             do {
                 return try await preview.save(replacing: editing)
-            } catch {
-                guard SharedWrites.suspended else {
-                    log.error("save failed: \(error.message, privacy: .public)")
-                    return nil
-                }
+            } catch let error where error.isSuspended {
                 log.info("save met the background, waiting for the app to come back")
+            } catch {
+                log.error("save failed: \(error.message, privacy: .public)")
+                return nil
             }
         }
     }
