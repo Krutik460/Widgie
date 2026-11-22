@@ -1,5 +1,7 @@
 import Foundation
 import Observation
+import PhotosUI
+import SwiftUI
 import Testing
 import WidgetBuilder
 import WidgetEngine
@@ -107,6 +109,21 @@ import WidgetEngine
         #expect(session.words == "a tap counter")
         #expect(session.draft == nil)
         #expect(model.requests.count == Engine.maxBuildAttempts)
+    }
+
+    @Test func wordsWaitForAPhotoThatIsStillLoading() async throws {
+        let session = DescribeSession(model: ScriptedModel([]), preview: Preview(library: shared.engine))
+        session.words = "a tap counter"
+        session.pendingPhoto = PhotosPickerItem(itemIdentifier: "loading")
+        #expect(!session.canSend)
+
+        session.send()
+        #expect(session.latest == nil)
+        #expect(session.phase == .composing)
+        #expect(session.words == "a tap counter")
+
+        session.pendingPhoto = nil
+        #expect(session.canSend)
     }
 
     @Test func aSaveRefusedWhileSuspendedWaitsForTheAppToComeBackAndThenSaves() async throws {

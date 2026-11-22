@@ -1,6 +1,8 @@
 import Foundation
 import OSLog
 import Observation
+import PhotosUI
+import SwiftUI
 import UIKit
 import WidgetBuilder
 import WidgetEngine
@@ -88,6 +90,8 @@ final class DescribeSession: Identifiable {
 
     var words = ""
     var picture: Picture?
+    /// The photo picked for the composer while it loads. Sending waits for it, so the photo is never dropped.
+    var pendingPhoto: PhotosPickerItem?
 
     /// The last accepted widget in the preview's scratch engine.
     var draft: WidgetID? { preview.widget }
@@ -112,7 +116,8 @@ final class DescribeSession: Identifiable {
     }
 
     var canSend: Bool {
-        phase == .composing && (!words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || picture != nil)
+        phase == .composing && pendingPhoto == nil
+            && (!words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || picture != nil)
     }
 
     func open() async {
@@ -128,7 +133,9 @@ final class DescribeSession: Identifiable {
     func send(_ suggestion: String? = nil) {
         let typed = (suggestion ?? words).trimmingCharacters(in: .whitespacesAndNewlines)
         let image = suggestion == nil ? picture : nil
-        guard phase == .composing, !typed.isEmpty || image != nil else { return }
+        guard phase == .composing, suggestion != nil || pendingPhoto == nil, !typed.isEmpty || image != nil else {
+            return
+        }
         latest = Turn(words: typed.isEmpty ? "Make it look like this picture" : typed, image: image, result: .pending)
         if suggestion == nil {
             words = ""

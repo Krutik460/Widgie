@@ -150,7 +150,7 @@ struct TryItScreen: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 12) {
-            PhotoButton(picture: $session.picture)
+            PhotoButton(picture: $session.picture, item: $session.pendingPhoto)
             HStack(alignment: .center, spacing: 8) {
                 if session.words.isEmpty {
                     Caret(size: 30, alive: false, grounded: false)
