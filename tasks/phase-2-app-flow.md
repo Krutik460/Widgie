@@ -113,7 +113,7 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 **You see.**
 
 - [x] `curl -s localhost:8787/health` prints `ok`. Done, printed `ok`.
-- [x] `curl -s -X POST localhost:8787/v1/reply -d '{"words":"a water tracker with a big blue drop"}'` returns a reply whose extracted JSON passes `render-tool proof`. Done on Sonnet. Proof printed `accepted` (`Engine/.artifacts/p1/``bridge/sonnet-create-blue-drop/`).
+- [x] `curl -s -X POST localhost:8787/v1/reply -H 'Content-Type: application/json' -d '{"words":"a water tracker with a big blue drop"}'` returns a reply whose extracted JSON passes `render-tool proof`. Done on Sonnet. Proof printed `accepted` (`Engine/.artifacts/p1/``bridge/sonnet-create-blue-drop/`).
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
@@ -289,7 +289,7 @@ A draft must not appear in the home screen widget picker before the person saves
 
 **Build.**
 
-- [ ] `BridgeModel` conforms to `WidgetModel`. It posts to the bridge with `URLSession` and a 120 s timeout. The base URL comes from a Debug-only Info.plist key, `WidgieModelBridge`, set to `http://127.0.0.1:8787`. A Release build has no bridge key and shows "Building widgets is not available in this build".
+- [ ] `BridgeModel` conforms to `WidgetModel`. It posts to the bridge with `URLSession`, a 120 s timeout, and `Content-Type: application/json`, which the bridge requires. The base URL comes from a Debug-only Info.plist key, `WidgieModelBridge`, set to `http://127.0.0.1:8787`. A Release build has no bridge key and shows "Building widgets is not available in this build".
 - [ ] Debug builds set `NSAppTransportSecurity` with `NSAllowsLocalNetworking` so the simulator can reach the Mac over plain HTTP. Confirm on the simulator that the request goes through. Do not add an arbitrary-loads exception.
 - [ ] `DescribeSession` drives `Engine.loop` on the preview's scratch engine and maps each `BuildStep` to `phase`. It keeps the in-flight build alive with `UIApplication.beginBackgroundTask` when the app leaves the foreground, because a build takes about 40 s.
 - [ ] The library gets a **New widget** button that opens the describe screen in create mode. Tapping a widget in the library opens it in refine mode with its current face as the draft. Move "Install reference widget" into a Debug-only menu.

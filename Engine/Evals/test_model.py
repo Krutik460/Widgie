@@ -27,6 +27,16 @@ class UserMessageTests(unittest.TestCase):
                 model.call("haiku", "prompt", model.user_message(request), tries=1, timeout=110, workdir="/tmp")
                 self.assertEqual(run.call_args.kwargs["input"], (TESTDATA / f"{name}.jsonl").read_text())
 
+    def test_claude_runs_with_no_tools_no_project_context_and_no_parent_session(self):
+        with mock.patch("model.subprocess.run", return_value=finished(json.dumps(ANSWER) + "\n")) as run, \
+                mock.patch.dict("model.os.environ", {"CLAUDECODE": "1"}):
+            model.call("haiku", "prompt", [], tries=1, timeout=110, workdir="/tmp")
+        command, env = run.call_args.args[0], run.call_args.kwargs["env"]
+        self.assertEqual(command[command.index("--tools") + 1], "")
+        for flag in ("--safe-mode", "--strict-mcp-config", "--disable-slash-commands", "--no-session-persistence"):
+            self.assertIn(flag, command)
+        self.assertNotIn("CLAUDECODE", env)
+
     def test_a_refine_is_refused_until_the_prompt_has_a_refine_mode(self):
         with self.assertRaisesRegex(ValueError, "refine"):
             model.user_message({"words": "make it blue", "current": "{}"})
@@ -39,6 +49,7 @@ class UserMessageTests(unittest.TestCase):
             {"words": "a", "colour": "blue"},
             {"words": "a", "image": {"mime": "image/gif", "base64": "AAAA"}},
             {"words": "a", "image": {"mime": "image/png", "base64": "not base64!"}},
+            {"words": "a", "image": {"mime": "image/png", "base64": ""}},
             {"words": "a", "repair": {"document": "{}"}},
         ]:
             with self.subTest(request=request), self.assertRaises(ValueError):

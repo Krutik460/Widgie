@@ -60,9 +60,11 @@ def user_message(request: dict) -> list[dict]:
             raise ValueError(f'"image" must hold a "mime" of {" or ".join(sorted(set(MEDIA_TYPES.values())))}')
         data = image.get("base64")
         try:
-            base64.b64decode(data, validate=True)
+            decoded = base64.b64decode(data, validate=True)
         except (TypeError, ValueError):
-            raise ValueError('"image" must hold "base64" image data') from None
+            decoded = b""
+        if not decoded:
+            raise ValueError('"image" must hold "base64" image data')
         content.append({"type": "image", "source": {"type": "base64", "media_type": image["mime"], "data": data}})
     content.append({"type": "text", "text": text})
     return content
