@@ -514,7 +514,7 @@ function render(ctx) {
 The user taps the plus button on the home screen.
 
 1. `FaceHost.widget` had wrapped that subtree in `Button(intent: RunAction(Tap(widget: id, revision: drawn, action: "drink", row: nil)))`.
-2. WidgetKit runs `RunAction.perform` in the extension. `engine.perform(tap)` finds the widget live and `drawn` its drawn revision, finds `drink` is `.insert(glasses)` there, opens an immediate transaction, takes the next clock stamp, and merges one change: insert row `0193f4c3-...` in the dataset `glasses` is bound to, on day 2026-11-18. It commits. The extension's engine has no `onCommit` hook.
+2. WidgetKit runs `RunAction.perform` in the extension. `engine.perform(tap)` finds the widget live and `drawn` its drawn revision, finds `drink` is `.insert(glasses)` there, opens an immediate transaction, takes the next clock stamp, and merges one change: insert row `0193f4c3-...` in the dataset `glasses` is bound to, on day 2026-11-18. It commits, and the `onCommit` hook that `Hosting.engine` passes asks WidgetKit to reload every widget's timeline.
 3. WidgetKit reloads the timeline. `faces` now sees `today = 4`.
 
 Tapping minus twice quickly on a stale face deletes `0193f4c2-...` once. The second tap finds the row already tombstoned and does nothing, so the count never drops below what the user saw.
