@@ -253,7 +253,15 @@ final class DescribeSession: Identifiable {
     ) async -> TurnResult {
         beginBackground()
         defer { endBackground() }
-        let before = replacing.flatMap { try? preview.engine.history(of: $0).first }
+        var checkpoint: Checkpoint?
+        if let replacing {
+            do {
+                checkpoint = try preview.engine.checkpoint(of: replacing)
+            } catch {
+                log.error("the draft could not be checkpointed: \(error.message, privacy: .public)")
+                return .failed(.broken)
+            }
+        }
         let started = ContinuousClock.now
         func seconds() -> String { (ContinuousClock.now - started).formatted(.units(fractionalPart: .show(length: 2))) }
         do {
@@ -269,9 +277,19 @@ final class DescribeSession: Identifiable {
                     log.info("accepted in \(attempts) attempts, preview shown at \(seconds(), privacy: .public)")
                     return .accepted
                 }
-                // Cancelled before the new draft was on show: put the draft back as the person last saw it.
-                if let replacing, let before { try? preview.engine.restore(replacing, to: before) }
-                await preview.select(preview.state)
+                // The new draft never went on show: put the draft back as the person last saw it.
+                if let checkpoint {
+                    do {
+                        try await preview.rollBack(to: checkpoint)
+                    } catch {
+                        log.error("the draft could not be put back: \(error.message, privacy: .public)")
+                        return .failed(.broken)
+                    }
+                }
+                guard Task.isCancelled else {
+                    log.error("the new draft could not be shown")
+                    return .failed(.broken)
+                }
                 return expired ? .failed(.interrupted) : .cancelled
             case .gaveUp(_, let attempts):
                 log.info("gave up after \(attempts) attempts at \(seconds(), privacy: .public)")
