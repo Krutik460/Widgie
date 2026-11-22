@@ -122,11 +122,11 @@ import Testing
 
     /// Suspension is process-wide, so this one test covers both kinds of store and opens a single window in
     /// which other suites' writes could fail.
-    @Test func aSuspendedStoreRefusesWritesAndStillReadsWhileAStoreThatOwnsItsFolderKeepsWriting() throws {
+    @Test func aSuspendedStoreRefusesWritesAndStillReadsWhileAScratchStoreKeepsWriting() throws {
         let directory = temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let bench = try Bench(store: RowStore.open(directory: directory))
-        let scratch = try Bench(store: RowStore.open(directory: temporaryDirectory(), ownsDirectory: true))
+        let scratch = try Bench(store: RowStore.open(directory: temporaryDirectory(), isScratch: true))
         try bench.tap("drink", at: noon)
         RowStore.suspend()
         defer { RowStore.resume() }
