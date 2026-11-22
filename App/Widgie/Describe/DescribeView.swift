@@ -56,7 +56,7 @@ struct DescribeView: View {
             default: nil
             }
         }
-        .sensoryFeedback(.success, trigger: session.turns.last?.result) { _, new in new == .accepted }
+        .sensoryFeedback(.success, trigger: session.latest?.result) { _, new in new == .accepted }
         .task { await session.open() }
         .confirmationDialog(
             session.editing == nil ? "Discard this widget?" : "Discard your changes?",
@@ -68,7 +68,7 @@ struct DescribeView: View {
         .sheet(isPresented: formShown) {
             if let form = session.preview.form {
                 FormSheet(form: form) { input in
-                    session.perform(form.tap, input: input)
+                    session.preview.perform(form.tap, input: input)
                     session.preview.form = nil
                 }
             }
@@ -91,7 +91,7 @@ struct DescribeView: View {
     /// land after a discard.
     private func attemptClose() {
         guard session.phase != .saving else { return }
-        let changed = session.editing == nil ? session.draft != nil : session.turns.contains { $0.result == .accepted }
+        let changed = session.editing == nil ? session.draft != nil : session.acceptedWords != nil
         if changed { confirmDiscard = true } else { close(nil) }
     }
 }
@@ -154,12 +154,9 @@ private struct DescribeScreen: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 HStack(spacing: 12) {
                     PhotoButton(picture: $session.picture)
-                    Button("Build it") {
-                        typing = false
-                        session.send()
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(!session.canSend)
+                    Button("Build it", action: send)
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(!session.canSend)
                 }
                 .frame(width: Column.width)
                 .padding(.top, 10)
@@ -168,13 +165,23 @@ private struct DescribeScreen: View {
             }
         }
         .onAppear { typing = true }
-        .onChange(of: session.words) { _, words in
-            // The field wraps long descriptions, so return builds instead of starting a new line.
-            guard words.contains("\n") else { return }
-            session.words = words.replacingOccurrences(of: "\n", with: "")
-            guard session.canSend else { return }
-            typing = false
-            session.send()
+        .returnSends($session.words, send)
+    }
+
+    private func send() {
+        guard session.canSend else { return }
+        typing = false
+        session.send()
+    }
+}
+
+extension View {
+    /// The field wraps long text, so return sends instead of starting a new line.
+    func returnSends(_ text: Binding<String>, _ send: @escaping () -> Void) -> some View {
+        onChange(of: text.wrappedValue) { _, value in
+            guard value.contains("\n") else { return }
+            text.wrappedValue = value.replacingOccurrences(of: "\n", with: "")
+            send()
         }
     }
 }
