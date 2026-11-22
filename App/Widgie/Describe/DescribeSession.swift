@@ -279,7 +279,8 @@ final class DescribeSession: Identifiable {
             }
         } catch is CancellationError {
             return expired ? .failed(.interrupted) : .cancelled
-        } catch is EngineError {
+        } catch let error as EngineError {
+            log.error("the build failed: \(error.message, privacy: .public)")
             return .failed(.broken)
         } catch let error as URLError {
             log.error("the model service gave no answer: \(error.localizedDescription, privacy: .public)")
@@ -328,7 +329,7 @@ extension BuildStep {
         switch self {
         case .writing: "Writing your widget"
         case .checking: "Checking it fits"
-        case .repairing(let attempt, _): "Fixing a problem (\(attempt) of 3)"
+        case .repairing(let attempt, _): "Fixing a problem (\(attempt) of \(Engine.maxBuildAttempts))"
         }
     }
 }
