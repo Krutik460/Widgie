@@ -12,7 +12,7 @@ extension Engine {
     /// - `replacing` refines that widget: the model gets its stored document as `current`, and the accepted
     ///   reply replaces it under the same id, keeping its rows.
     /// - `repairing` makes the first call a repair of the `replacing` widget's stored document with that line,
-    ///   for a document another store rejected. It needs `replacing`.
+    ///   for a document another store rejected. That call is attempt 1 of 3. It needs `replacing`.
     /// - `image` goes to the model with every call. A reply that declares the asset `reference` gets it as that
     ///   asset's bytes; any other reply builds without it, and a refine that sent no image keeps the stored one.
     ///
