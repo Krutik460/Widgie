@@ -7,7 +7,7 @@ One object, `Engine`, does everything. What a caller can do with it depends on w
 | Import | Adds to `Engine` | Who imports it |
 |---|---|---|
 | `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, `Engine.scratch()`, `Engine.removeLeftoverScratch()`, plus `FaceView`, `FaceHost`, and `Face.traits` | app, widget extension (through `WidgetHosting`) |
-| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `checkpoint(of:)` and `restore(_:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
+| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `checkpoint(of:)` and `rollBack(to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
 | `WidgetHosting` | `Hosting.engine`, `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
 
 The widget extension never imports `WidgetBuilder`, so it cannot build, ingest images, or encode PNGs. That is a link-time fact, not a convention.
@@ -191,12 +191,12 @@ A refinement is checked against the head of the widget it replaces twice: before
 
 `load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows.
 
-To undo a refinement the person cancelled, take a checkpoint before the build and restore it after. The checkpoint records the draft's head and the dataset each table reads. The rows those datasets hold, taps included, stay in place when a later `load` moves the tables on, so `restore` brings back exactly what was on show, in one transaction. A table the checkpoint did not have loses its dataset, so a later refinement may add it again with other field kinds. Both calls throw on any engine but a scratch one.
+To undo a refinement the person cancelled, take a checkpoint before the build and roll back to it after. The checkpoint records the draft's head and the dataset each table reads. The rows those datasets hold, taps included, stay in place when a later `load` moves the tables on, so `rollBack(to:)` brings back exactly what was on show, in one transaction. A table the checkpoint did not have loses its dataset, so a later refinement may add it again with other field kinds. Both calls throw on any engine but a scratch one.
 
 ```swift
 let checkpoint = try scratch.checkpoint(of: draft)
 // build a refinement of draft, load a sample into it to show it, then the person cancels
-try scratch.restore(checkpoint)                       // the old head, and the rows the preview showed before
+try scratch.rollBack(to: checkpoint)                  // the old head, and the rows the preview showed before
 ``` To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
 
 ```swift

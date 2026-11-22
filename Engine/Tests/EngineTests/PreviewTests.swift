@@ -54,7 +54,7 @@ import WidgetEngine
         }
     }
 
-    @Test @MainActor func restoringACheckpointBringsBackTheHeadAndTheRowsTapsIncluded() async throws {
+    @Test @MainActor func rollingBackToACheckpointBringsBackTheHeadAndTheRowsTapsIncluded() async throws {
         let engine = Engine.scratch(calendar: utc)
         let source = try fixture("water")
         let id = try await build(source, in: engine)
@@ -70,12 +70,12 @@ import WidgetEngine
         try engine.load(.sample("goal met"), into: id, at: morning)
         #expect(!picture(await face(id, in: engine, .medium), .medium).looksLike(tapped))
 
-        try engine.restore(checkpoint)
+        try engine.rollBack(to: checkpoint)
         #expect(picture(await face(id, in: engine, .medium), .medium).looksLike(tapped))
         #expect(try engine.source(of: id)?.json == saved)
     }
 
-    @Test @MainActor func aRestoredCheckpointDropsTheTablesACancelledRefinementAdded() async throws {
+    @Test @MainActor func rollingBackToACheckpointDropsTheTablesACancelledRefinementAdded() async throws {
         let engine = Engine.scratch(calendar: utc)
         let water = try fixture("water")
         let id = try await build(water, in: engine)
@@ -91,7 +91,7 @@ import WidgetEngine
 
         #expect(try await engine.build(extras("text", #""a""#), replacing: id) == .saved(id))
         try engine.load(.sample("morning"), into: id, at: morning)
-        try engine.restore(checkpoint)
+        try engine.rollBack(to: checkpoint)
 
         let outcome = try await engine.build(extras("number", "3"), replacing: id)
         #expect(outcome == .saved(id))
