@@ -24,6 +24,6 @@
 
 **What happened.** Asked for "the feel and touch of Duolingo type apps", I briefed three directions as genre traits: bright tokens, lipped buttons, a rounded font, a blob mascot. The user said the result "still looks very AI like, it needs more character", and pointed at cozy pomodoro apps like the one with the cat.
 
-**Rule.** For app feel, start from real reference apps the user would name, and study what gives them character: hand-drawn linework, a companion with a personality living in a scene, texture, and hand-made motion. A palette, a button style, and a mascot drawn from primitives is a template, not a character.
+**Rule.** "Like X apps" can mean "as distinct as X", not "styled like X". When the user named the cat apps, they meant apps with their own identity, and confirmed Widgie needs its own, not a copied genre look. Ask which one is meant before briefing design. Then build from one ownable idea about the product itself. A palette, a button style, and a mascot drawn from primitives is a template, not an identity.
 
 **Rule.** Before any visual direction goes to the user, ask whether it looks like a person drew it or like an AI template. Redo anything that reads as the second.
