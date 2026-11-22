@@ -351,29 +351,33 @@ An outside review (two models) raised eight findings. Each was checked against t
 - Phase 3: the client half of decision A, and memory with several image-heavy widgets on one home screen, measured on a device. Each render is capped, but WidgetKit may hold several renders at once.
 - Phase 4: test vectors for the merge (changes in, state out) exported from the Swift tests, so the backend's merge is checked against the same cases.
 
-### Phase 1e. Who wrote a row, and when (proposed 2026-11-22, needs approval)
+### Phase 1e. Who wrote a row, and when (approved and done 2026-11-22)
 
-The two new reference widgets need two things the blocks cannot express today. Rows carry a day but no time and no author, and the look gets the date but not the time.
+The two new reference widgets needed two things the blocks could not express. Rows carried a day but no time and no author, and the look got the date but not the time.
 
-| Widget | Needs | Today |
+| Widget | Needs | Before |
 |---|---|---|
-| Dog fed | "Fed 3 h ago by Sam", red after 12 h | A row has `day` and `daysAgo` only. `ctx.today` has no time. |
-| Thinking of you | Hearts sent and received today | No author on a row, so `where` cannot split mine from theirs. |
+| Dog fed | "Fed 3 h ago by Sam", red after 12 h | A row had `day` and `daysAgo` only. `ctx.today` had no time. |
+| Thinking of you | Hearts sent and received today | No author on a row, so `where` could not split mine from theirs. |
 | Thinking of you | The couple's photo | Already covered by `assets`. The photo must travel with the shared widget. |
 
-Proposed shape. This is a one-way door in `WidgetSpec`, so it gets the same review as phase 1d before any code.
+What was built.
 
-- The engine stamps every row with `at` (the local time it was written, `"HH:MM"`) and `by` (a member id). Neither field can be declared or set by the spec, so the model cannot forge them.
-- The look receives `at`, `minutesAgo`, and `by: { name, me }` on each row, and `ctx.now` as `"HH:MM"`. `minutesAgo` and `ctx.now` come from the timeline entry date, so the look still never reads a clock.
-- `where` accepts `{ "by": "me" }` and `{ "by": "others" }`. Counting per named member waits until a reference widget needs it.
-- A look that shows `minutesAgo` sets `reloadAt` to the next threshold it cares about, the way word of the day does. The timeline holds entries every 15 minutes for the first two hours.
-- Before phase 4 there is one member, the device, so `by.me` is always true. Phase 4 fills in real members.
+- A row's time is its stored insert instant (`row.at`, milliseconds), and its author is the replica that inserted it (`row.replica`). Both already existed and sync with the row, so nothing new is stored or synced, and the spec cannot set or forge either.
+- The look receives `at` (`HH:MM` in the reader's time zone), `minutesAgo`, and `by: { me, name }` on each row, and `ctx.now`. `minutesAgo` and `ctx.now` come from the render's instant, so the look still never reads a clock.
+- `where` accepts `{ "by": "me" }` or `{ "by": "others" }`, alone or beside one field.
+- Samples accept `minutesAgo` (instead of `daysAgo`) and `by` (another member's name). Names live in a local `member` table (schema migration 2) that sharing will fill.
+- The sandbox reports whether the look read `now` or `minutesAgo`. Such a look is drawn every 15 minutes for two hours, keeping the entries that changed, and the timeline reloads after those two hours. A first version probed only 15 minutes ahead, and the review showed it missed "11 h ago" turning red at 12 h.
+- Proofs render at noon of the current day, so a revision's verdict does not depend on the hour or the device. `full` draws today's rows 719 minutes old by a 30-character name.
+- `me` means the person, which is what the model is taught. Today it is approximated by this store's replica. Phase 3 writes automation rows under the owner's account, and phase 4 maps every replica of an account to `me`.
+- The grammar grew inside format 1, because no build has shipped (RATIONALE).
 
-- [ ] Review the shape above against the block design, and decide whether `at` should be a full timestamp instead of `"HH:MM"`
-- [ ] Add `at`, `by`, `minutesAgo`, `ctx.now`, and `where by` to the spec, the query engine, the proof, and `Engine/Reference/blocks.md`
-- [ ] Fixtures `Engine/Fixtures/dogfed` and `Engine/Fixtures/hearts` (with a sample photo asset), proved in every data state and both sizes, full color and tinted
-- [ ] Add both prompts to `Engine/Evals/cases.json` as reference cases, and run them on both stand-in models
-- [ ] Check: `Engine/scripts/check` passes, the six fixtures prove, and the two new cases are accepted within three attempts
+- [x] Review the shape against the block design and decide on `at`: the full instant is stored, and the look gets `HH:MM` plus `minutesAgo`. Reviewed by a fresh subagent, findings fixed (clock detection, proof time, `me` docs, `full` widths, name rules)
+- [x] Add `at`, `by`, `minutesAgo`, `ctx.now`, and `where by` to the spec, the query engine, the proof, and `Engine/Reference/blocks.md` and `look.md` (`Engine/Tests/SpecTests/AuthorTests.swift`, `RowsTests/AuthorTests.swift`, `LookTests/ContextTests.swift`, `EngineTests/EngineTests.swift` `ClockTests`)
+- [x] Fixtures `Engine/Fixtures/dogfed` and `Engine/Fixtures/hearts` (with a drawn stand-in photo), proved in every data state and both sizes, full color, tinted, and dark (`render-tool proof`, renders in `Engine/.artifacts/phase-1e/`)
+- [x] Add both prompts to `Engine/Evals/cases.json` as reference cases, and run them on both stand-in models. Run `p1e-authors`: 4 of 4 first try. Run `p1e-authors-2` after the review fixes: 3 first try, hearts on Haiku repaired once
+- [x] Check: `scripts/check` passes (all four engine test targets, eval harness, module rules, simulator build), the six fixtures prove, and the two new cases are accepted within three attempts
+- [x] Full eval set `p1e-full` on both models after the prompt change: Sonnet 30 of 30 accepted (28 first try). Haiku 28 of 30, with coffee and reading failing on text fit and button coverage, the same failure kinds as earlier runs. One Sonnet repair came from the new grammar (`daysAgo` with `minutesAgo` on one row), fixed by its line
 
 ### Phase 2. AI builder
 

@@ -37,11 +37,19 @@ package actor Sandbox {
     package init() {}
 
     package func run(_ source: String, context: String, budget: Budget) async throws(Failure) -> String {
+        try await run(source, context: context, watching: [], budget: budget).tree
+    }
+
+    /// Like `run`, and also says whether the look read a property named in `watching` anywhere in the context.
+    /// Reading counts however it happens: a property access, a spread, `Object.values`, or `JSON.stringify`.
+    package func run(_ source: String, context: String, watching keys: [String], budget: Budget) async throws(Failure)
+        -> Output
+    {
         await acquire()
         defer { release() }
         let result = await withCheckedContinuation { continuation in
             let thread = Thread {
-                continuation.resume(returning: Run.evaluate(source, context: context, budget: budget))
+                continuation.resume(returning: Run.evaluate(source, context: context, watching: keys, budget: budget))
             }
             thread.name = "look"
             thread.stackSize = Run.threadStack
@@ -70,6 +78,13 @@ package actor Sandbox {
 }
 
 extension Sandbox {
+    package struct Output: Sendable, Equatable {
+        /// The tree as JSON text.
+        package let tree: String
+        /// Whether the look read a watched property.
+        package let readWatched: Bool
+    }
+
     package struct Budget: Sendable, Equatable {
         /// Interrupt-handler calls, each 10,000 interpreter checkpoints.
         package var steps: Int
@@ -145,9 +160,9 @@ private enum Run {
     static let threadStack = 4 << 20
     static let scriptStack = 1 << 20
 
-    static func evaluate(_ source: String, context json: String, budget: Sandbox.Budget) -> Result<
-        String, Sandbox.Failure
-    > {
+    static func evaluate(_ source: String, context json: String, watching keys: [String], budget: Sandbox.Budget)
+        -> Result<Sandbox.Output, Sandbox.Failure>
+    {
         let meter = UnsafeMutablePointer<Meter>.allocate(capacity: 1)
         meter.initialize(to: Meter(budget: budget))
         defer {
@@ -169,9 +184,9 @@ private enum Run {
                 meter.pointee.steps += 1
                 return meter.pointee.outOfSteps ? 1 : 0
             }, meter)
-        let result: Result<String, Sandbox.Failure>
+        let result: Result<Sandbox.Output, Sandbox.Failure>
         if let context = JS_NewContext(runtime) {
-            result = Script(context: context).run(source, context: json)
+            result = Script(context: context).run(source, context: json, watching: keys)
             JS_FreeContext(context)
         } else {
             result = .failure(.threw(message: "the JavaScript engine did not start", line: nil))
@@ -236,7 +251,8 @@ private func metered(_ opaque: UnsafeMutableRawPointer?) -> UnsafeMutablePointer
 private struct Script {
     let context: OpaquePointer
 
-    func run(_ source: String, context json: String) -> Result<String, Sandbox.Failure> {
+    func run(_ source: String, context json: String, watching keys: [String]) -> Result<Sandbox.Output, Sandbox.Failure>
+    {
         let entry = evaluate(Self.prelude, file: "prelude.js")
         defer { JS_FreeValue(context, entry) }
         guard !JS_IsException(entry) else { return .failure(failure(prefix: "the sandbox prelude failed: ")) }
@@ -245,19 +261,23 @@ private struct Script {
         JS_FreeValue(context, look)
         guard !JS_IsException(look) else { return .failure(failure()) }
 
-        var argument = json.withCString { JS_NewStringLen(context, $0, json.utf8.count) }
-        guard !JS_IsException(argument) else { return .failure(failure()) }
+        // The watched names travel as one JSON array, so the prelude parses them like the context.
+        let names = String(decoding: try! JSONEncoder().encode(keys), as: UTF8.self)
+        var arguments = [json, names].map { text in
+            text.withCString { JS_NewStringLen(context, $0, text.utf8.count) }
+        }
+        defer { for argument in arguments { JS_FreeValue(context, argument) } }
+        guard !arguments.contains(where: JS_IsException) else { return .failure(failure()) }
         // `undefined` as `this`, spelled out because `JS_UNDEFINED` is a C macro Swift cannot import. This is
         // QuickJS's 64-bit layout, the only one on iOS and macOS.
         let undefined = JSValue(u: JSValueUnion(uint64: 0), tag: Int64(JS_TAG_UNDEFINED))
-        let tree = JS_Call(context, entry, undefined, 1, &argument)
-        JS_FreeValue(context, argument)
-        defer { JS_FreeValue(context, tree) }
-        guard !JS_IsException(tree) else { return .failure(failure()) }
-        guard JS_IsString(tree), let text = string(tree) else {
+        let output = JS_Call(context, entry, undefined, Int32(arguments.count), &arguments)
+        defer { JS_FreeValue(context, output) }
+        guard !JS_IsException(output) else { return .failure(failure()) }
+        guard let text = stringProperty(output, "tree"), let read = boolProperty(output, "read") else {
             return .failure(.badReturn("render(ctx) returned something that is not JSON"))
         }
-        return .success(text)
+        return .success(Sandbox.Output(tree: text, readWatched: read))
     }
 
     private func evaluate(_ code: String, file: String) -> JSValue {
@@ -322,6 +342,12 @@ private struct Script {
         return JS_IsString(value) ? string(value) : nil
     }
 
+    private func boolProperty(_ object: JSValue, _ name: String) -> Bool? {
+        guard let value = property(object, name) else { return nil }
+        defer { JS_FreeValue(context, value) }
+        return JS_IsBool(value) ? JS_ToBool(context, value) == 1 : nil
+    }
+
     private func numberProperty(_ object: JSValue, _ name: String) -> Int? {
         guard let value = property(object, name) else { return nil }
         defer { JS_FreeValue(context, value) }
@@ -331,8 +357,9 @@ private struct Script {
     }
 
     /// Evaluates to the entry function, which the look cannot reach: it calls `render` with the parsed
-    /// context and returns the tree as JSON text. The walk keeps its own stack instead of recursing, so a
-    /// tree at the depth limit needs no script stack.
+    /// context and returns `{ tree, read }`, the tree as JSON text and whether the look read a watched
+    /// property. Each watched property of the context becomes a getter that records the read. The walks keep
+    /// their own stack instead of recursing, so a tree at the depth limit needs no script stack.
     private static let prelude = #"""
         (function () {
           'use strict';
@@ -409,9 +436,39 @@ private struct Script {
             }
           }
 
-          return function (contextJSON) {
+          var read = false;
+
+          // Turns every property named in `names`, on any object in the context, into a getter that records
+          // the read. A setter keeps assignment working for a look that edits its own copy of the data.
+          function watch(root, names) {
+            if (names.length === 0) return;
+            var pending = [root];
+            while (pending.length > 0) {
+              var value = pending.pop();
+              if (value === null || typeof value !== 'object') continue;
+              var keys = Object.keys(value);
+              for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                if (!Array.isArray(value) && names.indexOf(key) >= 0) {
+                  (function (owner, name, held) {
+                    Object.defineProperty(owner, name, {
+                      get: function () { read = true; return held; },
+                      set: function (next) { held = next; },
+                      enumerable: true, configurable: true
+                    });
+                  })(value, key, value[key]);
+                } else {
+                  pending.push(value[key]);
+                }
+              }
+            }
+          }
+
+          return function (contextJSON, namesJSON) {
             if (typeof render !== 'function') throw fail('MissingRender', 'no render');
-            var tree = render(JSON.parse(contextJSON));
+            var ctx = JSON.parse(contextJSON);
+            watch(ctx, JSON.parse(namesJSON));
+            var tree = render(ctx);
             if (impurity !== null) throw impurity;
             if (tree === undefined || tree === null) {
               throw fail('BadTree', 'render(ctx) returned ' + tree + '; it must return the root node object');
@@ -419,7 +476,7 @@ private struct Script {
             walk(tree);
             var text = JSON.stringify(tree);
             if (text.length > 1000000) throw fail('BadTree', 'render(ctx) returned ' + text.length + ' characters of JSON; draw far fewer nodes');
-            return text;
+            return { tree: text, read: read };
           };
         })()
         """#

@@ -33,8 +33,10 @@ extension Spec {
     /// Rows that stress layout: every list filled to its limit, three-digit counts, streaks, and daily
     /// totals, and in every field the longest value the widget can store there. Rows for a filtered query
     /// match its filter, and every day of a goal streak reaches the goal, as far as 100 rows a day allow.
-    /// Rows are written by another member with the longest name a member can have, except rows for a query
-    /// that asks for rows by `me`. It catches spills the model's own samples miss.
+    /// Rows are written by another member whose name is as long as a name may be, except rows for a query
+    /// that asks for rows by `me`. Today's rows were written `widestMinutesAgo` minutes before the render, so
+    /// "11 h 59 min ago" is drawn; proofs render at noon, where that is still today. It catches spills the
+    /// model's own samples miss.
     package var full: Sample {
         var rows: [SampleRow] = []
         for table in tables {
@@ -88,7 +90,7 @@ extension Spec {
             for (filter, count) in today {
                 rows.append(
                     SampleRow(
-                        table: table, daysAgo: 0, minutesAgo: nil, by: author(filter), count: count,
+                        table: table, daysAgo: 0, minutesAgo: Self.widestMinutesAgo, by: author(filter), count: count,
                         values: matching(filter)))
             }
             for (filter, days, each) in history {
@@ -106,8 +108,12 @@ extension Spec {
     /// How far back `full` fills a streak's days, for a three-digit streak.
     private static let streakDays = 100
 
-    /// A real-looking name at exactly `Limits.memberNameLength` characters, the widest `by.name` can be.
+    /// A real-looking name at exactly `Limits.memberNameLength` UTF-16 units, the longest `by.name` can be.
     static let longestMemberName = "Maximiliana Montgomery-Okonkwo"
+
+    /// The age of `full`'s rows for today: the most minutes that stay on today at noon, and the longest
+    /// "h min ago" text under 12 hours.
+    static let widestMinutesAgo = 719
 
     /// A form or an automation can write anything into a field, and a toggle flips it, so such a field gets
     /// the longest value of its kind. A field that only fixed action values write, such as one emoji per
@@ -244,16 +250,22 @@ extension Spec.Sample {
             values: try table.values(row, skipping: ["by", "daysAgo", "minutesAgo", "repeat"]))
     }
 
-    /// `by` is "me" or left out for the person on this device, or another member's name.
+    /// `by` is "me" in any case, or left out, for the person on this device, or another member's name: one
+    /// line, not blank, at most `Limits.memberNameLength` UTF-16 units like a text value.
     private static func author(_ row: Reader) throws(Diagnostic) -> String? {
-        guard let name = try row.string("by", maxLength: Spec.Limits.memberNameLength) else { return nil }
-        guard !name.isEmpty, !name.unicodeScalars.contains(where: { $0.properties.generalCategory == .control })
-        else {
+        guard let value = row["by"] else { return nil }
+        let rule =
+            "\"by\" is \"me\" or another member's name on one line, like \"Sam\", up to \(Spec.Limits.memberNameLength) characters"
+        guard case .string(let name) = value else { throw Diagnostic("\(rule), not \(value.described)") }
+        let breaks: Set<Unicode.GeneralCategory> = [.control, .lineSeparator, .paragraphSeparator]
+        guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
+            !name.unicodeScalars.contains(where: { breaks.contains($0.properties.generalCategory) })
+        else { throw Diagnostic(rule) }
+        guard name.utf16.count <= Spec.Limits.memberNameLength else {
             throw Diagnostic(
-                "\"by\" is \"me\" or another member's name on one line, like \"Sam\", up to \(Spec.Limits.memberNameLength) characters"
-            )
+                "\"by\" is \(name.utf16.count) characters; keep it to \(Spec.Limits.memberNameLength) or fewer")
         }
-        return name == "me" ? nil : name
+        return name.lowercased() == "me" ? nil : name
     }
 
     var json: JSONValue {

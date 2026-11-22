@@ -175,7 +175,13 @@ package struct Composition: Sendable {
     package let results: [Spec.QueryID: QueryResult]
     /// The tree as the look returned it, before validation.
     package let tree: String
+    /// Whether the look read `ctx.now` or a row's `minutesAgo`, so its picture can change while the data
+    /// stands still.
+    package let readsClock: Bool
 }
+
+/// The context keys whose values change with the render time alone.
+let clockKeys = ["now", "minutesAgo"]
 
 /// The one path from stored state to a `Drawing`. `Engine.faces` and the builder's proofs both call it, so
 /// a proof exercises exactly what a widget will run.
@@ -199,17 +205,18 @@ package func composeDrawing(
             "ctx is \(context.utf8.count / 1024) KB of JSON, more than \(contextLimit / 1024) KB; lower the list limits so the queries return fewer rows"
         )
     }
-    let tree: String
+    let output: Sandbox.Output
     do throws(Sandbox.Failure) {
-        tree = try await sandbox.run(spec.look, context: context, budget: budget)
+        output = try await sandbox.run(spec.look, context: context, watching: clockKeys, budget: budget)
     } catch {
         throw Diagnostic(error.line)
     }
+    let tree = output.tree
     let drawing = try Drawing.parse(
         tree: tree,
         bindings: Bindings(
             widget: WidgetID(rawValue: widget.raw), revision: revision, spec: spec,
             rows: Bindings.rows(in: results, spec: spec),
             today: today.day, images: images, family: family, size: size, pixelScale: pixelScale))
-    return Composition(drawing: drawing, results: results, tree: tree)
+    return Composition(drawing: drawing, results: results, tree: tree, readsClock: output.readWatched)
 }

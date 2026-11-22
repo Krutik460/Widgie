@@ -32,7 +32,7 @@ extension Engine {
         do throws(ProofStop) {
             let cell = try await proveCell(
                 spec, images: images, state: chosen, family: family, size: size ?? family.standardSize,
-                today: Today(at: date, calendar: calendar), sandbox: Sandbox())
+                today: Today(at: date, calendar: calendar).noon, sandbox: Sandbox())
             guard appearance != .light else { return cell.proof }
             let shown = try await proveAppearance(cell, appearance)
             return Proof(png: shown.png, fit: shown.fit, verdict: cell.proof.verdict ?? shown.verdict)
@@ -232,9 +232,11 @@ struct Cell: Sendable {
 /// redraws the same trees tinted (`empty`, the sparsest, where a blank or a backdrop shape shows most, and
 /// `full`, the busiest) and dark (`full`, where every color pair is in use). The first failing render's line
 /// is the verdict. When every render passes, coverage and the content check run on the whole matrix.
+/// Every proof renders at noon of `today`'s day (`Today.noon`), so the verdict never depends on the hour.
 func prove(
     _ spec: Spec, images: [Spec.AssetID: Data], today: Today, sandbox: Sandbox, stopAtFirstFailure: Bool
 ) async throws(EngineError) -> (renders: [ProofRender], verdict: String?) {
+    let today = today.noon
     var renders: [ProofRender] = []
     var cells: [Cell] = []
     var verdict: String?

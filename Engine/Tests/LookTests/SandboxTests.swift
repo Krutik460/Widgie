@@ -285,6 +285,24 @@ private func failureLine(_ source: String, budget: Sandbox.Budget = .widget) asy
         }
         #expect(results == Set((0..<8).map { #"{"n":\#($0),"s":199990000}"# }))
     }
+
+    @Test func reportsWhetherTheLookReadAWatchedKey() async throws {
+        let rows = #"{"data":{"last":{"minutesAgo":5,"title":"a"},"list":[{"minutesAgo":9}]},"now":"10:00"}"#
+        func reads(_ body: String) async throws -> Bool {
+            try await Sandbox().run(
+                "function render(ctx) { \(body) }", context: rows, watching: ["now", "minutesAgo"], budget: .widget
+            ).readWatched
+        }
+        #expect(try await reads("return { t: ctx.data.last.title };") == false)
+        #expect(try await reads("return { t: ctx.data.last.minutesAgo };"))
+        #expect(try await reads("return { t: ctx.data.list.map(r => r.minutesAgo) };"))
+        #expect(try await reads("return { t: ctx.now };"))
+        #expect(try await reads("return { t: JSON.stringify(ctx.data.last) };"), "a copy reads every key")
+        let assigned = try await Sandbox().run(
+            "function render(ctx) { ctx.now = 'x'; return { t: ctx.now }; }", context: rows, watching: ["now"],
+            budget: .widget)
+        #expect(assigned.tree == #"{"t":"x"}"#, "assignment still works")
+    }
 }
 
 /// Threads named like the sandbox's run thread that are alive in this process, or nil when the list is unreadable.

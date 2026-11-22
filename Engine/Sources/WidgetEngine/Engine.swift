@@ -63,11 +63,12 @@ public final class Engine: Sendable {
     /// there is none. Never throws: every failure becomes a fallback face and a log line.
     ///
     /// Runs `composeDrawing` at `date` and again at the next midnight, decoding each image once for all
-    /// entries, so day windows flip on time without spending refresh budget. When the look draws something
-    /// different 15 minutes later (it shows `now` or a row's `minutesAgo`), it also gets an entry every 15
-    /// minutes for two hours before midnight cuts them off, and the timeline reloads after those two hours.
-    /// `reloadAt` is the earliest of that reload, the midnight after the next one, and five minutes after
-    /// the next automation run, so a dropped push is caught by the timeline.
+    /// entries, so day windows flip on time without spending refresh budget. When the look reads the clock
+    /// (`ctx.now` or a row's `minutesAgo`), it is also drawn every 15 minutes for two hours, up to midnight,
+    /// keeping only the entries whose picture changed, and the timeline reloads after those two hours, so
+    /// "fed 11 h ago" turns into "Feed me!" within 15 minutes of the 12th hour. `reloadAt` is the earliest of
+    /// that reload, the midnight after the next one, and five minutes after the next automation run, so a
+    /// dropped push is caught by the timeline.
     public func faces(for widget: WidgetID?, family: Family, size: CGSize, from date: Date) async -> Faces {
         let today = Today(at: date, calendar: calendar)
         let store: RowStore
@@ -92,37 +93,39 @@ public final class Engine: Sendable {
         // WidgetKit gives the provider no display scale, so images decode for 3x, the densest iPhone screen.
         let images = AssetImages.stored(stored.spec, store: store)
         let midnight = Today(at: today.nextDayStart, calendar: calendar)
-        /// The face at `instant`, and the tree the look returned, or nil when it fell back.
-        func face(at instant: Date) async -> (face: Face, tree: String?) {
+        /// The face at `instant`, the tree the look returned, and whether it read the clock. The tree is nil
+        /// when the face fell back.
+        func face(at instant: Date) async -> (face: Face, tree: String?, readsClock: Bool) {
             let day = Today(at: instant, calendar: calendar)
             do throws(Diagnostic) {
                 let composition = try await composeDrawing(
                     spec: stored.spec, widget: stored.key, revision: stored.revision.hex, store: store, images: images,
                     family: family, size: size,
                     pixelScale: 3, today: day, sandbox: sandbox, budget: .widget)
-                return (Face(date: instant, content: .drawing(composition.drawing)), composition.tree)
+                return (
+                    Face(date: instant, content: .drawing(composition.drawing)), composition.tree,
+                    composition.readsClock
+                )
             } catch {
                 log.error(
                     "widget \(stored.key.raw, privacy: .public) fell back on \(day.day.iso, privacy: .public) \(day.time, privacy: .public): \(error.line, privacy: .private)"
                 )
-                return (Face(date: instant, content: .fallback(name: stored.spec.name, reason: error.line)), nil)
+                return (Face(date: instant, content: .fallback(name: stored.spec.name, reason: error.line)), nil, false)
             }
         }
         let first = await face(at: date)
         var entries = [first.face]
         var clockReload = Date.distantFuture
-        let step: TimeInterval = 15 * 60
-        if date.addingTimeInterval(step) < today.nextDayStart {
-            let next = await face(at: date.addingTimeInterval(step))
-            if next.tree != first.tree {
-                entries.append(next.face)
-                for index in 2...Self.clockSteps {
-                    let instant = date.addingTimeInterval(step * Double(index))
-                    guard instant < today.nextDayStart else { break }
-                    entries.append(await face(at: instant).face)
-                }
-                clockReload = date.addingTimeInterval(step * Double(Self.clockSteps))
+        if first.readsClock {
+            var shown = first.tree
+            for index in 1...Self.clockSteps {
+                let instant = date.addingTimeInterval(Self.clockStep * Double(index))
+                guard instant < today.nextDayStart else { break }
+                let next = await face(at: instant)
+                if next.tree == nil || next.tree != shown { entries.append(next.face) }
+                shown = next.tree
             }
+            clockReload = date.addingTimeInterval(Self.clockStep * Double(Self.clockSteps))
         }
         entries.append(await face(at: today.nextDayStart).face)
         let automation = stored.spec.automations.compactMap { $0.schedule.nextRun(after: date) }.min()
@@ -241,7 +244,8 @@ public final class Engine: Sendable {
     package let sandbox: Sandbox
     private let opened: Mutex<RowStore?>
 
-    /// Quarter-hour entries a clock-driven look gets after the current one: two hours.
+    /// A look that reads the clock is drawn again every `clockStep`, `clockSteps` times: two hours.
+    static let clockStep: TimeInterval = 15 * 60
     static let clockSteps = 8
 
     private static let scratchRoot = URL.temporaryDirectory.appending(path: "scratch-engines")

@@ -256,7 +256,7 @@ extension Spec.Query {
         if let author = condition["by"] {
             guard case .string(let raw) = author, let parsed = Spec.Author(rawValue: raw) else {
                 throw Diagnostic(
-                    "where \"by\" must be \"me\" (rows written on this phone) or \"others\" (rows written by anyone the widget is shared with), not \(author.described)"
+                    "where \"by\" must be \"me\" (the person's own rows) or \"others\" (rows written by anyone the widget is shared with), not \(author.described)"
                 )
             }
             by = parsed

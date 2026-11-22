@@ -27,7 +27,7 @@ A row is `{ id, day, daysAgo, at, minutesAgo, by, ...fields }`.
 - `id` is a string that a button passes back to say which row it is about.
 - `day` is the date the row belongs to, the day it was written or the day an `insertOn` button gave, and `daysAgo` is how many days before today that is.
 - `at` is the time the row was written, as `"09:41"` on a 24-hour clock in the phone's time zone. `minutesAgo` is the whole minutes from then to `ctx.now`. Use them for "fed 2 h ago" or "last at 9:41". The widget redraws every 15 minutes while its picture depends on them, so show minutes or hours, never seconds.
-- `by` says who wrote the row: `{ me, name }`. `me` is `true` for a row written on this phone. `name` is the writer's name, or `null` when no name is known, which is always so for a `me` row. A person can share any widget, so write "you" for `me` and the name, or "someone" when it is `null`, for everyone else.
+- `by` says who wrote the row: `{ me, name }`. `me` is `true` for the person's own rows, including rows an automation wrote for them. `name` is the writer's name, or `null` when no name is known. A person can share any widget, so write "you" for `me` and the name, or "someone" when it is `null`, for everyone else.
 
 Every field of the row's table is present. A bool field with no value is `false`, and any other field with no value is `null`.
 

@@ -220,6 +220,37 @@ import WidgetEngine
         #expect(faces.reloadAt == instant("2026-11-19T01:20:00Z"))
     }
 
+    /// The case a single 15-minute probe missed: "10 h ago" reads the same for two hours, then turns into
+    /// "Feed me!" at the 12th hour. Only the entry where the picture changes is kept.
+    @Test @MainActor func aThresholdHoursAwayStillGetsItsEntry() async throws {
+        let scratch = Scratch()
+        let id = try await scratch.build(try fixture("dogfed"))
+        let fed = instant("2026-11-18T08:00:00Z")
+        try scratch.engine.perform(try button("feed", on: await scratch.face(id, at: fed)).tap, at: fed)
+
+        let from = instant("2026-11-18T18:05:00Z")
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: from)
+        #expect(
+            faces.entries.map(\.date)
+                == ["18:05", "19:05", "20:05"].map { instant("2026-11-18T\($0):00Z") }
+                + [instant("2026-11-19T00:00:00Z")],
+            "10 h, 11 h, then Feed me!; the quarters in between draw the same and are dropped")
+        #expect(faces.reloadAt == instant("2026-11-18T20:05:00Z"))
+    }
+
+    /// Proofs render at noon of the day, so the hour a proof runs cannot change its renders or verdict.
+    @Test @MainActor func aProofGivesTheSameRendersAtAnyHour() async throws {
+        let source = try fixture("hearts")
+        let early = try await Engine.proofs(source, at: instant("2026-11-18T03:00:00Z"), calendar: utc)
+        let late = try await Engine.proofs(source, at: instant("2026-11-18T21:30:00Z"), calendar: utc)
+        #expect(early.verdict == nil && late.verdict == nil)
+        #expect(early.renders.count == late.renders.count)
+        for (a, b) in zip(early.renders, late.renders) {
+            let pictures = try [a, b].map { try Bitmap(png: $0.outcome.get().png) }
+            #expect(pictures[0].looksLike(pictures[1]), "\(a.state) \(a.family) \(a.appearance)")
+        }
+    }
+
     @Test @MainActor func aLookThatIgnoresTheClockGetsOnlyMidnight() async throws {
         let scratch = Scratch()
         let id = try await scratch.build(try fixture("habit"))
