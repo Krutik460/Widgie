@@ -141,40 +141,40 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 
 **Files.**
 
-- [ ] Edit `Engine/Reference/build-prompt.md` to add a refine section.
-- [ ] Edit `Engine/Evals/model.py` so `user_message` handles `current`.
-- [ ] Edit `Engine/Evals/cases.json` and `run.py` to add refine cases.
-- [ ] Edit `Engine/Sources/RenderTool/RenderTool.swift` to add a `refine` command.
-- [ ] Edit `Engine/Sources/Spec/Document.swift` so a replacement keeps every table of the old revision, and add a `SpecTests` case.
+- [x] Edit `Engine/Reference/build-prompt.md` to add a refine section. Done in `ba917d8`.
+- [x] Edit `Engine/Evals/model.py` so `user_message` handles `current`. Done in `2cef7ee`.
+- [x] Edit `Engine/Evals/cases.json` and `run.py` to add refine cases. Done in `bcdf28b`.
+- [x] Edit `Engine/Sources/RenderTool/RenderTool.swift` to add a `refine` command. Done in `6d7345e`.
+- [x] Edit `Engine/Sources/Spec/Document.swift` so a replacement keeps every table of the old revision, and add a `SpecTests` case. Done in `f8435de`. No existing test dropped a table, so none needed changing.
 
 **Build.**
 
-- [ ] The refine section tells the model three things. The message includes the current document. It must change only what the person asked for. It must keep every table name and cell kind, so stored data carries over. Add a mistake line, in the format the reference tests parse, for a refine that renames a table.
-- [ ] `checkCompatible(replacing:)` rejects a replacement that drops a table id the old revision declared, with a line such as `table "glasses" is gone; keep every table id so the stored rows carry over`. The rule reads only the two documents, so the scratch engine and the real store reach the same verdict. A table nothing reads is legal, so "remove the coffee count" still works by hiding it.
-- [ ] A refine message holds the person's words, then the current document in a `json` fence. A repair during a refine also carries `current`, so the model never loses the original.
-- [ ] `render-tool refine <old dir> <new dir> <out>` builds the old widget into a scratch engine, then builds the new one with `replacing:`. It prints `accepted` or the verdict line, so the compatibility check runs on the Mac exactly as it runs on the phone.
-- [ ] Add at least eight refine cases. Each has a `base` fixture and an instruction. Cover a color change ("make it blue"), a size change ("bigger number"), an added view ("add a weekly chart"), a removed element, a font change, a new image attached during the refine, an instruction that would need a data change ("track coffee instead of water", which must be refused or handled without breaking data), and a vague one ("make it nicer").
-- [ ] The contact sheet from `sheet.py` shows each refine as before and after, side by side.
+- [x] The refine section tells the model three things. The message includes the current document. It must change only what the person asked for. It must keep every table name and cell kind, so stored data carries over. Add a mistake line, in the format the reference tests parse, for a refine that renames a table. Done. It also says to hide data by changing the look and keeping the table, and to add a table for new data. The picture section keeps a refine's existing assets. The mistake is in `blocks.md`, marked with an HTML comment that the composed prompt strips.
+- [x] `checkCompatible(replacing:)` rejects a replacement that drops a table id the old revision declared, with a line such as `table "glasses" is gone; keep every table id so the stored rows carry over`. The rule reads only the two documents, so the scratch engine and the real store reach the same verdict. A table nothing reads is legal, so "remove the coffee count" still works by hiding it. Done with exactly that line. `aRefinementThatStopsShowingATableKeepsItsRows` proves a hidden table is accepted and its rows show again when a later refine reads it.
+- [x] A refine message holds the person's words, then the current document in a `json` fence. A repair during a refine also carries `current`, so the model never loses the original. Done. The words go under "The person's request:" and the document under "The current document:". A refine repair then adds the previous document, the line, and "Reply with the complete corrected document." Both are pinned as bytes in `Engine/Evals/testdata/refine.jsonl` and `refine-repair.jsonl`. The bridge's 400 for `current` is gone. Live on Sonnet through the bridge, a refine returned 200 in 9.4 s and `render-tool refine` printed `accepted`.
+- [x] `render-tool refine <old dir> <new dir> <out>` builds the old widget into a scratch engine, then builds the new one with `replacing:`. It prints `accepted` or the verdict line, so the compatibility check runs on the Mac exactly as it runs on the phone. Done. It also writes `<out>/current/`, the old widget as `Engine.source(of:)` returns it, and the proof PNGs and report. `run.py` refines each base to itself once, before any model call. That gives the before renders and the exact `current` the app would send: compact canonical bytes with `format` and the time zone filled in. `build` gained a `package` overload that takes the proof instant, so the verdict repeats at `--date`.
+- [x] Add at least eight refine cases. Each has a `base` fixture and an instruction. Cover a color change ("make it blue"), a size change ("bigger number"), an added view ("add a weekly chart"), a removed element, a font change, a new image attached during the refine, an instruction that would need a data change ("track coffee instead of water", which must be refused or handled without breaking data), and a vague one ("make it nicer"). Done with nine, which add "change my goal to 10 glasses". The bases are the four fixtures. The photo case attaches `R3-photo.jpg`.
+- [x] The contact sheet from `sheet.py` shows each refine as before and after, side by side. Done. A refine row shows the base, then each model, on the same sample when the result still has it. Checked in a headless Chromium screenshot of `p2-refine-1/index.html`.
 
 **You see.**
 
-- [ ] `run.py --group refine --models haiku,sonnet` writes a results file with refine cases and a contact sheet with before and after columns.
+- [x] `run.py --group refine --models haiku,sonnet` writes a results file with refine cases and a contact sheet with before and after columns. Done (`Engine/.artifacts/evals/p2-refine-1/results.json` and `index.html`).
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Add an `EngineTests` case where a `refine`-style build that renames a table is rejected with a one-line verdict, and one where a color-only change keeps rows. Run `Engine/scripts/check`.
-- [ ] Extend the reference tests so the new mistake line parses.
+- [x] Add an `EngineTests` case where a `refine`-style build that renames a table is rejected with a one-line verdict, and one where a color-only change keeps rows. Run `Engine/scripts/check`. Done in `BuildTests`, with a `RenderToolTests` case for refine mode. Without the rule, both rename tests fail. `scripts/check` passes.
+- [x] Extend the reference tests so the new mistake line parses. Done. 19 examples. The refine one fails the test when its line is changed.
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Run the refine group twice on both stand-ins. Pass when every case is accepted within three attempts on Sonnet. Record the Haiku numbers as the baseline for the weaker model.
-- [ ] Look at every before and after pair on the contact sheet. Pass when each pair changes what the instruction asked and nothing else that a person would notice. Write each miss into `tasks/todo.md` under phase 2.
-- [ ] Re-run the 19 create cases on Sonnet. Pass when first-try acceptance stays within the noise of phase-1d, which is five builds.
+- [x] Run the refine group twice on both stand-ins. Pass when every case is accepted within three attempts on Sonnet. Record the Haiku numbers as the baseline for the weaker model. Passed. Sonnet accepted 9 of 9 in both runs: `p2-refine-1` had 7 first try and 2 repaired once, and `p2-refine-2` had 8 and 1. The Haiku baseline is 9 of 9 in both, 8 first try and 1 repaired once each time. Every repair was a fit line after a font or chart change, plus one duplicate JSON key on Haiku.
+- [x] Look at every before and after pair on the contact sheet. Pass when each pair changes what the instruction asked and nothing else that a person would notice. Write each miss into `tasks/todo.md` under phase 2. Done for all 36 pairs. Blue, remove, photo, goal, and nicer are clean on both models in both runs. Bigger is clean apart from one Sonnet run. Chart and font change what was asked, but each also shrinks text or drops a row. Coffee keeps the data but reuses the water table. Five misses are written down.
+- [x] Re-run the 19 create cases on Sonnet. Pass when first-try acceptance stays within the noise of phase-1d, which is five builds. Passed. Run `p2-create` accepted 16 first try and 3 repaired once, with none failed, against 18 and 1 in `phase-1d`.
 
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Median seconds and input tokens per refine build against a create build.
-- [ ] Rule. Report both. A refine sends the current document, so expect a few thousand more input tokens. A median above 60 s on Sonnet is a finding to raise with the user, not to hide.
+- [x] Metric. Median seconds and input tokens per refine build against a create build. Done. On Sonnet, a refine build's median is 13.0 s and 13.6 s across the two runs, with 22,369 and 22,329 input tokens per call. A create build's median is 44.8 s, with 20,753 input tokens per call (`p2-create`). On Haiku, a refine build's median is 11.5 s and 11.9 s, with 22,346 input tokens. A refine sends about 1,600 more input tokens. It finishes about three times faster because it writes about 2,000 output tokens per call against about 4,800 for a create, and call time follows output length.
+- [x] Rule. Report both. A refine sends the current document, so expect a few thousand more input tokens. A median above 60 s on Sonnet is a finding to raise with the user, not to hide. Passed, far under 60 s. Every Sonnet call also lists `claude-haiku-5-5`. A replayed call showed that this is a side call inside Claude Code, 2,729 tokens in and 14 out, and Sonnet wrote all of the reply. The numbers above are Sonnet's.
 
 **Review gate.** The user reviews the before and after contact sheet before P5 starts. The refine quality the person will see is decided here.
 
