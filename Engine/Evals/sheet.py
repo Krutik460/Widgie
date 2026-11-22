@@ -3,9 +3,9 @@
 sample and of the full state in both sizes, the build's status, and every verdict line. A refine row puts the
 base widget before the models' results, showing the same sample where the result still has it, and each accepted
 refine says which tables and fields it added and whether that meets the case, as `results.json` records it. Each
-row shows the request and picture its builds were made from, from the case's `case.json`, even when `cases.json`
-has changed since. Cases the run never started are left out. Paths are relative, so the folder can be moved or
-zipped whole.
+row comes from a case's `case.json` and shows the request and picture its builds were made from, so a case
+that `cases.json` has changed or dropped since still shows as the run made it; `cases.json` only orders the rows.
+Cases the run never started are left out. Paths are relative, so the folder can be moved or zipped whole.
 
     sheet.py <run dir>
 """
@@ -74,6 +74,9 @@ def write(run_dir: Path) -> Path:
     models = sorted({model for _, model in builds} | {p.parent.name for p in run_dir.glob("*/*/1")})
     results = run_dir / "results.json"
     table_checks = json.loads(results.read_text()).get("table_checks", {}) if results.exists() else {}
+    recorded = {path.parent.name: json.loads(path.read_text()) for path in run_dir.glob("*/case.json")}
+    rank = {case["id"]: index for index, case in enumerate(config["cases"])}
+    groups = config["groups"] + sorted({r["group"] for r in recorded.values()} - set(config["groups"]))
     page = [
         "<!doctype html>",
         '<html lang="en"><head><meta charset="utf-8">',
@@ -83,22 +86,23 @@ def write(run_dir: Path) -> Path:
         f"<h1>Widget evals, run {html.escape(run_dir.name)}</h1>",
         f'<p class="meta">{len(builds)} builds finished. Each build sends the request to the model, proves the '
         "reply with the engine, and sends the verdict line back at most twice.</p>",
-        summary_table(config, builds, models),
+        summary_table(groups, builds, models),
         table_check_summary(table_checks),
     ]
-    for group in config["groups"]:
-        started = [c for c in config["cases"] if c["group"] == group and (run_dir / c["id"] / "case.json").exists()]
+    for group in groups:
+        started = sorted((case_id for case_id, case in recorded.items() if case["group"] == group),
+                         key=lambda case_id: (rank.get(case_id, len(rank)), case_id))
         if started:
             page.append(f"<h2>{html.escape(group)}</h2>")
-        for case in started:
-            recorded = json.loads((run_dir / case["id"] / "case.json").read_text())
-            cells = [case_cell(case["id"], recorded)]
+        for case_id in started:
+            case = recorded[case_id]
+            cells = [case_cell(case_id, case)]
             prefer = None
-            if recorded["base"]:
-                before, prefer = before_cell(recorded, run_dir / case["id"] / "before" / "report.json", run_dir)
+            if case["base"]:
+                before, prefer = before_cell(case, run_dir / case_id / "before" / "report.json", run_dir)
                 cells.append(before)
-            cells += [build_cell(builds.get((case["id"], model)), model, run_dir, prefer,
-                                 table_checks.get(model, {}).get("cases", {}).get(case["id"]), case)
+            cells += [build_cell(builds.get((case_id, model)), model, run_dir, prefer,
+                                 table_checks.get(model, {}).get("cases", {}).get(case_id), case)
                       for model in models]
             columns = f"minmax(180px, 260px) repeat({max(len(cells) - 1, 1)}, minmax(0, 1fr))"
             page.append(f'<div class="row" style="grid-template-columns: {columns}">{"".join(cells)}</div>')
@@ -108,10 +112,10 @@ def write(run_dir: Path) -> Path:
     return out
 
 
-def summary_table(config: dict, builds: dict, models: list[str]) -> str:
+def summary_table(groups: list[str], builds: dict, models: list[str]) -> str:
     head = "".join(f"<th>{html.escape(m)}: {s}</th>" for m in models for s in STATUSES)
     rows = []
-    present = [g for g in config["groups"] if any(b["group"] == g for b in builds.values())]
+    present = [g for g in groups if any(b["group"] == g for b in builds.values())]
     for group in present + ["all"]:
         cells = []
         for model in models:
@@ -134,8 +138,8 @@ def tables_line(tables: dict, case: dict) -> str:
     """What a refine added, what the case wanted, and the problems that keep it from that."""
     added = ", ".join(tables["added"]) or "none"
     fields = "".join(f'; fields added to {t}: {", ".join(f)}' for t, f in tables["fields_added"].items())
-    wanted = "expects a new table" if case.get("expect_new_table") else "expects no new table"
-    if case.get("replaces"):
+    wanted = "expects a new table" if case["expect_new_table"] else "expects no new table"
+    if case["replaces"]:
         wanted += f' instead of {case["replaces"]}'
     verdict = f'fail, {"; ".join(tables["problems"])}' if tables["problems"] else "pass"
     return (f'<div class="tables {"fail" if tables["problems"] else "pass"}">'
