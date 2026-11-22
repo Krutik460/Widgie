@@ -15,7 +15,7 @@ struct FormSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: FormDraft
-    @State private var invalid: Set<String> = []
+    @State private var invalid: [String: FormDraft.Problem] = [:]
 
     init(form: InputForm, submit: @escaping ([String: InputValue]) -> Void) {
         self.form = form
@@ -28,15 +28,13 @@ struct FormSheet: View {
             Form {
                 ForEach(form.fields) { field in
                     switch field.kind {
-                    case .text:
-                        TextField(field.label, text: binding(field.id, in: $draft.text, default: ""))
-                    case .number:
+                    case .text, .number:
                         VStack(alignment: .leading, spacing: 4) {
                             TextField(field.label, text: binding(field.id, in: $draft.text, default: ""))
-                                .keyboardType(.decimalPad)
-                                .onChange(of: draft.text[field.id]) { invalid.remove(field.id) }
-                            if invalid.contains(field.id) {
-                                Text("Enter a number, like \(draft.format.text(12.5))")
+                                .keyboardType(field.kind == .number ? .decimalPad : .default)
+                                .onChange(of: draft.text[field.id]) { invalid[field.id] = nil }
+                            if let problem = invalid[field.id] {
+                                Text(hint(problem))
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                             }
@@ -63,11 +61,18 @@ struct FormSheet: View {
         }
     }
 
-    /// A number field whose text is not a number keeps the form open and says so.
+    /// A field that cannot be sent as it stands keeps the form open and says why.
     private func save() {
         let submission = draft.submission()
         invalid = submission.invalid
         if invalid.isEmpty { submit(submission.input) }
+    }
+
+    private func hint(_ problem: FormDraft.Problem) -> String {
+        switch problem {
+        case .empty: "Can't be empty"
+        case .notANumber: "Enter a number, like \(draft.format.text(12.5))"
+        }
     }
 
     private func binding<Value>(_ id: String, in values: Binding<[String: Value]>, default empty: Value)
@@ -82,7 +87,14 @@ struct FormSheet: View {
 /// for, and an empty text or number field stays absent. An edit form sends only the fields the person
 /// changed, so an untouched field never undoes a newer write made elsewhere while the form was open, and a
 /// stored number, which the text shows rounded to 15 significant digits, is never rewritten by reading it back.
+/// Emptying a stored text or number holds Save back, because an input value cannot clear a cell.
 struct FormDraft {
+    /// Why a field holds Save back.
+    enum Problem: Equatable {
+        case empty
+        case notANumber
+    }
+
     let fields: [InputField]
     let format: FormFormat
     var text: [String: String] = [:]
@@ -109,17 +121,17 @@ struct FormDraft {
         if edits { opened = Dictionary(uniqueKeysWithValues: fields.map { ($0.id, reading(of: $0)) }) }
     }
 
-    /// The input to submit, and the number fields whose text is not a number, which hold the submit back.
-    func submission() -> (input: [String: InputValue], invalid: Set<String>) {
+    /// The input to submit, and the fields that hold it back.
+    func submission() -> (input: [String: InputValue], invalid: [String: Problem]) {
         var input: [String: InputValue] = [:]
-        var invalid: Set<String> = []
+        var invalid: [String: Problem] = [:]
         for field in fields {
             let reading = reading(of: field)
             if let opened, opened[field.id] == reading { continue }
             switch reading {
             case .value(let value): input[field.id] = value
-            case .unreadable: invalid.insert(field.id)
-            case .empty: break
+            case .problem(let problem): invalid[field.id] = problem
+            case .empty: if opened != nil { invalid[field.id] = .empty }
             }
         }
         return (input, invalid)
@@ -128,7 +140,7 @@ struct FormDraft {
     private enum Reading: Equatable {
         case value(InputValue)
         case empty
-        case unreadable
+        case problem(Problem)
     }
 
     private func reading(of field: InputField) -> Reading {
@@ -138,7 +150,7 @@ struct FormDraft {
             return .value(.text(value))
         case .number:
             guard let value = text[field.id], !value.trimmingCharacters(in: .whitespaces).isEmpty else { return .empty }
-            return format.number(value).map { .value(.number($0)) } ?? .unreadable
+            return format.number(value).map { .value(.number($0)) } ?? .problem(.notANumber)
         case .toggle:
             return toggles[field.id].map { .value(.toggle($0)) } ?? .empty
         case .date:

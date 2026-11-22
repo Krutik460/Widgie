@@ -79,4 +79,22 @@ import WidgetEngine
         draft.dates["due"] = try #require(paris.date(from: DateComponents(year: 2026, month: 11, day: 24, hour: 15)))
         #expect(draft.submission().input == ["done": .toggle(true), "due": .date(year: 2026, month: 11, day: 24)])
     }
+
+    @Test func emptyingAStoredTextOrNumberHoldsSaveBack() {
+        var draft = FormDraft(
+            fields: [
+                InputField(id: "title", label: "Title", kind: .text, value: .text("Oat milk")),
+                InputField(id: "amount", label: "Amount", kind: .number, value: .number(2.5)),
+                InputField(id: "note", label: "Note", kind: .text, value: nil),
+            ], edits: true, format: french)
+        draft.text["title"] = ""
+        draft.text["amount"] = " "
+        draft.text["note"] = ""
+        #expect(draft.submission().invalid == ["title": .empty, "amount": .empty])
+
+        draft.text["title"] = "Bread"
+        draft.text["amount"] = "3"
+        #expect(draft.submission().invalid.isEmpty)
+        #expect(draft.submission().input == ["title": .text("Bread"), "amount": .number(3)])
+    }
 }
