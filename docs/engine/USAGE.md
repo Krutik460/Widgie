@@ -191,7 +191,7 @@ A refinement is checked against the head of the widget it replaces twice: before
 
 `load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows.
 
-To undo a refinement the person cancelled, take a checkpoint before the build and restore it after. The checkpoint records the draft's head and the dataset each table reads. The rows those datasets hold, taps included, stay in place when a later `load` moves the tables on, so `restore` brings back exactly what was on show, in one transaction. Both calls throw on any engine but a scratch one.
+To undo a refinement the person cancelled, take a checkpoint before the build and restore it after. The checkpoint records the draft's head and the dataset each table reads. The rows those datasets hold, taps included, stay in place when a later `load` moves the tables on, so `restore` brings back exactly what was on show, in one transaction. A table the checkpoint did not have loses its dataset, so a later refinement may add it again with other field kinds. Both calls throw on any engine but a scratch one.
 
 ```swift
 let checkpoint = try scratch.checkpoint(of: draft)
