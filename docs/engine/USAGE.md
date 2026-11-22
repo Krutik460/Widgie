@@ -6,7 +6,7 @@ One object, `Engine`, does everything. What a caller can do with it depends on w
 
 | Import | Adds to `Engine` | Who imports it |
 |---|---|---|
-| `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, plus `FaceView` and `FaceHost` | app, widget extension (through `WidgetHosting`) |
+| `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, plus `FaceView`, `FaceHost`, and `Face.traits` | app, widget extension (through `WidgetHosting`) |
 | `WidgetBuilder` | `build(_:replacing:)`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)` | app, render tool |
 | `WidgetHosting` | `Hosting.engine`, `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
 
