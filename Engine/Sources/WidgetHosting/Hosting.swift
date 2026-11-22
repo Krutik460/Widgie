@@ -103,7 +103,13 @@ public struct WidgetChoice: AppEntity {
     public static let defaultQuery = WidgetChoiceQuery()
     public let id: WidgetID
     public let name: String
-    public var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "\(name)") }
+    public let createdAt: Date
+    /// The creation time tells apart widgets that share a name, such as three made from "water tracker".
+    public var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(
+            title: "\(name)",
+            subtitle: "Made \(createdAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))")
+    }
 }
 
 public struct WidgetChoiceQuery: EntityQuery {
@@ -125,7 +131,7 @@ public struct WidgetChoiceQuery: EntityQuery {
 
 extension WidgetChoice {
     init(_ summary: WidgetSummary) {
-        self.init(id: summary.id, name: summary.name)
+        self.init(id: summary.id, name: summary.name, createdAt: summary.createdAt)
     }
 }
 
