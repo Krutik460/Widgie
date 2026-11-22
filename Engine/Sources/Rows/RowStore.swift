@@ -514,8 +514,8 @@ package final class RowStore: Sendable {
     /// - `held`: stamped more than `clockSkew` after `now`. Neither merged nor clamped (clamping would make
     ///   replicas disagree), and the local clock does not advance past them. The sync layer offers them again
     ///   later.
-    /// - `refused`: a text cell longer than a stored text may be, so a peer or an automation cannot pass the
-    ///   limits a tap obeys. Dropped for good.
+    /// - `refused`: a text cell longer than a stored text may be, or a number that is not finite, so a peer or
+    ///   an automation cannot pass the limits a tap obeys. Dropped for good.
     @discardableResult
     package func receive(_ batch: [Stamped], now: Date) throws(StoreError) -> Received {
         let horizon = milliseconds(now.addingTimeInterval(Self.clockSkew))

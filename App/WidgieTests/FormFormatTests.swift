@@ -15,6 +15,7 @@ import WidgetEngine
     }
 
     @Test func textThatIsNotWhollyANumberInTheLocaleIsRefused() {
+        #expect(FormFormat(locale: Locale(identifier: "en_US")).number("-∞") == nil)
         #expect(french.number("12.5") == nil)
         #expect(french.number("12abc") == nil)
         #expect(french.number("douze") == nil)
@@ -71,6 +72,7 @@ import WidgetEngine
                 InputField(id: "done", label: "Done", kind: .toggle, value: .toggle(false)),
                 InputField(id: "due", label: "Due", kind: .date, value: .date(year: 2026, month: 11, day: 20)),
                 InputField(id: "seen", label: "Seen", kind: .toggle, value: nil),
+                InputField(id: "start", label: "Start", kind: .date, value: nil),
             ], edits: true, format: french)
         #expect(draft.submission().input.isEmpty)
         #expect(draft.submission().invalid.isEmpty)
@@ -78,6 +80,10 @@ import WidgetEngine
         draft.toggles["done"] = true
         draft.dates["due"] = try #require(paris.date(from: DateComponents(year: 2026, month: 11, day: 24, hour: 15)))
         #expect(draft.submission().input == ["done": .toggle(true), "due": .date(year: 2026, month: 11, day: 24)])
+
+        let today = Date.now
+        draft.dates["start"] = today
+        #expect(draft.submission().input["start"] == french.day(of: today))
     }
 
     @Test func emptyingAStoredTextOrNumberHoldsSaveBack() {

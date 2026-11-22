@@ -116,7 +116,9 @@ struct FormDraft {
             case (_, .date(let year, let month, let day)?):
                 dates[field.id] = format.date(year: year, month: month, day: day) ?? now
             case (.toggle, nil): toggles[field.id] = false
-            case (.date, nil): dates[field.id] = now
+            // An edit form leaves a date the row lacks unset until the person picks one, so editing another
+            // field never fills it with today.
+            case (.date, nil): if !edits { dates[field.id] = now }
             case (.text, nil), (.number, nil): break
             }
         }
@@ -171,7 +173,10 @@ struct FormFormat {
     func text(_ number: Double) -> String { numbers.string(from: number as NSNumber) ?? "" }
 
     /// Nil unless the whole text, spaces aside, is a number in the locale.
-    func number(_ text: String) -> Double? { numbers.number(from: text)?.doubleValue }
+    func number(_ text: String) -> Double? {
+        guard let value = numbers.number(from: text)?.doubleValue, value.isFinite else { return nil }
+        return value
+    }
 
     func date(year: Int, month: Int, day: Int) -> Date? {
         days.date(from: DateComponents(year: year, month: month, day: day))
