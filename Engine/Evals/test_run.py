@@ -253,6 +253,23 @@ class ResumeTests(unittest.TestCase):
         snapshot = case_dir / json.loads((case_dir / "case.json").read_text())["image"]
         self.assertEqual(snapshot.read_bytes(), case.image.read_bytes())
 
+    def test_a_missing_snapshot_whose_copy_is_cut_short_is_copied_whole_on_resume(self):
+        case = Case("couple", "basic", "a countdown", EVALS / "images" / "R4-couple.jpg", None)
+        self.build(case)
+        case_dir = self.run_dir / "couple"
+        snapshot = case_dir / json.loads((case_dir / "case.json").read_text())["image"]
+        snapshot.unlink()
+
+        def cut_short(source, destination):
+            Path(destination).write_bytes(Path(source).read_bytes()[:100])
+            raise OSError("disk full")
+
+        with mock.patch("run.shutil.copyfile", side_effect=cut_short), self.assertRaises(OSError):
+            self.build(case)
+        self.build(case)
+        self.assertEqual(self.call.call_count, 1)
+        self.assertEqual(snapshot.read_bytes(), case.image.read_bytes())
+
     def test_a_changed_proof_date_proves_the_base_and_builds_again(self):
         case = Case("refine-water", "refine", "make it blue", None, FIXTURES / "water")
         self.build(case)
