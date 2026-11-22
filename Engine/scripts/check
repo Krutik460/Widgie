@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Formatting, the release build, the tests, and the module rules of docs/engine/MODULES.md.
+# Formatting, the release build, the tests, the eval harness tests, and the module rules of docs/engine/MODULES.md.
 # Exits non-zero at the first failing step.
 set -euo pipefail
 
@@ -20,6 +20,9 @@ swift build -c release
 
 step "tests"
 swift test
+
+step "eval harness tests"
+python3 -I -m unittest discover -s Evals -p 'test_*.py'
 
 step "module rules from docs/engine/MODULES.md"
 table="$(awk '/^## / { inside = ($0 == "## Targets") } inside && /^\| `[A-Za-z]+` \|/' "$modules")"
