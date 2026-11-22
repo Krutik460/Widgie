@@ -67,14 +67,15 @@ ol.verdicts li { margin-top: 4px; overflow-wrap: anywhere; }
 
 def write(run_dir: Path) -> Path:
     config = json.loads((EVALS / "cases.json").read_text())
+    recorded = {path.parent.name: json.loads(path.read_text()) for path in run_dir.glob("*/case.json")}
     builds = {}
     for path in run_dir.glob("*/*/build.json"):
         build = json.loads(path.read_text())
-        builds[(build["case"], build["model"])] = build
+        if build["case"] in recorded:
+            builds[(build["case"], build["model"])] = build
     models = sorted({model for _, model in builds} | {p.parent.name for p in run_dir.glob("*/*/1")})
     results = run_dir / "results.json"
     table_checks = json.loads(results.read_text()).get("table_checks", {}) if results.exists() else {}
-    recorded = {path.parent.name: json.loads(path.read_text()) for path in run_dir.glob("*/case.json")}
     rank = {case["id"]: index for index, case in enumerate(config["cases"])}
     groups = config["groups"] + sorted({r["group"] for r in recorded.values()} - set(config["groups"]))
     page = [
@@ -86,7 +87,7 @@ def write(run_dir: Path) -> Path:
         f"<h1>Widget evals, run {html.escape(run_dir.name)}</h1>",
         f'<p class="meta">{len(builds)} builds finished. Each build sends the request to the model, proves the '
         "reply with the engine, and sends the verdict line back at most twice.</p>",
-        summary_table(groups, builds, models),
+        summary_table(groups, builds, models, recorded),
         table_check_summary(table_checks),
     ]
     for group in groups:
@@ -112,15 +113,16 @@ def write(run_dir: Path) -> Path:
     return out
 
 
-def summary_table(groups: list[str], builds: dict, models: list[str]) -> str:
+def summary_table(groups: list[str], builds: dict, models: list[str], recorded: dict) -> str:
+    """Counts each build under the group its case records, the same group that places the case's row."""
     head = "".join(f"<th>{html.escape(m)}: {s}</th>" for m in models for s in STATUSES)
     rows = []
-    present = [g for g in groups if any(b["group"] == g for b in builds.values())]
+    present = [g for g in groups if any(recorded[case_id]["group"] == g for case_id, _ in builds)]
     for group in present + ["all"]:
         cells = []
         for model in models:
-            counts = Counter(b["status"] for (_, m), b in builds.items()
-                             if m == model and (group == "all" or b["group"] == group))
+            counts = Counter(b["status"] for (case_id, m), b in builds.items()
+                             if m == model and group in ("all", recorded[case_id]["group"]))
             cells += [f"<td>{counts[s]}</td>" for s in STATUSES]
         rows.append(f"<tr><td>{html.escape(group)}</td>{''.join(cells)}</tr>")
     return f'<table class="summary"><thead><tr><th>group</th>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
