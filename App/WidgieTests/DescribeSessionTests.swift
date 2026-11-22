@@ -127,8 +127,8 @@ import WidgetEngine
         #expect(try shared.engine.widgets().map(\.id) == [id])
     }
 
-    @Test func aSaveRefusedWhileSuspendedSavesWhenTheAppCameBackBeforeTheRefusalWasSeen() async throws {
-        let gate = SuspendingGate(comesBack: .beforeTheRefusalIsSeen)
+    @Test func aSaveRefusedWhileSuspendedSavesOnTheRetryWhenTheAppIsAlreadyBack() async throws {
+        let gate = SuspendingGate(comesBack: .asTheRetryStarts)
         defer { Engine.resume() }
         let session = try await draftedSession(gate: gate)
         session.save()
@@ -173,11 +173,11 @@ import WidgetEngine
 
 /// Stands in for `SharedWrites.open`. The first call lets the save through and then the app goes to the
 /// background, so the shared store refuses the write as suspended. The app comes back either when the test
-/// releases the second call, or as the second call starts, before the session could see it was away.
+/// releases the second call, or as the second call starts, so the retry never waits.
 @MainActor private final class SuspendingGate {
     enum ComesBack {
         case whenReleased
-        case beforeTheRefusalIsSeen
+        case asTheRetryStarts
     }
 
     let comesBack: ComesBack
