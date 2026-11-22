@@ -137,13 +137,23 @@ import WidgetEngine
 
     @Test func aCancelDuringTheModelCallSavesNothing() async throws {
         let scratch = Scratch()
-        let model = StalledModel(answer: fenced(good))
+        let model = StalledModel(then: .success(fenced(good)))
         let task = Task { try await scratch.engine.build("a tap counter", model: model) }
         await model.started()
         task.cancel()
         await #expect(throws: CancellationError.self) { try await task.value }
         #expect(try scratch.engine.widgets().isEmpty)
         #expect(scratch.commits == 0)
+    }
+
+    @Test func aModelErrorThrownAfterCancellationComesOutAsCancellationError() async throws {
+        let scratch = Scratch()
+        let model = StalledModel(then: .failure(URLError(.cancelled)))
+        let task = Task { try await scratch.engine.build("a tap counter", model: model) }
+        await model.started()
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(try scratch.engine.widgets().isEmpty)
     }
 
     @Test func aTransportErrorIsThrownAndDoesNotUseAnAttempt() async throws {
@@ -238,12 +248,13 @@ private final class ScriptedModel: WidgetModel {
 
 private struct ServiceDown: Error {}
 
-/// Ignores cancellation: it waits for its task to be cancelled, then answers with a good document anyway.
+/// Waits for its task to be cancelled, then answers anyway: with a reply, as a model that ignores cancellation
+/// does, or with an error, as a cancelled URLSession throws `URLError(.cancelled)`.
 private final class StalledModel: WidgetModel {
-    let answer: String
+    let answer: Result<String, URLError>
     private let calls = AsyncStream.makeStream(of: Void.self)
 
-    init(answer: String) { self.answer = answer }
+    init(then answer: Result<String, URLError>) { self.answer = answer }
 
     func started() async {
         for await _ in calls.stream { return }
@@ -252,7 +263,7 @@ private final class StalledModel: WidgetModel {
     func reply(to request: ModelRequest) async throws -> String {
         calls.continuation.yield()
         try? await Task.sleep(for: .seconds(60))
-        return answer
+        return try answer.get()
     }
 }
 
