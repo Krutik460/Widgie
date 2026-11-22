@@ -81,7 +81,8 @@ def user_message(request: dict) -> list[dict]:
 def call(model: str, prompt: str, content: list[dict], *, tries: int, timeout: float, workdir: str) -> dict:
     """One near-raw model call through Claude Code: our system prompt, no tools, no project context.
 
-    A transport failure is tried again until `tries` run out. Only the call that answered is timed.
+    A transport failure is tried again until `tries` run out. Only the call that answered is timed. A `claude` that
+    cannot be started fails at once.
     """
     command = [
         "claude", "-p", "--model", model, "--safe-mode", "--system-prompt", prompt,
@@ -99,6 +100,8 @@ def call(model: str, prompt: str, content: list[dict], *, tries: int, timeout: f
         except subprocess.TimeoutExpired:
             failure = f"timed out after {timeout:g} s"
             continue
+        except OSError as error:
+            raise ModelError(f"could not start claude: {error}") from error
         seconds = time.monotonic() - started
         result = None
         for line in proc.stdout.splitlines():
@@ -106,7 +109,7 @@ def call(model: str, prompt: str, content: list[dict], *, tries: int, timeout: f
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if event.get("type") == "result":
+            if isinstance(event, dict) and event.get("type") == "result":
                 result = event
         if result and not result.get("is_error") and isinstance(result.get("result"), str) and result["result"].strip():
             usage = result.get("usage") or {}

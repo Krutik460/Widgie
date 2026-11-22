@@ -1,5 +1,6 @@
 import http.client
 import json
+import tempfile
 import threading
 import unittest
 from http.server import ThreadingHTTPServer
@@ -47,6 +48,12 @@ class BridgeTests(unittest.TestCase):
     def test_a_failed_model_call_is_a_502_with_one_line(self):
         with mock.patch("bridge.call", side_effect=ModelError("sonnet gave no answer\nin 1 try")):
             self.assertEqual(self.post({"words": "a"}), (502, {"error": "sonnet gave no answer in 1 try"}))
+
+    def test_a_missing_claude_is_a_502_with_one_line(self):
+        with tempfile.TemporaryDirectory() as empty, mock.patch.dict("os.environ", {"PATH": empty}):
+            status, body = self.post({"words": "a"})
+        self.assertEqual(status, 502)
+        self.assertRegex(body["error"], r"^could not start claude: [^\n]+$")
 
     def test_only_local_json_requests_reach_the_model(self):
         cases = [
