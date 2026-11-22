@@ -42,9 +42,8 @@ struct TryItScreen: View {
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     bottom(margin: margin)
                 }
-                .onChange(of: session.turns.count) {
-                    scroller.scrollTo("end", anchor: .bottom)
-                }
+                // Building replaces this screen, so it comes back fresh after each turn: show the newest turn.
+                .onAppear { scroller.scrollTo("end", anchor: .bottom) }
             }
         }
         .onChange(of: item) { _, item in
@@ -228,6 +227,7 @@ struct TryItScreen: View {
                         .font(.body.weight(.bold))
                         .focused($typing)
                         .submitLabel(.send)
+                        .accessibilityLabel("Change something")
                         .padding(.horizontal, 14)
                         .padding(.vertical, 12)
                         .frame(minHeight: 48)

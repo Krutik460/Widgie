@@ -11,56 +11,58 @@ struct SavedScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Rays().frame(width: 900, height: 900).offset(y: -170)
-                .allowsHitTesting(false)
-            Confetti(burst: arrived || reduceMotion).allowsHitTesting(false)
-            VStack(spacing: 0) {
-                StepBar(step: .done)
-                    .padding(.horizontal, 18)
-                    .padding(.top, 2)
-                    .padding(.bottom, 8)
-                ScrollView {
-                    VStack(spacing: 0) {
-                        Mascot(mood: .cheering, size: 132)
-                            .scaleEffect(arrived || reduceMotion ? 1 : 0.4)
-                        Text(session.editing == nil ? "Widget saved!" : "Changes saved!")
-                            .font(.largeTitle.weight(.black))
-                            .shadow(color: .black.opacity(0.12), radius: 0, y: 3)
-                            .padding(.top, 4)
-                        Text(session.editing == nil ? "It's in your library now." : "Your home screen has it already.")
-                            .font(.body.weight(.bold))
-                            .opacity(0.9)
-                            .padding(.top, 2)
-                        if let face = session.preview.faces[.medium] {
-                            FaceView(face, host: .app(tap: { _ in }, form: { _ in }))
-                                .allowsHitTesting(false)
-                                .frame(
-                                    width: Family.medium.standardSize.width, height: Family.medium.standardSize.height
-                                )
-                                .shadow(color: .black.opacity(0.18), radius: 0, y: 7)
-                                .padding(.top, 22)
-                                .offset(y: arrived || reduceMotion ? 0 : 60)
-                                .opacity(arrived || reduceMotion ? 1 : 0)
-                        }
-                        if session.editing == nil {
-                            HowTo().padding(.top, 26)
-                        }
+        VStack(spacing: 0) {
+            StepBar(step: .done)
+                .padding(.horizontal, 18)
+                .padding(.top, 2)
+                .padding(.bottom, 8)
+            ScrollView {
+                VStack(spacing: 0) {
+                    Mascot(mood: .cheering, size: 132)
+                        .scaleEffect(arrived || reduceMotion ? 1 : 0.4)
+                    Text(session.editing == nil ? "Widget saved!" : "Changes saved!")
+                        .font(.largeTitle.weight(.black))
+                        .shadow(color: .black.opacity(0.12), radius: 0, y: 3)
+                        .padding(.top, 4)
+                    Text(session.editing == nil ? "It's in your library now." : "Your home screen has it already.")
+                        .font(.body.weight(.bold))
+                        .opacity(0.9)
+                        .padding(.top, 2)
+                    if let face = session.preview.faces[.medium] {
+                        FaceView(face, host: .app(tap: { _ in }, form: { _ in }))
+                            .allowsHitTesting(false)
+                            .frame(
+                                width: Family.medium.standardSize.width, height: Family.medium.standardSize.height
+                            )
+                            .shadow(color: .black.opacity(0.18), radius: 0, y: 7)
+                            .padding(.top, 22)
+                            .offset(y: arrived || reduceMotion ? 0 : 60)
+                            .opacity(arrived || reduceMotion ? 1 : 0)
                     }
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 22)
-                    .padding(.bottom, 12)
+                    if session.editing == nil {
+                        HowTo().padding(.top, 26)
+                    }
                 }
-                .scrollBounceBehavior(.basedOnSize)
-                Button("Continue", action: done)
-                    .buttonStyle(
-                        ChunkyButtonStyle(
-                            chunk: Chunk(
-                                face: .white, lip: Color(rgb: 0x0A6FA8).opacity(0.55), text: Color(rgb: 0x0A7FC2)))
-                    )
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 8)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 22)
+                .padding(.bottom, 12)
             }
+            .scrollBounceBehavior(.basedOnSize)
+            Button("Continue", action: done)
+                .buttonStyle(
+                    ChunkyButtonStyle(
+                        chunk: Chunk(
+                            face: .white, lip: Color(rgb: 0x0A6FA8).opacity(0.55), text: Color(rgb: 0x0A7FC2)))
+                )
+                .padding(.horizontal, 18)
+                .padding(.bottom, 8)
+        }
+        .background {
+            ZStack {
+                Rays().frame(width: 900, height: 900).offset(y: -170)
+                Confetti(burst: arrived || reduceMotion)
+            }
+            .allowsHitTesting(false)
         }
         .foregroundStyle(.white)
         .onAppear {
