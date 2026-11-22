@@ -217,60 +217,47 @@ def tree_digest(root: Path) -> str:
     return digest("".join(f"{p.relative_to(root)}\0{digest(p.read_bytes())}\n" for p in files).encode())
 
 
-def remove_builds(case_dir: Path) -> None:
-    """Everything in the case folder but `before/`, its record `case.json` included."""
-    case_dir.mkdir(parents=True, exist_ok=True)
-    for child in case_dir.iterdir():
-        if child.is_dir() and child.name != "before":
-            shutil.rmtree(child)
-        elif child.is_file():
-            child.unlink()
-
-
-def prepare_before(run: Run, case: Case) -> None:
-    """Proves the base again when its inputs changed. The builds made from the old base go first, so a crash
-    never leaves one beside the new renders."""
-    directory = before_dir(run, case)
-    inputs = {"base": tree_digest(case.base), "render_tool": run.render_tool, "proof_date": PROOF_DATE}
-    record_path = directory / "inputs.json"
-    if record_path.exists() and read_json(record_path) == inputs:
-        return
-    remove_builds(run.directory / case.id)
-    verdict = prove(case.base, directory, case.base)
-    if verdict is not None:
-        sys.exit(f"the base of {case.id} is rejected as a refine of itself: {verdict}")
-    write_json(record_path, inputs)
-
-
-def prepare_case(run: Run, case: Case) -> None:
-    """Keeps every build in the case folder true to its `case.json`, which records the inputs they were made from:
-    the request and picture, the base, digests of the first model request, the base, and the render tool, and the
-    proof date. When one of them changed, every model's builds of the case are removed. The record is written
-    last, so a case folder without one holds no builds to trust. It also holds the group and the scoring fields,
-    which the contact sheet shows; they are not inputs, since the summary checks them afresh."""
-    if case.base:
-        prepare_before(run, case)
-    case_dir = run.directory / case.id
-    current = (before_dir(run, case) / "current" / "widget.json").read_text() if case.base else None
-    inputs = {
+def case_inputs(run: Run, case: Case) -> dict:
+    """What a case's builds are made from: digests of the first model request, the base, and the render tool, and
+    the proof date. Before the base is proved there is no current document to send, so the request digest differs
+    from the one any refine records."""
+    current_path = before_dir(run, case) / "current" / "widget.json"
+    current = current_path.read_text() if case.base and current_path.exists() else None
+    return {
         "request": digest(json.dumps(user_message(model_request(case, current, None))).encode()),
         "base": tree_digest(case.base) if case.base else None,
         "render_tool": run.render_tool,
         "proof_date": PROOF_DATE,
     }
-    image = f"request{case.image.suffix.lower()}" if case.image else None
-    record = {"request": case.request, "group": case.group, "image": image,
-              "base": case.base.name if case.base else None, "expect_new_table": case.expect_new_table,
-              "replaces": case.replaces, "inputs": inputs}
+
+
+def prepare_case(run: Run, case: Case) -> None:
+    """Keeps the case folder true to its `case.json`, which records the inputs its builds were made from. When one
+    of them changed, the whole folder goes, the proved base and every model's builds, and the base is proved again.
+    The record is written once that is done, so a folder without one holds nothing to trust. It also holds the
+    request, picture, group, and scoring fields, which the contact sheet and the summary show; the group and the
+    scoring fields are not inputs, since the summary checks them afresh."""
+    case_dir = run.directory / case.id
     record_path = case_dir / "case.json"
     recorded = read_json(record_path) if record_path.exists() else None
-    if recorded == record:
-        return
-    if recorded is None or recorded["inputs"] != inputs:
-        remove_builds(case_dir)
+    image = f"request{case.image.suffix.lower()}" if case.image else None
+    if recorded is None or recorded["inputs"] != case_inputs(run, case):
+        # The record goes first, so an interrupted removal never leaves it beside half a folder.
+        record_path.unlink(missing_ok=True)
+        if case_dir.exists():
+            shutil.rmtree(case_dir)
+        case_dir.mkdir(parents=True)
+        if case.base:
+            verdict = prove(case.base, before_dir(run, case), case.base)
+            if verdict is not None:
+                sys.exit(f"the base of {case.id} is rejected as a refine of itself: {verdict}")
         if case.image:
             shutil.copyfile(case.image, case_dir / image)
-    write_json(record_path, record)
+    record = {"request": case.request, "group": case.group, "image": image,
+              "base": case.base.name if case.base else None, "expect_new_table": case.expect_new_table,
+              "replaces": case.replaces, "inputs": case_inputs(run, case)}
+    if record != recorded:
+        write_json(record_path, record)
 
 
 def write_json(path: Path, value) -> None:

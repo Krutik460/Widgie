@@ -209,7 +209,7 @@ class ResumeTests(unittest.TestCase):
         self.build(Case("refine-water", "refine", "make it blue", None, FIXTURES / "water"))
         regrouped = Case("refine-water", "regrouped", "make it blue", None, FIXTURES / "water", True, "glasses")
         self.build(regrouped)
-        self.assertEqual(self.call.call_count, 1)
+        self.assertEqual((self.call.call_count, self.prove.call_count), (1, 2))
         with contextlib.redirect_stdout(io.StringIO()):
             summary = summarize(self.run_dir, ["refine", "regrouped"], [regrouped], ["haiku"])
         self.assertEqual(summary["table"], {"refine": {"haiku": {}}, "regrouped": {"haiku": {"first try": 1}}})
@@ -254,11 +254,25 @@ class ResumeTests(unittest.TestCase):
         case_dir = self.run_dir / "refine-water"
         self.assertIn('"name": "Juice"', (case_dir / "before" / "current" / "widget.json").read_text())
         self.assertEqual(list(case_dir.glob("*/build.json")), [])
+        self.assertFalse((case_dir / "case.json").exists())
 
         self.prove.side_effect = fake_prove
         self.build(case)
         self.assertEqual(self.call.call_count, 2)
         self.assertIn('"name": "Juice"', self.sent_words())
+
+    def test_an_interrupted_removal_is_redone_even_when_the_inputs_change_back(self):
+        water = Case("water", "basic", "a water tracker", None, None)
+        self.build(water)
+
+        def interrupted(path) -> None:
+            (Path(path) / "haiku" / "1" / "attempt.json").unlink()
+            raise KeyboardInterrupt
+
+        with mock.patch("run.shutil.rmtree", side_effect=interrupted), self.assertRaises(KeyboardInterrupt):
+            self.build(Case("water", "basic", "a coffee tracker", None, None))
+        self.build(water)
+        self.assertEqual((self.call.call_count, self.sent_words()), (2, "a water tracker"))
 
     def test_the_contact_sheet_shows_the_request_the_builds_were_made_from(self):
         shipped = json.loads((EVALS / "cases.json").read_text())["cases"][0]
