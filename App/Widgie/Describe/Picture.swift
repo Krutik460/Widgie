@@ -4,9 +4,12 @@ import SwiftUI
 import UIKit
 import WidgetBuilder
 
-/// A photo the person attaches: the JPEG the model gets, at most 1080 pixels on its longest side, and that
-/// image decoded once for the thumbnails.
+/// A photo the person attaches: the JPEG the model gets, at most `modelSide` pixels on its longest side, and
+/// that image decoded once for the thumbnails.
 struct Picture {
+    /// The longest side of a picture the model takes as input, in pixels.
+    static let modelSide = 1080
+
     let attachment: Attachment
     let image: UIImage
 
@@ -21,7 +24,7 @@ struct Picture {
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: 1080,
+            kCGImageSourceThumbnailMaxPixelSize: Self.modelSide,
         ]
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
             let scaled = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
