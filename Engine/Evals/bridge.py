@@ -4,14 +4,16 @@
     bridge.py [--model haiku|sonnet]
 
 POST /v1/reply takes a ModelRequest as JSON and returns {"reply": "<raw text>", "seconds": <model seconds>,
-"model": "<id>"}. A body this bridge cannot send is a 400 and a failed model call is a 502, each with
-{"error": "<one line>"}. A reply without a fenced document is still a 200, because the app's build rejects it
+"model": "<id>"}. It answers only a local Host and a Content-Type of application/json (403 and 415 otherwise),
+and a body over 20 MB is a 413. A body this bridge cannot send is a 400 and a failed model call is a 502, each
+with {"error": "<one line>"}. A reply without a fenced document is still a 200, because the app's build rejects it
 like any other bad document. GET /health prints ok. Each request logs one line to stdout.
 """
 
 import argparse
 import json
 import shutil
+import signal
 import tempfile
 import time
 from datetime import datetime
@@ -23,6 +25,7 @@ ADDRESS = ("127.0.0.1", 8787)
 # One try that ends before the app's 120 s request timeout, so no model call outlives its request.
 TRIES = 1
 TIMEOUT = 110
+MAX_BODY = 20 * 1024 * 1024
 
 
 def one_line(text: str) -> str:
@@ -49,9 +52,18 @@ def handler(model: str, prompt: str, workdir: str) -> type[BaseHTTPRequestHandle
                 return self.send(404, "text/plain", b"not found\n")
             started = time.monotonic()
             request = None
+            # A web page can send a text/plain POST with no preflight, and a rebound DNS name reaches 127.0.0.1
+            # under its own Host. Requiring JSON and a local Host keeps both from spending the model quota.
+            port = self.server.server_address[1]
+            if self.headers.get("Host") not in (f"127.0.0.1:{port}", f"localhost:{port}"):
+                return self.answer(started, request, 403, {"error": "only local clients may use the bridge"})
+            if (self.headers.get("Content-Type") or "").split(";")[0].strip() != "application/json":
+                return self.answer(started, request, 415, {"error": "send the body as application/json"})
             try:
                 length = int(self.headers.get("Content-Length") or 0)
-                if not length:
+                if length > MAX_BODY:
+                    return self.answer(started, request, 413, {"error": f"the body is over {MAX_BODY} bytes"})
+                if length <= 0:
                     raise ValueError("the body must be a ModelRequest JSON object")
                 request = json.loads(self.rfile.read(length))
                 content = user_message(request)
@@ -92,6 +104,8 @@ def main() -> None:
     parser.add_argument("--model", choices=["haiku", "sonnet"], default="sonnet")
     args = parser.parse_args()
 
+    # kill sends SIGTERM, which would skip the cleanup below and leave in-flight model calls unattended.
+    signal.signal(signal.SIGTERM, signal.default_int_handler)
     workdir = tempfile.mkdtemp(prefix="widget-bridge-")
     server = ThreadingHTTPServer(ADDRESS, handler(args.model, compose_prompt(), workdir))
     print(f"bridge on http://{ADDRESS[0]}:{ADDRESS[1]} with {args.model}", flush=True)
