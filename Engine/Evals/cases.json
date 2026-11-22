@@ -22,6 +22,17 @@
       "request": "i want to learn a new word every day. show me a word of the day with what it means and how to use it"
     },
     {
+      "id": "dogfed",
+      "group": "reference widgets",
+      "request": "me and my partner both feed our dog and we keep feeding her twice by accident. i want a button to tap when one of us feeds her that shows who fed her last and how long ago. if its been more than 12 hours make it red"
+    },
+    {
+      "id": "hearts",
+      "group": "reference widgets",
+      "request": "a widget for me and my girlfriend with this photo of us. i tap a heart to send her one, and it shows how many hearts i sent her and how many she sent me today",
+      "image": "images/R4-couple.jpg"
+    },
+    {
       "id": "water-glass",
       "group": "look descriptions",
       "request": "a water tracker that looks like a glass that fills up as I drink, bubbly blue, with a big plus button"
