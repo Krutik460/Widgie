@@ -70,6 +70,6 @@ Key decisions:
 
 ## Verification
 
-- `scripts/check` passes at the head, including `LoopTests` (10 tests) and the Python tests on the shared cases.
+- `scripts/check` passes at the head, including `LoopTests` (16 tests) and the Python tests on the shared cases.
 - Live, `render-tool loop` against the bridge on Haiku: water, to-do, and word of the day accepted in 2 attempts, habit in 1 (`Engine/.artifacts/p3-live/`).
 - `build` per attempt, apart from the model: 0.06 to 0.21 s live, and 0.09 to 0.23 s against an instant stand-in bridge. Rendering the 14 proof cells dominates. The plan's limit is 1.5 s.
