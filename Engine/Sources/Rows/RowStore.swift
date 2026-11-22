@@ -24,41 +24,41 @@ import Spec
 package final class RowStore: Sendable {
     private let database: any DatabaseWriter
     private let directory: URL
-    private let ownsDirectory: Bool
+    private let isScratch: Bool
     private let onCommit: (@Sendable () -> Void)?
 
     private init(
-        database: any DatabaseWriter, directory: URL, ownsDirectory: Bool, onCommit: (@Sendable () -> Void)?
+        database: any DatabaseWriter, directory: URL, isScratch: Bool, onCommit: (@Sendable () -> Void)?
     ) {
         self.database = database
         self.directory = directory
-        self.ownsDirectory = ownsDirectory
+        self.isScratch = isScratch
         self.onCommit = onCommit
     }
 
     /// The connections close before the files go, because a stored property outlives `deinit`'s body.
     deinit {
-        guard ownsDirectory else { return }
+        guard isScratch else { return }
         try? database.close()
         try? FileManager.default.removeItem(at: directory)
     }
 
     /// `onCommit` runs on the writing thread after every transaction that commits a write. A stale tap
-    /// writes nothing and does not run it. With `ownsDirectory` the store deletes `directory` when it is
+    /// writes nothing and does not run it. With `isScratch` the store deletes `directory` when it is
     /// released, and `suspend()` does not stop its writes.
     ///
     /// Opening and migrating run under a file coordinator, as GRDB's sharing guide prescribes: two
     /// connections switching a new file to WAL at once fail with SQLITE_BUSY, which no busy timeout covers.
     package static func open(
-        directory: URL, onCommit: (@Sendable () -> Void)? = nil, ownsDirectory: Bool = false
+        directory: URL, onCommit: (@Sendable () -> Void)? = nil, isScratch: Bool = false
     ) throws(StoreError) -> RowStore {
         try guarded {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             var configuration = Configuration()
             configuration.busyMode = .timeout(2)
-            // A store that owns its directory lives in the app's private temporary folder, which no other process
+            // A scratch store lives in the app's private temporary folder, which no other process
             // opens, so iOS has no shared lock to guard and a background build can keep saving.
-            configuration.observesSuspensionNotifications = !ownsDirectory
+            configuration.observesSuspensionNotifications = !isScratch
             configuration.maximumReaderCount = 2
             configuration.prepareDatabase { db in try db.execute(sql: "PRAGMA cache_size = -512") }
             var opened: Result<DatabasePool, any Error>?
@@ -74,7 +74,7 @@ package final class RowStore: Sendable {
             }
             if let coordination { throw coordination }
             guard let pool = try opened?.get() else { throw StoreError(message: "the file coordinator never ran") }
-            return RowStore(database: pool, directory: directory, ownsDirectory: ownsDirectory, onCommit: onCommit)
+            return RowStore(database: pool, directory: directory, isScratch: isScratch, onCommit: onCommit)
         }
     }
 
@@ -87,13 +87,13 @@ package final class RowStore: Sendable {
             return RowStore(
                 database: queue,
                 directory: FileManager.default.temporaryDirectory.appending(path: "rows-\(UUID().uuidString)"),
-                ownsDirectory: true, onCommit: nil)
+                isScratch: true, onCommit: nil)
         }
     }
 
-    /// Once suspended, every store in this process that does not own its directory refuses writes (reads
-    /// still work), so iOS never finds the app holding a lock on the shared database while suspended. The app
-    /// calls this when it moves to the background.
+    /// Once suspended, every store in this process but the scratch ones refuses writes (reads still work), so
+    /// iOS never finds the app holding a lock on the shared database while suspended. The app calls this when
+    /// it moves to the background.
     package static func suspend() {
         NotificationCenter.default.post(name: Database.suspendNotification, object: nil)
     }

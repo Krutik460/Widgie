@@ -244,7 +244,7 @@ public final class Engine: Sendable {
         try opened.withLock { (opened: inout RowStore?) throws(EngineError) -> RowStore in
             if let opened { return opened }
             do throws(StoreError) {
-                let store = try RowStore.open(directory: directory, onCommit: onCommit, ownsDirectory: isScratch)
+                let store = try RowStore.open(directory: directory, onCommit: onCommit, isScratch: isScratch)
                 opened = store
                 return store
             } catch {
