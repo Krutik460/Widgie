@@ -57,12 +57,13 @@ extension Engine {
             datasets: try attempt { () throws(StoreError) in try store.bindings(of: key) })
     }
 
-    /// Moves the draft back to its checkpoint's head and the rows it showed then, in one transaction.
+    /// Moves the draft back to its checkpoint's head and the rows it showed then, in one transaction. Tables
+    /// the checkpoint did not have lose their datasets, so a later build may add them again with other kinds.
     public func restore(_ checkpoint: Checkpoint) throws(EngineError) {
         guard isScratch else { throw EngineError(message: "only a scratch engine restores a checkpoint") }
         let store = try self.store()
         try attempt { () throws(StoreError) in
-            try store.restore(checkpoint.widget, to: checkpoint.head, bindings: checkpoint.datasets)
+            try store.rollBack(checkpoint.widget, to: checkpoint.head, bindings: checkpoint.datasets)
         }
     }
 }
