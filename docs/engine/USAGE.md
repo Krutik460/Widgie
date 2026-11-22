@@ -188,11 +188,13 @@ struct BridgeModel: WidgetModel {
     func reply(to request: ModelRequest) async throws -> String { ... }
 }
 
+// Called from the main actor, `progress` runs on the main actor, so it sets the screen's state directly.
 let outcome = try await engine.build(
     "a water tracker with a big blue drop", image: Attachment(mime: "image/jpeg", bytes: jpeg), model: BridgeModel()
 ) { step in
     // .writing(attempt: 1), .checking(attempt: 1), then on a rejection
     // .repairing(attempt: 2, line: "medium, sample \"busy\": content spills 14pt past the bottom edge; ..."), ...
+    screen.step = step
 }
 switch outcome {
 case .accepted(let id, let attempts):   // saved in `engine`; onCommit ran
@@ -208,7 +210,7 @@ try await engine.build("make it blue", replacing: id, model: BridgeModel())
 try await engine.build("make it blue", replacing: draft, repairing: line, model: BridgeModel())
 ```
 
-The loop makes at most three attempts, the first try and two repairs, as `Engine/Evals/run.py` does. Only a rejected reply uses an attempt. An error the model service throws is rethrown as it is, and nothing is saved. A repair holds the person's words, the same `current` as the first call, the document the model sent last, and the exact line `build` rejected it with. The document is the reply's longest fenced `json` block, else its longest fenced block of any kind, else the whole reply trimmed, by the same rule as `extract` in `Engine/Evals/model.py`; `Engine/Evals/testdata/extract.json` holds the cases both are tested against. The picture goes to the model with every call. A reply that declares the asset `reference` gets the picture as that asset's bytes, any other reply builds without it, and a refinement that sends no picture keeps the stored one. Cancelling the task throws `CancellationError` before or after a model call, and nothing is saved; a `build` already under way finishes and its outcome is returned. `render-tool loop` runs the same loop against the dev bridge on the Mac.
+The loop makes at most three attempts, the first try and two repairs, as `Engine/Evals/run.py` does. `progress` runs on the caller's actor, in order, and every step has run before the outcome returns. Only a rejected reply uses an attempt. An error the model service throws is rethrown as it is, and nothing is saved. A repair holds the person's words, the same `current` as the first call, the document the model sent last, and the exact line `build` rejected it with. The document is the reply's longest fenced `json` block, else its longest fenced block of any kind, else the whole reply trimmed, by the same rule as `extract` in `Engine/Evals/model.py`; `Engine/Evals/testdata/extract.json` holds the cases both are tested against. The picture goes to the model with every call. A reply that declares the asset `reference` gets the picture as that asset's bytes, any other reply builds without it, and a refinement that sends no picture keeps the stored one. Cancelling the task throws `CancellationError` before or after a model call, and nothing is saved; a `build` already under way finishes and its outcome is returned. `render-tool loop` runs the same loop against the dev bridge on the Mac.
 
 The request on the wire, as the dev bridge (`Engine/Evals/bridge.py`) and the backend accept it. Every key but `words` is left out when it is nil:
 

@@ -6,7 +6,7 @@ Background reading: the plan's "The data shape" and P3 sections, and [USAGE.md](
 
 ## Core changes
 
-- **The loop.** [Loop.swift](../../Engine/Sources/WidgetBuilder/Loop.swift) adds `Engine.build(_ words:image:replacing:repairing:model:progress:) -> LoopOutcome`. It asks the model, extracts the document, calls the existing `build(_ source:replacing:)`, and sends each rejection back as a repair, at most three attempts.
+- **The loop.** [Loop.swift](../../Engine/Sources/WidgetBuilder/Loop.swift) adds `Engine.build(_ words:image:replacing:repairing:model:isolation:progress:) -> LoopOutcome`. It asks the model, extracts the document, calls the existing `build(_ source:replacing:)`, and sends each rejection back as a repair, at most three attempts.
 - **The wire types.** [Model.swift](../../Engine/Sources/WidgetBuilder/Model.swift) holds `ModelRequest`, `Attachment`, `Repair`, `WidgetModel`, `BuildStep`, and `LoopOutcome`. `ModelRequest` encodes to the body the dev bridge reads. `Attachment` holds raw bytes and travels as `base64`.
 - **One extraction rule on both sides.** `extractDocument` in Swift and `extract` in [model.py](../../Engine/Evals/model.py) take the longest `json` fence, else the longest fence, else the whole reply, trimmed of ASCII whitespace. Lines end only at LF. [extract.json](../../Engine/Evals/testdata/extract.json) holds 25 cases that both test suites read.
 - **`render-tool loop`.** [RenderTool.swift](../../Engine/Sources/RenderTool/RenderTool.swift) runs the loop against the bridge into a temporary engine, prints each step with its time, and writes the saved widget.
@@ -42,6 +42,7 @@ Files:
 Key decisions:
 
 - **An overload of `build`, not `loop`.** `engine.build("make it blue", replacing: id, model: bridge)` names the result, and `build` is already the verb for turning input into a saved widget.
+- **Progress runs on the caller's actor.** The loop takes `isolation: isolated (any Actor)? = #isolation`, so `progress` is a plain closure that runs in order on the caller's actor and finishes before the outcome returns. A main-actor screen sets its state from it with no `Task` hop, and no late step can land after the result.
 - **No flags in the loop.** Its whole state is the next `ModelRequest` and the attempt number. The progress step comes from whether the request carries a repair.
 - **Only a rejected document uses an attempt.** A transport error is thrown, so the screen can show "Couldn't reach the widget builder" instead of burning repairs.
 - **Cancellation is checked around the model call.** A cancelled `URLSession` throws `URLError`, so the loop throws `CancellationError` in its place. A `build` already under way finishes and returns its outcome.

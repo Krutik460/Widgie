@@ -16,13 +16,17 @@ extension Engine {
     /// - `image` goes to the model with every call. A reply that declares the asset `reference` gets it as that
     ///   asset's bytes; any other reply builds without it, and a refine that sent no image keeps the stored one.
     ///
+    /// `progress` runs on the caller's actor, in order, and every step has run when the loop returns, so a
+    /// main-actor screen can set its state from it directly.
+    ///
     /// Only a rejected reply uses an attempt. An error from `model` is rethrown as it is. Cancellation is
     /// checked around each model call and throws `CancellationError` with nothing saved; a `build` already
     /// under way finishes, and its outcome is returned. Throws `EngineError` when `replacing` names no widget
     /// or the store fails.
     public func build(
         _ words: String, image: Attachment? = nil, replacing: WidgetID? = nil, repairing line: String? = nil,
-        model: some WidgetModel, progress: @Sendable (BuildStep) -> Void = { _ in }
+        model: some WidgetModel, isolation: isolated (any Actor)? = #isolation,
+        progress: (BuildStep) -> Void = { _ in }
     ) async throws -> LoopOutcome {
         var request = ModelRequest(words: words, image: image)
         if let replacing {
