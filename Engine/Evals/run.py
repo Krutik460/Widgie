@@ -319,7 +319,7 @@ def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[
                 continue
             build = read_json(path)
             builds.append(build)
-            # A failed build has no widget to judge, so it is left out rather than passed or failed.
+            # A failed build saved no widget, so its tables neither pass nor fail.
             if case.base and build["accepted_attempt"]:
                 before = parsed((run_dir / case.id / "before" / "current" / "widget.json").read_text())
                 after = parsed((path.parent / str(build["accepted_attempt"]) / "widget" / "widget.json").read_text())
