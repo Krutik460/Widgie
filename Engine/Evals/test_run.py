@@ -205,6 +205,13 @@ class ResumeTests(unittest.TestCase):
         self.build(case, render_tool="tool 2")
         self.assertEqual((self.call.call_count, self.prove.call_count), (2, 2))
 
+    def test_a_changed_proof_date_proves_the_base_and_builds_again(self):
+        case = Case("refine-water", "refine", "make it blue", None, FIXTURES / "water")
+        self.build(case)
+        with mock.patch("run.PROOF_DATE", "2026-12-01T09:00:00Z"):
+            self.build(case)
+        self.assertEqual((self.call.call_count, self.prove.call_count), (2, 4))
+
     def test_a_changed_base_fixture_refines_its_new_document(self):
         base = self.run_dir / "fixture"
         shutil.copytree(FIXTURES / "water", base)
