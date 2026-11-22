@@ -17,7 +17,7 @@ extension Engine {
     /// transaction, so switching from one sample to another never mixes them, and `.empty` shows no rows.
     /// Taps then write on top of the sample as they would on real rows.
     ///
-    /// Only a scratch engine (`init(scratch:)`) takes this, because in the shared store it would hide the
+    /// Only a scratch engine (`Engine.scratch()`) takes this, because in the shared store it would hide the
     /// person's rows. Throws for any other engine, an unknown widget, or a state the widget cannot hold.
     public func load(_ state: DataState, into widget: WidgetID, at date: Date = .now) throws(EngineError) {
         guard isScratch else {

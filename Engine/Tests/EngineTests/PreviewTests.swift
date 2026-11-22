@@ -7,7 +7,7 @@ import WidgetEngine
 /// from disk once the engine is released.
 @Suite struct PreviewTests {
     @Test @MainActor func aLoadedSampleDrawsExactlyItsRows() async throws {
-        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let engine = Engine.scratch(calendar: utc)
         let source = try fixture("water")
         let id = try await build(source, in: engine)
 
@@ -20,7 +20,7 @@ import WidgetEngine
     }
 
     @Test @MainActor func switchingStatesReplacesTheRowsInsteadOfAddingToThem() async throws {
-        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let engine = Engine.scratch(calendar: utc)
         let source = try fixture("water")
         let id = try await build(source, in: engine)
 
@@ -34,7 +34,7 @@ import WidgetEngine
     }
 
     @Test @MainActor func aTapWritesOnTopOfTheSample() async throws {
-        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let engine = Engine.scratch(calendar: utc)
         let source = try fixture("water")
         let id = try await build(source, in: engine)
         try engine.load(.sample("morning"), into: id, at: morning)
@@ -55,24 +55,24 @@ import WidgetEngine
     }
 
     @Test func aDraftIsInvisibleToEveryOtherEngine() async throws {
-        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let engine = Engine.scratch(calendar: utc)
         let id = try await build(try fixture("water"), in: engine)
         #expect(try engine.widgets().map(\.id) == [id])
 
         let other = Scratch()
         #expect(try other.engine.widgets().isEmpty)
-        #expect(try Engine(scratch: scratchFolder(), calendar: utc).widgets().isEmpty)
+        #expect(try Engine.scratch(calendar: utc).widgets().isEmpty)
     }
 
     @Test func samplesAreListedByName() async throws {
-        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let engine = Engine.scratch(calendar: utc)
         let id = try await build(try fixture("water"), in: engine)
         #expect(try engine.samples(of: id) == ["goal met", "morning"])
         #expect(try engine.samples(of: WidgetID(rawValue: "nothing")).isEmpty)
     }
 
     @Test func anUnknownSampleThrowsWithTheNamesItHas() async throws {
-        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let engine = Engine.scratch(calendar: utc)
         let id = try await build(try fixture("water"), in: engine)
         let error = #expect(throws: EngineError.self) { try engine.load(.sample("noon"), into: id) }
         #expect(error?.message == #"no sample "noon" (samples: goal met, morning)"#)
@@ -87,8 +87,8 @@ import WidgetEngine
     }
 
     @Test func aScratchEngineDeletesItsFolderOnceReleased() async throws {
-        let folder = scratchFolder()
-        var engine: Engine? = Engine(scratch: folder, calendar: utc)
+        var engine: Engine? = Engine.scratch(calendar: utc)
+        let folder = try #require(engine).directory
         let id = try await build(try fixture("water"), in: try #require(engine))
         try engine?.load(.sample("morning"), into: id)
         #expect(FileManager.default.fileExists(atPath: folder.appending(path: "store.sqlite").path()))
@@ -97,8 +97,28 @@ import WidgetEngine
         #expect(!FileManager.default.fileExists(atPath: folder.path()))
     }
 
-    private func scratchFolder() -> URL {
-        FileManager.default.temporaryDirectory.appending(path: "preview-tests-\(UUID().uuidString)")
+    @Test func releasingAnEngineOnAGivenFolderLeavesTheFolderInPlace() async throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "preview-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var engine: Engine? = Engine(directory: folder, calendar: utc)
+        let id = try await build(try fixture("water"), in: try #require(engine))
+
+        engine = nil
+        #expect(try Engine(directory: folder, calendar: utc).widgets().map(\.id) == [id])
+    }
+
+    @Test func theLeftoverSweepRemovesEarlierRunsScratchFoldersAndKeepsThisRunsOnes() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "preview-tests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let engine = Engine.scratch(under: root, calendar: utc)
+        let id = try await build(try fixture("water"), in: engine)
+        let earlier = root.appending(path: UUID().uuidString).appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: earlier, withIntermediateDirectories: true)
+
+        Engine.removeLeftoverScratch(under: root)
+        #expect(!FileManager.default.fileExists(atPath: earlier.deletingLastPathComponent().path()))
+        #expect(FileManager.default.fileExists(atPath: engine.directory.appending(path: "store.sqlite").path()))
+        try engine.load(.sample("morning"), into: id)
     }
 
     private func build(_ source: WidgetSource, in engine: Engine) async throws -> WidgetID {

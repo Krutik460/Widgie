@@ -9,7 +9,7 @@ struct WidgieApp: App {
     @State private var library = Library()
 
     init() {
-        Preview.removeLeftovers()
+        Engine.removeLeftoverScratch()
     }
 
     var body: some Scene {
