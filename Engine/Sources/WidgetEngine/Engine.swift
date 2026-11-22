@@ -216,7 +216,8 @@ public final class Engine: Sendable {
     }
 
     /// Every engine in this process but the scratch ones stops writing, and reads still work, so iOS never
-    /// finds the app holding the shared database lock while suspended. The app calls this when it moves to the
+    /// finds the app holding the shared database lock while suspended. An engine whose store is not open yet
+    /// cannot open it until `resume`, and says so with `EngineError.isSuspended`. The app calls this when it moves to the
     /// background, and `resume` when it returns. It is static because it reaches every store in the process.
     public static func suspend() { RowStore.suspend() }
 
