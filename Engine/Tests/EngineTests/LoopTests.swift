@@ -7,6 +7,11 @@ import WidgetEngine
 /// The build loop against a scripted model: what it sends the model, what it saves, and what it reports.
 @Suite struct LoopTests {
     let good = document(look: counterLook())
+    let withReference = document(
+        look: counterLook(
+            "{ type: 'image', asset: 'reference', frame: { maxWidth: 'infinity', maxHeight: 'infinity' } }",
+            extra: "{ type: 'text', value: String(ctx.data.n), color: '#FFFFFF', lineLimit: 1 },"),
+        assets: ["reference": ["about": "the person's picture"]])
 
     @Test func aGoodFirstReplyIsAcceptedInOneAttemptAndTheWidgetIsSaved() async throws {
         let scratch = Scratch()
@@ -189,11 +194,6 @@ import WidgetEngine
 
     @Test func anAttachedImageReachesTheSavedWidgetOnlyWhenTheDocumentDeclaresReference() async throws {
         let attachment = Attachment(mime: "image/png", bytes: photo(300, 200))
-        let withReference = document(
-            look: counterLook(
-                "{ type: 'image', asset: 'reference', frame: { maxWidth: 'infinity', maxHeight: 'infinity' } }",
-                extra: "{ type: 'text', value: String(ctx.data.n), color: '#FFFFFF', lineLimit: 1 },"),
-            assets: ["reference": ["about": "the person's picture"]])
         let cases: [(WidgetSource, kept: [String: Data])] = [
             (withReference, ["reference": attachment.bytes]), (good, [:]),
         ]
@@ -221,6 +221,20 @@ import WidgetEngine
         }
         #expect(model.requests.map { $0.repair != nil } == [false, true, true])
         #expect(model.requests.map(\.image) == [attachment, attachment, attachment])
+    }
+
+    @Test func aRefineThatSendsNoPictureKeepsTheStoredReference() async throws {
+        let bytes = photo(300, 200)
+        let scratch = Scratch()
+        let id = try await scratch.build(WidgetSource(json: withReference.json, images: ["reference": bytes]))
+        let bluer = WidgetSource(json: Data(text(withReference).replacing("#102030", with: "#1B3A8C").utf8))
+        let model = ScriptedModel([.reply(fenced(bluer))])
+
+        let outcome = try await scratch.engine.build("make it blue", replacing: id, model: model)
+        #expect(outcome == .accepted(id, attempts: 1))
+        #expect(model.requests.map(\.image) == [nil])
+        #expect(try scratch.engine.history(of: id).count == 2)
+        #expect(try scratch.engine.source(of: id)?.images == ["reference": bytes])
     }
 
     @Test func aRequestEncodesToTheShapeTheBridgeReads() throws {
