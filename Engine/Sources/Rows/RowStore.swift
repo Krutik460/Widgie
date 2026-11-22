@@ -219,6 +219,19 @@ package final class RowStore: Sendable {
         try write(at: Date()) { _ in .changes([.bind(key, table: table.raw, to: dataset)]) }
     }
 
+    /// The dataset each table of a widget reads and writes, by table id.
+    package func bindings(of key: WidgetKey) throws(StoreError) -> [String: DatasetKey] {
+        try read { db in
+            var bindings: [String: DatasetKey] = [:]
+            for row in try Row.fetchAll(
+                db, sql: "SELECT tbl, dataset FROM binding WHERE widget = ?", arguments: [key.raw])
+            {
+                bindings[row["tbl"]] = DatasetKey(parsing: row["dataset"])
+            }
+            return bindings
+        }
+    }
+
     /// The dataset a table of a widget reads and writes, or nil when it has none.
     package func dataset(of key: WidgetKey, table: Spec.TableID) throws(StoreError) -> DatasetKey? {
         try read { db in try Rows.dataset(of: key, table: table.raw, db) }
@@ -253,8 +266,11 @@ package final class RowStore: Sendable {
     }
 
     /// Moves the head back to an earlier revision of the same widget: "undo that change". The widget draws
-    /// it only once it is proved here, as any head.
-    package func restore(_ key: WidgetKey, to revision: Spec.Digest) throws(StoreError) {
+    /// it only once it is proved here, as any head. `bindings` points tables back at the datasets they read
+    /// then, in the same transaction.
+    package func restore(_ key: WidgetKey, to revision: Spec.Digest, bindings: [String: DatasetKey] = [:])
+        throws(StoreError)
+    {
         let now = Date()
         try write(at: now) { db in
             guard
@@ -264,7 +280,9 @@ package final class RowStore: Sendable {
             else {
                 throw StoreError(message: "revision \(revision) was never a head of widget \(key.raw)")
             }
-            return .changes([.moveHead(key, to: revision, createdAt: milliseconds(now))])
+            return .changes(
+                [.moveHead(key, to: revision, createdAt: milliseconds(now))]
+                    + bindings.map { .bind(key, table: $0.key, to: $0.value) })
         }
     }
 
