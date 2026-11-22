@@ -129,7 +129,7 @@ class SummarizeTests(unittest.TestCase):
         attempts = [{"attempt": n, "seconds": 1, "output_tokens": 1, "input_tokens": 1, "models": [model],
                      "document_bytes": 1} for n in range(1, len(replies) + 1)]
         self.write(directory / "build.json", {
-            "case": "refine-coffee", "group": "refine", "model": model,
+            "case": "refine-coffee", "model": model,
             "status": "repaired once" if accepted else "failed",
             "accepted_attempt": len(replies) if accepted else None,
             "verdicts": ["small: too wide"] * (len(replies) - accepted), "seconds": 1, "output_tokens": 1,
@@ -205,11 +205,18 @@ class ResumeTests(unittest.TestCase):
         self.build(case, render_tool="tool 2")
         self.assertEqual((self.call.call_count, self.prove.call_count), (2, 2))
 
-    def test_a_changed_group_or_expectation_keeps_the_build_and_shows_on_the_sheet(self):
+    def test_a_changed_group_or_expectation_keeps_the_build_and_counts_it_under_the_new_group(self):
         self.build(Case("refine-water", "refine", "make it blue", None, FIXTURES / "water"))
-        self.build(Case("refine-water", "regrouped", "make it blue", None, FIXTURES / "water", True, "glasses"))
+        regrouped = Case("refine-water", "regrouped", "make it blue", None, FIXTURES / "water", True, "glasses")
+        self.build(regrouped)
         self.assertEqual(self.call.call_count, 1)
-        self.assertIn("<h2>regrouped</h2>", sheet.write(self.run_dir).read_text())
+        with contextlib.redirect_stdout(io.StringIO()):
+            summary = summarize(self.run_dir, ["refine", "regrouped"], [regrouped], ["haiku"])
+        self.assertEqual(summary["table"], {"refine": {"haiku": {}}, "regrouped": {"haiku": {"first try": 1}}})
+        page = sheet.write(self.run_dir).read_text()
+        self.assertIn("<h2>regrouped</h2>", page)
+        self.assertIn("<tr><td>regrouped</td><td>1</td>", page)
+        self.assertNotIn("<tr><td>refine</td>", page)
 
     def test_a_changed_proof_date_proves_the_base_and_builds_again(self):
         case = Case("refine-water", "refine", "make it blue", None, FIXTURES / "water")

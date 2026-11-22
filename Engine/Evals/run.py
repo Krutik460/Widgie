@@ -343,7 +343,6 @@ def run_build(run: Run, case: Case, model: str) -> dict:
     final = build_dir / str(attempts[-1]["attempt"]) / "proof"
     record = {
         "case": case.id,
-        "group": case.group,
         "model": model,
         "status": STATUS[accepted],
         "accepted_attempt": accepted,
@@ -371,6 +370,7 @@ def verdict_kind(line: str) -> str:
 
 def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[str]) -> dict:
     builds = []
+    group_of = {case.id: case.group for case in cases}
     table_checks = {}
     for case in cases:
         for model in models:
@@ -392,7 +392,7 @@ def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[
                     check["passed"] += 1
     table = {
         group: {
-            model: Counter(b["status"] for b in builds if b["group"] == group and b["model"] == model)
+            model: Counter(b["status"] for b in builds if group_of[b["case"]] == group and b["model"] == model)
             for model in models}
         for group in groups}
     per_model = {}
