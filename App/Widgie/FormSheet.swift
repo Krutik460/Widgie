@@ -7,11 +7,14 @@ struct FormSheet: View {
     let submit: ([String: InputValue]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var text: [String: String] = [:]
-    @State private var toggles: [String: Bool] = [:]
-    @State private var dates: [String: Date] = [:]
+    @State private var draft: FormDraft
     @State private var invalid: Set<String> = []
-    private let format = FormFormat()
+
+    init(form: InputForm, submit: @escaping ([String: InputValue]) -> Void) {
+        self.form = form
+        self.submit = submit
+        _draft = State(initialValue: FormDraft(fields: form.fields))
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,23 +22,23 @@ struct FormSheet: View {
                 ForEach(form.fields) { field in
                     switch field.kind {
                     case .text:
-                        TextField(field.label, text: binding(field.id, in: $text, default: ""))
+                        TextField(field.label, text: binding(field.id, in: $draft.text, default: ""))
                     case .number:
                         VStack(alignment: .leading, spacing: 4) {
-                            TextField(field.label, text: binding(field.id, in: $text, default: ""))
+                            TextField(field.label, text: binding(field.id, in: $draft.text, default: ""))
                                 .keyboardType(.decimalPad)
-                                .onChange(of: text[field.id]) { invalid.remove(field.id) }
+                                .onChange(of: draft.text[field.id]) { invalid.remove(field.id) }
                             if invalid.contains(field.id) {
-                                Text("Enter a number, like \(format.text(12.5))")
+                                Text("Enter a number, like \(draft.format.text(12.5))")
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                             }
                         }
                     case .toggle:
-                        Toggle(field.label, isOn: binding(field.id, in: $toggles, default: false))
+                        Toggle(field.label, isOn: binding(field.id, in: $draft.toggles, default: false))
                     case .date:
                         DatePicker(
-                            field.label, selection: binding(field.id, in: $dates, default: .now),
+                            field.label, selection: binding(field.id, in: $draft.dates, default: .now),
                             displayedComponents: .date)
                     }
                 }
@@ -50,16 +53,55 @@ struct FormSheet: View {
                     Button("Save", action: save)
                 }
             }
-            .onAppear(perform: fill)
         }
     }
 
-    /// Only fields the user can see a value for are sent, so an untouched empty field stays absent. A number
-    /// field whose text is not a number keeps the form open and says so.
+    /// A number field whose text is not a number keeps the form open and says so.
     private func save() {
+        let submission = draft.submission()
+        invalid = submission.invalid
+        if invalid.isEmpty { submit(submission.input) }
+    }
+
+    private func binding<Value>(_ id: String, in values: Binding<[String: Value]>, default empty: Value)
+        -> Binding<Value>
+    {
+        Binding(get: { values.wrappedValue[id] ?? empty }, set: { values.wrappedValue[id] = $0 })
+    }
+}
+
+/// What the form shows, which is what Save submits. It starts from the row's values when the form edits a
+/// row; otherwise a toggle shows off and a date shows today, and both are sent as shown. An empty text or
+/// number field stays absent.
+struct FormDraft {
+    let fields: [InputField]
+    let format: FormFormat
+    var text: [String: String] = [:]
+    var toggles: [String: Bool] = [:]
+    var dates: [String: Date] = [:]
+
+    init(fields: [InputField], format: FormFormat = FormFormat(), now: Date = .now) {
+        self.fields = fields
+        self.format = format
+        for field in fields {
+            switch (field.kind, field.value) {
+            case (_, .text(let value)?): text[field.id] = value
+            case (_, .number(let value)?): text[field.id] = format.text(value)
+            case (_, .toggle(let value)?): toggles[field.id] = value
+            case (_, .date(let year, let month, let day)?):
+                dates[field.id] = format.date(year: year, month: month, day: day) ?? now
+            case (.toggle, nil): toggles[field.id] = false
+            case (.date, nil): dates[field.id] = now
+            case (.text, nil), (.number, nil): break
+            }
+        }
+    }
+
+    /// The input to submit, and the number fields whose text is not a number, which hold the submit back.
+    func submission() -> (input: [String: InputValue], invalid: Set<String>) {
         var input: [String: InputValue] = [:]
         var invalid: Set<String> = []
-        for field in form.fields {
+        for field in fields {
             switch field.kind {
             case .text:
                 if let value = text[field.id], !value.isEmpty { input[field.id] = .text(value) }
@@ -76,26 +118,7 @@ struct FormSheet: View {
                 if let value = dates[field.id] { input[field.id] = format.day(of: value) }
             }
         }
-        self.invalid = invalid
-        if invalid.isEmpty { submit(input) }
-    }
-
-    private func fill() {
-        for field in form.fields {
-            switch field.value {
-            case .text(let value): text[field.id] = value
-            case .number(let value): text[field.id] = format.text(value)
-            case .toggle(let value): toggles[field.id] = value
-            case .date(let year, let month, let day): dates[field.id] = format.date(year: year, month: month, day: day)
-            case nil: break
-            }
-        }
-    }
-
-    private func binding<Value>(_ id: String, in values: Binding<[String: Value]>, default empty: Value)
-        -> Binding<Value>
-    {
-        Binding(get: { values.wrappedValue[id] ?? empty }, set: { values.wrappedValue[id] = $0 })
+        return (input, invalid)
     }
 }
 
