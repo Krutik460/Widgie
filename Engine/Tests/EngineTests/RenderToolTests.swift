@@ -55,6 +55,32 @@ import WidgetEngine
         #expect(report["verdict"] as? String == (try await Scratch().line(Broken.blank)))
     }
 
+    @Test func refineModeWritesTheStoredSourceAndGivesTheBuildersVerdict() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let water = try fixture("water")
+        let path = { (name: String) in directory.appending(path: name).path(percentEncoded: false) }
+        let fixturePath = engineDirectory.appending(path: "Fixtures/water").path(percentEncoded: false)
+
+        #expect(await RenderTool.run(["refine", fixturePath, fixturePath, path("same")]) == 0)
+        let scratch = Scratch()
+        let stored = try #require(try scratch.engine.source(of: try await scratch.build(water)))
+        #expect(try WidgetSource(directory: directory.appending(path: "same/current")).json == stored.json)
+        #expect(FileManager.default.fileExists(atPath: path("same/full-medium.png")))
+
+        let cups = WidgetSource(
+            json: Data(String(decoding: water.json, as: UTF8.self).replacing("\"glasses\"", with: "\"cups\"").utf8))
+        try cups.write(to: directory.appending(path: "cups"))
+        #expect(await RenderTool.run(["refine", fixturePath, path("cups"), path("renamed")]) == 1)
+        let report = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appending(path: "renamed/report.json")))
+                as? [String: Any])
+        #expect(
+            report["verdict"] as? String
+                == "table \"glasses\" is gone; keep every table id so the stored rows carry over")
+        #expect(await RenderTool.run(["refine", fixturePath, path("cups")]) == 2)
+    }
+
     @Test func renderModeWritesOnePNGAndUsageErrorsExitTwo() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }
