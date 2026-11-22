@@ -153,7 +153,7 @@ private struct DescribeScreen: View {
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 HStack(spacing: 12) {
-                    PhotoButton(picture: $session.picture)
+                    PhotoButton(picture: $session.picture, item: $session.pendingPhoto)
                     Button("Build it", action: send)
                         .buttonStyle(PrimaryButtonStyle())
                         .disabled(!session.canSend)
@@ -186,11 +186,13 @@ extension View {
     }
 }
 
-/// The photo button: the outlined picture icon, or the attached photo with a button to remove it.
+/// The photo button: the outlined picture icon, a spinner while the picked photo loads, or the attached photo
+/// with a button to remove it.
 struct PhotoButton: View {
     @Binding var picture: Picture?
+    /// The picked photo while it loads. It lives in the session, so a composer drawn again resumes the load.
+    @Binding var item: PhotosPickerItem?
 
-    @State private var item: PhotosPickerItem?
     @State private var unreadable = false
 
     var body: some View {
@@ -214,12 +216,18 @@ struct PhotoButton: View {
                     }
             } else {
                 PhotosPicker(selection: $item, matching: .images) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 21, weight: .semibold))
-                        .foregroundStyle(Palette.text)
-                        .frame(width: 60, height: 60)
-                        .overlay(Outline())
-                        .contentShape(Rectangle())
+                    Group {
+                        if item == nil {
+                            Image(systemName: "photo")
+                                .font(.system(size: 21, weight: .semibold))
+                                .foregroundStyle(Palette.text)
+                        } else {
+                            ProgressView()
+                        }
+                    }
+                    .frame(width: 60, height: 60)
+                    .overlay(Outline())
+                    .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Add a picture")
             }
@@ -228,7 +236,7 @@ struct PhotoButton: View {
         .task(id: item) {
             guard let item else { return }
             let loaded = await Picture.load(item)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, item == self.item else { return }
             picture = loaded
             unreadable = loaded == nil
             self.item = nil
