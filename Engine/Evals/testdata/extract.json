@@ -55,9 +55,9 @@
     "document": "{\"a\": 1}"
   },
   {
-    "name": "lone CR line endings are rejoined with LF",
+    "name": "a lone CR does not end a line",
     "reply": "Here:\r```json\r{\"name\": \"Tiny\"}\r```\r",
-    "document": "{\"name\": \"Tiny\"}"
+    "document": "Here:\r```json\r{\"name\": \"Tiny\"}\r```"
   },
   {
     "name": "an indented closing fence with trailing spaces closes",
@@ -100,28 +100,28 @@
     "document": "{\"name\": \"Tiny\"}"
   },
   {
-    "name": "no-break spaces trim from a reply with no fence, as Python's str.strip does",
-    "reply": "\u00a0\u00a0{\"name\": \"Tiny\"}\u00a0\n",
-    "document": "{\"name\": \"Tiny\"}"
+    "name": "only ASCII whitespace trims from a reply with no fence",
+    "reply": "  {\"name\": \"Tiny\"} \n",
+    "document": "  {\"name\": \"Tiny\"} "
   },
   {
-    "name": "a no-break space and an em space after a fence line still open it",
-    "reply": "```json\u00a0\u2003\n{\"name\": \"Tiny\"}\n\u00a0```\u00a0",
-    "document": "{\"name\": \"Tiny\"}"
+    "name": "a no-break space after a fence keeps it from opening",
+    "reply": "```json  \n{\"name\": \"Tiny\"}\n ``` ",
+    "document": "```json  \n{\"name\": \"Tiny\"}\n ``` "
   },
   {
-    "name": "information separators count as whitespace when trimming",
+    "name": "information separators are not trimmed",
     "reply": "\u001c\u001f{\"name\": \"Tiny\"}\u001d ",
-    "document": "{\"name\": \"Tiny\"}"
+    "document": "\u001c\u001f{\"name\": \"Tiny\"}\u001d"
   },
   {
-    "name": "a line separator inside a JSON string splits the line and comes back as LF",
-    "reply": "```json\n{\"name\": \"Two\u2028lines\"}\n```",
-    "document": "{\"name\": \"Two\nlines\"}"
+    "name": "a line separator inside a JSON string stays in the document",
+    "reply": "```json\n{\"name\": \"Two lines\"}\n```",
+    "document": "{\"name\": \"Two lines\"}"
   },
   {
-    "name": "a vertical tab, form feed, and next line also end a line",
-    "reply": "```json\n{\"a\":\u000b1,\f\"b\":\u00852}\n```",
-    "document": "{\"a\":\n1,\n\"b\":\n2}"
+    "name": "only LF ends a line, not a vertical tab, form feed, or next line",
+    "reply": "```json\n{\"a\":\u000b1,\f\"b\":2}\n```",
+    "document": "{\"a\":\u000b1,\f\"b\":2}"
   }
 ]

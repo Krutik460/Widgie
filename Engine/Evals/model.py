@@ -14,6 +14,8 @@ import time
 from pathlib import Path
 
 REFERENCE = Path(__file__).resolve().parent.parent / "Reference"
+# ASCII only, so the Swift twin in WidgetBuilder/Loop.swift trims exactly the same characters.
+WHITESPACE = " \t\n\r\f\v"
 MEDIA_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 
 
@@ -121,24 +123,25 @@ def call(model: str, prompt: str, content: list[dict], *, tries: int, timeout: f
 
 
 def extract(reply: str) -> str:
-    """The fenced json block of a reply, else its longest fenced block, else the whole reply.
+    """The longest fenced json block of a reply, else its longest fenced block, else the whole reply, trimmed.
 
-    A JSON string holds no raw line break, so inside the document no line can start with a fence.
+    Lines end only at LF, with a CR before it dropped, so a JSON string that holds U+2028 stays on its line.
+    A JSON string holds no raw LF, so inside the document no line can start with a fence.
     """
-    lines = reply.splitlines()
+    lines = [line.removesuffix("\r") for line in reply.split("\n")]
     blocks: list[tuple[str, str]] = []
     index = 0
     while index < len(lines):
-        opening = re.fullmatch(r"```([A-Za-z0-9_-]*)\s*", lines[index])
+        opening = re.fullmatch(r"```([A-Za-z0-9_-]*)[ \t]*", lines[index])
         if not opening:
             index += 1
             continue
         end = index + 1
-        while end < len(lines) and lines[end].strip() != "```":
+        while end < len(lines) and lines[end].strip(" \t") != "```":
             end += 1
         blocks.append((opening.group(1), "\n".join(lines[index + 1:end])))
         index = end + 1
     if not blocks:
-        return reply.strip()
+        return reply.strip(WHITESPACE)
     tagged = [body for info, body in blocks if info == "json"]
-    return max(tagged or [body for _, body in blocks], key=len)
+    return max(tagged or [body for _, body in blocks], key=len).strip(WHITESPACE)
