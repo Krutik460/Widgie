@@ -17,7 +17,12 @@ final class Library {
     var form: InputForm?
     var message: String?
 
-    private var engine: Engine { Hosting.engine }
+    private let engine: Engine
+    private var reloads = 0
+
+    init(engine: Engine = Hosting.engine) {
+        self.engine = engine
+    }
 
     /// The reference widgets bundled in debug builds: each folder and the name its widget gives itself.
     let fixtures: [(folder: String, name: String)] = {
@@ -36,7 +41,11 @@ final class Library {
         Task { await reload() }
     }
 
+    /// A reload that finishes after a later one started is stale and is dropped, so it never brings back a
+    /// widget the later one no longer found.
     func reload() async {
+        reloads += 1
+        let reload = reloads
         do {
             var items: [Item] = []
             for summary in try engine.widgets() {
@@ -48,7 +57,7 @@ final class Library {
                 }
                 items.append(Item(summary: summary, faces: faces))
             }
-            self.items = items
+            if reload == reloads { self.items = items }
         } catch {
             message = error.message
         }
