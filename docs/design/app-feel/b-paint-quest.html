@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Widgie B: Paint Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#CDEAFF; --surface:#FFFFFF; --line:#AED6F3;
+  --tang:#FF7A1A; --tang-lip:#D65A00;
+  --sky:#1FA4F0; --sky-lip:#0A7FC2;
+  --sun:#FFCB2E; --sun-lip:#DDA300;
+  --berry:#F0384F; --berry-lip:#BF1C34; --berry-tint:#FFDDE2;
+  --ink:#14204A; --muted:#55688F; --off:#B7CDE0; --off-lip:#98B3CA;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#24222E;font-family:'Nunito',ui-rounded,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+.board{padding:44px 52px 60px;display:flex;flex-wrap:wrap;gap:44px 40px}
+.intro{width:100%;color:#fff}
+.intro h1{margin:0 0 6px;font-size:34px;font-weight:900}
+.intro p{margin:0;font-size:17px;font-weight:700;color:#C9C3E6;max-width:900px}
+.cap{color:#fff;font-weight:800;font-size:17px;margin:0 0 14px 6px}
+.phone{width:390px;height:844px;border-radius:54px;overflow:hidden;position:relative;background:var(--bg);box-shadow:0 0 0 11px #0E0D14,0 30px 70px rgba(0,0,0,.5);display:flex;flex-direction:column}
+.status{height:54px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:6px 30px 0 46px;font-weight:800;font-size:17px}
+.homebar{position:absolute;bottom:8px;left:50%;width:136px;height:5px;border-radius:3px;background:var(--ink);transform:translateX(-50%);z-index:9}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;height:58px;border-radius:16px;font-size:17px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:#fff;background:var(--tang);box-shadow:0 5px 0 var(--tang-lip);transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(5px);box-shadow:0 0 0 var(--tang-lip)}
+.btn.off{background:var(--off);box-shadow:0 5px 0 var(--off-lip)}
+.btn.white{background:#fff;color:var(--sky-lip);box-shadow:0 0 0 2px var(--line) inset,0 5px 0 var(--line)}
+.btn.berry{background:var(--berry);box-shadow:0 5px 0 var(--berry-lip)}
+.ibtn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:var(--muted);flex:none}
+.pad{padding:0 18px}
+
+/* step bar: four chunky segments, no numbers */
+.steps{display:flex;align-items:center;gap:12px;padding:4px 14px 10px 10px;flex:none}
+.seg4{flex:1;display:flex;gap:6px}
+.seg4 i{flex:1;height:16px;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 2px var(--line);position:relative;overflow:hidden}
+.seg4 i.on{background:var(--tang);box-shadow:inset 0 -5px 0 var(--tang-lip)}
+.seg4 i.on::after{content:"";position:absolute;left:6px;right:6px;top:3px;height:3px;border-radius:2px;background:rgba(255,255,255,.55)}
+.seg4 i.half::before{content:"";position:absolute;left:0;top:0;bottom:0;width:55%;border-radius:8px;background:var(--tang);box-shadow:inset 0 -5px 0 var(--tang-lip)}
+.seg4 i.sky{background:var(--sky);box-shadow:inset 0 -5px 0 var(--sky-lip)}
+
+.card{background:#fff;border-radius:22px;box-shadow:0 0 0 2px var(--line) inset,0 5px 0 var(--line)}
+h1.t{margin:0;font-size:28px;font-weight:900;letter-spacing:-.2px}
+.label{font-size:15px;font-weight:900;color:var(--muted);margin:0 0 8px 2px}
+
+/* library */
+.hero{display:flex;gap:14px;align-items:center;padding:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px}
+.tile{background:#fff;border-radius:24px;padding:8px 8px 10px;box-shadow:0 0 0 2px var(--line) inset,0 5px 0 var(--line)}
+.tile img{display:block;width:100%;border-radius:19px}
+.tile div{font-weight:900;font-size:15.5px;padding:8px 4px 0}
+.ghost{height:186px;border-radius:24px;border:3px dashed #96C5EA;display:grid;place-items:center;color:#96C5EA}
+
+/* describe */
+.bubble{background:#fff;border-radius:18px;padding:12px 14px;font-weight:800;font-size:17px;position:relative;box-shadow:0 0 0 2px var(--line) inset,0 4px 0 var(--line)}
+.bubble::before{content:"";position:absolute;left:-9px;top:22px;width:16px;height:16px;background:#fff;transform:rotate(45deg);box-shadow:-2px 2px 0 0 var(--line);border-radius:3px}
+.area{height:150px;padding:16px 18px;font-size:21px;font-weight:800;color:#9AB0C8;line-height:1.3}
+.pic{display:flex;align-items:center;gap:12px;border:3px dashed #8CC3EC;border-radius:18px;padding:12px 14px;background:rgba(255,255,255,.55)}
+.pic .ic{width:44px;height:44px;border-radius:13px;background:var(--sky);display:grid;place-items:center;box-shadow:0 4px 0 var(--sky-lip);flex:none}
+.idea{background:#fff;border-radius:16px;padding:12px;font-weight:800;font-size:14.5px;line-height:1.25;box-shadow:0 0 0 2px var(--line) inset,0 4px 0 var(--line);display:flex;gap:10px;align-items:center}
+.idea i{font-style:normal;font-size:22px}
+
+/* building */
+.st{display:flex;align-items:center;gap:12px;font-weight:800;font-size:16.5px;padding:9px 0}
+.cir{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none}
+.cir.done{background:var(--sky);box-shadow:0 3px 0 var(--sky-lip)}
+.cir.now{border:4px solid var(--tang);border-right-color:#FFD9BE;animation:spin .8s linear infinite}
+.st.d{color:var(--muted)}
+.meter{height:18px;border-radius:9px;background:#E3F1FC;overflow:hidden}
+.meter b{display:block;height:100%;width:68%;background:var(--sky);border-radius:9px;box-shadow:inset 0 -5px 0 var(--sky-lip);position:relative}
+.meter b::after{content:"";position:absolute;left:8px;right:8px;top:4px;height:4px;border-radius:2px;background:rgba(255,255,255,.55)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.paint{animation:paint 2.4s ease-in-out infinite alternate}
+@keyframes paint{from{width:30%}to{width:78%}}
+.wiggle{animation:wig .6s ease-in-out infinite alternate;transform-origin:50% 90%}
+@keyframes wig{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+
+/* preview */
+.opt{height:44px;border-radius:14px;background:#fff;display:flex;align-items:center;padding:0 14px;font-weight:800;font-size:15.5px;color:var(--muted);box-shadow:0 0 0 2px var(--line) inset,0 4px 0 var(--line)}
+.opt.on{color:var(--tang-lip);box-shadow:0 0 0 3px var(--tang) inset,0 4px 0 var(--tang-lip);background:#FFF1E6}
+.chip{height:40px;border-radius:13px;background:#fff;display:flex;align-items:center;gap:6px;padding:0 12px;font-weight:800;font-size:14.5px;white-space:nowrap;box-shadow:0 0 0 2px var(--line) inset,0 3px 0 var(--line)}
+.turn{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;padding:7px 0}
+.turn .k{width:22px;height:22px;border-radius:7px;background:var(--sky);display:grid;place-items:center;flex:none}
+.turn span{color:var(--muted);font-weight:700;margin-left:auto;font-size:13.5px}
+.comp{display:flex;gap:10px;align-items:center}
+.field{flex:1;height:48px;border-radius:15px;background:#fff;display:flex;align-items:center;padding:0 14px;font-weight:700;font-size:16px;color:#9AB0C8;box-shadow:0 0 0 2px var(--line) inset}
+.sq{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;flex:none}
+.sq.photo{background:#fff;color:var(--sky);box-shadow:0 0 0 2px var(--line) inset,0 4px 0 var(--line)}
+.sq.send{background:var(--sky);box-shadow:0 4px 0 var(--sky-lip)}
+.sq.dim{background:var(--off);box-shadow:0 4px 0 var(--off-lip)}
+.tryhint{position:absolute;right:10px;top:-14px;background:var(--sun);color:var(--ink);font-weight:900;font-size:13px;padding:5px 10px;border-radius:10px;box-shadow:0 3px 0 var(--sun-lip)}
+
+/* saved */
+.win{background:var(--sky);color:#fff}
+.win .status{color:#fff}
+.rays{position:absolute;left:50%;top:330px;width:1000px;height:1000px;transform:translate(-50%,-50%);background:repeating-conic-gradient(rgba(255,255,255,.16) 0 8deg,transparent 8deg 16deg);-webkit-mask:radial-gradient(circle,#000 0,#000 20%,transparent 55%);mask:radial-gradient(circle,#000 0,#000 20%,transparent 55%);animation:spin 30s linear infinite}
+.conf{position:absolute;width:11px;height:19px;border-radius:4px}
+.how{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.how .h{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;font-weight:800;width:70px;text-align:center;line-height:1.15}
+.how .h b{width:52px;height:52px;border-radius:16px;background:#fff;display:grid;place-items:center;box-shadow:0 4px 0 rgba(0,0,0,.15);color:var(--sky-lip);font-size:15px;font-weight:900}
+.jump{animation:jump .9s cubic-bezier(.3,1.7,.5,1) infinite alternate}
+@keyframes jump{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+
+/* failure banner */
+.dim{filter:saturate(.7) brightness(.92)}
+.banner{position:absolute;left:0;right:0;bottom:0;background:var(--berry-tint);border-radius:30px 30px 0 0;padding:20px 18px 44px;box-shadow:0 -4px 0 #FFB9C3;animation:up .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+</style>
+</head>
+<body>
+<div class="board">
+<div class="intro">
+  <h1>B. Paint Quest</h1>
+  <p>A guided path in four steps: describe, build, try it, save. Each screen is one big card with one big button, and a chunky step bar fills as you go. Pip, a paint drop, paints your widget and takes on its accent color. Tangerine and sky on a sky-blue ground. Failure arrives as a banner that slides up from the bottom.</p>
+</div>
+
+<!-- LIBRARY -->
+<div>
+<div class="cap">Library</div>
+<div class="phone">
+  <div class="status">9:41<svg width="72" height="13" viewBox="0 0 72 13"><g fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M30 3.2a10 10 0 0 1 13 0l-1.6 1.7a7.6 7.6 0 0 0-9.8 0zM32.6 6a6.2 6.2 0 0 1 7.8 0l-1.6 1.7a3.8 3.8 0 0 0-4.6 0zM35 8.8a2.6 2.6 0 0 1 3 0L36.5 10.5z"/><rect x="47" y="1" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="49" y="3" width="18" height="7" rx="2"/></g></svg></div>
+  <div class="pad" style="padding-top:10px;padding-bottom:16px"><h1 class="t" style="font-size:32px">My widgets</h1></div>
+  <div class="pad">
+    <div class="card hero">
+      <svg width="92" height="92" viewBox="0 0 120 120" style="flex:none"><ellipse cx="60" cy="116" rx="28" ry="4" fill="#000" opacity=".12"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#D65A00" transform="translate(0 5)"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#FF7A1A"/><path d="M46 44q-8 11-9 22" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55"/><ellipse cx="49" cy="76" rx="7" ry="9" fill="#14204A"/><ellipse cx="71" cy="76" rx="7" ry="9" fill="#14204A"/><circle cx="51" cy="72" r="2.5" fill="#fff"/><circle cx="73" cy="72" r="2.5" fill="#fff"/><ellipse cx="38" cy="90" rx="6" ry="4" fill="#FF4F7A" opacity=".5"/><ellipse cx="82" cy="90" rx="6" ry="4" fill="#FF4F7A" opacity=".5"/><path d="M53 92Q60 99 67 92" stroke="#14204A" stroke-width="4.5" fill="none" stroke-linecap="round"/></svg>
+      <div style="flex:1">
+        <div style="font-size:19px;font-weight:900;line-height:1.2;margin-bottom:12px">Got an idea?<br>Let's paint it.</div>
+        <div class="btn" style="height:50px;font-size:15px"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/></svg>New widget</div>
+      </div>
+    </div>
+  </div>
+  <div class="pad" style="margin-top:26px">
+    <div class="label">Saved</div>
+    <div class="grid">
+      <div class="tile"><img src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-goal/sonnet/1/proof/sample-morning-small.png"><div>Water</div></div>
+      <div class="tile"><img src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-coffee/sonnet/1/proof/sample-morning-small.png"><div>Coffee</div></div>
+      <div class="tile"><img src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-photo/sonnet/1/proof/sample-on-a-roll-small.png"><div>Meditate</div></div>
+      <div class="tile"><img src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-blue/sonnet/1/proof/sample-first-word-small.png"><div>Word of the day</div></div>
+    </div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- LIBRARY EMPTY -->
+<div>
+<div class="cap">Library, empty</div>
+<div class="phone">
+  <div class="status">9:41<svg width="72" height="13" viewBox="0 0 72 13"><g fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M30 3.2a10 10 0 0 1 13 0l-1.6 1.7a7.6 7.6 0 0 0-9.8 0zM32.6 6a6.2 6.2 0 0 1 7.8 0l-1.6 1.7a3.8 3.8 0 0 0-4.6 0zM35 8.8a2.6 2.6 0 0 1 3 0L36.5 10.5z"/><rect x="47" y="1" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="49" y="3" width="18" height="7" rx="2"/></g></svg></div>
+  <div class="pad" style="padding-top:10px;padding-bottom:16px"><h1 class="t" style="font-size:32px">My widgets</h1></div>
+  <div class="pad">
+    <div class="card" style="padding:22px 18px 22px;text-align:center">
+      <svg class="jump" width="130" height="130" viewBox="0 0 120 120"><ellipse cx="60" cy="116" rx="28" ry="4" fill="#000" opacity=".12"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#D65A00" transform="translate(0 5)"/><path d="M92 72q16-4 18-22" stroke="#D65A00" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#FF7A1A"/><path d="M46 44q-8 11-9 22" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55"/><ellipse cx="49" cy="76" rx="7" ry="9" fill="#14204A"/><ellipse cx="71" cy="76" rx="7" ry="9" fill="#14204A"/><circle cx="51" cy="72" r="2.5" fill="#fff"/><circle cx="73" cy="72" r="2.5" fill="#fff"/><ellipse cx="38" cy="90" rx="6" ry="4" fill="#FF4F7A" opacity=".5"/><ellipse cx="82" cy="90" rx="6" ry="4" fill="#FF4F7A" opacity=".5"/><path d="M52 90Q60 102 68 90Z" fill="#14204A"/></svg>
+      <div style="font-size:24px;font-weight:900;margin-top:8px">Your home screen is waiting</div>
+      <div style="font-size:16.5px;font-weight:700;color:var(--muted);margin:6px 0 20px;line-height:1.35">Tell me an idea in plain words.<br>I'll paint you a widget.</div>
+      <div class="btn">Make my first widget</div>
+    </div>
+  </div>
+  <div class="pad" style="margin-top:26px">
+    <div class="grid">
+      <div class="ghost"><svg width="34" height="34" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div>
+      <div class="ghost"></div>
+    </div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- DESCRIBE -->
+<div>
+<div class="cap">Describe</div>
+<div class="phone">
+  <div class="status">9:41<svg width="72" height="13" viewBox="0 0 72 13"><g fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M30 3.2a10 10 0 0 1 13 0l-1.6 1.7a7.6 7.6 0 0 0-9.8 0zM32.6 6a6.2 6.2 0 0 1 7.8 0l-1.6 1.7a3.8 3.8 0 0 0-4.6 0zM35 8.8a2.6 2.6 0 0 1 3 0L36.5 10.5z"/><rect x="47" y="1" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="49" y="3" width="18" height="7" rx="2"/></g></svg></div>
+  <div class="steps"><div class="ibtn"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></div><div class="seg4"><i class="half"></i><i></i><i></i><i></i></div></div>
+  <div class="pad" style="display:flex;align-items:center;gap:14px;margin:6px 0 16px">
+    <svg width="74" height="74" viewBox="0 0 120 120" style="flex:none"><ellipse cx="60" cy="116" rx="28" ry="4" fill="#000" opacity=".12"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#D65A00" transform="translate(0 5)"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#FF7A1A"/><path d="M46 44q-8 11-9 22" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55"/><ellipse cx="49" cy="76" rx="7" ry="9" fill="#14204A"/><ellipse cx="71" cy="76" rx="7" ry="9" fill="#14204A"/><circle cx="51" cy="72" r="2.5" fill="#fff"/><circle cx="73" cy="72" r="2.5" fill="#fff"/><ellipse cx="38" cy="90" rx="6" ry="4" fill="#FF4F7A" opacity=".5"/><ellipse cx="82" cy="90" rx="6" ry="4" fill="#FF4F7A" opacity=".5"/><path d="M53 92Q60 99 67 92" stroke="#14204A" stroke-width="4.5" fill="none" stroke-linecap="round"/></svg>
+    <div class="bubble">What should your widget do?</div>
+  </div>
+  <div class="pad">
+    <div class="card area">Like: a water tracker with a big blue drop</div>
+    <div class="pic" style="margin-top:14px"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="4"/><circle cx="9" cy="10" r="1.8" fill="#fff"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg></div><div><div style="font-weight:900;font-size:16.5px">Add a picture</div><div style="font-weight:700;font-size:14.5px;color:var(--muted)">I'll match its look</div></div></div>
+    <div class="label" style="margin-top:20px">Need an idea?</div>
+    <div class="grid" style="gap:12px">
+      <div class="idea"><i>💧</i>Water tracker with a big drop</div>
+      <div class="idea"><i>📖</i>Word of the day, dark card</div>
+      <div class="idea"><i>🧘</i>Meditation streak on a photo</div>
+      <div class="idea"><i>☕</i>Coffee counter, cozy brown</div>
+    </div>
+  </div>
+  <div style="flex:1"></div>
+  <div class="pad" style="padding-bottom:44px"><div class="btn off">Build it</div></div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- BUILDING -->
+<div>
+<div class="cap">Building</div>
+<div class="phone">
+  <div class="status">9:41<svg width="72" height="13" viewBox="0 0 72 13"><g fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M30 3.2a10 10 0 0 1 13 0l-1.6 1.7a7.6 7.6 0 0 0-9.8 0zM32.6 6a6.2 6.2 0 0 1 7.8 0l-1.6 1.7a3.8 3.8 0 0 0-4.6 0zM35 8.8a2.6 2.6 0 0 1 3 0L36.5 10.5z"/><rect x="47" y="1" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="49" y="3" width="18" height="7" rx="2"/></g></svg></div>
+  <div class="steps"><div class="ibtn" style="opacity:.35"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></div><div class="seg4"><i class="on"></i><i class="half"></i><i></i><i></i></div></div>
+  <div style="position:relative;height:250px;margin-top:10px">
+    <div style="position:absolute;left:24px;top:40px;width:268px;height:126px;border-radius:26px;border:4px dashed #8CC3EC;overflow:hidden;background:rgba(255,255,255,.4)">
+      <div style="position:absolute;left:18px;top:16px;width:60px;height:12px;border-radius:6px;background:#8CC3EC;opacity:.6"></div><div style="position:absolute;left:18px;top:38px;width:90px;height:26px;border-radius:8px;background:#8CC3EC;opacity:.6"></div><div style="position:absolute;left:18px;top:80px;width:30px;height:30px;border-radius:50%;background:#8CC3EC;opacity:.6"></div><div style="position:absolute;right:18px;bottom:16px;width:96px;height:60px;border-radius:8px;background:repeating-linear-gradient(90deg,#8CC3EC 0 9px,transparent 9px 15px);opacity:.6"></div>
+      <div class="paint" style="position:absolute;left:0;top:0;bottom:0;width:62%;overflow:hidden;background:linear-gradient(90deg,#0D2C4A,#16466E);border-radius:0 30px 30px 0"><div style="position:absolute;left:18px;top:16px;width:60px;height:12px;border-radius:6px;background:#7FD0FF"></div><div style="position:absolute;left:18px;top:38px;width:90px;height:26px;border-radius:8px;background:#fff"></div><div style="position:absolute;left:18px;top:80px;width:30px;height:30px;border-radius:50%;background:#4FC3FF"></div></div>
+    </div>
+    <svg class="wiggle" style="position:absolute;right:16px;top:70px" width="128" height="128" viewBox="0 0 120 120"><ellipse cx="60" cy="116" rx="28" ry="4" fill="#000" opacity=".12"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#D65A00" transform="translate(0 5)"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#FF7A1A"/><path d="M46 44q-8 11-9 22" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55"/><line x1="30" y1="86" x2="4" y2="52" stroke="#8A5A2B" stroke-width="7" stroke-linecap="round"/><path d="M4 52 l-4 -12 q6 -6 12 0 z" fill="#1FA4F0"/><ellipse cx="45" cy="76" rx="7" ry="9" fill="#14204A"/><ellipse cx="67" cy="76" rx="7" ry="9" fill="#14204A"/><circle cx="44" cy="72" r="2.5" fill="#fff"/><circle cx="66" cy="72" r="2.5" fill="#fff"/><path d="M50 93h12" stroke="#14204A" stroke-width="4.5" stroke-linecap="round"/><circle cx="62" cy="96" r="4" fill="#FF4F7A"/></svg>
+    <div style="position:absolute;left:30px;top:186px;width:10px;height:10px;border-radius:50%;background:var(--tang)"></div>
+    <div style="position:absolute;left:60px;top:200px;width:7px;height:7px;border-radius:50%;background:var(--sky)"></div>
+  </div>
+  <div class="pad" style="text-align:center;margin-top:-6px;margin-bottom:16px"><h1 class="t">Painting your widget</h1><div style="font-weight:700;color:var(--muted);font-size:16px;margin-top:4px">This takes about 40 seconds</div></div>
+  <div class="pad">
+    <div class="card" style="padding:12px 16px 16px">
+      <div class="st d"><div class="cir done"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Writing your widget</div>
+      <div class="st d"><div class="cir done"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Checking it fits</div>
+      <div class="st"><div class="cir now"></div>Fixing a layout problem (2 of 3)</div>
+      <div class="meter" style="margin-top:8px"><b></b></div>
+    </div>
+  </div>
+  <div style="flex:1"></div>
+  <div class="pad" style="padding-bottom:44px"><div class="btn white">Cancel</div></div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- PREVIEW AND REFINE -->
+<div>
+<div class="cap">Preview and refine</div>
+<div class="phone">
+  <div class="status">9:41<svg width="72" height="13" viewBox="0 0 72 13"><g fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M30 3.2a10 10 0 0 1 13 0l-1.6 1.7a7.6 7.6 0 0 0-9.8 0zM32.6 6a6.2 6.2 0 0 1 7.8 0l-1.6 1.7a3.8 3.8 0 0 0-4.6 0zM35 8.8a2.6 2.6 0 0 1 3 0L36.5 10.5z"/><rect x="47" y="1" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="49" y="3" width="18" height="7" rx="2"/></g></svg></div>
+  <div class="steps"><div class="ibtn"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></div><div class="seg4"><i class="on"></i><i class="on"></i><i class="half"></i><i></i></div></div>
+  <div class="pad" style="margin:4px 0 12px"><h1 class="t">Try it out!</h1></div>
+  <div class="pad" style="position:relative">
+    <div class="tryhint">Tap the plus</div>
+    <img style="display:block;width:100%;border-radius:24px" src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-goal/sonnet/1/proof/sample-morning-medium.png">
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <img style="display:block;width:146px;height:146px;border-radius:24px" src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-goal/sonnet/1/proof/sample-morning-small.png">
+      <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+        <div class="opt">Empty</div><div class="opt on">Morning</div><div class="opt">Goal met</div>
+      </div>
+    </div>
+  </div>
+  <div class="pad" style="margin-top:18px">
+    <div class="card" style="padding:4px 14px">
+      <div class="turn"><div class="k"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Water tracker, big blue drop<span>Built</span></div>
+      <div class="turn" style="border-top:2px solid #E6F2FB"><div class="k"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>Make the number bigger<span>Done</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin:12px 0 12px;overflow:hidden">
+      <div class="chip">🎨 Make it blue</div><div class="chip">📊 Add a chart</div><div class="chip">✨ Nicer</div>
+    </div>
+    <div class="comp"><div class="sq photo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="4"/><circle cx="9" cy="10" r="1.8" fill="currentColor"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg></div><div class="field">Change something</div><div class="sq dim"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 19V6M6 11l6-6 6 6" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div></div>
+  </div>
+  <div style="flex:1"></div>
+  <div class="pad" style="padding-bottom:40px"><div class="btn">Save widget</div></div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- SAVED -->
+<div>
+<div class="cap">Saved</div>
+<div class="phone win">
+  <div class="rays"></div>
+  <div class="conf" style="left:44px;top:110px;background:var(--sun);transform:rotate(-25deg)"></div>
+  <div class="conf" style="left:110px;top:76px;background:var(--tang);transform:rotate(35deg);width:10px;height:10px;border-radius:50%"></div>
+  <div class="conf" style="left:290px;top:90px;background:#fff;transform:rotate(55deg)"></div>
+  <div class="conf" style="left:340px;top:200px;background:var(--sun);transform:rotate(-40deg);width:10px;height:10px;border-radius:50%"></div>
+  <div class="conf" style="left:26px;top:300px;background:var(--tang);transform:rotate(70deg)"></div>
+  <div class="conf" style="left:352px;top:340px;background:#fff;transform:rotate(15deg)"></div>
+  <div class="conf" style="left:210px;top:66px;background:var(--tang);transform:rotate(-60deg);height:13px"></div>
+  <div class="status">9:41<svg width="72" height="13" viewBox="0 0 72 13"><g fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M30 3.2a10 10 0 0 1 13 0l-1.6 1.7a7.6 7.6 0 0 0-9.8 0zM32.6 6a6.2 6.2 0 0 1 7.8 0l-1.6 1.7a3.8 3.8 0 0 0-4.6 0zM35 8.8a2.6 2.6 0 0 1 3 0L36.5 10.5z"/><rect x="47" y="1" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="49" y="3" width="18" height="7" rx="2"/></g></svg></div>
+  <div class="steps" style="padding-left:18px"><div class="seg4"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div></div>
+  <div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;padding:22px 22px 0">
+    <svg class="jump" width="140" height="140" viewBox="0 0 120 120"><ellipse cx="60" cy="116" rx="26" ry="4" fill="#000" opacity=".18"/><path d="M28 78q-16-6-18-26" stroke="#0A6FA8" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M92 78q16-6 18-26" stroke="#0A6FA8" stroke-width="8" stroke-linecap="round" fill="none"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#0A6FA8" transform="translate(0 5)"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#5CC8FF"/><path d="M46 44q-8 11-9 22" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".6"/><path d="M41 76q8-10 16 0" stroke="#14204A" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M63 76q8-10 16 0" stroke="#14204A" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="38" cy="88" rx="6" ry="4" fill="#FF4F7A" opacity=".6"/><ellipse cx="82" cy="88" rx="6" ry="4" fill="#FF4F7A" opacity=".6"/><path d="M50 86Q60 104 70 86Z" fill="#14204A"/><path d="M55 93Q60 99 65 93" fill="#FF4F7A"/></svg>
+    <div style="font-size:36px;font-weight:900;margin-top:6px;text-shadow:0 3px 0 rgba(0,0,0,.12)">Widget saved!</div>
+    <div style="font-size:17px;font-weight:700;opacity:.9;margin-top:2px">Pip matched your new colors.</div>
+    <img class="jump" style="width:330px;border-radius:24px;margin-top:22px;box-shadow:0 7px 0 rgba(0,0,0,.18);animation-delay:.15s" src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-goal/sonnet/1/proof/sample-goal-met-medium.png">
+    <div style="font-weight:900;font-size:16.5px;margin:26px 0 12px;align-self:flex-start">Put it on your home screen</div>
+    <div class="how" style="width:100%">
+      <div class="h"><b><svg width="26" height="26" viewBox="0 0 24 24"><path d="M9 11V5.5a2 2 0 0 1 4 0V11m0-1.5a2 2 0 0 1 4 0V12m0-1a2 2 0 0 1 4 0v4a7 7 0 0 1-7 7h-1a7 7 0 0 1-5.6-2.8L4 16.5a2 2 0 0 1 3.2-2.4L9 16" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></b>Hold the home screen</div>
+      <svg width="14" height="14" viewBox="0 0 24 24" style="margin-top:-30px"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="h"><b>Edit</b>Tap Edit</div>
+      <svg width="14" height="14" viewBox="0 0 24 24" style="margin-top:-30px"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="h"><b><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/></svg></b>Add Widget</div>
+      <svg width="14" height="14" viewBox="0 0 24 24" style="margin-top:-30px"><path d="M9 5l7 7-7 7" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="h"><b style="background:var(--tang);color:#fff">W</b>Pick Widgie</div>
+    </div>
+  </div>
+  <div style="padding:0 18px 44px;position:relative"><div class="btn white">Continue</div></div>
+  <div class="homebar" style="background:#fff"></div>
+</div>
+</div>
+
+<!-- FAILURE -->
+<div>
+<div class="cap">Failure</div>
+<div class="phone">
+  <div class="status">9:41<svg width="72" height="13" viewBox="0 0 72 13"><g fill="currentColor"><rect x="0" y="8" width="3" height="5" rx="1"/><rect x="5" y="5.5" width="3" height="7.5" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0.5" width="3" height="12.5" rx="1"/><path d="M30 3.2a10 10 0 0 1 13 0l-1.6 1.7a7.6 7.6 0 0 0-9.8 0zM32.6 6a6.2 6.2 0 0 1 7.8 0l-1.6 1.7a3.8 3.8 0 0 0-4.6 0zM35 8.8a2.6 2.6 0 0 1 3 0L36.5 10.5z"/><rect x="47" y="1" width="22" height="11" rx="3.5" fill="none" stroke="currentColor" stroke-opacity=".4"/><rect x="49" y="3" width="18" height="7" rx="2"/></g></svg></div>
+  <div class="steps"><div class="ibtn"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/></svg></div><div class="seg4"><i class="on"></i><i class="on"></i><i class="half"></i><i></i></div></div>
+  <div class="dim">
+  <div class="pad" style="margin:4px 0 12px"><h1 class="t">Try it out!</h1></div>
+  <div class="pad">
+    <img style="display:block;width:100%;border-radius:24px" src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-goal/sonnet/1/proof/sample-morning-medium.png">
+    <div style="display:flex;gap:14px;margin-top:14px">
+      <img style="display:block;width:146px;height:146px;border-radius:24px" src="/Users/krutikpatel/Developer/kp/Widgie-p2/Engine/.artifacts/evals/p2-refine-2/refine-goal/sonnet/1/proof/sample-morning-small.png">
+      <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+        <div class="opt">Empty</div><div class="opt on">Morning</div><div class="opt">Goal met</div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div class="banner">
+    <div style="display:flex;gap:14px;align-items:center">
+      <svg width="84" height="84" viewBox="0 0 120 120" style="flex:none"><ellipse cx="60" cy="116" rx="28" ry="4" fill="#000" opacity=".12"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#D65A00" transform="translate(0 5)"/><path d="M60 10C60 10 96 52 96 76A36 36 0 0 1 24 76C24 52 60 10 60 10Z" fill="#FF7A1A"/><path d="M46 44q-8 11-9 22" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none" opacity=".55"/><path d="M40 65l14-6M80 65l-14-6" stroke="#14204A" stroke-width="4.5" stroke-linecap="round"/><circle cx="49" cy="77" r="6" fill="#14204A"/><circle cx="71" cy="77" r="6" fill="#14204A"/><ellipse cx="60" cy="96" rx="6" ry="5" fill="#14204A"/><path d="M98 40q6 10 0 15q-6-5 0-15z" fill="#1FA4F0"/></svg>
+      <div><div style="font-size:20px;font-weight:900;color:var(--berry-lip);line-height:1.2">Couldn't reach the widget builder</div><div style="font-size:16px;font-weight:700;margin-top:4px;line-height:1.3">Check that the bridge is running. Your last widget is safe.</div></div>
+    </div>
+    <div class="btn berry" style="margin-top:18px">Try again</div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+</div>
+</body>
+</html>
