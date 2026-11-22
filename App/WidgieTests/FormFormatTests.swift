@@ -43,7 +43,7 @@ import WidgetEngine
             fields: [
                 InputField(id: "when", label: "When", kind: .date, value: nil),
                 InputField(id: "done", label: "Done", kind: .toggle, value: nil),
-            ], format: french, now: now)
+            ], edits: false, format: french, now: now)
 
         let saved = draft.submission()
         #expect(saved.input == ["when": .date(year: 2026, month: 11, day: 22), "done": .toggle(false)])
@@ -53,11 +53,30 @@ import WidgetEngine
     @Test func anUntouchedStoredNumberIsLeftOutAndAnEditedOneIsRead() {
         var draft = FormDraft(
             fields: [InputField(id: "amount", label: "Amount", kind: .number, value: .number(0.12345678901234566))],
-            format: french)
+            edits: true, format: french)
         #expect(draft.text["amount"] == "0,123456789012346")
         #expect(draft.submission().input.isEmpty)
 
         draft.text["amount"] = "2,5"
         #expect(draft.submission().input == ["amount": .number(2.5)])
+    }
+
+    /// A home-screen tap can write the row while its form is open, so Save must not send back what it showed.
+    @Test func anEditFormSendsOnlyTheFieldsThePersonChanged() throws {
+        var paris = Calendar(identifier: .gregorian)
+        paris.timeZone = french.timeZone
+        var draft = FormDraft(
+            fields: [
+                InputField(id: "title", label: "Title", kind: .text, value: .text("Oat milk")),
+                InputField(id: "done", label: "Done", kind: .toggle, value: .toggle(false)),
+                InputField(id: "due", label: "Due", kind: .date, value: .date(year: 2026, month: 11, day: 20)),
+                InputField(id: "seen", label: "Seen", kind: .toggle, value: nil),
+            ], edits: true, format: french)
+        #expect(draft.submission().input.isEmpty)
+        #expect(draft.submission().invalid.isEmpty)
+
+        draft.toggles["done"] = true
+        draft.dates["due"] = try #require(paris.date(from: DateComponents(year: 2026, month: 11, day: 24, hour: 15)))
+        #expect(draft.submission().input == ["done": .toggle(true), "due": .date(year: 2026, month: 11, day: 24)])
     }
 }
