@@ -72,4 +72,16 @@ import WidgetEngine
         #expect(await RenderTool.run([water, "small", png.path(percentEncoded: false), "--bogus"]) == 2)
         #expect(await RenderTool.run(["--help"]) == 0)
     }
+
+    @Test func loopModeExitsTwoWhenTheBridgeDoesNotAnswerOrTheArgumentsAreWrong() async throws {
+        let out = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
+            .path(percentEncoded: false)
+        let refused = "http://127.0.0.1:9"
+        #expect(await RenderTool.run(["loop", "a water tracker", out, "--bridge", refused]) == 2)
+        #expect(!FileManager.default.fileExists(atPath: out))
+        #expect(await RenderTool.run(["loop", "a water tracker", out, "--bridge", "localhost"]) == 2)
+        #expect(await RenderTool.run(["loop", "a water tracker", out, "--image", "drop.gif"]) == 2)
+        #expect(await RenderTool.run(["loop", "a water tracker", out, "--date", "2026-11-18T09:00:00Z"]) == 2)
+        #expect(await RenderTool.run(["loop", "a water tracker"]) == 2)
+    }
 }

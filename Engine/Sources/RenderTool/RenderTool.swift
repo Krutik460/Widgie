@@ -26,6 +26,8 @@ struct RenderTool {
             return await render.run()
         case .proof(let proof):
             return await proof.run()
+        case .loop(let loop):
+            return await loop.run()
         }
     }
 
@@ -36,6 +38,7 @@ struct RenderTool {
           render-tool <widget dir> <small|medium> <out.png> [--sample <name> | --full | --state <rows.json>]
                       [--appearance <light|dark|tinted>] [--date <ISO 8601>] [--time-zone <identifier>]
           render-tool proof <widget dir> <out dir> [--date <ISO 8601>] [--time-zone <identifier>]
+          render-tool loop <words> <out dir> [--image <png|jpg>] [--bridge <url>] [--time-zone <identifier>]
           render-tool --help
 
         A widget dir holds widget.json and, when the widget has images, assets/<asset id>.png or .jpg.
@@ -58,6 +61,15 @@ struct RenderTool {
             <state>-<family>-<tinted|dark>.png   one per tinted or dark render.
             report.json            the verdict and every render, described below.
           Prints one line on stdout: "accepted", or the verdict line the builder would send the model.
+
+        LOOP MODE
+          Runs the app's build loop against the dev bridge (Engine/Evals/bridge.py, default
+          --bridge http://127.0.0.1:8787): sends <words>, and the picture when --image is given, builds
+          the reply into a fresh engine in a temporary folder, and sends each rejection back as a repair,
+          at most three attempts in all. Prints each step on stderr with the seconds since the start,
+          then the seconds each attempt spent with the model and in the build. Prints one line on
+          stdout: "accepted in <n> attempts", or "gave up after 3 attempts: " and the last verdict. On
+          acceptance, writes the saved widget to <out dir> as a widget dir.
 
         REPORT (report.json, keys sorted, two-space indent)
           {
@@ -93,8 +105,8 @@ struct RenderTool {
 
         EXIT STATUS
           0  the builder would accept the widget (render mode: this render passes)
-          1  the builder would reject it; the verdict says why
-          2  usage error, or a file could not be read or written
+          1  the builder would reject it; the verdict says why (loop mode: it gave up)
+          2  usage error, a file could not be read or written, or the bridge did not answer
         """
 }
 
@@ -102,6 +114,7 @@ private enum Command {
     case help
     case render(Render)
     case proof(ProofRun)
+    case loop(LoopRun)
 
     init(_ arguments: [String]) throws(Usage) {
         var options = Options(arguments)
@@ -109,8 +122,12 @@ private enum Command {
             self = .help
             return
         }
-        let date = try options.date()
         let (calendar, zone) = try options.calendar()
+        if options.positional.first == "loop" {
+            self = .loop(try LoopRun(&options, calendar: calendar))
+            return
+        }
+        let date = try options.date()
         if options.positional.first == "proof" {
             try options.done(positionals: 3)
             self = .proof(
@@ -332,6 +349,132 @@ private struct ProofRun {
         used.insert(candidate)
         return candidate
     }
+}
+
+private struct LoopRun {
+    let words: String
+    let output: URL
+    let image: Attachment?
+    let bridge: Bridge
+    let calendar: Calendar
+
+    init(_ options: inout Options, calendar: Calendar) throws(Usage) {
+        let image = try options.value("--image")
+        let bridge = try options.value("--bridge") ?? "http://127.0.0.1:8787"
+        try options.done(positionals: 3)
+        guard let url = URL(string: bridge), url.scheme == "http" || url.scheme == "https" else {
+            throw Usage(line: "--bridge must be a URL like http://127.0.0.1:8787, not \"\(bridge)\"")
+        }
+        if let image {
+            let types = ["png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg"]
+            guard let mime = types[URL(filePath: image).pathExtension.lowercased()],
+                let bytes = FileManager.default.contents(atPath: image)
+            else { throw Usage(line: "the image \"\(image)\" must be a readable PNG or JPEG") }
+            self.image = Attachment(mime: mime, bytes: bytes)
+        } else {
+            self.image = nil
+        }
+        words = options.positional[1]
+        output = URL(filePath: options.positional[2])
+        self.bridge = Bridge(url: url)
+        self.calendar = calendar
+    }
+
+    func run() async -> Int32 {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-loop-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let engine = Engine(directory: directory, calendar: calendar)
+        let started = ContinuousClock.now
+        let (marks, sink) = AsyncStream.makeStream(of: (step: BuildStep, at: ContinuousClock.Instant).self)
+        let outcome: LoopOutcome
+        do {
+            outcome = try await engine.build(words, image: image, model: bridge) { step in
+                let now = ContinuousClock.now
+                sink.yield((step, now))
+                standardError(String(format: "%7.2f s  ", (now - started) / .seconds(1)) + describe(step))
+            }
+        } catch let error as EngineError {
+            standardError("error: \(error.message)")
+            return 2
+        } catch let error as BridgeFailure {
+            standardError("error: the bridge failed: \(error.description)")
+            return 2
+        } catch {
+            standardError(
+                "error: the bridge at \(bridge.url.absoluteString) did not answer: \(error.localizedDescription)")
+            return 2
+        }
+        let ended = ContinuousClock.now
+        sink.finish()
+        var steps: [(step: BuildStep, at: ContinuousClock.Instant)] = []
+        for await mark in marks { steps.append(mark) }
+        var model: [String] = []
+        var build: [String] = []
+        for (index, mark) in steps.enumerated() {
+            let seconds = String(
+                format: "%.2f s", ((index + 1 < steps.count ? steps[index + 1].at : ended) - mark.at) / .seconds(1))
+            if case .checking = mark.step { build.append(seconds) } else { model.append(seconds) }
+        }
+        standardError("model \(model.joined(separator: ", ")); build \(build.joined(separator: ", "))")
+        switch outcome {
+        case .accepted(let id, let attempts):
+            let saved: WidgetSource?
+            do throws(EngineError) {
+                saved = try engine.source(of: id)
+            } catch {
+                standardError("error: \(error.message)")
+                return 2
+            }
+            do throws(Rejected) {
+                try saved?.write(to: output)
+            } catch {
+                standardError("error: \(error.line)")
+                return 2
+            }
+            print("accepted in \(attempts) attempt\(attempts == 1 ? "" : "s")")
+            return 0
+        case .gaveUp(let line, let attempts):
+            print("gave up after \(attempts) attempts: \(line)")
+            return 1
+        }
+    }
+
+    private func describe(_ step: BuildStep) -> String {
+        switch step {
+        case .writing(let attempt): "writing, attempt \(attempt)"
+        case .checking(let attempt): "checking, attempt \(attempt)"
+        case .repairing(let attempt, let line): "repairing, attempt \(attempt): \(line)"
+        }
+    }
+}
+
+/// The dev bridge: `POST /v1/reply` with a `ModelRequest`, `{"reply": text}` back, or `{"error": line}` with a
+/// status other than 200.
+private struct Bridge: WidgetModel {
+    let url: URL
+
+    func reply(to request: ModelRequest) async throws -> String {
+        var post = URLRequest(url: url.appending(path: "v1/reply"), timeoutInterval: 120)
+        post.httpMethod = "POST"
+        post.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        post.httpBody = try JSONEncoder().encode(request)
+        let (data, response) = try await URLSession.shared.data(for: post)
+        let body = try? JSONDecoder().decode(Body.self, from: data)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200, let reply = body?.reply else {
+            throw BridgeFailure(description: body?.error ?? "status \(status) with no reply")
+        }
+        return reply
+    }
+
+    private struct Body: Decodable {
+        let reply: String?
+        let error: String?
+    }
+}
+
+private struct BridgeFailure: Error, CustomStringConvertible {
+    let description: String
 }
 
 /// report.json. Optional values encode as null, so every key is always present.
