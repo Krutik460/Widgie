@@ -175,8 +175,8 @@ package final class RowStore: Sendable {
     /// keep the tables and fields of the widget's head (`Spec.checkCompatible(replacing:)`), even a head
     /// another device saved that is not proved here yet, and a head this device cannot read refuses it. It
     /// must agree on field kinds with every other live widget bound to one of its datasets, both its head and
-    /// the revision it draws (`sharers(of:)`), and keep the kinds of the cells already stored there
-    /// (`storedKinds(of:)`). Throws when `key` names no live widget.
+    /// the revision it draws, and keep the kinds of the cells already stored there (`storedKinds(of:)`).
+    /// Throws when `key` names no live widget.
     package func refusal(of spec: Spec, replacing key: WidgetKey) throws(StoreError) -> String? {
         try read { db in try Rows.refusal(of: spec, replacing: key, db, missing: "no widget \(key.raw) to replace") }
     }
@@ -237,15 +237,10 @@ package final class RowStore: Sendable {
         try read { db in try Rows.dataset(of: key, table: table.raw, db) }
     }
 
-    /// Every other live widget that reads a dataset a table of `key` is bound to, with the two table ids.
-    /// The builder checks field kinds against each, so widgets sharing rows agree on what a value means.
-    package func sharers(of key: WidgetKey) throws(StoreError) -> [Sharer] {
-        try read { db in try Rows.sharers(of: key, db) }
-    }
-
     /// The kinds of the cells already stored in the live rows of each dataset a table of `key` is bound to,
     /// by table id and field id. They come from every writer, deleted widgets and other devices included, so
-    /// the builder checks a new kind against them too. A field with no cells is absent and may change kind.
+    /// `refusal(of:replacing:)` checks a new kind against them too. A field with no cells is absent and may
+    /// change kind.
     package func storedKinds(of key: WidgetKey) throws(StoreError) -> [String: [String: Set<Spec.FieldKind>]] {
         try read { db in try Rows.storedKinds(of: key, db) }
     }
@@ -681,37 +676,36 @@ private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database, mi
     } catch {
         return "the widget's newest version cannot be read on this device (\(error.line)), so it cannot be replaced yet"
     }
-    var sharedHeads: [(table: String, spec: Spec, as: String)] = []
+    var sharers: [(table: String, specs: [Spec], as: String)] = []
     for row in try Row.fetchAll(
         db,
         sql: """
-            SELECT mine.tbl AS mine, theirs.tbl AS theirs, r.body
+            SELECT mine.tbl AS mine, theirs.tbl AS theirs, head.body AS head,
+                CASE WHEN drawn.digest != w.head THEN drawn.body END AS drawn
             FROM binding mine
             JOIN binding theirs ON theirs.dataset = mine.dataset AND theirs.widget != mine.widget
             JOIN widget w ON w.key = theirs.widget AND w.deleted IS NULL
-            LEFT JOIN revision r ON r.digest = w.head
+            LEFT JOIN revision head ON head.digest = w.head
+            LEFT JOIN revision drawn ON drawn.digest = \(StoredWidget.drawn)
             WHERE mine.widget = ?
             ORDER BY w.created_at, mine.tbl
             """, arguments: [key.raw])
     {
+        // A sharer drawing an older revision runs its taps as that revision, and a restore can leave it
+        // declaring a kind its head does not.
+        let drawn = (row["drawn"] as Data?).flatMap { try? Spec.parse($0) }
         do throws(Diagnostic) {
-            sharedHeads.append((row["mine"], try parsed(row["body"]), row["theirs"]))
+            sharers.append((row["mine"], [try parsed(row["head"])] + (drawn.map { [$0] } ?? []), row["theirs"]))
         } catch {
             return "a widget sharing this data cannot be read on this device (\(error.line)), "
                 + "so this one cannot be replaced yet"
         }
     }
-    let sharers = try sharers(of: key, db)
     let stored = try storedKinds(of: key, db)
     do throws(Diagnostic) {
         try spec.checkCompatible(replacing: head)
-        for sharer in sharedHeads {
-            try spec.checkCompatible(sharer.table, with: sharer.spec, table: sharer.as)
-        }
-        // A sharer drawing an older revision runs its taps as that revision, and a restore can leave it
-        // declaring a kind its head does not.
         for sharer in sharers {
-            try spec.checkCompatible(sharer.table, with: sharer.widget.spec, table: sharer.as)
+            for theirs in sharer.specs { try spec.checkCompatible(sharer.table, with: theirs, table: sharer.as) }
         }
         for (table, kinds) in stored.sorted(by: { $0.key < $1.key }) {
             try spec.checkCompatible(table, holding: kinds)
@@ -726,23 +720,6 @@ private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database, mi
 private func parsed(_ body: Data?) throws(Diagnostic) -> Spec {
     guard let body else { throw Diagnostic("its revision has not arrived") }
     return try Spec.parse(body)
-}
-
-private func sharers(of key: WidgetKey, _ db: Database) throws -> [Sharer] {
-    try Row.fetchAll(
-        db,
-        sql: """
-            SELECT mine.tbl AS mine, theirs.tbl AS theirs, w.key, r.digest, w.created_at, r.body
-            FROM binding mine
-            JOIN binding theirs ON theirs.dataset = mine.dataset AND theirs.widget != mine.widget
-            JOIN widget w ON w.key = theirs.widget AND w.deleted IS NULL
-            JOIN revision r ON r.digest = \(StoredWidget.drawn)
-            WHERE mine.widget = ?
-            ORDER BY w.created_at, mine.tbl
-            """, arguments: [key.raw]
-    ).compactMap { row in
-        (try? StoredWidget(row: row)).map { Sharer(table: row["mine"], widget: $0, as: row["theirs"]) }
-    }
 }
 
 private func storedKinds(of key: WidgetKey, _ db: Database) throws -> [String: [String: Set<Spec.FieldKind>]] {
@@ -845,13 +822,6 @@ package struct StoredWidget: Sendable {
         self.revision = revision
         createdAt = date(row["created_at"])
     }
-}
-
-/// Another live widget bound to the same dataset as `table` of the widget asked about, under its own `as` id.
-package struct Sharer: Sendable {
-    package let table: String
-    package let widget: StoredWidget
-    package let `as`: String
 }
 
 package struct Revision: Sendable, Equatable {
