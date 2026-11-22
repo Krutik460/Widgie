@@ -15,8 +15,7 @@ public final class Engine: Sendable {
     /// by that call (a fallback face, or a thrown `EngineError`), and the next call tries again.
     ///
     /// `onCommit` runs after every committed write this engine makes: a tap, a form, a build, a restore, a
-    /// delete. The app passes a WidgetKit reload, so no call site can forget one. The extension passes
-    /// nothing, because WidgetKit reloads after an intent on its own.
+    /// delete. The app and the extension pass a WidgetKit reload, so no call site can forget one.
     public convenience init(
         directory: URL, calendar: Calendar = .autoupdatingCurrent, onCommit: (@Sendable () -> Void)? = nil
     ) {
