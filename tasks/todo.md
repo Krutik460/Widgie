@@ -387,11 +387,13 @@ What was built.
 - [ ] Backend endpoint that forwards the request and image to our own model. The build loop itself runs in the app, because fit can only be measured where SwiftUI runs.
 - [ ] App flow: describe in words or attach a reference image, live preview, refine by chat ("make it blue"). Plan in `tasks/phase-2-app-flow.md`
   - [ ] Refine misses seen on the P2 contact sheets (`Engine/.artifacts/evals/p2-refine-1`, `p2-refine-2`):
-    - [ ] "track coffee instead of water": both models in both runs keep `glasses` and relabel it Coffee instead of adding a table, so past water rows count as coffee. No rows are lost.
+    - [x] "track coffee instead of water": both models in both runs keep `glasses` and relabel it Coffee instead of adding a table, so past water rows count as coffee. No rows are lost. Fixed by the coffee example in the refine section of `build-prompt.md` and in `blocks.md`. In `p2-refine-3` and `p2-refine-4` both models add `cups`, point the queries, actions, and samples at it, and keep `glasses`, and so do 6 more coffee trials. `run.py`'s table check passes 9 of 9 refines on both models in both runs.
     - [ ] "add a weekly chart": Haiku adds it to medium only in both runs and cuts the fourth title to "Book flights for the weddi...".
     - [ ] "add a weekly chart": Sonnet's small drops from three rows to two to fit it in both runs. Run 2's small chart has no weekday labels, and run 1 shrinks the full-state titles.
     - [ ] "use a handwriting font": the fit repair shrinks long titles in the full state, to tiny text on Haiku run 1 and Sonnet in both runs. Sonnet also drops small's second title line.
     - [ ] "bigger number": Sonnet run 2 also shrinks "/ 8" to a small suffix. Haiku run 1's bump is barely visible.
+    - [ ] "make it nicer": Haiku needs one or two fit repairs in 4 of 4 tries on the current prompt, one of which failed, and in 2 of 3 on the prompt before the coffee example. The lines name the definition or a title in medium. Run 4's Haiku also cuts the small header to "WORD OF THE...".
+    - [ ] "track coffee instead of water": Haiku's coffee in `p2-refine-4` draws a muted brown plus button that reads as disabled.
   - [ ] Refine follow-ups from the PR 4 review:
     - [ ] A widget holds at most 8 tables of 16 fields, and a refine can never drop a table or a field, so repeated "track X instead" refines can get stuck at the cap, and a person cannot delete a tracker's history.
     - [ ] `run.py`: `prepare_before` reuses a stale `before/` after a base fixture changes, the summary prints zero rows for groups the run did not select, and `--group` on an existing run name overwrites `results.json` with only that group.
