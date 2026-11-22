@@ -27,6 +27,13 @@ extension Engine {
     /// 6. `store.save`: files first, then the revision, the head move, and a new dataset for each table that
     ///    has none. `onCommit` runs.
     public func build(_ source: WidgetSource, replacing: WidgetID? = nil) async throws(EngineError) -> BuildOutcome {
+        try await build(source, replacing: replacing, at: .now)
+    }
+
+    /// `build` with the proof drawn at `date`, so the render tool's refine verdict is the same on every run.
+    package func build(_ source: WidgetSource, replacing: WidgetID?, at date: Date) async throws(EngineError)
+        -> BuildOutcome
+    {
         let store = try self.store()
         let spec: Spec
         do throws(Diagnostic) {
@@ -70,7 +77,7 @@ extension Engine {
         }
         let zoned = spec.fillingTimeZone(calendar.timeZone)
         let matrix = try await prove(
-            zoned, images: images, today: Today(at: .now, calendar: calendar), sandbox: sandbox,
+            zoned, images: images, today: Today(at: date, calendar: calendar), sandbox: sandbox,
             stopAtFirstFailure: true)
         if let verdict = matrix.verdict { return .rejected(verdict) }
         do throws(StoreError) {

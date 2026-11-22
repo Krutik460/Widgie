@@ -28,6 +28,8 @@ struct RenderTool {
             return await proof.run()
         case .loop(let loop):
             return await loop.run()
+        case .refine(let refine):
+            return await refine.run()
         }
     }
 
@@ -39,6 +41,8 @@ struct RenderTool {
                       [--appearance <light|dark|tinted>] [--date <ISO 8601>] [--time-zone <identifier>]
           render-tool proof <widget dir> <out dir> [--date <ISO 8601>] [--time-zone <identifier>]
           render-tool loop <words> <out dir> [--image <png|jpg>] [--bridge <url>] [--time-zone <identifier>]
+          render-tool refine <old widget dir> <new widget dir> <out dir> [--date <ISO 8601>]
+                      [--time-zone <identifier>]
           render-tool --help
 
         A widget dir holds widget.json and, when the widget has images, assets/<asset id>.png or .jpg.
@@ -70,6 +74,17 @@ struct RenderTool {
           then the seconds each attempt spent with the model and in the build. Prints one line on
           stdout: "accepted in <n> attempts", or "gave up after 3 attempts: " and the last verdict. On
           acceptance, writes the saved widget to <out dir> as a widget dir.
+
+        REFINE MODE
+          Runs what the app runs when a person refines a widget. Builds the old widget into a scratch
+          engine, then builds the new one in its place with the builder's replacing check: every table
+          id kept, every surviving field's kind kept, then the full proof. Writes into <out dir>:
+            current/               the old widget as the app sends it to the model to refine: the stored
+                                   source, widget.json and assets/, with digests and time zone filled in.
+            the PNGs and report.json of proof mode, for the widget that would draw: the saved one when
+                                   the builder accepts the new widget, else the new widget as sent.
+          Prints one line on stdout: "accepted", or the verdict line the builder would send the model.
+          The report's verdict is that line. An old widget the builder rejects is an error.
 
         REPORT (report.json, keys sorted, two-space indent)
           {
@@ -115,6 +130,7 @@ private enum Command {
     case render(Render)
     case proof(ProofRun)
     case loop(LoopRun)
+    case refine(RefineRun)
 
     init(_ arguments: [String]) throws(Usage) {
         var options = Options(arguments)
@@ -134,6 +150,14 @@ private enum Command {
                 ProofRun(
                     widget: URL(filePath: options.positional[1]), output: URL(filePath: options.positional[2]),
                     date: date, calendar: calendar, zone: zone))
+            return
+        }
+        if options.positional.first == "refine" {
+            try options.done(positionals: 4)
+            self = .refine(
+                RefineRun(
+                    old: URL(filePath: options.positional[1]), new: URL(filePath: options.positional[2]),
+                    output: URL(filePath: options.positional[3]), date: date, calendar: calendar, zone: zone))
             return
         }
         let sample = try options.value("--sample")
@@ -287,68 +311,137 @@ private struct ProofRun {
             standardError("error: \(error.message)")
             return 2
         }
-        var used: Set<String> = []
-        var renders: [Report.Render] = []
-        for render in matrix.renders {
-            let suffix = render.appearance == .light ? "" : "-\(render.appearance.rawValue)"
-            switch render.outcome {
-            case .success(let proof):
-                let file = unique("\(slug(render.state))-\(render.family.rawValue)\(suffix)", in: &used) + ".png"
-                renders.append(
-                    Report.Render(
-                        state: render.state, family: render.family.rawValue, appearance: render.appearance.rawValue,
-                        png: file, verdict: proof.verdict, error: nil, fit: proof.fit, bytes: proof.png))
-            case .failure(let rejected):
-                renders.append(
-                    Report.Render(
-                        state: render.state, family: render.family.rawValue, appearance: render.appearance.rawValue,
-                        png: nil, verdict: rejected.line, error: rejected.line, fit: nil, bytes: nil))
-            }
-        }
-        let report = Report(
-            date: date.formatted(.iso8601), timeZone: zone, widget: matrix.name,
-            verdict: matrix.verdict, renders: renders)
-        do {
-            try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-            for render in renders {
-                if let file = render.png, let bytes = render.bytes {
-                    try bytes.write(to: output.appending(path: file), options: .atomic)
-                }
-            }
-            try encode(report, pretty: true).write(to: output.appending(path: "report.json"), options: .atomic)
+        return write(matrix, verdict: matrix.verdict, to: output, date: date, zone: zone)
+    }
+}
+
+/// Builds the old widget into a scratch engine, then the new one with `replacing:`, as a refine runs on the
+/// phone, so the replacing check runs here exactly as it runs there.
+private struct RefineRun {
+    let old: URL
+    let new: URL
+    let output: URL
+    let date: Date
+    let calendar: Calendar
+    let zone: String
+
+    func run() async -> Int32 {
+        let before: WidgetSource
+        let after: WidgetSource
+        do throws(Rejected) {
+            before = try WidgetSource(directory: old)
+            after = try WidgetSource(directory: new)
         } catch {
-            standardError("error: \(output.path(percentEncoded: false)) could not be written: \(error)")
+            standardError("error: \(error.line)")
             return 2
         }
-        print(matrix.verdict ?? "accepted")
-        return matrix.verdict == nil ? 0 : 1
+        let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let engine = Engine(directory: directory, calendar: calendar)
+        let current: WidgetSource
+        let drawn: WidgetSource
+        let verdict: String?
+        let matrix: ProofMatrix
+        do throws(EngineError) {
+            let id: WidgetID
+            switch try await engine.build(before, replacing: nil, at: date) {
+            case .saved(let saved):
+                id = saved
+            case .rejected(let line):
+                standardError("error: the old widget is rejected: \(line)")
+                return 2
+            }
+            guard let stored = try engine.source(of: id) else {
+                standardError("error: the old widget was saved but could not be read back")
+                return 2
+            }
+            current = stored
+            switch try await engine.build(after, replacing: id, at: date) {
+            case .saved:
+                drawn = try engine.source(of: id) ?? after
+                verdict = nil
+            case .rejected(let line):
+                drawn = after
+                verdict = line
+            }
+            matrix = try await Engine.proofs(drawn, at: date, calendar: calendar)
+        } catch {
+            standardError("error: \(error.message)")
+            return 2
+        }
+        do throws(Rejected) {
+            try current.write(to: output.appending(path: "current"))
+        } catch {
+            standardError("error: \(error.line)")
+            return 2
+        }
+        return write(matrix, verdict: verdict, to: output, date: date, zone: zone)
     }
+}
 
-    /// "sample-goal-met" for the sample "goal met". The builder's own states keep their names, and no sample
-    /// can share them, because the parser refuses a sample named "empty" or "full".
-    private func slug(_ state: String) -> String {
-        if ["empty", "full"].contains(state) { return state }
-        var slug = ""
-        for character in state.lowercased() {
-            if character.isASCII && (character.isLetter || character.isNumber) {
-                slug.append(character)
-            } else if slug.last != "-" {
-                slug.append("-")
+/// Writes a matrix's PNGs and report.json into `output`, prints `verdict` or "accepted", and returns the exit
+/// status.
+private func write(_ matrix: ProofMatrix, verdict: String?, to output: URL, date: Date, zone: String) -> Int32 {
+    var used: Set<String> = []
+    var renders: [Report.Render] = []
+    for render in matrix.renders {
+        let suffix = render.appearance == .light ? "" : "-\(render.appearance.rawValue)"
+        switch render.outcome {
+        case .success(let proof):
+            let file = unique("\(slug(render.state))-\(render.family.rawValue)\(suffix)", in: &used) + ".png"
+            renders.append(
+                Report.Render(
+                    state: render.state, family: render.family.rawValue, appearance: render.appearance.rawValue,
+                    png: file, verdict: proof.verdict, error: nil, fit: proof.fit, bytes: proof.png))
+        case .failure(let rejected):
+            renders.append(
+                Report.Render(
+                    state: render.state, family: render.family.rawValue, appearance: render.appearance.rawValue,
+                    png: nil, verdict: rejected.line, error: rejected.line, fit: nil, bytes: nil))
+        }
+    }
+    let report = Report(
+        date: date.formatted(.iso8601), timeZone: zone, widget: matrix.name, verdict: verdict, renders: renders)
+    do {
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        for render in renders {
+            if let file = render.png, let bytes = render.bytes {
+                try bytes.write(to: output.appending(path: file), options: .atomic)
             }
         }
-        return "sample-" + slug.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        try encode(report, pretty: true).write(to: output.appending(path: "report.json"), options: .atomic)
+    } catch {
+        standardError("error: \(output.path(percentEncoded: false)) could not be written: \(error)")
+        return 2
     }
+    print(verdict ?? "accepted")
+    return verdict == nil ? 0 : 1
+}
 
-    private func unique(_ name: String, in used: inout Set<String>) -> String {
-        var candidate = name
-        var counter = 2
-        while used.contains(candidate) {
-            candidate = "\(name)-\(counter)"
-            counter += 1
+/// "sample-goal-met" for the sample "goal met". The builder's own states keep their names, and no sample can
+/// share them, because the parser refuses a sample named "empty" or "full".
+private func slug(_ state: String) -> String {
+    if ["empty", "full"].contains(state) { return state }
+    var slug = ""
+    for character in state.lowercased() {
+        if character.isASCII && (character.isLetter || character.isNumber) {
+            slug.append(character)
+        } else if slug.last != "-" {
+            slug.append("-")
         }
-        used.insert(candidate)
-        return candidate
     }
+    return "sample-" + slug.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+}
+
+private func unique(_ name: String, in used: inout Set<String>) -> String {
+    var candidate = name
+    var counter = 2
+    while used.contains(candidate) {
+        candidate = "\(name)-\(counter)"
+        counter += 1
+    }
+    used.insert(candidate)
+    return candidate
 }
 
 private struct LoopRun {
