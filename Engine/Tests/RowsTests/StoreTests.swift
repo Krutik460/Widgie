@@ -120,11 +120,16 @@ import Testing
         #expect(commits.count.withLock { $0 } == 4)
     }
 
-    /// Suspension is process-wide, so this one test covers both kinds of store and opens a single window in
-    /// which other suites' writes could fail.
-    @Test func aSuspendedStoreRefusesWritesAndStillReadsWhileAScratchStoreKeepsWriting() throws {
+    /// Suspension is process-wide, so this one test covers both kinds of store and a first open, and opens a
+    /// single window in which other suites' writes could fail. A pool opened after the suspend misses GRDB's
+    /// notification, so the open itself must refuse.
+    @Test func aSuspendedStoreRefusesWritesAndOpensAndStillReadsWhileAScratchStoreKeepsWriting() throws {
         let directory = temporaryDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
+        let other = temporaryDirectory()
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            try? FileManager.default.removeItem(at: other)
+        }
         let bench = try Bench(store: RowStore.open(directory: directory))
         let scratch = try Bench(store: RowStore.open(directory: temporaryDirectory(), isScratch: true))
         try bench.tap("drink", at: noon)
@@ -132,27 +137,15 @@ import Testing
         defer { RowStore.resume() }
         let refused = #expect(throws: StoreError.self) { try bench.tap("drink", at: noon) }
         #expect(refused?.suspended == true)
+        let unopened = #expect(throws: StoreError.self) { try RowStore.open(directory: other) }
+        #expect(unopened?.suspended == true)
         #expect(try bench.number("glassesAll", at: noon) == 1)
         #expect(try scratch.tap("drink", at: noon) == .written)
         RowStore.resume()
         #expect(try scratch.number("glassesAll", at: noon) == 1)
         #expect(try bench.tap("drink", at: noon) == .written)
         #expect(try bench.number("glassesAll", at: noon) == 2)
-    }
-
-    /// A pool opened after the suspend misses GRDB's notification, so the open itself must refuse.
-    @Test func aFirstOpenWhileSuspendedIsRefusedAndSucceedsAfterResume() throws {
-        let directory = temporaryDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        RowStore.suspend()
-        defer { RowStore.resume() }
-        let refused = #expect(throws: StoreError.self) { try RowStore.open(directory: directory) }
-        #expect(refused?.suspended == true)
-        let scratch = try Bench(store: RowStore.open(directory: temporaryDirectory(), isScratch: true))
-        #expect(try scratch.tap("drink", at: noon) == .written)
-        RowStore.resume()
-        let bench = try Bench(store: RowStore.open(directory: directory))
-        #expect(try bench.tap("drink", at: noon) == .written)
+        #expect(try Bench(store: RowStore.open(directory: other)).tap("drink", at: noon) == .written)
     }
 
     /// 50,000 rows over two years in a file store, then the four reads a habit or log widget makes. Prints
