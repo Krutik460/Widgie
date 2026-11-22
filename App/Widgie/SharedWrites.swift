@@ -4,7 +4,7 @@ import WidgetEngine
 /// its lock while suspended (`Engine.suspend`). The app moves this with its scene phase, and a write that
 /// meets the background waits here for the app to come back.
 @MainActor enum SharedWrites {
-    private(set) static var suspended = false
+    private static var suspended = false
     private static var waiting: [CheckedContinuation<Void, Never>] = []
 
     static func suspend() {
