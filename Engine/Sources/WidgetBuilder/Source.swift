@@ -76,7 +76,7 @@ public enum BuildOutcome: Sendable, Equatable {
 }
 
 /// The data state for a proof.
-public enum DataState: Sendable {
+public enum DataState: Hashable, Sendable {
     /// No rows. Every look must survive it: `latest` is null and lists are empty.
     case empty
     /// One of the source's `samples`, by name.

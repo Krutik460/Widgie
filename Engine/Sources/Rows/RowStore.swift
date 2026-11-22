@@ -36,16 +36,22 @@ package final class RowStore: Sendable {
         self.onCommit = onCommit
     }
 
+    /// The connections close before the files go, because a stored property outlives `deinit`'s body.
     deinit {
-        if ownsDirectory { try? FileManager.default.removeItem(at: directory) }
+        guard ownsDirectory else { return }
+        try? database.close()
+        try? FileManager.default.removeItem(at: directory)
     }
 
     /// `onCommit` runs on the writing thread after every transaction that commits a write. A stale tap
-    /// writes nothing and does not run it.
+    /// writes nothing and does not run it. With `ownsDirectory` the store deletes `directory` when it is
+    /// released.
     ///
     /// Opening and migrating run under a file coordinator, as GRDB's sharing guide prescribes: two
     /// connections switching a new file to WAL at once fail with SQLITE_BUSY, which no busy timeout covers.
-    package static func open(directory: URL, onCommit: (@Sendable () -> Void)? = nil) throws(StoreError) -> RowStore {
+    package static func open(
+        directory: URL, onCommit: (@Sendable () -> Void)? = nil, ownsDirectory: Bool = false
+    ) throws(StoreError) -> RowStore {
         try guarded {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             var configuration = Configuration()
@@ -66,7 +72,7 @@ package final class RowStore: Sendable {
             }
             if let coordination { throw coordination }
             guard let pool = try opened?.get() else { throw StoreError(message: "the file coordinator never ran") }
-            return RowStore(database: pool, directory: directory, ownsDirectory: false, onCommit: onCommit)
+            return RowStore(database: pool, directory: directory, ownsDirectory: ownsDirectory, onCommit: onCommit)
         }
     }
 
@@ -385,21 +391,33 @@ package final class RowStore: Sendable {
     /// must be bound.
     package func seed(_ sample: Spec.Sample, widget: WidgetKey, today: Today) throws(StoreError) {
         guard !sample.rows.isEmpty else { return }
-        let midday = milliseconds(today.nextDayStart) - 12 * 3_600_000
         try write(at: Date()) { db in
-            var changes: [Change] = []
-            var sequence: Int64 = 0
-            for entry in sample.rows {
-                guard let dataset = try Rows.dataset(of: widget, table: entry.table.id.raw, db) else {
-                    throw StoreError(message: "table \(entry.table.id) has no dataset to seed")
+            .changes(
+                try insertions(sample, today: today) { table in
+                    guard let dataset = try Rows.dataset(of: widget, table: table.id.raw, db) else {
+                        throw StoreError(message: "table \(table.id) has no dataset to seed")
+                    }
+                    return dataset
+                })
+        }
+    }
+
+    /// Moves each of `tables` to a new, empty dataset and seeds `sample` into them, in one transaction, so
+    /// the widget shows exactly the sample's rows. The rows it showed before stay in datasets nothing reads.
+    /// A preview switches samples with this.
+    package func replaceRows(of widget: WidgetKey, tables: [Spec.Table], with sample: Spec.Sample, today: Today)
+        throws(StoreError)
+    {
+        let datasets = tables.map { (table: $0.id, dataset: DatasetKey.mint()) }
+        try write(at: Date()) { _ in
+            let binds = datasets.map { Change.bind(widget, table: $0.table.raw, to: $0.dataset) }
+            let rows = try insertions(sample, today: today) { table in
+                guard let dataset = datasets.first(where: { $0.table == table.id })?.dataset else {
+                    throw StoreError(message: "the sample names table \(table.id), which the widget does not have")
                 }
-                for _ in 0..<entry.count {
-                    let at = midday - Int64(entry.daysAgo) * 86_400_000 + sequence
-                    changes += insertion(into: dataset, entry.values, day: today.day.adding(-entry.daysAgo), at: at)
-                    sequence += 1
-                }
+                return dataset
             }
-            return .changes(changes)
+            return binds.isEmpty ? .ignored("the widget has no tables") : .changes(binds + rows)
         }
     }
 
@@ -476,6 +494,24 @@ package final class RowStore: Sendable {
     private func read<T>(_ body: (Database) throws -> T) throws(StoreError) -> T {
         try guarded { try database.read(body) }
     }
+}
+
+/// A sample's rows as inserts, placed as `seed` describes, each in the dataset `dataset` names for its table.
+private func insertions(
+    _ sample: Spec.Sample, today: Today, dataset: (Spec.Table) throws -> DatasetKey
+) rethrows -> [Change] {
+    let midday = milliseconds(today.nextDayStart) - 12 * 3_600_000
+    var changes: [Change] = []
+    var sequence: Int64 = 0
+    for entry in sample.rows {
+        let target = try dataset(entry.table)
+        for _ in 0..<entry.count {
+            let at = midday - Int64(entry.daysAgo) * 86_400_000 + sequence
+            changes += insertion(into: target, entry.values, day: today.day.adding(-entry.daysAgo), at: at)
+            sequence += 1
+        }
+    }
+    return changes
 }
 
 /// A new row and its values, the same for a tap, a form, and a seeded sample.

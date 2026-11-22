@@ -136,7 +136,7 @@ extension Engine {
         }
     }
 
-    private func widget(_ key: WidgetKey, in store: RowStore) throws(EngineError) -> StoredWidget? {
+    func widget(_ key: WidgetKey, in store: RowStore) throws(EngineError) -> StoredWidget? {
         do throws(StoreError) {
             return try store.widget(key)
         } catch {
