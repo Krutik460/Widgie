@@ -5,7 +5,8 @@ For each case and model: send the build prompt and the person's request to the m
 widget directory, and run `render-tool proof` on it. On a rejection, send the request, the previous document,
 and the verdict line back, at most twice. A refine case starts from a base fixture: the model also gets the
 base as the app stores it, from `render-tool refine`, and each reply is checked with `render-tool refine` as a
-replacement of the base. Everything lands in Engine/.artifacts/evals/<run name>/. Running the
+replacement of the base, and its record says which tables and fields the reply added, checked against the case's
+`expect_new_table`. Everything lands in Engine/.artifacts/evals/<run name>/. Running the
 same name again picks up where the last run stopped: finished builds and finished model calls are kept.
 
     run.py <run name> [--models haiku,sonnet] [--group name,name] [--cases id,id] [--jobs 6] [--stop-after SECONDS]
@@ -40,6 +41,9 @@ ARTIFACTS = ENGINE / ".artifacts" / "evals"
 
 # Proofs render at one fixed instant, so a rerun of the same reply gets the same verdict.
 PROOF_DATE = "2026-11-18T09:00:00Z"
+QUERY_SHAPES = ("count", "sum", "latest", "list", "streak", "daily")
+# The actions that add rows. A set, toggle, or delete only changes rows that already exist.
+ADDING_ACTIONS = ("insert", "insertOn", "form")
 # The first try, then at most two repairs.
 ATTEMPTS = 3
 STATUS = {1: "first try", 2: "repaired once", 3: "repaired twice", None: "failed"}
@@ -53,6 +57,8 @@ class Case:
     image: Path | None
     # The fixture a refine case changes, None for a new widget.
     base: Path | None
+    # A refine that tracks something the base does not keep needs a new table; any other refine adds none.
+    expect_new_table: bool = False
 
 
 @dataclass(frozen=True)
@@ -86,7 +92,10 @@ def load_cases() -> tuple[list[str], list[Case]]:
             sys.exit(f"cases.json: case {entry['id']} needs a PNG or JPEG, not {image.name}")
         if image and not image.exists():
             sys.exit(f"cases.json: case {entry['id']} names a missing image {image}")
-        cases.append(Case(entry["id"], entry["group"], entry["request"], image, base))
+        expect_new_table = entry.get("expect_new_table", False)
+        if not isinstance(expect_new_table, bool) or (expect_new_table and not base):
+            sys.exit(f"cases.json: case {entry['id']} may set expect_new_table to true only with a base")
+        cases.append(Case(entry["id"], entry["group"], entry["request"], image, base, expect_new_table))
     ids = [c.id for c in cases]
     if len(ids) != len(set(ids)):
         sys.exit("cases.json: case ids must be unique")
@@ -115,6 +124,35 @@ def parsed(document: str) -> dict:
     except json.JSONDecodeError:
         return {}
     return value if isinstance(value, dict) else {}
+
+
+def members(value) -> dict:
+    return value if isinstance(value, dict) else {}
+
+
+def targets(document: dict, key: str, effects: tuple[str, ...]) -> set[str]:
+    """The tables that the blocks under `key` name with one of `effects`, a "table.field" counted as its table."""
+    return {target.split(".")[0] for block in members(document.get(key)).values()
+            for effect, target in members(block).items() if effect in effects and isinstance(target, str)}
+
+
+def table_changes(before: dict, after: dict, expect_new_table: bool) -> dict:
+    """The tables and fields a refine added, and whether that meets the case. A case that expects a new table
+    needs one the widget reads with a query and adds rows to; a reply that only relabels a kept table fails.
+    Any other refine must add no table."""
+    old, new = members(before.get("tables")), members(after.get("tables"))
+    added = sorted(set(new) - set(old))
+    fields_added = {}
+    for table in sorted(set(old) & set(new)):
+        kept, now = (members(members(t[table]).get("fields")) for t in (old, new))
+        fields = sorted(set(now) - set(kept))
+        if fields:
+            fields_added[table] = fields
+    read = targets(after, "queries", QUERY_SHAPES)
+    filled = targets(after, "actions", ADDING_ACTIONS) | targets(after, "automations", ("writes",))
+    in_use = [table for table in added if table in read and table in filled]
+    return {"added": added, "fields_added": fields_added, "expected": expect_new_table,
+            "ok": bool(in_use) if expect_new_table else not added}
 
 
 def write_widget(directory: Path, document: str, case: Case) -> None:
@@ -228,6 +266,11 @@ def run_build(run: Run, case: Case, model: str) -> dict:
             break
     accepted = attempts[-1]["attempt"] if attempts[-1]["verdict"] is None else None
     final = build_dir / str(attempts[-1]["attempt"]) / "proof"
+    tables = None
+    if case.base:
+        current = parsed((before_dir(run, case) / "current" / "widget.json").read_text())
+        reply = parsed((build_dir / str(attempts[-1]["attempt"]) / "widget" / "widget.json").read_text())
+        tables = table_changes(current, reply, case.expect_new_table)
     record = {
         "case": case.id,
         "group": case.group,
@@ -235,6 +278,7 @@ def run_build(run: Run, case: Case, model: str) -> dict:
         "status": STATUS[accepted],
         "accepted_attempt": accepted,
         "verdicts": [a["verdict"] for a in attempts if a["verdict"]],
+        "tables": tables,
         "calls": len(attempts),
         "seconds": round(sum(a["seconds"] for a in attempts), 1),
         "input_tokens": sum(a["input_tokens"] for a in attempts),
@@ -287,6 +331,12 @@ def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[
             "document_bytes_median": statistics.median(a["document_bytes"] for a in calls),
         }
     kinds = Counter(verdict_kind(v) for b in builds for v in b["verdicts"])
+    table_checks = {}
+    for model in models:
+        checked = [b for b in builds if b["model"] == model and b.get("tables")]
+        if checked:
+            table_checks[model] = {"passed": sum(b["tables"]["ok"] for b in checked), "of": len(checked),
+                                   "misses": [b["case"] for b in checked if not b["tables"]["ok"]]}
     summary = {
         "run": run_dir.name,
         "proof_date": PROOF_DATE,
@@ -295,6 +345,7 @@ def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[
         "table": {g: {m: dict(c) for m, c in row.items()} for g, row in table.items()},
         "per_model": per_model,
         "verdict_kinds": kinds.most_common(),
+        "table_checks": table_checks,
     }
     write_json(run_dir / "results.json", summary)
 
@@ -307,6 +358,9 @@ def summarize(run_dir: Path, groups: list[str], cases: list[Case], models: list[
         print(f"{group:<20}{cells}")
     for model, stats in per_model.items():
         print(f"{model}: {stats}")
+    for model, check in table_checks.items():
+        misses = f" (missed {', '.join(check['misses'])})" if check["misses"] else ""
+        print(f"{model}: table check {check['passed']} of {check['of']} refines{misses}")
     print("verdict kinds:")
     for kind, count in kinds.most_common(12):
         print(f"  {count:>3}  {kind}")
