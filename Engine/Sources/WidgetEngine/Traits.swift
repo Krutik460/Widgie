@@ -37,6 +37,7 @@ private struct Tally {
 
     mutating func add(_ node: Node) {
         let frame = node.style.frame
+        // A node without a fixed size counts as a 20 point square, about a symbol's size.
         let area = frame.flatMap { frame in frame.width.flatMap { width in frame.height.map { width * $0 } } } ?? 400
         if let background = node.style.background { add(background, area: area) }
         if let overlay = node.style.overlay { add(overlay, area: area) }
@@ -46,11 +47,14 @@ private struct Tally {
             for child in children { add(child) }
         case .text(let run):
             if run.size >= 20, run.value.contains(where: \.isNumber) { showsNumber = true }
+            // Each character is about half as wide as the text is tall.
             add(run.color, weight: run.size * run.size * 0.5 * Double(run.value.count))
         case .symbol(let symbol):
+            // A symbol fills about a square of its size.
             add(symbol.color, weight: symbol.size * symbol.size)
         case .shape(_, let paint):
             if let fill = paint.fill { add(fill, weight: area) }
+            // An outline paints a thin edge, about a fifth of what filling the shape would.
             if let stroke = paint.stroke { add(stroke.fill, weight: area * 0.2) }
         case .spacer, .image:
             break
@@ -69,6 +73,7 @@ private struct Tally {
         case .color(let color):
             add(color, weight: weight)
         case .linear(let stops, _, _), .radial(let stops, _, _, _), .angular(let stops, _, _, _):
+            // Each stop paints an even share of the gradient.
             for stop in stops { add(stop.color, weight: weight / Double(stops.count)) }
         }
     }
@@ -77,6 +82,7 @@ private struct Tally {
         let (r, g, b, a) = (color.light.r, color.light.g, color.light.b, color.light.a)
         let brightest = max(r, g, b)
         let spread = brightest - min(r, g, b)
+        // Faint (alpha 0.2 or less), near black (no channel over 0.3), or grey (saturation 0.3 or less).
         guard a > 0.2, brightest > 0.3, spread / brightest > 0.3 else { return }
         let sixth =
             switch brightest {
