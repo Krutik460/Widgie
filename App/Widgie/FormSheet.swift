@@ -72,7 +72,8 @@ struct FormSheet: View {
 
 /// What the form shows, which is what Save submits. It starts from the row's values when the form edits a
 /// row; otherwise a toggle shows off and a date shows today, and both are sent as shown. An empty text or
-/// number field stays absent.
+/// number field stays absent. A stored number is sent only once its text is edited, because the text shows it
+/// rounded to 15 significant digits and reading that back would rewrite the stored value.
 struct FormDraft {
     let fields: [InputField]
     let format: FormFormat
@@ -107,6 +108,7 @@ struct FormDraft {
                 if let value = text[field.id], !value.isEmpty { input[field.id] = .text(value) }
             case .number:
                 guard let value = text[field.id], !value.trimmingCharacters(in: .whitespaces).isEmpty else { break }
+                if case .number(let stored) = field.value, value == format.text(stored) { break }
                 if let number = format.number(value) {
                     input[field.id] = .number(number)
                 } else {
