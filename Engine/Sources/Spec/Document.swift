@@ -31,9 +31,15 @@ extension Spec {
         ]).encoded()
     }
 
-    /// A refinement may add and remove tables and fields, but a field id that survives keeps its kind,
-    /// because stored values were written with that kind.
+    /// A refinement may add tables and fields and remove fields, but it keeps every table id of `old`, because
+    /// the stored rows are bound to the table id, and a field id that survives keeps its kind, because stored
+    /// values were written with that kind. A kept table that nothing reads is legal, so hiding data is a
+    /// look change. The rule reads only the two documents, so every store reaches the same verdict.
     package func checkCompatible(replacing old: Spec) throws(Diagnostic) {
+        if let gone = old.tables.first(where: { table(named: $0.id.raw) == nil }) {
+            throw Diagnostic(
+                "table \(Diagnostic.quote(gone.id.raw)) is gone; keep every table id so the stored rows carry over")
+        }
         for table in tables {
             guard let before = old.table(named: table.id.raw), let (field, was) = clash(table, before) else {
                 continue

@@ -179,6 +179,54 @@ enum Broken {
         #expect(line == "field \"taps.note\" was text and is now number; keep the kind or use a new field id")
     }
 
+    @Test func aRefinementThatRenamesATableIsRejectedWithOneLine() async throws {
+        let scratch = Scratch()
+        let water = try fixture("water")
+        let id = try await scratch.build(water)
+        let cups = WidgetSource(
+            json: Data(String(decoding: water.json, as: UTF8.self).replacing("\"glasses\"", with: "\"cups\"").utf8))
+        let line = try await scratch.line(cups, replacing: id)
+        #expect(line == "table \"glasses\" is gone; keep every table id so the stored rows carry over")
+        #expect(try scratch.engine.history(of: id).count == 1)
+    }
+
+    @Test @MainActor func aColorOnlyRefinementKeepsTheRows() async throws {
+        let scratch = Scratch()
+        let water = try fixture("water")
+        let id = try await scratch.build(water)
+        for _ in 0..<3 {
+            try scratch.engine.perform(try button("drink", on: await scratch.face(id)).tap, at: morning)
+        }
+        let blue = WidgetSource(
+            json: Data(String(decoding: water.json, as: UTF8.self).replacing("#0B2A3C", with: "#1B3A8C").utf8))
+        _ = try await scratch.build(blue, replacing: id)
+        let three = #"{"glasses": [{"daysAgo": 0, "repeat": 3}]}"#
+        #expect(picture(await scratch.face(id)).looksLike(try await expected(blue, rows: three)))
+        #expect(!picture(await scratch.face(id)).looksLike(try await expected(water, rows: three)))
+    }
+
+    @Test @MainActor func aRefinementThatStopsShowingATableKeepsItsRows() async throws {
+        let scratch = Scratch()
+        let both = document(
+            look: counterLook(
+                "{ type: 'text', value: ctx.data.n + ' ' + ctx.data.m, size: 30, color: '#FFFFFF', lineLimit: 1, minScale: 0.5 }",
+                extra:
+                    "{ type: 'button', action: 'miss', children: [{ type: 'symbol', name: 'minus', size: 20, color: '#FFFFFF' }] },"
+            ),
+            tables: ["taps": ["fields": [:] as [String: Any]], "misses": ["fields": [:] as [String: Any]]],
+            queries: ["n": ["count": "taps", "window": "all"], "m": ["count": "misses", "window": "all"]],
+            actions: ["add": ["insert": "taps"], "miss": ["insert": "misses"]])
+        let id = try await scratch.build(both)
+        try scratch.engine.perform(try button("miss", on: await scratch.face(id)).tap, at: morning)
+        let hidden = document(
+            look: counterLook(),
+            tables: ["taps": ["fields": [:] as [String: Any]], "misses": ["fields": [:] as [String: Any]]])
+        _ = try await scratch.build(hidden, replacing: id)
+        _ = try await scratch.build(both, replacing: id)
+        #expect(
+            picture(await scratch.face(id)).looksLike(try await expected(both, rows: #"{"misses": [{"daysAgo": 0}]}"#)))
+    }
+
     @Test func everyLineIsOneLine() async throws {
         for source in [Broken.spills, Broken.cutsText, Broken.blank, Broken.backdropShape, Broken.blankInDark] {
             let line = try await Scratch().line(source)
