@@ -6,8 +6,8 @@ One object, `Engine`, does everything. What a caller can do with it depends on w
 
 | Import | Adds to `Engine` | Who imports it |
 |---|---|---|
-| `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, plus `FaceView`, `FaceHost`, and `Face.traits` | app, widget extension (through `WidgetHosting`) |
-| `WidgetBuilder` | `build(_:replacing:)`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)` | app, render tool |
+| `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, `Engine.scratch()`, `Engine.removeLeftoverScratch()`, plus `FaceView`, `FaceHost`, and `Face.traits` | app, widget extension (through `WidgetHosting`) |
+| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
 | `WidgetHosting` | `Hosting.engine`, `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
 
 The widget extension never imports `WidgetBuilder`, so it cannot build, ingest images, or encode PNGs. That is a link-time fact, not a convention.
@@ -179,9 +179,15 @@ try scratch.load(.empty, into: draft)                 // and now no rows
 
 // Save: prove the draft once more against the shared store, keeping a refined widget's rows.
 if let source = try scratch.source(of: draft) {
-    let outcome = try await Hosting.engine.build(source, replacing: editing)   // .rejected(line) is a repair
+    do {
+        let outcome = try await Hosting.engine.build(source, replacing: editing)   // .rejected(line) is a repair
+    } catch where error.isSuspended {
+        // The app went to the background and the shared store refused the write: save again once it is back.
+    }
 }
 ```
+
+A refinement is checked against the widget it replaces twice: before the proof, so a mismatch costs no rendering, and again inside the write that moves the head, so a widget deleted while the draft was proved throws, and one refined or written to meanwhile is checked as it is now. `EngineError.isSuspended` is true only when the store refused a write because `Engine.suspend()` holds; no other error is worth retrying as it is.
 
 `load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows. To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
 
@@ -202,15 +208,14 @@ Runs in the app, because fit can only be measured where SwiftUI runs, and in the
 import WidgetEngine
 import WidgetBuilder
 
-// The app's model service: posts the request as JSON to the backend, or to the dev bridge in a Debug build,
-// and returns the reply text. It throws only when the service did not answer.
-struct BridgeModel: WidgetModel {
-    func reply(to request: ModelRequest) async throws -> String { ... }
-}
+// The model service: `BridgeModel` posts the request as JSON to the dev bridge on the Mac and returns the reply
+// text; the backend's client will conform to `WidgetModel` the same way. It throws only when the service did
+// not answer: `URLError` when it cannot be reached, `BridgeModel.Refused` when it answered with an error.
+let model = BridgeModel(base: URL(string: "http://127.0.0.1:8787")!)
 
 // Called from the main actor, `progress` runs on the main actor, so it sets the screen's state directly.
 let outcome = try await engine.build(
-    "a water tracker with a big blue drop", image: Attachment(mime: "image/jpeg", bytes: jpeg), model: BridgeModel()
+    "a water tracker with a big blue drop", image: Attachment(mime: "image/jpeg", bytes: jpeg), model: model
 ) { step in
     // .writing(attempt: 1), .checking(attempt: 1), then on a rejection
     // .repairing(attempt: 2, line: "medium, sample \"busy\": content spills 14pt past the bottom edge; ..."), ...
@@ -218,19 +223,19 @@ let outcome = try await engine.build(
 }
 switch outcome {
 case .accepted(let id, let attempts):   // saved in `engine`; onCommit ran
-case .gaveUp(let lastLine, let attempts):   // three rejections; nothing was saved
+case .gaveUp(let lastLine, let attempts):   // Engine.maxBuildAttempts rejections; nothing was saved
 }
 
 // A refinement: the model gets the stored document as `current`, and the reply replaces the widget under the
 // same id, keeping its rows.
-try await engine.build("make it blue", replacing: id, model: BridgeModel())
+try await engine.build("make it blue", replacing: id, model: model)
 
 // A document another store rejected (the real store on Save): the first call repairs the stored document
-// with that line, and it is attempt 1 of 3, so progress starts at .repairing(attempt: 1, line: line).
-try await engine.build("make it blue", replacing: draft, repairing: line, model: BridgeModel())
+// with that line, and it is attempt 1, so progress starts at .repairing(attempt: 1, line: line).
+try await engine.build("make it blue", replacing: draft, repairing: line, model: model)
 ```
 
-The loop makes at most three attempts, the first try and two repairs, as `Engine/Evals/run.py` does. A loop started with `repairing` has no fresh try: its first call is already a repair and counts as attempt 1, so it makes at most three repairs. `progress` runs on the caller's actor, in order, and every step has run before the outcome returns. Only a rejected reply uses an attempt. An error the model service throws is rethrown as it is, and nothing is saved. A repair holds the person's words, the same `current` as the first call, the document the model sent last, and the exact line `build` rejected it with. The document is the reply's longest fenced `json` block, else its longest fenced block of any kind, else the whole reply trimmed, by the same rule as `extract` in `Engine/Evals/model.py`; `Engine/Evals/testdata/extract.json` holds the cases both are tested against. The picture goes to the model with every call. A reply that declares the asset `reference` gets the picture as that asset's bytes, any other reply builds without it, and a refinement that sends no picture keeps the stored one. Cancelling the task throws `CancellationError` before or after a model call, and nothing is saved; a `build` already under way finishes and its outcome is returned. `render-tool loop` runs the same loop against the dev bridge on the Mac.
+The loop makes at most `Engine.maxBuildAttempts` attempts, three: the first try and two repairs, as `Engine/Evals/run.py` does. A loop started with `repairing` has no fresh try: its first call is already a repair and counts as attempt 1, so it makes at most three repairs. `progress` runs on the caller's actor, in order, and every step has run before the outcome returns. Only a rejected reply uses an attempt. An error the model service throws is rethrown as it is, and nothing is saved. A repair holds the person's words, the same `current` as the first call, the document the model sent last, and the exact line `build` rejected it with. The document is the reply's longest fenced `json` block, else its longest fenced block of any kind, else the whole reply trimmed, by the same rule as `extract` in `Engine/Evals/model.py`; `Engine/Evals/testdata/extract.json` holds the cases both are tested against. The picture goes to the model with every call. A reply that declares the asset `reference` gets the picture as that asset's bytes, any other reply builds without it, and a refinement that sends no picture keeps the stored one. After the task is cancelled the loop throws `CancellationError` with nothing saved, with one exception: a `build` already under way finishes, and when it saves, `.accepted` returns, so the caller decides whether to keep that widget (the app restores the previous head). A reply rejected after the cancel throws `CancellationError`, never `.gaveUp`. `render-tool loop` runs the same loop against the dev bridge on the Mac.
 
 The request on the wire, as the dev bridge (`Engine/Evals/bridge.py`) and the backend accept it. Every key but `words` is left out when it is nil:
 
