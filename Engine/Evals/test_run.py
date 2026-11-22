@@ -223,6 +223,30 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(self.call.call_count, 2)
         self.assertIn('"name": "Juice"', self.sent_words())
 
+    def test_an_interrupted_base_refresh_leaves_no_old_build_beside_the_new_base(self):
+        base = self.run_dir / "fixture"
+        shutil.copytree(FIXTURES / "water", base)
+        case = Case("refine-water", "refine", "make it blue", None, base)
+        self.build(case)
+        document = json.loads((base / "widget.json").read_text())
+        (base / "widget.json").write_text(json.dumps({**document, "name": "Juice"}))
+
+        def interrupted(widget: Path, output: Path, base: Path | None) -> None:
+            fake_prove(widget, output, base)
+            raise KeyboardInterrupt
+
+        self.prove.side_effect = interrupted
+        with self.assertRaises(KeyboardInterrupt):
+            self.build(case)
+        case_dir = self.run_dir / "refine-water"
+        self.assertIn('"name": "Juice"', (case_dir / "before" / "current" / "widget.json").read_text())
+        self.assertEqual(list(case_dir.glob("*/build.json")), [])
+
+        self.prove.side_effect = fake_prove
+        self.build(case)
+        self.assertEqual(self.call.call_count, 2)
+        self.assertIn('"name": "Juice"', self.sent_words())
+
     def test_the_contact_sheet_shows_the_request_the_builds_were_made_from(self):
         shipped = json.loads((EVALS / "cases.json").read_text())["cases"][0]
         self.build(Case(shipped["id"], shipped["group"], "an older request", None, None))

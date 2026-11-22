@@ -217,12 +217,25 @@ def tree_digest(root: Path) -> str:
     return digest("".join(f"{p.relative_to(root)}\0{digest(p.read_bytes())}\n" for p in files).encode())
 
 
+def remove_builds(case_dir: Path) -> None:
+    """Everything in the case folder but `before/`, its record `case.json` included."""
+    case_dir.mkdir(parents=True, exist_ok=True)
+    for child in case_dir.iterdir():
+        if child.is_dir() and child.name != "before":
+            shutil.rmtree(child)
+        elif child.is_file():
+            child.unlink()
+
+
 def prepare_before(run: Run, case: Case) -> None:
+    """Proves the base again when its inputs changed. The builds made from the old base go first, so a crash
+    never leaves one beside the new renders."""
     directory = before_dir(run, case)
     inputs = {"base": tree_digest(case.base), "render_tool": run.render_tool, "proof_date": PROOF_DATE}
     record_path = directory / "inputs.json"
     if record_path.exists() and read_json(record_path) == inputs:
         return
+    remove_builds(run.directory / case.id)
     verdict = prove(case.base, directory, case.base)
     if verdict is not None:
         sys.exit(f"the base of {case.id} is rejected as a refine of itself: {verdict}")
@@ -232,7 +245,8 @@ def prepare_before(run: Run, case: Case) -> None:
 def prepare_case(run: Run, case: Case) -> None:
     """Keeps every build in the case folder true to its `case.json`, which records the inputs they were made from:
     the request and picture, the base, digests of the first model request, the base, and the render tool, and the
-    proof date. When one of them changed, every model's builds of the case are removed. The scoring fields are not inputs, since the
+    proof date. When one of them changed, every model's builds of the case are removed. The record is written
+    last, so a case folder without one holds no builds to trust. The scoring fields are not inputs, since the
     summary checks them afresh."""
     if case.base:
         prepare_before(run, case)
@@ -247,12 +261,7 @@ def prepare_case(run: Run, case: Case) -> None:
     record_path = case_dir / "case.json"
     if record_path.exists() and read_json(record_path)["inputs"] == inputs:
         return
-    case_dir.mkdir(parents=True, exist_ok=True)
-    for child in case_dir.iterdir():
-        if child.is_dir() and child.name != "before":
-            shutil.rmtree(child)
-        elif child.is_file():
-            child.unlink()
+    remove_builds(case_dir)
     image = f"request{case.image.suffix.lower()}" if case.image else None
     if case.image:
         shutil.copyfile(case.image, case_dir / image)
