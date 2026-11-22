@@ -241,28 +241,40 @@ func prove(
     var renders: [ProofRender] = []
     var cells: [Cell] = []
     var verdict: String?
+    /// Runs one render, lists it (a passing one only when `listsPass`), and returns its line.
+    func record(
+        _ state: String, _ family: Family, _ appearance: Appearance = .light, listsPass: Bool = true,
+        _ render: () async throws(ProofStop) -> Proof
+    ) async throws(EngineError) -> String? {
+        let outcome: Result<Proof, Rejected>
+        do throws(ProofStop) {
+            outcome = .success(try await render())
+        } catch {
+            switch error {
+            case .rejected(let line): outcome = .failure(Rejected(line: line))
+            case .broken(let message): throw EngineError(message: "the proof could not run: \(message)")
+            }
+        }
+        let line: String?
+        switch outcome {
+        case .success(let proof): line = proof.verdict
+        case .failure(let rejected): line = rejected.line
+        }
+        if listsPass || line != nil {
+            renders.append(ProofRender(state: state, family: family, appearance: appearance, outcome: outcome))
+        }
+        return line
+    }
     for state in ProofState.all(of: spec) {
         for family in Family.allCases {
-            do throws(ProofStop) {
+            let line = try await record(state.name, family) { () throws(ProofStop) in
                 let cell = try await proveCell(
                     spec, images: images, state: state, family: family, size: family.standardSize, today: today,
                     sandbox: sandbox)
-                renders.append(
-                    ProofRender(state: state.name, family: family, appearance: .light, outcome: .success(cell.proof)))
                 cells.append(cell)
-                verdict = verdict ?? cell.proof.verdict
-            } catch {
-                switch error {
-                case .rejected(let line):
-                    renders.append(
-                        ProofRender(
-                            state: state.name, family: family, appearance: .light,
-                            outcome: .failure(Rejected(line: line))))
-                    verdict = verdict ?? line
-                case .broken(let message):
-                    throw EngineError(message: "the proof could not run: \(message)")
-                }
+                return cell.proof
             }
+            verdict = verdict ?? line
             if verdict != nil, stopAtFirstFailure { return (renders, verdict) }
         }
     }
@@ -270,19 +282,10 @@ func prove(
         for state in states {
             for family in Family.allCases {
                 guard let cell = cells.first(where: { $0.state.name == state && $0.family == family }) else { continue }
-                let proof: Proof
-                do throws(ProofStop) {
-                    proof = try await proveAppearance(cell, appearance)
-                } catch {
-                    if case .broken(let message) = error {
-                        throw EngineError(message: "the proof could not run: \(message)")
-                    }
-                    continue
+                let line = try await record(state, family, appearance) { () throws(ProofStop) in
+                    try await proveAppearance(cell, appearance)
                 }
-                renders.append(
-                    ProofRender(
-                        state: state, family: cell.family, appearance: appearance, outcome: .success(proof)))
-                verdict = verdict ?? proof.verdict
+                verdict = verdict ?? line
                 if verdict != nil, stopAtFirstFailure { return (renders, verdict) }
             }
         }
@@ -298,29 +301,14 @@ func prove(
                     name: "\(state.name) at \(other.time)", label: "\(state.label) at \(other.time)",
                     sample: state.sample)
                 for family in Family.allCases {
-                    let failed: String
-                    do throws(ProofStop) {
-                        let cell = try await proveCell(
+                    let line = try await record(timed.name, family, listsPass: false) { () throws(ProofStop) in
+                        try await proveCell(
                             spec, images: images, state: timed, family: family, size: family.standardSize,
-                            today: other, sandbox: sandbox)
-                        guard let line = cell.proof.verdict else { continue }
-                        renders.append(
-                            ProofRender(
-                                state: timed.name, family: family, appearance: .light, outcome: .success(cell.proof)))
-                        failed = line
-                    } catch {
-                        switch error {
-                        case .rejected(let line):
-                            renders.append(
-                                ProofRender(
-                                    state: timed.name, family: family, appearance: .light,
-                                    outcome: .failure(Rejected(line: line))))
-                            failed = line
-                        case .broken(let message):
-                            throw EngineError(message: "the proof could not run: \(message)")
-                        }
+                            today: other, sandbox: sandbox
+                        ).proof
                     }
-                    verdict = verdict ?? failed
+                    guard let line else { continue }
+                    verdict = verdict ?? line
                     if stopAtFirstFailure { return (renders, verdict) }
                 }
             }
