@@ -38,4 +38,38 @@ extension Engine {
                 of: key, tables: found.spec.tables, with: sample, today: Today(at: date, calendar: calendar))
         }
     }
+
+    /// Records the draft's head and the rows it shows, so `restore(_:)` can undo a build and the `load` that
+    /// showed it. A sample load moves tables to new datasets and leaves the old ones in place, so the rows
+    /// recorded here, taps included, are still there to point back at.
+    ///
+    /// Only a scratch engine takes this, as with `load`. Throws for any other engine or an unknown widget.
+    public func checkpoint(of widget: WidgetID) throws(EngineError) -> Checkpoint {
+        guard isScratch else { throw EngineError(message: "only a scratch engine takes a checkpoint") }
+        let store = try self.store()
+        guard let key = WidgetKey(parsing: widget.rawValue),
+            let head = try attempt({ () throws(StoreError) in try store.revisions(of: key) }).first
+        else {
+            throw EngineError(message: "no widget \(widget.rawValue) to checkpoint")
+        }
+        return Checkpoint(
+            widget: key, head: head.digest,
+            datasets: try attempt { () throws(StoreError) in try store.bindings(of: key) })
+    }
+
+    /// Moves the draft back to its checkpoint's head and the rows it showed then, in one transaction.
+    public func restore(_ checkpoint: Checkpoint) throws(EngineError) {
+        guard isScratch else { throw EngineError(message: "only a scratch engine restores a checkpoint") }
+        let store = try self.store()
+        try attempt { () throws(StoreError) in
+            try store.restore(checkpoint.widget, to: checkpoint.head, bindings: checkpoint.datasets)
+        }
+    }
+}
+
+/// A draft as `Engine.checkpoint(of:)` recorded it: its head and the dataset each of its tables read.
+public struct Checkpoint: Sendable {
+    let widget: WidgetKey
+    let head: Spec.Digest
+    let datasets: [String: DatasetKey]
 }

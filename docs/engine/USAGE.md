@@ -189,7 +189,15 @@ if let source = try scratch.source(of: draft) {
 
 A refinement is checked against the widget it replaces twice: before the proof, so a mismatch costs no rendering, and again inside the write that moves the head, so a widget deleted while the draft was proved throws, and one refined or written to meanwhile is checked as it is now. `EngineError.isSuspended` is true only when the store refused a write because `Engine.suspend()` holds; no other error is worth retrying as it is.
 
-`load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows. To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
+`load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows.
+
+To undo a refinement the person cancelled, take a checkpoint before the build and restore it after. The checkpoint records the draft's head and the dataset each table reads. The rows those datasets hold, taps included, stay in place when a later `load` moves the tables on, so `restore` brings back exactly what was on show, in one transaction. Both calls throw on any engine but a scratch one.
+
+```swift
+let checkpoint = try scratch.checkpoint(of: draft)
+// build a refinement of draft, load a sample into it to show it, then the person cancels
+try scratch.restore(checkpoint)                       // the old head, and the rows the preview showed before
+``` To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
 
 ```swift
 let faces = await engine.faces(for: id, family: .small, size: Family.small.standardSize, from: .now)

@@ -54,6 +54,27 @@ import WidgetEngine
         }
     }
 
+    @Test @MainActor func restoringACheckpointBringsBackTheHeadAndTheRowsTapsIncluded() async throws {
+        let engine = Engine.scratch(calendar: utc)
+        let source = try fixture("water")
+        let id = try await build(source, in: engine)
+        try engine.load(.sample("morning"), into: id, at: morning)
+        try engine.perform(try button("drink", on: await face(id, in: engine)).tap, at: morning)
+        let tapped = picture(await face(id, in: engine, .medium), .medium)
+        let saved = try engine.source(of: id)?.json
+        let checkpoint = try engine.checkpoint(of: id)
+
+        let bluer = WidgetSource(
+            json: Data(String(decoding: source.json, as: UTF8.self).replacing("#0B2A3C", with: "#1B3A8C").utf8))
+        #expect(try await engine.build(bluer, replacing: id) == .saved(id))
+        try engine.load(.sample("goal met"), into: id, at: morning)
+        #expect(!picture(await face(id, in: engine, .medium), .medium).looksLike(tapped))
+
+        try engine.restore(checkpoint)
+        #expect(picture(await face(id, in: engine, .medium), .medium).looksLike(tapped))
+        #expect(try engine.source(of: id)?.json == saved)
+    }
+
     @Test func aDraftIsInvisibleToEveryOtherEngine() async throws {
         let engine = Engine.scratch(calendar: utc)
         let id = try await build(try fixture("water"), in: engine)
