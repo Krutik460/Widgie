@@ -74,6 +74,18 @@ targets:
       configs:
         Release:
           EXCLUDED_SOURCE_FILE_NAMES: Fixtures
+  # Unit tests of the app's view models, hosted in the app so UIKit is there. They use a scripted model and
+  # temporary engines, never the bridge or the App Group store.
+  WidgieTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [WidgieTests]
+    dependencies:
+      - target: Widgie
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.krutikpatel.widgie.tests
+        GENERATE_INFOPLIST_FILE: YES
   WidgieWidgets:
     type: app-extension
     platform: iOS
@@ -105,3 +117,6 @@ schemes:
         WidgieWidgets: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets: [WidgieTests]
