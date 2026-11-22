@@ -14,6 +14,8 @@ private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describ
 final class Preview {
     /// Where the draft lives. The build loop runs on this engine, so every accepted attempt saves only here.
     let engine = Engine.scratch()
+    /// The shared store a Save writes to, and a refinement copies from.
+    private let library: Engine
 
     /// The draft on show, nil before the first one.
     private(set) var widget: WidgetID?
@@ -24,22 +26,35 @@ final class Preview {
     var form: InputForm?
     var message: String?
 
+    init(library: Engine = Hosting.engine) {
+        self.library = library
+    }
+
     /// Shows a draft the scratch engine holds. A new draft starts on its first sample, so it does not look
     /// empty. Showing the same draft again after a refinement keeps the chosen state when the new revision
-    /// still has it, and loads it afresh. Nothing changes on show until the state has loaded.
-    func show(_ widget: WidgetID) async {
+    /// still has it, and loads it afresh. Nothing on show changes until its faces are drawn, and then all of it
+    /// changes at once. Returns false, with nothing on show changed, when the task was cancelled or another
+    /// drawing started before then; the draft's rows may already hold the new state.
+    @discardableResult
+    func show(_ widget: WidgetID) async -> Bool {
+        let states: [DataState]
+        let state: DataState
         do {
-            let states = [.empty] + (try engine.samples(of: widget)).map(DataState.sample)
+            states = [.empty] + (try engine.samples(of: widget)).map(DataState.sample)
             let kept = self.widget == widget && states.contains(self.state)
-            let state = kept ? self.state : states.dropFirst().first ?? .empty
+            state = kept ? self.state : states.dropFirst().first ?? .empty
             try engine.load(state, into: widget)
-            self.widget = widget
-            self.states = states
-            self.state = state
         } catch {
             message = error.message
+            await redraw()
+            return true
         }
-        await redraw()
+        guard let faces = await draw(widget), !Task.isCancelled else { return false }
+        self.widget = widget
+        self.states = states
+        self.state = state
+        self.faces = faces
+        return true
     }
 
     func select(_ state: DataState) async {
@@ -58,7 +73,7 @@ final class Preview {
     /// reason logged, when the widget is gone or cannot be copied.
     func copy(_ saved: WidgetID) async -> WidgetID? {
         do {
-            guard let source = try Hosting.engine.source(of: saved) else {
+            guard let source = try library.source(of: saved) else {
                 log.error("copy: \(saved.rawValue, privacy: .public) is no longer in the library")
                 return nil
             }
@@ -82,7 +97,7 @@ final class Preview {
     /// background.
     func save(replacing editing: WidgetID?) async throws(EngineError) -> BuildOutcome? {
         guard let widget, let source = try engine.source(of: widget) else { return nil }
-        return try await Hosting.engine.build(source, replacing: editing)
+        return try await library.build(source, replacing: editing)
     }
 
     func perform(_ tap: Tap, input: [String: InputValue] = [:]) {
@@ -102,19 +117,24 @@ final class Preview {
         }
     }
 
-    private var redraws = 0
+    private var drawings = 0
 
-    /// Every write happens on the main actor before the redraw that shows it starts, so the redraw started
-    /// last reads the newest rows. An earlier one that finishes after it is stale and is dropped.
     private func redraw() async {
-        guard let widget else { return }
-        redraws += 1
-        let redraw = redraws
+        guard let widget, let faces = await draw(widget) else { return }
+        self.faces = faces
+    }
+
+    /// The widget's faces in both families. Every write happens on the main actor before the drawing that
+    /// shows it starts, so the drawing started last reads the newest rows. Nil when a later drawing started,
+    /// because this one is stale.
+    private func draw(_ widget: WidgetID) async -> [Family: Face]? {
+        drawings += 1
+        let drawing = drawings
         var faces: [Family: Face] = [:]
         for family in Family.allCases {
             faces[family] = await engine.faces(for: widget, family: family, size: family.standardSize, from: .now)
                 .current
         }
-        if redraw == redraws { self.faces = faces }
+        return drawing == drawings ? faces : nil
     }
 }
