@@ -82,7 +82,7 @@ Every window ends today, so a row on a later day counts from its day on.
 
 `where` keeps only rows whose field equals a value. It names one field of the query's table and a value of that field's kind. A `bool` field with no value counts as `false`, so `{ "done": false }` includes new rows nobody has touched. `where` cannot compare a `date` field.
 
-`where` can also keep rows by who wrote them: `{ "by": "me" }` for rows written on this phone, `{ "by": "others" }` for rows written by anyone the widget is shared with. It goes beside a field or on its own, as in `{ "by": "me", "done": true }`. Until the person shares the widget, every row is `me`.
+`where` can also keep rows by who wrote them: `{ "by": "me" }` for the person's own rows, `{ "by": "others" }` for rows written by anyone they share the widget with. It goes beside a field or on its own, as in `{ "by": "me", "done": true }`. A row an automation writes counts as the person's own.
 
 `limit` is the most rows a `list` returns, from 1 to 100. `sort` is `newest` (the default), `oldest`, or a field id. Put `-` before a field id to sort it descending. A row with no value for a text, number, or date sort field comes last, and a `bool` field with no value sorts as `false`.
 
@@ -161,7 +161,7 @@ Day tracking: amounts per day, a goal streak, filtered history, and longer windo
 
 `ctx.data` has one key per query id, holding the value from the table above.
 
-A row is an object with `id`, `day`, `daysAgo`, `at`, `minutesAgo`, `by`, and every field of its table. `at` is the time it was written, `minutesAgo` the whole minutes since, and `by` is `{ me, name }`: `me` is true for a row written on this phone, and `name` is the writer's name or `null`.
+A row is an object with `id`, `day`, `daysAgo`, `at`, `minutesAgo`, `by`, and every field of its table. `at` is the time it was written, `minutesAgo` the whole minutes since, and `by` is `{ me, name }`: `me` is true for the person's own rows, and `name` is the writer's name or `null`.
 
 ```js
 { id: "0193f4c2-7d1e-7a3b-9c4e-5f6a7b8c9d0e", day: "2026-11-18", daysAgo: 0, at: "09:41", minutesAgo: 35, by: { me: false, name: "Sam" }, title: "Buy oat milk", done: false }

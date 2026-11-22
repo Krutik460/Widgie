@@ -532,13 +532,15 @@ private struct Authored {
 
 /// A sample's rows as inserts, each in the dataset `dataset` names for its table. A row placed by
 /// `minutesAgo` lands that many minutes before `today.instant`, on the day that moment falls on. Any other
-/// row lands at midday of `today.day - daysAgo`, or for today, before `today.instant` if that is earlier, so
-/// no sample row is written in the future. Rows keep document order, a millisecond apart.
+/// row lands at midday of `today.day - daysAgo`, or for today, just before `today.instant` if that is
+/// earlier but never before today began, so no sample row is written in the future or shows yesterday's
+/// time. Rows keep document order, a millisecond apart.
 private func insertions(
     _ sample: Spec.Sample, today: Today, dataset: (Spec.Table) throws -> DatasetKey
 ) rethrows -> [Authored] {
     let midday = milliseconds(today.nextDayStart) - 12 * 3_600_000
     let now = milliseconds(today.instant)
+    let dayStart = milliseconds(today.dayStart)
     let total = Int64(sample.rows.reduce(0) { $0 + $1.count })
     var changes: [Authored] = []
     var sequence: Int64 = 0
@@ -553,7 +555,7 @@ private func insertions(
                 day = today.day(of: date(at))
             } else {
                 let planned = midday - Int64(entry.daysAgo) * 86_400_000 + sequence
-                at = entry.daysAgo == 0 ? min(planned, latest) : planned
+                at = entry.daysAgo == 0 ? min(planned, max(latest, dayStart + sequence)) : planned
                 day = today.day.adding(-entry.daysAgo)
             }
             changes += insertion(into: target, entry.values, day: day, at: at).map { Authored($0, by: entry.by) }

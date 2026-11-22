@@ -107,11 +107,11 @@ package struct Today: Sendable, Equatable {
     /// that daylight saving shortens or lengthens ends at its real midnight.
     package let nextDayStart: Date
 
-    /// Uses a Gregorian calendar with `calendar`'s time zone and first weekday, so a user on another
-    /// calendar system still gets the same days as everyone else.
     /// The Gregorian calendar the days and times are read in.
     private let gregorian: Calendar
 
+    /// Uses a Gregorian calendar with `calendar`'s time zone and first weekday, so a user on another
+    /// calendar system still gets the same days as everyone else.
     package init(at instant: Date, calendar: Calendar) {
         var gregorian = Calendar(identifier: .gregorian)
         gregorian.timeZone = calendar.timeZone
@@ -136,6 +136,16 @@ package struct Today: Sendable, Equatable {
     package func clock(_ moment: Date) -> String {
         let parts = gregorian.dateComponents([.hour, .minute], from: moment)
         return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+    }
+
+    /// The instant `day` begins in this calendar's time zone.
+    package var dayStart: Date { gregorian.startOfDay(for: instant) }
+
+    /// Noon of `day`. Proofs render here whatever the time, so a revision gets the same verdict on every
+    /// device and at every hour, and samples placed by minutes stay on today.
+    package var noon: Today {
+        Today(
+            at: gregorian.date(bySettingHour: 12, minute: 0, second: 0, of: instant) ?? instant, calendar: gregorian)
     }
 
     /// The day `moment` falls on in this calendar.

@@ -29,7 +29,7 @@ import Testing
     @Test func whereRefusesAnUnknownAuthor() {
         #expect(
             rejection(withTables(#""queries": {"x": {"count": "glasses", "where": {"by": "Sam"}, "window": "all"}}"#))
-                == #"query "x": where "by" must be "me" (rows written on this phone) or "others" (rows written by anyone the widget is shared with), not the string "Sam""#
+                == #"query "x": where "by" must be "me" (the person's own rows) or "others" (rows written by anyone the widget is shared with), not the string "Sam""#
         )
     }
 
@@ -58,6 +58,15 @@ import Testing
                 == #"sample "x", glasses[0]: "by" is 31 characters; keep it to 30 or fewer"#)
     }
 
+    @Test func sampleAuthorIsTrimmedOfMeaningButNotOfCase() throws {
+        let spec = try parse(withTables(#""samples": {"x": {"glasses": [{"by": "Me"}, {"by": "Sam"}]}}"#))
+        #expect(try #require(spec.sample(named: "x")).rows.map(\.by) == [nil, "Sam"])
+        let line =
+            #"sample "x", glasses[0]: "by" is "me" or another member's name on one line, like "Sam", up to 30 characters"#
+        #expect(rejection(withTables(#""samples": {"x": {"glasses": [{"by": "   "}]}}"#)) == line)
+        #expect(rejection(withTables(#""samples": {"x": {"glasses": [{"by": "Sam\u2028Lee"}]}}"#)) == line)
+    }
+
     @Test func fullStateWritesRowsByAnotherMemberExceptForMe() throws {
         let spec = try parse(
             withTables(
@@ -67,6 +76,7 @@ import Testing
         let today = spec.full.rows.filter { $0.daysAgo == 0 }
         #expect(today.contains { $0.by == nil && $0.count >= 100 })
         #expect(today.contains { $0.by == Spec.longestMemberName && $0.count >= 100 })
-        #expect(Spec.longestMemberName.count == Spec.Limits.memberNameLength)
+        #expect(Spec.longestMemberName.utf16.count == Spec.Limits.memberNameLength)
+        #expect(today.allSatisfy { $0.minutesAgo == Spec.widestMinutesAgo }, "today's rows draw the widest age")
     }
 }
