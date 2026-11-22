@@ -6,10 +6,10 @@ import Spec
 import Synchronization
 import os
 
-/// The whole runtime behind a few calls. One per process. The app and the widget extension each make one on
-/// the same App Group directory. `WidgetBuilder` adds `build`, `proveReceived`, `source(of:)`, `history(of:)`,
-/// `restore`, `samples(of:)`, `load`, and the static `proof` and `proofs` to this type for the processes that
-/// import it.
+/// The whole runtime behind a few calls. The app and the widget extension each make one on the same App Group
+/// directory, and the app makes a scratch engine (`scratch()`) for each draft it previews. `WidgetBuilder`
+/// adds `build`, `proveReceived`, `source(of:)`, `history(of:)`, `restore`, `samples(of:)`, `load`, and the
+/// static `proof` and `proofs` to this type for the processes that import it.
 public final class Engine: Sendable {
     /// Opens nothing yet. The store opens, and migrates if needed, on first use. A failure to open is reported
     /// by that call (a fallback face, or a thrown `EngineError`), and the next call tries again.
@@ -23,12 +23,31 @@ public final class Engine: Sendable {
         self.init(directory: directory, calendar: calendar, onCommit: onCommit, isScratch: false)
     }
 
-    /// A throwaway engine for a draft the person has not saved. It deletes `directory` when it is released,
-    /// after closing its database, and runs no commit hook, so nothing it saves reaches the home screen or
-    /// another engine. Only a scratch engine takes `load(_:into:)`, which replaces a widget's rows with sample
-    /// rows.
-    public convenience init(scratch directory: URL, calendar: Calendar = .autoupdatingCurrent) {
-        self.init(directory: directory, calendar: calendar, onCommit: nil, isScratch: true)
+    /// A throwaway engine for a draft the person has not saved, in a new folder of its own under the app's
+    /// temporary directory. It deletes that folder when it is released, after closing its database, and runs
+    /// no commit hook, so nothing it saves reaches the home screen or another engine. It keeps writing after
+    /// `suspend()`, so a build can finish in the background. Only a scratch engine takes `load(_:into:)`,
+    /// which replaces a widget's rows with sample rows.
+    public static func scratch(calendar: Calendar = .autoupdatingCurrent) -> Engine {
+        scratch(under: scratchRoot, calendar: calendar)
+    }
+
+    /// Deletes the folders of scratch engines that an earlier run never released, because it crashed or iOS
+    /// ended it. The app calls this at launch. This run's scratch engines keep theirs.
+    public static func removeLeftoverScratch() { removeLeftoverScratch(under: scratchRoot) }
+
+    /// Scratch folders are `<root>/<run>/<engine>`, so the sweep can tell this run's folders from leftovers.
+    package static func scratch(under root: URL, calendar: Calendar = .autoupdatingCurrent) -> Engine {
+        Engine(
+            directory: root.appending(path: run).appending(path: UUID().uuidString), calendar: calendar,
+            onCommit: nil, isScratch: true)
+    }
+
+    package static func removeLeftoverScratch(under root: URL) {
+        let runs = (try? FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))) ?? []
+        for name in runs where name != run {
+            try? FileManager.default.removeItem(at: root.appending(path: name))
+        }
     }
 
     private init(directory: URL, calendar: Calendar, onCommit: (@Sendable () -> Void)?, isScratch: Bool) {
@@ -185,9 +204,9 @@ public final class Engine: Sendable {
         }
     }
 
-    /// Every engine in this process stops writing, and reads still work, so iOS never finds the app holding
-    /// the database lock while suspended. The app calls this when it moves to the background, and `resume`
-    /// when it returns. It is static because it reaches every store in the process.
+    /// Every engine in this process but the scratch ones stops writing, and reads still work, so iOS never
+    /// finds the app holding the shared database lock while suspended. The app calls this when it moves to the
+    /// background, and `resume` when it returns. It is static because it reaches every store in the process.
     public static func suspend() { RowStore.suspend() }
 
     public static func resume() { RowStore.resume() }
@@ -200,6 +219,9 @@ public final class Engine: Sendable {
     package let isScratch: Bool
     package let sandbox: Sandbox
     private let opened: Mutex<RowStore?>
+
+    private static let scratchRoot = URL.temporaryDirectory.appending(path: "scratch-engines")
+    private static let run = UUID().uuidString
 
     /// Opens the store once per engine. Later calls return the same instance. A failure is not kept, so the
     /// next call tries again.

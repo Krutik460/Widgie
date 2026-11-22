@@ -10,7 +10,7 @@ import WidgetHosting
 @MainActor @Observable
 final class Preview {
     /// Where the draft lives. The build loop runs on this engine, so every accepted attempt saves only here.
-    let engine = Engine(scratch: URL.temporaryDirectory.appending(path: "\(Preview.prefix)\(UUID().uuidString)"))
+    let engine = Engine.scratch()
 
     /// The draft on show, nil before the first one.
     private(set) var widget: WidgetID?
@@ -20,16 +20,6 @@ final class Preview {
     private(set) var faces: [Family: Face] = [:]
     var form: InputForm?
     var message: String?
-
-    /// Deletes the folders of earlier previews whose process ended before it released them. The app calls
-    /// this at launch, before any preview exists.
-    static func removeLeftovers() {
-        let folder = URL.temporaryDirectory
-        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path(percentEncoded: false))) ?? []
-        for name in names where name.hasPrefix(prefix) {
-            try? FileManager.default.removeItem(at: folder.appending(path: name))
-        }
-    }
 
     /// Shows a draft the scratch engine holds. A new draft starts on its first sample, so it does not look
     /// empty. Showing the same draft again after a refinement keeps the chosen state when the new revision
@@ -111,8 +101,6 @@ final class Preview {
             message = error.message
         }
     }
-
-    private static let prefix = "preview-"
 
     private func redraw() async {
         guard let widget else { return }
