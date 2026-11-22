@@ -354,6 +354,12 @@ An outside review (two models) raised eight findings. Each was checked against t
 - [x] Eval set of 19 requests, run on a weaker and a stronger stand-in model
 - [ ] Backend endpoint that forwards the request and image to our own model. The build loop itself runs in the app, because fit can only be measured where SwiftUI runs.
 - [ ] App flow: describe in words or attach a reference image, live preview, refine by chat ("make it blue"). Plan in `tasks/phase-2-app-flow.md`
+  - [ ] Refine misses seen on the P2 contact sheets (`Engine/.artifacts/evals/p2-refine-1`, `p2-refine-2`):
+    - [ ] "track coffee instead of water": both models in both runs keep `glasses` and relabel it Coffee instead of adding a table, so past water rows count as coffee. No rows are lost.
+    - [ ] "add a weekly chart": Haiku adds it to medium only in both runs and cuts the fourth title to "Book flights for the weddi...".
+    - [ ] "add a weekly chart": Sonnet's small drops from three rows to two to fit it in both runs. Run 2's small chart has no weekday labels, and run 1 shrinks the full-state titles.
+    - [ ] "use a handwriting font": the fit repair shrinks long titles in the full state, to tiny text on Haiku run 1 and Sonnet in both runs. Sonnet also drops small's second title line.
+    - [ ] "bigger number": Sonnet run 2 also shrinks "/ 8" to a small suffix. Haiku run 1's bump is barely visible.
 - [ ] Grow the eval set toward 40 requests and add a visual score, since the engine accepts some widgets that look wrong
 - [ ] App Attest and per-device quotas on the endpoint
 - [ ] Check: the four reference prompts and the eval set meet a valid-spec bar set from the first baseline run
