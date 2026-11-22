@@ -8,7 +8,8 @@ import os
 
 /// The whole runtime behind a few calls. One per process. The app and the widget extension each make one on
 /// the same App Group directory. `WidgetBuilder` adds `build`, `proveReceived`, `source(of:)`, `history(of:)`,
-/// `restore`, and the static `proof` and `proofs` to this type for the processes that import it.
+/// `restore`, `samples(of:)`, `load`, and the static `proof` and `proofs` to this type for the processes that
+/// import it.
 public final class Engine: Sendable {
     /// Opens nothing yet. The store opens, and migrates if needed, on first use. A failure to open is reported
     /// by that call (a fallback face, or a thrown `EngineError`), and the next call tries again.
@@ -16,12 +17,25 @@ public final class Engine: Sendable {
     /// `onCommit` runs after every committed write this engine makes: a tap, a form, a build, a restore, a
     /// delete. The app passes a WidgetKit reload, so no call site can forget one. The extension passes
     /// nothing, because WidgetKit reloads after an intent on its own.
-    public init(
+    public convenience init(
         directory: URL, calendar: Calendar = .autoupdatingCurrent, onCommit: (@Sendable () -> Void)? = nil
     ) {
+        self.init(directory: directory, calendar: calendar, onCommit: onCommit, isScratch: false)
+    }
+
+    /// A throwaway engine for a draft the person has not saved. It deletes `directory` when it is released,
+    /// after closing its database, and runs no commit hook, so nothing it saves reaches the home screen or
+    /// another engine. Only a scratch engine takes `load(_:into:)`, which replaces a widget's rows with sample
+    /// rows.
+    public convenience init(scratch directory: URL, calendar: Calendar = .autoupdatingCurrent) {
+        self.init(directory: directory, calendar: calendar, onCommit: nil, isScratch: true)
+    }
+
+    private init(directory: URL, calendar: Calendar, onCommit: (@Sendable () -> Void)?, isScratch: Bool) {
         self.directory = directory
         self.calendar = calendar
         self.onCommit = onCommit
+        self.isScratch = isScratch
         self.sandbox = Sandbox()
         self.opened = Mutex(nil)
     }
@@ -183,6 +197,7 @@ public final class Engine: Sendable {
     package let directory: URL
     package let calendar: Calendar
     package let onCommit: (@Sendable () -> Void)?
+    package let isScratch: Bool
     package let sandbox: Sandbox
     private let opened: Mutex<RowStore?>
 
@@ -192,7 +207,7 @@ public final class Engine: Sendable {
         try opened.withLock { (opened: inout RowStore?) throws(EngineError) -> RowStore in
             if let opened { return opened }
             do throws(StoreError) {
-                let store = try RowStore.open(directory: directory, onCommit: onCommit)
+                let store = try RowStore.open(directory: directory, onCommit: onCommit, ownsDirectory: isScratch)
                 opened = store
                 return store
             } catch {

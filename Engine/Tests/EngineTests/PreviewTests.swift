@@ -1,0 +1,120 @@
+import Foundation
+import Testing
+import WidgetBuilder
+import WidgetEngine
+
+/// A draft in a scratch engine: live and tappable with sample rows, invisible to every other engine, and gone
+/// from disk once the engine is released.
+@Suite struct PreviewTests {
+    @Test @MainActor func aLoadedSampleDrawsExactlyItsRows() async throws {
+        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let source = try fixture("water")
+        let id = try await build(source, in: engine)
+
+        try engine.load(.sample("morning"), into: id, at: morning)
+        for family in Family.allCases {
+            let face = picture(await face(id, in: engine, family), family)
+            #expect(face.looksLike(try await proof(source, .sample("morning"), family)))
+            #expect(!face.looksLike(try await proof(source, .empty, family)))
+        }
+    }
+
+    @Test @MainActor func switchingStatesReplacesTheRowsInsteadOfAddingToThem() async throws {
+        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let source = try fixture("water")
+        let id = try await build(source, in: engine)
+
+        try engine.load(.sample("morning"), into: id, at: morning)
+        try engine.load(.sample("goal met"), into: id, at: morning)
+        let goal = picture(await face(id, in: engine, .medium), .medium)
+        #expect(goal.looksLike(try await proof(source, .sample("goal met"), .medium)))
+
+        try engine.load(.empty, into: id, at: morning)
+        #expect(picture(await face(id, in: engine)).looksLike(try await proof(source, .empty)))
+    }
+
+    @Test @MainActor func aTapWritesOnTopOfTheSample() async throws {
+        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let source = try fixture("water")
+        let id = try await build(source, in: engine)
+        try engine.load(.sample("morning"), into: id, at: morning)
+
+        for _ in 0..<2 {
+            try engine.perform(try button("drink", on: await face(id, in: engine)).tap, at: morning)
+        }
+        let rows = #"""
+            {"glasses": [{"daysAgo": 0, "repeat": 4}, {"daysAgo": 1, "repeat": 6}, {"daysAgo": 2, "repeat": 8},
+              {"daysAgo": 3, "repeat": 5}, {"daysAgo": 4, "repeat": 7}, {"daysAgo": 5, "repeat": 8},
+              {"daysAgo": 6, "repeat": 3}]}
+            """#
+        for family in Family.allCases {
+            #expect(
+                picture(await face(id, in: engine, family), family)
+                    .looksLike(try await expected(source, rows: rows, family)))
+        }
+    }
+
+    @Test func aDraftIsInvisibleToEveryOtherEngine() async throws {
+        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let id = try await build(try fixture("water"), in: engine)
+        #expect(try engine.widgets().map(\.id) == [id])
+
+        let other = Scratch()
+        #expect(try other.engine.widgets().isEmpty)
+        #expect(try Engine(scratch: scratchFolder(), calendar: utc).widgets().isEmpty)
+    }
+
+    @Test func samplesAreListedByName() async throws {
+        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let id = try await build(try fixture("water"), in: engine)
+        #expect(try engine.samples(of: id) == ["goal met", "morning"])
+        #expect(try engine.samples(of: WidgetID(rawValue: "nothing")).isEmpty)
+    }
+
+    @Test func anUnknownSampleThrowsWithTheNamesItHas() async throws {
+        let engine = Engine(scratch: scratchFolder(), calendar: utc)
+        let id = try await build(try fixture("water"), in: engine)
+        let error = #expect(throws: EngineError.self) { try engine.load(.sample("noon"), into: id) }
+        #expect(error?.message == #"no sample "noon" (samples: goal met, morning)"#)
+    }
+
+    @Test func theSharedStoreRefusesSamples() async throws {
+        let scratch = Scratch()
+        let id = try await scratch.build(try fixture("water"))
+        let error = #expect(throws: EngineError.self) { try scratch.engine.load(.sample("morning"), into: id) }
+        #expect(error?.message == "samples load only into a scratch engine, never the shared store")
+        #expect(scratch.commits == 1)
+    }
+
+    @Test func aScratchEngineDeletesItsFolderOnceReleased() async throws {
+        let folder = scratchFolder()
+        var engine: Engine? = Engine(scratch: folder, calendar: utc)
+        let id = try await build(try fixture("water"), in: try #require(engine))
+        try engine?.load(.sample("morning"), into: id)
+        #expect(FileManager.default.fileExists(atPath: folder.appending(path: "store.sqlite").path()))
+
+        engine = nil
+        #expect(!FileManager.default.fileExists(atPath: folder.path()))
+    }
+
+    private func scratchFolder() -> URL {
+        FileManager.default.temporaryDirectory.appending(path: "preview-tests-\(UUID().uuidString)")
+    }
+
+    private func build(_ source: WidgetSource, in engine: Engine) async throws -> WidgetID {
+        let outcome = try await engine.build(source)
+        guard case .saved(let id) = outcome else {
+            Issue.record("expected the widget to save, got \(outcome)")
+            throw Unexpected()
+        }
+        return id
+    }
+
+    private func face(_ id: WidgetID, in engine: Engine, _ family: Family = .small) async -> Face {
+        await engine.faces(for: id, family: family, size: family.standardSize, from: morning).current
+    }
+
+    private func proof(_ source: WidgetSource, _ state: DataState, _ family: Family = .small) async throws -> Bitmap {
+        try Bitmap(png: try await Engine.proof(source, state: state, family: family, at: morning, calendar: utc).png)
+    }
+}
