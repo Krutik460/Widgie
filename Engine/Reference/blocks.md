@@ -1,5 +1,7 @@
 <!-- Every json block below is parsed by Tests/SpecTests/ReferenceTests.swift after it adds "name" and "look"
-when they are missing. A json block followed by a text block must fail with exactly the line in the text block. -->
+when they are missing. A json block followed by a text block must fail with exactly the line in the text block.
+A json block right after the comment "replaces the json block above" is a change to the json block before it,
+checked as a refinement of that block, so a text block after it is the line the change gets. -->
 
 # Widget blocks
 
@@ -389,4 +391,29 @@ An automation time on a 12-hour clock:
 
 ```text
 automation "daily": "at" must be a time of day like "06:00" (24-hour), not the string "6am"
+```
+
+A change that renames a table. The widget's rows are stored under its table ids, so a change keeps every table id. The widget counted glasses:
+
+```json
+{
+  "tables": { "glasses": { "fields": {} } },
+  "queries": { "today": { "count": "glasses", "window": "today" } },
+  "actions": { "drink": { "insert": "glasses" } }
+}
+```
+
+The change renames the table to count cups:
+
+<!-- replaces the json block above -->
+```json
+{
+  "tables": { "cups": { "fields": {} } },
+  "queries": { "today": { "count": "cups", "window": "today" } },
+  "actions": { "drink": { "insert": "cups" } }
+}
+```
+
+```text
+table "glasses" is gone; keep every table id so the stored rows carry over
 ```
