@@ -4,18 +4,20 @@ import WidgetBuilder
 import WidgetEngine
 import WidgetHosting
 
-/// The app's view of the shared store: the widgets, a face of each in both sizes, and the open form.
+/// The app's view of the shared store: the widgets, a small face of each, and the open form.
 @MainActor @Observable
 final class Library {
     struct Item: Identifiable {
         let summary: WidgetSummary
-        var faces: [Family: Face]
+        var face: Face?
         var id: WidgetID { summary.id }
     }
 
     private(set) var items: [Item] = []
     var form: InputForm?
     var message: String?
+    /// The widget saved last in this run, which the library marks as new.
+    var justSaved: WidgetID?
 
     private var engine: Engine { Hosting.engine }
 
@@ -40,13 +42,10 @@ final class Library {
         do {
             var items: [Item] = []
             for summary in try engine.widgets() {
-                var faces: [Family: Face] = [:]
-                for family in Family.allCases {
-                    faces[family] = await engine.faces(
-                        for: summary.id, family: family, size: family.standardSize, from: .now
-                    ).current
-                }
-                items.append(Item(summary: summary, faces: faces))
+                let face = await engine.faces(
+                    for: summary.id, family: .small, size: Family.small.standardSize, from: .now
+                ).current
+                items.append(Item(summary: summary, face: face))
             }
             self.items = items
         } catch {
