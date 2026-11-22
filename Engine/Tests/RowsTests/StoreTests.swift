@@ -130,7 +130,8 @@ import Testing
         try bench.tap("drink", at: noon)
         RowStore.suspend()
         defer { RowStore.resume() }
-        #expect(throws: StoreError.self) { try bench.tap("drink", at: noon) }
+        let refused = #expect(throws: StoreError.self) { try bench.tap("drink", at: noon) }
+        #expect(refused?.suspended == true)
         #expect(try bench.number("glassesAll", at: noon) == 1)
         #expect(try scratch.tap("drink", at: noon) == .written)
         RowStore.resume()
