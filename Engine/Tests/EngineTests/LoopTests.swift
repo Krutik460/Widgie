@@ -210,6 +210,19 @@ import WidgetEngine
         }
     }
 
+    @Test func theAttachedPictureGoesWithEveryRepairRequest() async throws {
+        let attachment = Attachment(mime: "image/png", bytes: photo(300, 200))
+        let scratch = Scratch()
+        let model = ScriptedModel([.reply(fenced(Broken.blank)), .reply(fenced(Broken.cutsText)), .reply(fenced(good))])
+        let outcome = try await scratch.engine.build("like this picture", image: attachment, model: model)
+        guard case .accepted(_, attempts: 3) = outcome else {
+            Issue.record("expected acceptance in three attempts, got \(outcome)")
+            return
+        }
+        #expect(model.requests.map { $0.repair != nil } == [false, true, true])
+        #expect(model.requests.map(\.image) == [attachment, attachment, attachment])
+    }
+
     @Test func aRequestEncodesToTheShapeTheBridgeReads() throws {
         let full = ModelRequest(
             words: "make it blue", image: Attachment(mime: "image/png", bytes: Data([1, 2, 3])), current: "{}",
