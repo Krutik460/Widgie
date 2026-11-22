@@ -13,16 +13,20 @@ Written 2026-11-18.
 ## Goal
 
 A non-coder describes a widget in plain words and gets a working, tappable iPhone home screen widget.
-Four reference widgets define v1: water logger, to-do list, habit tracker, word of the day.
+Six reference widgets define v1: water logger, to-do list, habit tracker, word of the day, dog fed, and thinking of you.
+The last two were added on 2026-11-22 from the ICP research in `docs/research/icp-and-widgets.md`. They are the core widgets of the two segments most likely to pay and to spread through invites: shared households and couples.
+Target users (decided 2026-11-22): shared households, couples and close friends, multi-trackers, ADHD adults, and learners. Aesthetic-only customizers are not a target.
 
 ## Definition of done for v1
 
 On a real iPhone running iOS 26 or later, all of these hold.
 
-- A new user types each of the four reference prompts and gets a widget that renders correctly in small and medium sizes, in full color and in tinted mode.
+- A new user types each of the six reference prompts and gets a widget that renders correctly in small and medium sizes, in full color and in tinted mode.
 - A tap on the home screen changes the data and the widget shows the new state without opening the app.
 - Word of the day shows a new word the next day without the user opening the app.
 - A second user who opens an invite link sees the first user's changes after the next refresh.
+- Dog fed: either partner taps "fed", and both widgets show who fed the dog and how long ago, in hours, without opening the app.
+- Thinking of you: the widget shows the couple's own photo. A tap adds a heart, and each phone shows today's hearts sent and received.
 - The widget extension stays under 30 MB of memory while rendering the largest reference widget.
 
 ## What the research changed in the brief
@@ -347,6 +351,30 @@ An outside review (two models) raised eight findings. Each was checked against t
 - Phase 3: the client half of decision A, and memory with several image-heavy widgets on one home screen, measured on a device. Each render is capped, but WidgetKit may hold several renders at once.
 - Phase 4: test vectors for the merge (changes in, state out) exported from the Swift tests, so the backend's merge is checked against the same cases.
 
+### Phase 1e. Who wrote a row, and when (proposed 2026-11-22, needs approval)
+
+The two new reference widgets need two things the blocks cannot express today. Rows carry a day but no time and no author, and the look gets the date but not the time.
+
+| Widget | Needs | Today |
+|---|---|---|
+| Dog fed | "Fed 3 h ago by Sam", red after 12 h | A row has `day` and `daysAgo` only. `ctx.today` has no time. |
+| Thinking of you | Hearts sent and received today | No author on a row, so `where` cannot split mine from theirs. |
+| Thinking of you | The couple's photo | Already covered by `assets`. The photo must travel with the shared widget. |
+
+Proposed shape. This is a one-way door in `WidgetSpec`, so it gets the same review as phase 1d before any code.
+
+- The engine stamps every row with `at` (the local time it was written, `"HH:MM"`) and `by` (a member id). Neither field can be declared or set by the spec, so the model cannot forge them.
+- The look receives `at`, `minutesAgo`, and `by: { name, me }` on each row, and `ctx.now` as `"HH:MM"`. `minutesAgo` and `ctx.now` come from the timeline entry date, so the look still never reads a clock.
+- `where` accepts `{ "by": "me" }` and `{ "by": "others" }`. Counting per named member waits until a reference widget needs it.
+- A look that shows `minutesAgo` sets `reloadAt` to the next threshold it cares about, the way word of the day does. The timeline holds entries every 15 minutes for the first two hours.
+- Before phase 4 there is one member, the device, so `by.me` is always true. Phase 4 fills in real members.
+
+- [ ] Review the shape above against the block design, and decide whether `at` should be a full timestamp instead of `"HH:MM"`
+- [ ] Add `at`, `by`, `minutesAgo`, `ctx.now`, and `where by` to the spec, the query engine, the proof, and `Engine/Reference/blocks.md`
+- [ ] Fixtures `Engine/Fixtures/dogfed` and `Engine/Fixtures/hearts` (with a sample photo asset), proved in every data state and both sizes, full color and tinted
+- [ ] Add both prompts to `Engine/Evals/cases.json` as reference cases, and run them on both stand-in models
+- [ ] Check: `Engine/scripts/check` passes, the six fixtures prove, and the two new cases are accepted within three attempts
+
 ### Phase 2. AI builder
 
 - [x] Build loop on the Mac: model reply, proof, one-line verdict, up to two repairs (`Engine/Evals/run.py`, prompt in `Engine/Reference/build-prompt.md`)
@@ -381,6 +409,7 @@ An outside review (two models) raised eight findings. Each was checked against t
 - [ ] Invite link that survives a fresh install
 - [ ] Report and block, required by guideline 1.2
 - [ ] Check: two devices, one shared habit tracker, change appears on the other after refresh
+- [ ] Check: two devices share dog fed and thinking of you. Each shows the other's name on rows written there, and the shared photo arrives with the invite
 
 ### Phase 5. Ship
 
