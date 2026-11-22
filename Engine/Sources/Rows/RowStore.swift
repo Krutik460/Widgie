@@ -385,8 +385,10 @@ package final class RowStore: Sendable {
         }
     }
 
-    /// Applies one action as one stamped batch through `merge`. Checks that a tapped row exists, is live, and
-    /// belongs to the dataset (widget, effect's table) is bound to; otherwise writes nothing and says why.
+    /// Applies one action as one stamped batch through `merge`. Checks that the widget has no tombstone, since
+    /// a delete through another connection can commit after the caller found it live, and that a tapped row
+    /// exists, is live, and belongs to the dataset (widget, effect's table) is bound to; otherwise writes
+    /// nothing and says why.
     /// `.insert` and `.insertOn` ignore `row`. `.insertOn` writes only on a `day` in
     /// `Effect.loggableDays(from: today.day)`, and every other effect ignores `day`.
     /// `.form` writes only with input: without a row it inserts, with one it sets the given fields. Input
@@ -397,6 +399,11 @@ package final class RowStore: Sendable {
     ) throws(StoreError) -> Applied {
         let at = milliseconds(instant)
         return try write(at: instant) { db in
+            guard
+                try Bool.fetchOne(
+                    db, sql: "SELECT EXISTS (SELECT 1 FROM widget WHERE key = ? AND deleted IS NOT NULL)",
+                    arguments: [widget.raw]) == false
+            else { return .ignored("widget \(widget.raw) was deleted") }
             func target(_ table: Spec.TableID, _ change: (RowKey, DatasetKey) throws -> [Change]) throws -> Plan {
                 guard let row else { return .ignored("action \(action.id) needs a row") }
                 switch try tapped(row, widget: widget, table: table, db) {

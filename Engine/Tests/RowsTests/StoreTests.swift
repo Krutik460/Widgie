@@ -36,6 +36,25 @@ import Testing
         #expect(Set(try second.store.feed()) == Set(feed))
     }
 
+    @Test func aTapResolvedBeforeAnotherPoolDeletesItsWidgetWritesNothing() throws {
+        let directory = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = try Bench(store: RowStore.open(directory: directory))
+        let second = try RowStore.open(directory: directory)
+        let dashboard = try Bench(store: second)
+        let glasses = try #require(first.spec.table(named: "glasses")).id
+        try second.bind(
+            dashboard.widget, table: glasses,
+            to: try #require(try first.store.dataset(of: first.widget, table: glasses)))
+        _ = try first.store.save(first.widget, spec: first.spec, assets: [:])
+        try first.tap("drink", at: noon)
+        #expect(try first.store.widget(first.widget) != nil, "the tap found its widget live")
+
+        try second.delete(first.widget)
+        #expect(try first.tap("drink", at: noon) == .ignored("widget \(first.widget.raw) was deleted"))
+        #expect(try dashboard.number("glassesAll", at: noon) == 1, "the widget sharing the rows shows no new glass")
+    }
+
     @Test func eitherProcessMayOpenAFreshFileFirst() throws {
         for _ in 0..<10 {
             let directory = temporaryDirectory()
