@@ -39,8 +39,8 @@ import WidgetHosting
         #expect(library.items.isEmpty)
     }
 
-    /// The sheet is keyed by the shown form's id, so a new id is what makes it start over with fresh values.
-    @Test func everyFormLinkShowsTheFormAfresh() async throws {
+    /// The sheet is keyed by the shown form's id, so a new id is what makes SwiftUI start it over.
+    @Test func everyFormLinkPublishesANewShownForm() async throws {
         let shared = SharedStore()
         let document = counterDocument(fields: ["note": "text"])
             .replacing(#"{"insert":"taps"}"#, with: #"{"form":"taps","fields":["note"]}"#)
