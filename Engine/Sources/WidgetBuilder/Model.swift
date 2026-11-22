@@ -55,7 +55,7 @@ public protocol WidgetModel: Sendable {
     func reply(to request: ModelRequest) async throws -> String
 }
 
-/// Where `Engine.build(_:image:replacing:repairing:model:progress:)` is, for a progress line.
+/// Where `Engine.build(_:image:replacing:repairing:model:isolation:progress:)` is, for a progress line.
 public enum BuildStep: Sendable, Equatable {
     /// Waiting on the model for a new document.
     case writing(attempt: Int)

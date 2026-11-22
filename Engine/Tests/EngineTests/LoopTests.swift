@@ -11,8 +11,8 @@ import WidgetEngine
     @Test func aGoodFirstReplyIsAcceptedInOneAttemptAndTheWidgetIsSaved() async throws {
         let scratch = Scratch()
         let model = ScriptedModel([.reply(fenced(good))])
-        let steps = Steps()
-        let outcome = try await scratch.engine.build("a tap counter", model: model) { steps.record($0) }
+        var steps: [BuildStep] = []
+        let outcome = try await scratch.engine.build("a tap counter", model: model) { steps.append($0) }
         guard case .accepted(let id, attempts: 1) = outcome else {
             Issue.record("expected acceptance in one attempt, got \(outcome)")
             return
@@ -21,7 +21,7 @@ import WidgetEngine
         #expect(try scratch.engine.widgets().map(\.name) == ["Counter"])
         #expect(scratch.commits == 1)
         #expect(model.requests == [ModelRequest(words: "a tap counter")])
-        #expect(steps.all == [.writing(attempt: 1), .checking(attempt: 1)])
+        #expect(steps == [.writing(attempt: 1), .checking(attempt: 1)])
     }
 
     @Test func twoBadRepliesThenAGoodOneAreAcceptedInThreeAttemptsAndEachRepairCarriesThePreviousDocumentAndItsLine()
@@ -31,8 +31,8 @@ import WidgetEngine
         let cut = try await Scratch().line(Broken.cutsText)
         let scratch = Scratch()
         let model = ScriptedModel([.reply(fenced(Broken.blank)), .reply(fenced(Broken.cutsText)), .reply(fenced(good))])
-        let steps = Steps()
-        let outcome = try await scratch.engine.build("a tap counter", model: model) { steps.record($0) }
+        var steps: [BuildStep] = []
+        let outcome = try await scratch.engine.build("a tap counter", model: model) { steps.append($0) }
         guard case .accepted(let id, attempts: 3) = outcome else {
             Issue.record("expected acceptance in three attempts, got \(outcome)")
             return
@@ -46,7 +46,7 @@ import WidgetEngine
                 ModelRequest(words: "a tap counter", repair: Repair(document: text(Broken.cutsText), line: cut)),
             ])
         #expect(
-            steps.all == [
+            steps == [
                 .writing(attempt: 1), .checking(attempt: 1), .repairing(attempt: 2, line: blank),
                 .checking(attempt: 2), .repairing(attempt: 3, line: cut), .checking(attempt: 3),
             ])
@@ -63,6 +63,19 @@ import WidgetEngine
         #expect(model.requests.count == 3)
         #expect(try scratch.engine.widgets().isEmpty)
         #expect(scratch.commits == 0)
+    }
+
+    @Test @MainActor func aMainActorCallerSetsItsStateFromEveryStepInOrderBeforeTheOutcomeReturns() async throws {
+        let blank = try await Scratch().line(Broken.blank)
+        let scratch = Scratch()
+        let screen = Screen()
+        let model = ScriptedModel([.reply(fenced(Broken.blank)), .reply(fenced(good))])
+        let outcome = try await scratch.engine.build("a tap counter", model: model) { screen.steps.append($0) }
+        #expect(outcome == .accepted(try #require(try scratch.engine.widgets().first).id, attempts: 2))
+        #expect(
+            screen.steps == [
+                .writing(attempt: 1), .checking(attempt: 1), .repairing(attempt: 2, line: blank), .checking(attempt: 2),
+            ])
     }
 
     @Test @MainActor func aRefineSendsCurrentAndTheAcceptedWidgetKeepsItsRows() async throws {
@@ -109,17 +122,17 @@ import WidgetEngine
         let stored = text(try #require(try scratch.engine.source(of: id)))
         let line = "table \"taps\" holds number cells; keep the kind"
         let model = ScriptedModel([.reply(fenced(good))])
-        let steps = Steps()
+        var steps: [BuildStep] = []
 
         let outcome = try await scratch.engine.build(
             "a tap counter", replacing: id, repairing: line, model: model
-        ) { steps.record($0) }
+        ) { steps.append($0) }
         #expect(outcome == .accepted(id, attempts: 1))
         #expect(
             model.requests == [
                 ModelRequest(words: "a tap counter", current: stored, repair: Repair(document: stored, line: line))
             ])
-        #expect(steps.all == [.repairing(attempt: 1, line: line), .checking(attempt: 1)])
+        #expect(steps == [.repairing(attempt: 1, line: line), .checking(attempt: 1)])
     }
 
     @Test func aCancelDuringTheModelCallSavesNothing() async throws {
@@ -243,10 +256,7 @@ private final class StalledModel: WidgetModel {
     }
 }
 
-private final class Steps: Sendable {
-    private let seen = Mutex<[BuildStep]>([])
-
-    func record(_ step: BuildStep) { seen.withLock { $0.append(step) } }
-
-    var all: [BuildStep] { seen.withLock { $0 } }
+/// What a describe screen holds: main-actor state that the loop's progress sets.
+@MainActor private final class Screen {
+    var steps: [BuildStep] = []
 }

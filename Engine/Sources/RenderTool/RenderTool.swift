@@ -385,12 +385,12 @@ private struct LoopRun {
         defer { try? FileManager.default.removeItem(at: directory) }
         let engine = Engine(directory: directory, calendar: calendar)
         let started = ContinuousClock.now
-        let (marks, sink) = AsyncStream.makeStream(of: (step: BuildStep, at: ContinuousClock.Instant).self)
+        var steps: [(step: BuildStep, at: ContinuousClock.Instant)] = []
         let outcome: LoopOutcome
         do {
             outcome = try await engine.build(words, image: image, model: bridge) { step in
                 let now = ContinuousClock.now
-                sink.yield((step, now))
+                steps.append((step, now))
                 standardError(String(format: "%7.2f s  ", (now - started) / .seconds(1)) + describe(step))
             }
         } catch let error as EngineError {
@@ -405,9 +405,6 @@ private struct LoopRun {
             return 2
         }
         let ended = ContinuousClock.now
-        sink.finish()
-        var steps: [(step: BuildStep, at: ContinuousClock.Instant)] = []
-        for await mark in marks { steps.append(mark) }
         var model: [String] = []
         var build: [String] = []
         for (index, mark) in steps.enumerated() {
