@@ -1,177 +1,253 @@
 import SwiftUI
-import UIKit
 
-/// The Paint Quest palette (`docs/design/app-feel/b-paint-quest.html`). Dark mode is a night sky over the same
-/// paints: the ground and cards go deep blue, and tangerine, sky, and sun stay bright.
+/// The Sky tokens (`docs/design/app-feel/directions.md`, round 4). Each is a colorset in
+/// `WidgieColors.xcassets` with a light and a dark value, so changing a token is one edit there.
 enum Palette {
-    static let ground = Color(light: 0xCDEAFF, dark: 0x0B1A31)
-    static let surface = Color(light: 0xFFFFFF, dark: 0x15294A)
-    static let line = Color(light: 0xAED6F3, dark: 0x274A75)
-    static let divider = Color(light: 0xE6F2FB, dark: 0x203E66)
-    static let dash = Color(light: 0x8CC3EC, dark: 0x3F6A9C)
-    static let track = Color(light: 0xE3F1FC, dark: 0x0F2140)
+    static let ground = Color(.widgieGround)
+    static let caret = Color(.widgieCaret)
+    static let caretEye = Color(.widgieCaretEye)
+    static let cheek = Color(.widgieCaretCheek)
+    static let caretShadow = Color(.widgieCaretShadow)
+    static let text = Color(.widgieTextPrimary)
+    static let secondary = Color(.widgieTextSecondary)
+    static let buttonFill = Color(.widgieButtonFill)
+    static let buttonLabel = Color(.widgieButtonLabel)
+    static let outline = Color(.widgieOutline)
+    static let disabled = Color(.widgieFillDisabled)
+    static let gridDot = Color(.widgieGridDot)
+    static let widgetShadow = Color(.widgieWidgetShadow)
+    static let chipLabel = Color(.widgieChipLabel)
 
-    static let tangerine = Color(light: 0xFF7A1A, dark: 0xFF7A1A)
-    static let tangerineLip = Color(light: 0xD65A00, dark: 0xB24700)
-    static let tangerineTint = Color(light: 0xFFF1E6, dark: 0x3B2416)
-    static let tangerineText = Color(light: 0xD65A00, dark: 0xFF9A4D)
-    static let sky = Color(light: 0x1FA4F0, dark: 0x2AADF5)
-    static let skyLip = Color(light: 0x0A7FC2, dark: 0x0A68A3)
-    static let skyText = Color(light: 0x0A7FC2, dark: 0x6CC8FF)
-    static let sun = Color(light: 0xFFCB2E, dark: 0xFFC629)
-    static let sunLip = Color(light: 0xDDA300, dark: 0xB98A00)
-    static let berry = Color(light: 0xF0384F, dark: 0xFF4D63)
-    static let berryLip = Color(light: 0xBF1C34, dark: 0xB31F35)
-    static let berryTint = Color(light: 0xFFDDE2, dark: 0x3A1828)
-    static let berryText = Color(light: 0xBF1C34, dark: 0xFF8696)
+    static let failureGround = Color(.widgieFailureGround)
+    static let failureCaret = Color(.widgieFailureCaret)
+    static let failureText = Color(.widgieFailureText)
+    static let failureButtonFill = Color(.widgieFailureButtonFill)
+    static let failureButtonLabel = Color(.widgieFailureButtonLabel)
 
-    static let ink = Color(light: 0x14204A, dark: 0xEAF3FF)
-    static let muted = Color(light: 0x55688F, dark: 0x9DB4D6)
-    static let placeholder = Color(light: 0x8DA4BE, dark: 0x6F89B0)
-    static let off = Color(light: 0xB7CDE0, dark: 0x30496E)
-    static let offLip = Color(light: 0x98B3CA, dark: 0x213753)
-    static let offText = Color(light: 0xFFFFFF, dark: 0x7F98BC)
+    /// The confetti on Saved: bright versions of the chip hues.
+    static let pops = [
+        Color(.widgiePopMint), Color(.widgiePopButter), Color(.widgiePopPink), Color(.widgiePopLilac),
+        Color(.widgiePopPeach),
+    ]
 }
 
-extension Color {
-    init(light: UInt32, dark: UInt32) {
-        self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(rgb: dark) : UIColor(rgb: light) })
-    }
+/// The soft fill of a chip. Color on a chip always means "tap to use this"; outlined controls stay neutral.
+enum ChipColor {
+    case mint, butter, pink, lilac, peach
 
-    init(rgb: UInt32) {
-        self.init(uiColor: UIColor(rgb: rgb))
-    }
-}
-
-extension UIColor {
-    convenience init(rgb: UInt32) {
-        self.init(
-            red: CGFloat((rgb >> 16) & 0xFF) / 255, green: CGFloat((rgb >> 8) & 0xFF) / 255,
-            blue: CGFloat(rgb & 0xFF) / 255, alpha: 1)
-    }
-}
-
-/// The colors of one pressable surface: its face, the darker lip under it, its label, and an optional border.
-struct Chunk {
-    var face: Color
-    var lip: Color
-    var text: Color
-    var border: Color?
-    var borderWidth: CGFloat = 2
-
-    static let primary = Chunk(face: Palette.tangerine, lip: Palette.tangerineLip, text: .white)
-    static let plain = Chunk(face: Palette.surface, lip: Palette.line, text: Palette.skyText, border: Palette.line)
-    static let sky = Chunk(face: Palette.sky, lip: Palette.skyLip, text: .white)
-    static let danger = Chunk(face: Palette.berry, lip: Palette.berryLip, text: .white)
-    static let card = Chunk(face: Palette.surface, lip: Palette.line, text: Palette.ink, border: Palette.line)
-    static let picked = Chunk(
-        face: Palette.tangerineTint, lip: Palette.tangerineLip, text: Palette.tangerineText,
-        border: Palette.tangerine, borderWidth: 3)
-    static let off = Chunk(face: Palette.off, lip: Palette.offLip, text: Palette.offText)
-}
-
-/// A chunky button: the face sits on a darker lip and presses down into it, with a light tap of haptics.
-/// Disabled, it turns the flat off color. `wide` stretches it across its container.
-struct ChunkyButtonStyle: ButtonStyle {
-    var chunk: Chunk = .primary
-    var corner: CGFloat = 16
-    var lip: CGFloat = 5
-    var height: CGFloat = 56
-    var wide = true
-    var font: Font = .headline.weight(.black)
-
-    func makeBody(configuration: Configuration) -> some View {
-        ChunkyButton(configuration: configuration, style: self)
-    }
-}
-
-private struct ChunkyButton: View {
-    let configuration: ButtonStyleConfiguration
-    let style: ChunkyButtonStyle
-
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        let chunk = isEnabled ? style.chunk : .off
-        let pressed = configuration.isPressed && isEnabled
-        let shape = RoundedRectangle(cornerRadius: style.corner, style: .continuous)
-        configuration.label
-            .font(style.font)
-            .foregroundStyle(chunk.text)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, style.wide ? 18 : 12)
-            .frame(maxWidth: style.wide ? .infinity : nil, minHeight: style.height)
-            .background(shape.fill(chunk.face))
-            .overlay {
-                if let border = chunk.border { shape.strokeBorder(border, lineWidth: chunk.borderWidth) }
-            }
-            .offset(y: pressed ? style.lip : 0)
-            .background { shape.fill(chunk.lip).offset(y: style.lip) }
-            .padding(.bottom, style.lip)
-            .contentShape(shape)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.07), value: pressed)
-            .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
+    var fill: Color {
+        switch self {
+        case .mint: Color(.widgieChipMint)
+        case .butter: Color(.widgieChipButter)
+        case .pink: Color(.widgieChipPink)
+        case .lilac: Color(.widgieChipLilac)
+        case .peach: Color(.widgieChipPeach)
+        }
     }
 }
 
 extension View {
-    /// A white card on a lip of the line color, as every Paint Quest card sits.
-    func card(corner: CGFloat = 22, lip: CGFloat = 5, fill: Color = Palette.surface) -> some View {
-        let shape = RoundedRectangle(cornerRadius: corner, style: .continuous)
-        return background {
+    /// SF Pro at the mock's point size, scaled with Dynamic Type like `style`.
+    func font(size: CGFloat, weight: Font.Weight, relativeTo style: Font.TextStyle = .body) -> some View {
+        modifier(ScaledFont(size: size, weight: weight, style: style))
+    }
+
+    /// The page: the ground color under a home-screen dot grid, edge to edge.
+    func ground(_ color: Color = Palette.ground) -> some View {
+        background {
             ZStack {
-                shape.fill(Palette.line).offset(y: lip)
-                shape.fill(fill)
-                shape.strokeBorder(Palette.line, lineWidth: 2)
+                color
+                DotGrid()
             }
+            .ignoresSafeArea()
         }
+    }
+
+    /// The elevation under a widget face. In dark mode the faces nearly match the ground, so the shadow is
+    /// what lifts them off it.
+    func faceShadow() -> some View {
+        shadow(color: Palette.widgetShadow, radius: 11, y: 9)
     }
 }
 
-/// Where the person is in the describe flow. The bar has four chunky segments and no numbers.
-enum FlowStep: Int, CaseIterable {
-    case describe, build, tryIt, save, done
+private struct ScaledFont: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+    let weight: Font.Weight
+
+    init(size: CGFloat, weight: Font.Weight, style: Font.TextStyle) {
+        _size = ScaledMetric(wrappedValue: size, relativeTo: style)
+        self.weight = weight
+    }
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: size, weight: weight))
+    }
 }
 
-struct StepBar: View {
-    let step: FlowStep
+/// Dots on a 24-point grid, like the home screen's icon grid.
+struct DotGrid: View {
+    var body: some View {
+        Canvas { context, size in
+            let dot = Path(ellipseIn: CGRect(x: -1.4, y: -1.4, width: 2.8, height: 2.8))
+            for x in stride(from: 23.5, to: size.width, by: 24) {
+                for y in stride(from: 11.5, to: size.height, by: 24) {
+                    context.fill(dot.offsetBy(dx: x, dy: y), with: .color(Palette.gridDot))
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The text cursor's bar, blinking 530 ms on and 530 ms off like the system caret. Steady with Reduce Motion.
+struct CursorBar: View {
+    var color: Color
+    var height: CGFloat = 22
+    var blinking = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<4, id: \.self) { index in
-                Segment(fill: index < step.rawValue ? 1 : index == step.rawValue ? 0.55 : 0)
-            }
+        TimelineView(.periodic(from: .now, by: 0.53)) { timeline in
+            let on = !blinking || reduceMotion || Int(timeline.date.timeIntervalSinceReferenceDate / 0.53) % 2 == 0
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(color)
+                .frame(width: 3, height: height)
+                .opacity(on ? 1 : 0)
         }
-        .animation(reduceMotion ? nil : .spring(duration: 0.5, bounce: 0.3), value: step)
-        .accessibilityElement()
-        .accessibilityLabel("Step \(min(step.rawValue + 1, 4)) of 4")
+        .accessibilityHidden(true)
     }
+}
 
-    private struct Segment: View {
-        let fill: CGFloat
+/// The main action: an ink slab with its label and a blinking bar, so it reads as "type here, go". Pressing
+/// stops the blink and nudges it down. Disabled, it goes flat with no bar.
+struct PrimaryButtonStyle: ButtonStyle {
+    var fill = Palette.buttonFill
+    var label = Palette.buttonLabel
 
-        var body: some View {
-            let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
-            GeometryReader { box in
-                ZStack(alignment: .leading) {
-                    shape.fill(Palette.surface)
-                    shape.strokeBorder(Palette.line, lineWidth: 2)
-                    ZStack(alignment: .top) {
-                        shape.fill(Palette.tangerineLip)
-                        shape.fill(Palette.tangerine).padding(.bottom, 5)
-                        RoundedRectangle(cornerRadius: 1.5).fill(.white.opacity(0.55)).frame(height: 3)
-                            .padding(.horizontal, 6).padding(.top, 3)
-                            .opacity(fill == 1 ? 1 : 0)
-                    }
-                    .clipShape(shape)
-                    .frame(width: box.size.width * fill)
-                    .opacity(fill > 0 ? 1 : 0)
-                }
+    func makeBody(configuration: Configuration) -> some View {
+        PrimaryButton(configuration: configuration, style: self)
+    }
+}
+
+private struct PrimaryButton: View {
+    let configuration: ButtonStyleConfiguration
+    let style: PrimaryButtonStyle
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        let pressed = configuration.isPressed && isEnabled
+        HStack(spacing: 5) {
+            configuration.label
+            if isEnabled {
+                CursorBar(color: style.label, blinking: !pressed)
             }
-            .frame(height: 16)
         }
+        .font(size: 18, weight: .bold)
+        .tracking(-0.3)
+        .lineLimit(1)
+        .foregroundStyle(isEnabled ? style.label : Palette.secondary)
+        .padding(.horizontal, 18)
+        .frame(maxWidth: .infinity, minHeight: 60)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(isEnabled ? style.fill : Palette.disabled)
+        )
+        .offset(y: pressed ? 2 : 0)
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .animation(.easeOut(duration: 0.08), value: pressed)
+        .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
+    }
+}
+
+/// A small filled button for a top bar, such as Save.
+struct CompactButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        CompactButton(configuration: configuration)
+    }
+}
+
+private struct CompactButton: View {
+    let configuration: ButtonStyleConfiguration
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        let pressed = configuration.isPressed && isEnabled
+        configuration.label
+            .font(size: 17, weight: .bold)
+            .lineLimit(1)
+            .foregroundStyle(isEnabled ? Palette.buttonLabel : Palette.secondary)
+            .padding(.horizontal, 20)
+            .frame(minWidth: 84, minHeight: 40)
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous).fill(
+                    isEnabled ? Palette.buttonFill : Palette.disabled)
+            )
+            .offset(y: pressed ? 1.5 : 0)
+            .animation(.easeOut(duration: 0.08), value: pressed)
+            .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
+    }
+}
+
+/// A suggestion in its own soft color, with an ink label.
+struct ChipButtonStyle: ButtonStyle {
+    let color: ChipColor
+
+    func makeBody(configuration: Configuration) -> some View {
+        ChipButton(configuration: configuration, color: color)
+    }
+}
+
+private struct ChipButton: View {
+    let configuration: ButtonStyleConfiguration
+    let color: ChipColor
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        let pressed = configuration.isPressed && isEnabled
+        configuration.label
+            .font(size: 16, weight: .semibold)
+            .tracking(-0.2)
+            .lineLimit(1)
+            .foregroundStyle(Palette.chipLabel)
+            .padding(.horizontal, 14)
+            .frame(minHeight: 44)
+            .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(color.fill))
+            .scaleEffect(pressed ? 0.96 : 1)
+            .opacity(isEnabled ? 1 : 0.5)
+            .animation(.easeOut(duration: 0.08), value: pressed)
+            .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
+    }
+}
+
+/// The neutral 2-point outline that marks a control which is not the main action: the photo button, the
+/// composer, the sample menu.
+struct Outline: View {
+    var corner: CGFloat = 14
+    var color = Palette.outline
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: corner, style: .continuous).strokeBorder(color, lineWidth: 2)
+    }
+}
+
+/// The close button at the top left of every describe screen.
+struct CloseButton: View {
+    var color = Palette.text
+    var label = "Close"
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(label)
     }
 }

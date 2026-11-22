@@ -41,17 +41,7 @@ final class DescribeSession: Identifiable {
             case .gaveUp: "I couldn't make that work."
             case .interrupted: "The build stopped in the background."
             case .broken: "Something went wrong on this phone."
-            case .unavailable: "Building widgets is not available in this build"
-            }
-        }
-
-        var detail: String? {
-            switch self {
-            case .unreachable: "Check that the bridge is running."
-            case .gaveUp: "Try saying it another way."
-            case .interrupted: "Keep Widgie open while it paints, then try again."
-            case .broken: "Try again in a moment."
-            case .unavailable: nil
+            case .unavailable: "Building widgets is not available in this build."
             }
         }
     }
@@ -80,11 +70,7 @@ final class DescribeSession: Identifiable {
     let preview: Preview
     private(set) var phase: Phase
     private(set) var turns: [Turn] = []
-    /// The steps of the build on show, oldest first.
-    private(set) var steps: [BuildStep] = []
     private(set) var buildStarted = Date.now
-    /// Whether the person has tapped the draft yet, which retires the hint to try it.
-    private(set) var tried = false
 
     var words = ""
     var picture: Attachment?
@@ -157,7 +143,6 @@ final class DescribeSession: Identifiable {
     }
 
     func perform(_ tap: Tap, input: [String: InputValue] = [:]) {
-        tried = true
         preview.perform(tap, input: input)
     }
 
@@ -234,7 +219,6 @@ final class DescribeSession: Identifiable {
                 words, image: image, replacing: replacing, repairing: line, model: model
             ) { step in
                 log.info("\(step.title, privacy: .public) at \(seconds(), privacy: .public)")
-                if self.steps.last != step { self.steps.append(step) }
                 self.phase = .building(step)
             }
             switch outcome {
@@ -259,7 +243,6 @@ final class DescribeSession: Identifiable {
     }
 
     private func begin(_ step: BuildStep) {
-        steps = [step]
         buildStarted = .now
         phase = .building(step)
     }
