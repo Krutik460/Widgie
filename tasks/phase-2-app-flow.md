@@ -283,53 +283,53 @@ A draft must not appear in the home screen widget picker before the person saves
 
 **Files.**
 
-- [ ] Create `App/Widgie/Describe/DescribeSession.swift`, `DescribeView.swift`, and `BridgeModel.swift`.
-- [ ] Edit `App/Widgie/LibraryView.swift` and `Library.swift`.
-- [ ] Edit `App/project.yml` for the debug-only bridge URL and local networking.
+- [x] Create `App/Widgie/Describe/DescribeSession.swift`, `DescribeView.swift`, and `BridgeModel.swift`. Done, with `TryItView.swift`, `SavedView.swift`, and `Picture.swift` beside them, and the design seam in `App/Widgie/Design/` (`Theme.swift`, `Caret.swift`, `WidgieColors.xcassets`).
+- [x] Edit `App/Widgie/LibraryView.swift` and `Library.swift`. Done.
+- [x] Edit `App/project.yml` for the debug-only bridge URL and local networking. Done as a Debug-only post-build step that writes `WidgieModelBridge` and `NSAllowsLocalNetworking` into the built Info.plist.
 
 **Build.**
 
-- [ ] `BridgeModel` conforms to `WidgetModel`. It posts to the bridge with `URLSession`, a 120 s timeout, and `Content-Type: application/json`, which the bridge requires. The base URL comes from a Debug-only Info.plist key, `WidgieModelBridge`, set to `http://127.0.0.1:8787`. A Release build has no bridge key and shows "Building widgets is not available in this build".
-- [ ] Debug builds set `NSAppTransportSecurity` with `NSAllowsLocalNetworking` so the simulator can reach the Mac over plain HTTP. Confirm on the simulator that the request goes through. Do not add an arbitrary-loads exception.
-- [ ] `DescribeSession` drives `Engine.build(_ words:...)` on the preview's scratch engine and maps each `BuildStep` to `phase`. It keeps the in-flight build alive with `UIApplication.beginBackgroundTask` when the app leaves the foreground, because a build takes about 40 s.
-- [ ] The library gets a **New widget** button that opens the describe screen in create mode. Tapping a widget in the library opens it in refine mode with its current face as the draft. Move "Install reference widget" into a Debug-only menu.
-- [ ] The describe screen has the following parts, top to bottom.
-  - [ ] The preview, with small and medium faces and a picker for the empty state and each sample. Before the first draft, a placeholder invites a description.
-  - [ ] The transcript of turns. An accepted turn shows a short confirmation. A failed turn shows a plain-language message, never the raw verdict line.
-  - [ ] A composer with a text field, a photo button that opens `PhotosPicker`, and a send button. An attached photo shows as a thumbnail that can be removed. Downscale it to 1080 px on the longest side and send it as JPEG.
-  - [ ] A **Save** button, enabled only when a draft exists, and a **Discard** button that asks for confirmation once a draft exists.
-- [ ] The progress text follows the steps. Show "Writing your widget" while the model works, "Checking it fits" while proving, and "Fixing a layout problem (2 of 3)" during a repair. Show a cancel button during any build. Cancel returns to the last draft.
-- [ ] Map failures to messages. A transport error reads "Couldn't reach the widget builder. Check that the bridge is running." A give-up reads "I couldn't make that work. Try saying it another way." Keep the last good draft on screen in both cases.
-- [ ] Save can still be rejected by the checks only the real store can run: a widget that shares the data, and the kinds of cells already stored. Treat that line as a repair. Run one more loop turn on the scratch engine with `replacing: draft.previewID` and `repairing:` set to that line, show it as normal progress, and save when it is accepted.
-- [ ] After Save, return to the library, show the new widget, and show one line that explains how to add it to the home screen. Full onboarding is out of scope.
-- [ ] Every new type and file follows the house style that `App/scripts/build` lints.
+- [x] `BridgeModel` conforms to `WidgetModel`. It posts to the bridge with `URLSession`, a 120 s timeout, and `Content-Type: application/json`, which the bridge requires. The base URL comes from a Debug-only Info.plist key, `WidgieModelBridge`, set to `http://127.0.0.1:8787`. A Release build has no bridge key and shows "Building widgets is not available in this build". Done. The Release simulator build has no `WidgieModelBridge` key, and Build it shows that line on the drained screen (`Engine/.artifacts/app-flow/p5/release-unavailable.png`).
+- [x] Debug builds set `NSAppTransportSecurity` with `NSAllowsLocalNetworking` so the simulator can reach the Mac over plain HTTP. Confirm on the simulator that the request goes through. Do not add an arbitrary-loads exception. Done. Every live lane below reached the bridge at `127.0.0.1:8787` (`bridge-sonnet.log`).
+- [x] `DescribeSession` drives `Engine.build(_ words:...)` on the preview's scratch engine and maps each `BuildStep` to `phase`. It keeps the in-flight build alive with `UIApplication.beginBackgroundTask` when the app leaves the foreground, because a build takes about 40 s. Done. The background path is in code (`beginBackgroundTask`, and `.interrupted` when iOS ends it) but was not exercised live, see Appendix A.
+- [x] The library gets a **New widget** button that opens the describe screen in create mode. Tapping a widget in the library opens it in refine mode with its current face as the draft. Move "Install reference widget" into a Debug-only menu. Done (`library.png`, `refine-saved-open.png`).
+- [x] The describe screen has the following parts, top to bottom. Done as one screen per step in The Caret in Sky (`docs/design/app-feel/README.md`), so the parts sit on the screen the mock gives them.
+  - [x] The preview, with small and medium faces and a picker for the empty state and each sample. Before the first draft, a placeholder invites a description. Done. The samples are one compact menu (`create-image-busy.png`), and before the first draft the describe screen is the invitation (`describe.png`).
+  - [x] The transcript of turns. An accepted turn shows a short confirmation. A failed turn shows a plain-language message, never the raw verdict line. Done as the latest exchange only, per the mock (`refine-1.png`, `cancel.png`, `bridge-down-draft-kept.png`).
+  - [x] A composer with a text field, a photo button that opens `PhotosPicker`, and a send button. An attached photo shows as a thumbnail that can be removed. Downscale it to 1080 px on the longest side and send it as JPEG. Done (`create-image-describe.png`, `create-image.png`).
+  - [x] A **Save** button, enabled only when a draft exists, and a **Discard** button that asks for confirmation once a draft exists. Done. Save sits top right, and the close button asks before discarding.
+- [x] The progress text follows the steps. Show "Writing your widget" while the model works, "Checking it fits" while proving, and "Fixing a layout problem (2 of 3)" during a repair. Show a cancel button during any build. Cancel returns to the last draft. Done (`building.png`, `repair.png`, `cancel-during-writing.png`, `cancel.png`).
+- [x] Map failures to messages. A transport error reads "Couldn't reach the widget builder. Check that the bridge is running." A give-up reads "I couldn't make that work. Try saying it another way." Keep the last good draft on screen in both cases. Done. "Check that the bridge is running." shows only in Debug, per the design decision (`bridge-down.png`, `gave-up.png`).
+- [x] Save can still be rejected by the checks only the real store can run: a widget that shares the data, and the kinds of cells already stored. Treat that line as a repair. Run one more loop turn on the scratch engine with `replacing: draft.previewID` and `repairing:` set to that line, show it as normal progress, and save when it is accepted. Done in `DescribeSession.runSave`. No live save was rejected, so this path ran only in code.
+- [x] After Save, return to the library, show the new widget, and show one line that explains how to add it to the home screen. Full onboarding is out of scope. Done as the Saved screen, then the library (`saved.png`, `library-after-save.png`).
+- [x] Every new type and file follows the house style that `App/scripts/build` lints. Done, `scripts/check` passes.
 
 **You see.**
 
-- [ ] Typing "a water tracker with a big blue drop" and pressing send shows the steps, then a live preview whose plus button changes the count.
+- [x] Typing "a water tracker with a big blue drop" and pressing send shows the steps, then a live preview whose plus button changes the count. Done (`create-water.png`, `create-water-tapped.png`: 9 to 10 of 8).
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] The loop logic is already covered in P3. Move any `DescribeSession` logic that branches into a pure function and test it in `EngineTests` only if it belongs to the engine. Otherwise rely on the live lanes below, because the app has no test target. Adding an app test target is a fair alternative. Decide and note the choice in the PR.
+- [x] The loop logic is already covered in P3. Move any `DescribeSession` logic that branches into a pure function and test it in `EngineTests` only if it belongs to the engine. Otherwise rely on the live lanes below, because the app has no test target. Adding an app test target is a fair alternative. Decide and note the choice in the PR. Decided: no app test target. The branching that is worth testing lives in the engine's loop, already covered in P3. What is left in the app is view state that only the live lanes show truthfully. Noted in `docs/pr/DRAFT-phase-2-p5-describe.md`.
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked. Run each lane on the iPhone 18 Pro simulator, booted with `simslim on <udid> --except widgets,siri --keep com.apple.linkd`, with the bridge running on `sonnet`. Save every screenshot under `Engine/.artifacts/app-flow/`.
 
-- [ ] Lane 1. Regression against the current app. Install the four fixtures from the Debug menu. Pass when each still draws and taps as in the phase 0 review. Save `fixtures.png`.
-- [ ] Lane 2. Create from words. Type the water reference prompt. Pass when a preview appears and a plus tap changes it. Save `create-water.png`.
-- [ ] Lane 3. Create from a picture. Attach `Engine/Evals/images/R2-boarding-pass.png` with "make my to-do list look like this". Pass when the look resembles the picture and the rows tap. Save `create-image.png`.
-- [ ] Lane 4. Refine. After lane 2, send "make it blue", then "bigger number". Pass when each turn changes only what it asked. Save `refine-1.png` and `refine-2.png`.
-- [ ] Lane 5. Repair visible to the person. Use a prompt that the phase-1d run needed a repair for on Haiku, with the bridge on `haiku`. Pass when the repair step shows and the build is accepted. Save `repair.png`.
-- [ ] Lane 6. Cancel. Cancel during "Writing your widget". Pass when the screen returns to the last draft and nothing is saved in the library. Save `cancel.png`.
-- [ ] Lane 7. Bridge down. Stop the bridge and send a message. Pass when the transport message shows and the draft stays. Save `bridge-down.png`.
-- [ ] Lane 8. Save and place. Save the lane 4 widget. Add it to the home screen in small and medium. Tap it on the home screen. Pass when the face matches the preview and the tap updates it without opening the app. Save `home-small.png` and `home-medium.png`.
-- [ ] Lane 9. Refine a saved widget. Log three taps on the saved water widget, open it from the library, and send "add a weekly chart". Save. Pass when the home screen widget shows the chart and the three logged taps are still counted. Save `refine-saved.png`.
-- [ ] Lane 10. Appearance. Repeat lane 8 in dark mode and tinted mode. Pass when the face is legible in both. Save `home-dark.png` and `home-tinted.png`.
+- [x] Lane 1. Regression against the current app. Install the four fixtures from the Debug menu. Pass when each still draws and taps as in the phase 0 review. Save `fixtures.png`. Pass. All four installed, drew, and tapped (`fixtures.png`, `fixtures-tapped.png`).
+- [x] Lane 2. Create from words. Type the water reference prompt. Pass when a preview appears and a plus tap changes it. Save `create-water.png`. Pass (`create-water.png`, `create-water-tapped.png`).
+- [x] Lane 3. Create from a picture. Attach `Engine/Evals/images/R2-boarding-pass.png` with "make my to-do list look like this". Pass when the look resembles the picture and the rows tap. Save `create-image.png`. Pass. A boarding-pass to-do list whose rows tap off (`create-image.png`, `create-image-busy.png`, `create-image-tapped.png`). The simulator now keeps the `photos` group on (`simslim on <udid> --except widgets,siri,photos --keep com.apple.linkd`), because the photo picker needs it.
+- [x] Lane 4. Refine. After lane 2, send "make it blue", then "bigger number". Pass when each turn changes only what it asked. Save `refine-1.png` and `refine-2.png`. Pass. Blue changed only the colors, and the number grew from 9 to a larger 9 (`refine-1.png`, `refine-2.png`).
+- [x] Lane 5. Repair visible to the person. Use a prompt that the phase-1d run needed a repair for on Haiku, with the bridge on `haiku`. Pass when the repair step shows and the build is accepted. Save `repair.png`. Pass. The sticky-note to-do list repaired once on haiku and was accepted in 2 attempts (`repair.png`, `repair-result.png`). An earlier haiku run gave up after 3 and showed the give-up screen (`repair-gave-up-step.png`, `gave-up.png`).
+- [x] Lane 6. Cancel. Cancel during "Writing your widget". Pass when the screen returns to the last draft and nothing is saved in the library. Save `cancel.png`. Pass. The library still listed the same five widgets after (`lib-after-cancel.png`).
+- [x] Lane 7. Bridge down. Stop the bridge and send a message. Pass when the transport message shows and the draft stays. Save `bridge-down.png`. Pass (`bridge-down.png`, `dark-failure.png`, `bridge-down-draft-kept.png`).
+- [x] Lane 8. Save and place. Save the lane 4 widget. Add it to the home screen in small and medium. Tap it on the home screen. Pass when the face matches the preview and the tap updates it without opening the app. Save `home-small.png` and `home-medium.png`. Pass, with one simulator caveat. Both sizes match the preview's look, and taps write without opening the app. While testing, a tap left the other size stale until midnight, because WidgetKit reloads only the tapped widget after an intent; fixed in `WidgetHosting` (`fixed-after-tap.png`, `fixed-after-second-tap.png`). The tapped face itself still shows the new count one redraw late on the simulator (`stale-after-tap.png`, `stale-after-page-swipe.png`), see Appendix A.
+- [x] Lane 9. Refine a saved widget. Log three taps on the saved water widget, open it from the library, and send "add a weekly chart". Save. Pass when the home screen widget shows the chart and the three logged taps are still counted. Save `refine-saved.png`. Pass. Three taps logged, then the weekly chart was added and saved, and the home screen shows 3 of 8 with the chart (`refine-saved-before.png`, `refine-saved.png`, `refine-saved-home.png`).
+- [x] Lane 10. Appearance. Repeat lane 8 in dark mode and tinted mode. Pass when the face is legible in both. Save `home-dark.png` and `home-tinted.png`. Pass (`home-dark.png`, `home-tinted.png`).
 
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Seconds from send to the first live preview, for the four reference prompts on `sonnet`. Split each into model seconds, from the bridge log, and app seconds.
-- [ ] Baseline. The `run.py` medians from phase-1d, 36.8 s on Sonnet.
-- [ ] Rule. App seconds, meaning the total minus model seconds, stay under 3 s per attempt on the simulator. The total is dominated by the model and is reported, not gated.
+- [x] Metric. Seconds from send to the first live preview, for the four reference prompts on `sonnet`. Split each into model seconds, from the bridge log, and app seconds. Done in `Engine/.artifacts/app-flow/p5/perf.txt`, one run per prompt.
+- [x] Baseline. The `run.py` medians from phase-1d, 36.8 s on Sonnet. Median total 33.4 s here.
+- [x] Rule. App seconds, meaning the total minus model seconds, stay under 3 s per attempt on the simulator. The total is dominated by the model and is reported, not gated. Pass. App seconds 0.48 to 1.20 per build, median 0.55, and 0.44 per attempt on the 3-attempt haiku build.
 
 **Review gate.** The user reviews before merge, because P5 changes what a person sees and does.
 
@@ -385,9 +385,11 @@ A draft must not appear in the home screen widget picker before the person saves
 
 Nothing below was run while writing this plan. Settle each as early as its unit allows.
 
+- Settled in P5: the simulator reaches `127.0.0.1:8787` with only `NSAllowsLocalNetworking`.
+- Open after P5: on the simulator, a tapped home screen widget shows its new count one redraw late. Its timeline already holds the count, which shows after a page swipe or any redraw. Check on a device before chasing it in code.
 - The simulator reaching `127.0.0.1:8787` with only `NSAllowsLocalNetworking`. Settle it in the first hour of P5 with a one-line request from the app. A physical phone needs the Mac's LAN address or Bonjour, which is out of scope here.
 - A refine prompt that changes only what was asked. P2 measures it. If Sonnet misses often, the fallback is to send a smaller target ("change only the look") and keep the blocks unchanged in the app. Raise that with the user first, because it limits what refine can do.
-- A build surviving the app going to the background for 40 s. `beginBackgroundTask` gives roughly 30 s, and a longer build may be cut off. If lane testing shows it, keep the request on a background `URLSession`, or re-run the attempt when the app returns. Pick one and note it in the PR.
+- A build surviving the app going to the background for 40 s. Still unproven after P5: no lane sent the app to the background mid-build. `beginBackgroundTask` gives roughly 30 s, and a longer build may be cut off. If lane testing shows it, keep the request on a background `URLSession`, or re-run the attempt when the app returns. Pick one and note it in the PR.
 - Whether `build` on the phone is fast enough for three attempts. P3 measures the Mac and P5 the simulator. The device number is owed to the device step.
 
 ## Appendix B. Alternatives rejected
