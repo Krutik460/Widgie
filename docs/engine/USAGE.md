@@ -165,6 +165,24 @@ func submit(_ form: InputForm, values: [String: InputValue]) throws {
 
 Same view, a different host. The app decides what a tap means in its own process.
 
+A draft the person has not saved lives in a scratch engine, never in `Hosting.engine`, so the widget picker cannot list it. The scratch engine runs no commit hook, and it deletes its folder when it is released, after closing its database. `App/Widgie/Preview.swift` owns one per draft.
+
+```swift
+let scratch = Engine(scratch: URL.temporaryDirectory.appending(path: "preview-\(UUID().uuidString)"))
+guard case .saved(let draft) = try await scratch.build(source) else { return }   // or the build loop
+
+let samples = try scratch.samples(of: draft)          // ["goal met", "morning"], sorted like the saved document
+try scratch.load(.sample(samples[0]), into: draft)    // the face now shows exactly that sample's rows
+try scratch.load(.empty, into: draft)                 // and now no rows
+
+// Save: prove the draft once more against the shared store, keeping a refined widget's rows.
+if let source = try scratch.source(of: draft) {
+    let outcome = try await Hosting.engine.build(source, replacing: editing)   // .rejected(line) is a repair
+}
+```
+
+`load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows. To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
+
 ```swift
 let faces = await engine.faces(for: id, family: .small, size: Family.small.standardSize, from: .now)
 

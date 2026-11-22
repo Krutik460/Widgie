@@ -242,40 +242,40 @@ A draft must not appear in the home screen widget picker before the person saves
 
 **Files.**
 
-- [ ] Edit `Engine/Sources/WidgetBuilder/` to add one public call that loads a sample into a saved widget.
-- [ ] Create `App/Widgie/Preview.swift`.
-- [ ] Add a test to `Engine/Tests/EngineTests/`.
+- [x] Edit `Engine/Sources/WidgetBuilder/` to add one public call that loads a sample into a saved widget. Done in `7fa1190`: `Samples.swift` adds `load(_:into:at:)` and `samples(of:)`.
+- [x] Create `App/Widgie/Preview.swift`. Done in `7b130d6`, with the Debug-only `PreviewLab.swift`.
+- [x] Add a test to `Engine/Tests/EngineTests/`. Done in `7fa1190`: `PreviewTests.swift`, 8 tests.
 
 **Build.**
 
-- [ ] Add `Engine.load(sample name: String, into widget: WidgetID) async throws(EngineError)` in `WidgetBuilder`, built on `RowStore.seed`. Add `Engine.clear(_ widget: WidgetID)` if returning to the empty state needs it. Keep `seed` itself `package`.
-- [ ] `Preview` owns a scratch `Engine(directory: <temp>/preview-<uuid>, onCommit: nil)`. With `onCommit: nil` no WidgetKit reload ever fires for a draft. It deletes its folder on deinit and on app launch.
-- [ ] The loop in P3 runs against the scratch engine, so every accepted attempt saves only there. The real store changes only on Save.
-- [ ] Save calls `Hosting.engine.build(preview.source(of: draft.previewID), replacing: editing)`. That proves the draft once more against the real store, including the data compatibility check for a refine.
-- [ ] When refining a library widget, copy its current source into the scratch engine first, then load its first sample. No public call copies rows, so the preview never shows the person's real rows.
+- [x] Add `Engine.load(sample name: String, into widget: WidgetID) async throws(EngineError)` in `WidgetBuilder`, built on `RowStore.seed`. Add `Engine.clear(_ widget: WidgetID)` if returning to the empty state needs it. Keep `seed` itself `package`. Done as `load(_ state: DataState, into: WidgetID, at: Date = .now) throws(EngineError)`, synchronous like `perform`. It takes the proof's `DataState`, so `.empty` replaces `clear` and no second call exists. It moves each table to a new dataset and seeds there in one transaction (`RowStore.replaceRows`, which shares `seed`'s insert code), so a switch never mixes rows. It throws on any engine but a scratch one. `samples(of:)` lists the names, sorted by the saved document's key order, so the water fixture starts on "goal met".
+- [x] `Preview` owns a scratch `Engine(directory: <temp>/preview-<uuid>, onCommit: nil)`. With `onCommit: nil` no WidgetKit reload ever fires for a draft. It deletes its folder on deinit and on app launch. Done as `Engine(scratch:)`, which has no commit hook. The engine holds one `RowStore` until it is released, and a stored property outlives `deinit`'s body, so a delete in `Preview.deinit` would remove the files of an open database. The store deletes the folder instead, in its own `deinit`, after `database.close()`. `Preview.removeLeftovers()` runs at launch. Folder gone on release (`aScratchEngineDeletesItsFolderOnceReleased`), and on the simulator the tmp folder list was empty after a relaunch.
+- [x] The loop in P3 runs against the scratch engine, so every accepted attempt saves only there. The real store changes only on Save. `Preview.engine` is the engine P5 passes to `build(_ words:...)`. Live, the shared store held 9 widgets before and while a draft was open, and 10 after Save.
+- [x] Save calls `Hosting.engine.build(preview.source(of: draft.previewID), replacing: editing)`. That proves the draft once more against the real store, including the data compatibility check for a refine. Done on `Preview` as `save(replacing:) async -> BuildOutcome?`, so P5 gets `.rejected(line)` to repair with. Live: Save added the draft to the library with no rows (`06-saved-from-preview.png`, `07-library-after-save.png`).
+- [x] When refining a library widget, copy its current source into the scratch engine first, then load its first sample. No public call copies rows, so the preview never shows the person's real rows. Done as `Preview.copy(_:)`. Live: a library widget at 3 of 8 opened as a copy at 9 of 8 ("goal met"), a tap there made 10, and the library still read 3 of 8 (`08-copy-of-library-widget-shows-sample.png`, `09-library-rows-untouched-by-copy.png`).
 
 **You see.**
 
-- [ ] A draft built in the scratch engine draws in `FaceView` and responds to taps. `Hosting.engine.widgets()` does not list it.
+- [x] A draft built in the scratch engine draws in `FaceView` and responds to taps. `Hosting.engine.widgets()` does not list it. Done, see the live box.
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] A test builds a fixture into a scratch engine, loads a sample, and reads faces whose data matches the sample. A second engine on another folder lists no widgets. Run `Engine/scripts/check`.
+- [x] A test builds a fixture into a scratch engine, loads a sample, and reads faces whose data matches the sample. A second engine on another folder lists no widgets. Run `Engine/scripts/check`. Done. `PreviewTests` compares each face with `Engine.proof` of the same state in both families, checks that a switch replaces rows and that taps add on top, that two other engines list nothing, that the shared store refuses `load`, and that the folder goes on release. `Engine/scripts/check` passed, 68 tests in 14 suites in `EngineTests`.
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] In a debug screen, build the water fixture into a preview, tap plus twice, and switch samples. Pass when the count changes and the sample switch redraws. Then open the home screen widget picker and confirm that the draft is not listed. Save a screenshot of each.
+- [x] In a debug screen, build the water fixture into a preview, tap plus twice, and switch samples. Pass when the count changes and the sample switch redraws. Then open the home screen widget picker and confirm that the draft is not listed. Save a screenshot of each. Done on the iPhone 18 Pro simulator with AXe, from the library's Debug menu "Preview without saving". The draft opened on "goal met" at 9 of 8, two plus taps made 11 of 8, "morning" redrew at 2 of 8 with its week bars, and "empty" at 0 of 8. With the draft open, the edit sheet's widget list showed exactly the 9 library widgets in store order (`01-preview-first-sample.png` to `05-widget-picker-while-draft-open.png` in `Engine/.artifacts/app-flow/p4/`).
 
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. App memory with a preview open against the library screen alone, in the Xcode memory gauge on the simulator.
-- [ ] Rule. Record both numbers. A growth of more than 30 MB per preview, or growth that stays after closing one, is a leak to fix.
+- [x] Metric. App memory with a preview open against the library screen alone, in the Xcode memory gauge on the simulator. Read instead as `vmmap --summary` physical footprint of the simulator app process on the Mac, 22 open and close rounds over three runs (`Engine/.artifacts/app-flow/p4/``memory.txt`).
+- [x] Rule. Record both numbers. A growth of more than 30 MB per preview, or growth that stays after closing one, is a leak to fix. Passed. Steady state is 52.0 to 52.4 MB with the library alone and 53.3 to 53.6 MB with a preview open, about 1.3 MB per preview. The first preview in a fresh process costs 10.6 MB (36.3 to 46.9 MB), of which 8.7 MB stays as first-use cost. One later 7 MB step sat in reclaimable free malloc pages (9.9 MB reclaimable) and did not repeat over 12 more rounds. After closing, the heap holds one `Engine`, one `RowStore`, and no `Preview`. Once in the session SwiftUI kept one dismissed `Preview` alive, rooted in its animation manager and attribute graph, with no app-owned root (`retained-after-background-trace.txt`). It never exceeded one instance, and the launch sweep removed its folder.
 
 **Review gate.** None. P4 is not review-gated.
 
 **Merge.**
 
-- [ ] `scripts/check` passes.
+- [x] `scripts/check` passes. Done at `7b130d6` plus the docs: the engine gate (`check passed`) and the app build (`build passed`).
 
 ## Build the describe screen (P5)
 
