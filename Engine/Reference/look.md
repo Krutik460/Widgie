@@ -356,11 +356,12 @@ Design for `ctx.width` by `ctx.height`. The app renders every look with no data,
 
 ## Tinted and dark mode
 
-The person may set the home screen to tinted or dark. The look is not told which, so one tree must work in every mode.
+The person may set the home screen to tinted, clear, or dark. The look is not told which, so one tree must work in every mode.
 
-- Tinted mode removes `widgetBackground` and draws every other node in one color at its own opacity. Put the backdrop in `widgetBackground`, never in a full-size shape, which would become one flat sheet that hides everything on it.
-- Show state through opacity or shape, not hue alone. A done day at full opacity and an open one at 30%, or `checkmark.circle.fill` against `circle`, still read when tinted. Green against gray does not, and a symbol on an opaque disc of another color vanishes unless one of them has `accent: true`.
-- Give `accent: true` to the one or two things that matter most, such as the main number or button. They take the person's tint color.
+- Tinted and clear mode remove `widgetBackground` and draw every other node in one color at its own opacity. Put the backdrop in `widgetBackground`, never in a full-size shape, which would become one flat sheet that hides everything on it.
+- Show state through opacity or shape, not hue alone. A done day at full opacity and an open one at 30%, or `checkmark.circle.fill` against `circle`, still read when tinted. Green against gray does not.
+- A mark drawn on top of an opaque shape vanishes, because both turn the same color. `accent: true` does not save it: clear mode draws accent nodes in the same color as the rest. Cut the mark out of the shape instead, with a filled symbol such as `plus.circle.fill`, or draw the shape as an outline.
+- Give `accent: true` to the one or two things that matter most, such as the main number or button. They take the person's tint color in tinted mode.
 - Dark mode is optional. A look may keep its own colors, or use `{ light, dark }` colors to follow the setting.
 
 The app also draws every look tinted, with no rows and with the full state, and dark with the full state. A tinted render that is blank, or mostly one flat color, is rejected.

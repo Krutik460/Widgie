@@ -157,7 +157,14 @@ Found along the way:
 - Habit look, tinted: once today is checked, its outline is gone, so on a streak today looks like any other done day. Fixed 2026-11-21: today is a smaller square inside a ring, and the gap marks it in every mode.
 - Done to-do titles wrap to two lines to make room for the remove button. Fixed 2026-11-21: a done title keeps one line in both sizes and ends in an ellipsis.
 
-Still open from this phase: the device step (needs the Apple Developer account and a team id in `App/project.yml`), the water widget on the home screen (only installed in the app), and the medium size on the home screen.
+**Home screen, water and medium (2026-11-21).** Water in small and medium, both showing one widget, on a home screen set to Clear. Plus, a quick second plus, and minus each change the data without opening the app, and a tap on one face updates the other.
+
+- In Clear mode the water plus vanished: a plus on an `accent` disc drew as a plain white disc, because Clear draws accent nodes in the same color as the rest. The plus is now cut out of the disc (`plus.circle.fill`), and `look.md` teaches the cutout instead of `accent`. The engine's tinted emulation still draws accent nodes in a tint color, so a proof does not show this case.
+- In medium the minus appeared left of the plus after the first glass and pushed the plus right, so a quick second tap landed on the minus and undid the drink. The plus now comes first.
+- Sometimes the face that was just tapped keeps its old picture while the other face of the same widget redraws. Both come from the same successful reload, and the tap targets already match the new face, so the timeline is right. The picture catches up when the home screen is shown again. Check on a device.
+- The gallery offered Word of the Day as the default for a new widget, though To-do was the latest creation. iOS seems to keep the default it resolved when the extension was installed. The picker lists the right order. Matters for the add-to-home-screen onboarding.
+
+Still open from this phase: the device step (needs the Apple Developer account and a team id in `App/project.yml`).
 
 ### Phase 1. Interpreter with hand-written specs, no AI
 
@@ -327,7 +334,7 @@ An outside review (two models) raised eight findings. Each was checked against t
   - Both are within run-to-run noise of the last baseline.
   - The tinted cover check fired once, on the weaker model's sticky-note to-do, which drew its paper as a full-size shape. The second repair fixed it.
 - **Behaviour change.** A tap from an older revision still in the history runs that revision's action. Before, it was a no-op if the action had been removed. Taps drawn before this change carry no revision and are ignored, which matters only for timelines already on screen. No release exists yet.
-- **Not covered by the checks.** A symbol that vanishes on an opaque disc of another color in tinted mode (the water case) is taught in `look.md`, not detected.
+- **Not covered by the checks.** A symbol that vanishes on an opaque disc of another color in tinted mode (the water case) is taught in `look.md`, not detected. Clear mode showed that `accent` does not save it (2026-11-21), so `look.md` now teaches a cutout.
 - **Needs a device.**
   - Whether the tinted emulation matches iOS 26 tinted and clear.
   - Time per QuickJS step without JIT, and whether 2,000 steps stays well inside a reload.
