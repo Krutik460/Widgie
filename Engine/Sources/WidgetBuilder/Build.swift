@@ -15,17 +15,18 @@ extension Engine {
     ///
     /// Steps, stopping at the first problem:
     /// 1. `Spec.parse(source.json)`. A missing `format` means current.
-    /// 2. With `replacing`: `spec.checkCompatible(replacing: old.spec)`, the same check against every other
-    ///    widget bound to one of its datasets and against the kinds of the cells already stored in those
-    ///    datasets (`store.storedKinds`), and keep its key. Without: a new key, whose tables get new datasets
-    ///    on save.
+    /// 2. With `replacing`: `store.refusal(of:replacing:)`, which checks the spec against the widget, every
+    ///    other widget bound to one of its datasets, and the kinds of the cells already stored in those
+    ///    datasets, and keep its key. Without: a new key, whose tables get new datasets on save.
     /// 3. `ingest`: every image has an asset entry, and every asset has bytes in `source.images` or a digest
     ///    whose file this store holds. Downscale and encode.
     /// 4. `spec.fillingTimeZone(calendar.timeZone)`.
     /// 5. `prove`, the matrix `Engine.proofs` also runs: every data state in every family, then the tinted and
     ///    dark redraws, then action coverage and the content check. The first problem is the rejection.
-    /// 6. `store.save`: files first, then the revision, the head move, and a new dataset for each table that
-    ///    has none. `onCommit` runs.
+    /// 6. `store.save`, or `store.replace` with `replacing`: files first, then the revision, the head move, and
+    ///    a new dataset for each table that has none. `onCommit` runs. `store.replace` runs step 2 again inside
+    ///    its write, so a widget deleted while this proved throws, and one refined or written to meanwhile is
+    ///    checked as it is now.
     public func build(_ source: WidgetSource, replacing: WidgetID? = nil) async throws(EngineError) -> BuildOutcome {
         try await build(source, replacing: replacing, at: .now)
     }
@@ -47,21 +48,8 @@ extension Engine {
             guard let parsed = WidgetKey(parsing: replacing.rawValue), let found = try widget(parsed, in: store) else {
                 throw EngineError(message: "no widget \(replacing.rawValue) to replace")
             }
-            let sharers: [Sharer]
-            let stored: [String: [String: Set<Spec.FieldKind>]]
-            (sharers, stored) = try attempt { () throws(StoreError) in
-                (try store.sharers(of: parsed), try store.storedKinds(of: parsed))
-            }
-            do throws(Diagnostic) {
-                try spec.checkCompatible(replacing: found.spec)
-                for sharer in sharers {
-                    try spec.checkCompatible(sharer.table, with: sharer.widget.spec, table: sharer.as)
-                }
-                for (table, kinds) in stored.sorted(by: { $0.key < $1.key }) {
-                    try spec.checkCompatible(table, holding: kinds)
-                }
-            } catch {
-                return .rejected(error.line)
+            if let line = try attempt({ () throws(StoreError) in try store.refusal(of: spec, replacing: parsed) }) {
+                return .rejected(line)
             }
             key = parsed
             old = found
@@ -77,7 +65,13 @@ extension Engine {
             zoned, images: images, today: Today(at: date, calendar: calendar), sandbox: sandbox,
             stopAtFirstFailure: true)
         if let verdict = matrix.verdict { return .rejected(verdict) }
-        _ = try attempt { () throws(StoreError) in try store.save(key, spec: zoned, assets: images) }
+        if old == nil {
+            _ = try attempt { () throws(StoreError) in try store.save(key, spec: zoned, assets: images) }
+        } else if let line = try attempt({ () throws(StoreError) in
+            try store.replace(key, with: zoned, assets: images)
+        }) {
+            return .rejected(line)
+        }
         return .saved(WidgetID(rawValue: key.raw))
     }
 

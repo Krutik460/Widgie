@@ -330,6 +330,21 @@ enum Broken {
         #expect(try scratch.engine.history(of: id).first == history[1])
     }
 
+    /// The proof draws on the main actor, so while this test holds the main actor the refinement waits there,
+    /// past its checks, and the delete lands during its proof.
+    @Test @MainActor func aWidgetDeletedWhileItsRefinementIsProvedStaysDeletedAndTheBuildThrows() async throws {
+        let scratch = Scratch()
+        let id = try await scratch.build(document(look: counterLook()))
+        let blue = document(look: counterLook().replacing("#102030", with: "#1B3A8C"))
+        let refinement = Task.detached { try await scratch.engine.build(blue, replacing: id) }
+        usleep(500_000)
+        try scratch.engine.delete(id)
+
+        await #expect(throws: EngineError.self) { try await refinement.value }
+        #expect(try scratch.engine.widgets().isEmpty)
+        #expect(try scratch.engine.source(of: id) == nil)
+    }
+
     @Test func theSourceRoundTripsToTheSameBytes() async throws {
         let scratch = Scratch()
         for name in fixtureNames {

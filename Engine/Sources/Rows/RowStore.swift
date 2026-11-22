@@ -118,11 +118,7 @@ package final class RowStore: Sendable {
     /// Nil for an unknown or deleted widget, or one with no revision proved here. Throws when the drawn
     /// revision does not parse.
     package func widget(_ key: WidgetKey) throws(StoreError) -> StoredWidget? {
-        try read { db in
-            try Row.fetchOne(
-                db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL AND w.key = ?", arguments: [key.raw]
-            ).map(StoredWidget.init(row:))
-        }
+        try read { db in try liveWidget(key, db) }
     }
 
     /// Saves a new revision and moves the widget's head to it, creating the widget when `key` is new. Hashes
@@ -130,17 +126,45 @@ package final class RowStore: Sendable {
     /// (`Spec.encoded`), and names the revision by the hash of those bytes. Saving bytes that already exist
     /// adds nothing but the head move. The caller proved the spec, so the revision is marked proved here.
     package func save(_ key: WidgetKey, spec: Spec, assets: [Spec.AssetID: Data]) throws(StoreError) -> Spec.Digest {
+        try commit(key, spec: spec, assets: assets, replacing: false).revision
+    }
+
+    /// `save` for a refinement of the live widget `key`. The write transaction checks `spec` against the
+    /// widget first, as `refusal(of:replacing:)` does, so a refinement proved while the widget was deleted,
+    /// refined again, or written to never moves a head it no longer fits. Returns the line saying why it
+    /// did not fit, with nothing written, or nil once saved. Throws when `key` names no live widget.
+    package func replace(_ key: WidgetKey, with spec: Spec, assets: [Spec.AssetID: Data]) throws(StoreError)
+        -> String?
+    {
+        guard case .ignored(let line) = try commit(key, spec: spec, assets: assets, replacing: true).applied else {
+            return nil
+        }
+        return line
+    }
+
+    /// Why `spec` cannot replace the live widget `key` as the store holds it now, or nil when it can. It must
+    /// keep the widget's tables and fields (`Spec.checkCompatible(replacing:)`), agree on field kinds with
+    /// every other live widget bound to one of its datasets (`sharers(of:)`), and keep the kinds of the cells
+    /// already stored there (`storedKinds(of:)`). Throws when `key` names no live widget.
+    package func refusal(of spec: Spec, replacing key: WidgetKey) throws(StoreError) -> String? {
+        try read { db in try Rows.refusal(of: spec, replacing: key, db) }
+    }
+
+    private func commit(_ key: WidgetKey, spec: Spec, assets: [Spec.AssetID: Data], replacing: Bool)
+        throws(StoreError) -> (revision: Spec.Digest, applied: Applied)
+    {
         let digests = try guarded { try assets.mapValues(writeAsset) }
         let body = spec.fillingDigests(digests).encoded()
         let revision = digest(of: body)
         let now = Date()
-        try write(at: now) { db in
+        let applied = try write(at: now) { db in
+            if replacing, let line = try Rows.refusal(of: spec, replacing: key, db) { return .ignored(line) }
             try mark(revision, verdict: nil, db)
             return .changes(
                 [.putRevision(body: body), .moveHead(key, to: revision, createdAt: milliseconds(now))]
                     + (try newBindings(key, spec, db)))
         }
-        return revision
+        return (revision, applied)
     }
 
     /// Binds every table of `spec` that `key` has no dataset for to a new dataset, and keeps every existing
@@ -166,44 +190,14 @@ package final class RowStore: Sendable {
     /// Every other live widget that reads a dataset a table of `key` is bound to, with the two table ids.
     /// The builder checks field kinds against each, so widgets sharing rows agree on what a value means.
     package func sharers(of key: WidgetKey) throws(StoreError) -> [Sharer] {
-        try read { db in
-            try Row.fetchAll(
-                db,
-                sql: """
-                    SELECT mine.tbl AS mine, theirs.tbl AS theirs, w.key, r.digest, w.created_at, r.body
-                    FROM binding mine
-                    JOIN binding theirs ON theirs.dataset = mine.dataset AND theirs.widget != mine.widget
-                    JOIN widget w ON w.key = theirs.widget AND w.deleted IS NULL
-                    JOIN revision r ON r.digest = \(StoredWidget.drawn)
-                    WHERE mine.widget = ?
-                    ORDER BY w.created_at, mine.tbl
-                    """, arguments: [key.raw]
-            ).compactMap { row in
-                (try? StoredWidget(row: row)).map { Sharer(table: row["mine"], widget: $0, as: row["theirs"]) }
-            }
-        }
+        try read { db in try Rows.sharers(of: key, db) }
     }
 
     /// The kinds of the cells already stored in the live rows of each dataset a table of `key` is bound to,
     /// by table id and field id. They come from every writer, deleted widgets and other devices included, so
     /// the builder checks a new kind against them too. A field with no cells is absent and may change kind.
     package func storedKinds(of key: WidgetKey) throws(StoreError) -> [String: [String: Set<Spec.FieldKind>]] {
-        try read { db in
-            var kinds: [String: [String: Set<Spec.FieldKind>]] = [:]
-            for row in try Row.fetchAll(
-                db,
-                sql: """
-                    SELECT DISTINCT b.tbl, c.field, c.kind FROM binding b
-                    JOIN row r ON r.dataset = b.dataset AND r.deleted IS NULL
-                    JOIN cell c ON c.row = r.key AND c.dataset = r.dataset
-                    WHERE b.widget = ?
-                    """, arguments: [key.raw])
-            {
-                guard let kind = Spec.FieldKind.allCases.first(where: { $0.code == row["kind"] }) else { continue }
-                kinds[row["tbl"], default: [:]][row["field"], default: []].insert(kind)
-            }
-            return kinds
-        }
+        try read { db in try Rows.storedKinds(of: key, db) }
     }
 
     /// Every revision this widget's head has pointed at, newest first. The first is the current head.
@@ -587,6 +581,64 @@ func dataset(of widget: WidgetKey, table: String, _ db: Database) throws -> Data
     try String.fetchOne(
         db, sql: "SELECT dataset FROM binding WHERE widget = ? AND tbl = ?", arguments: [widget.raw, table]
     ).flatMap(DatasetKey.init(parsing:))
+}
+
+private func liveWidget(_ key: WidgetKey, _ db: Database) throws -> StoredWidget? {
+    try Row.fetchOne(db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL AND w.key = ?", arguments: [key.raw])
+        .map(StoredWidget.init(row:))
+}
+
+/// `RowStore.refusal(of:replacing:)` inside the caller's transaction.
+private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database) throws -> String? {
+    guard let old = try liveWidget(key, db) else { throw StoreError(message: "no widget \(key.raw) to replace") }
+    let sharers = try sharers(of: key, db)
+    let stored = try storedKinds(of: key, db)
+    do throws(Diagnostic) {
+        try spec.checkCompatible(replacing: old.spec)
+        for sharer in sharers {
+            try spec.checkCompatible(sharer.table, with: sharer.widget.spec, table: sharer.as)
+        }
+        for (table, kinds) in stored.sorted(by: { $0.key < $1.key }) {
+            try spec.checkCompatible(table, holding: kinds)
+        }
+    } catch {
+        return error.line
+    }
+    return nil
+}
+
+private func sharers(of key: WidgetKey, _ db: Database) throws -> [Sharer] {
+    try Row.fetchAll(
+        db,
+        sql: """
+            SELECT mine.tbl AS mine, theirs.tbl AS theirs, w.key, r.digest, w.created_at, r.body
+            FROM binding mine
+            JOIN binding theirs ON theirs.dataset = mine.dataset AND theirs.widget != mine.widget
+            JOIN widget w ON w.key = theirs.widget AND w.deleted IS NULL
+            JOIN revision r ON r.digest = \(StoredWidget.drawn)
+            WHERE mine.widget = ?
+            ORDER BY w.created_at, mine.tbl
+            """, arguments: [key.raw]
+    ).compactMap { row in
+        (try? StoredWidget(row: row)).map { Sharer(table: row["mine"], widget: $0, as: row["theirs"]) }
+    }
+}
+
+private func storedKinds(of key: WidgetKey, _ db: Database) throws -> [String: [String: Set<Spec.FieldKind>]] {
+    var kinds: [String: [String: Set<Spec.FieldKind>]] = [:]
+    for row in try Row.fetchAll(
+        db,
+        sql: """
+            SELECT DISTINCT b.tbl, c.field, c.kind FROM binding b
+            JOIN row r ON r.dataset = b.dataset AND r.deleted IS NULL
+            JOIN cell c ON c.row = r.key AND c.dataset = r.dataset
+            WHERE b.widget = ?
+            """, arguments: [key.raw])
+    {
+        guard let kind = Spec.FieldKind.allCases.first(where: { $0.code == row["kind"] }) else { continue }
+        kinds[row["tbl"], default: [:]][row["field"], default: []].insert(kind)
+    }
+    return kinds
 }
 
 /// A bind to a new dataset for each table of `spec` that `widget` has no binding for.
