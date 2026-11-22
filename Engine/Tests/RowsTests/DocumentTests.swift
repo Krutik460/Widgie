@@ -126,6 +126,26 @@ import Testing
         #expect(try store.widget(mine)?.spec == (try counter(fields: "{}")), "the head did not move")
     }
 
+    @Test func aRefinementMustAgreeOnKindsWithTheRevisionASharerDrawsWhenItsHeadIsNotProvedHere() throws {
+        let store = try RowStore.scratch()
+        let pad = try RowStore.scratch()
+        let mine = WidgetKey.mint()
+        let theirs = WidgetKey.mint()
+        _ = try store.save(mine, spec: counter(fields: "{}"), assets: [:])
+        _ = try store.save(theirs, spec: counter(fields: #"{"note": "text"}"#), assets: [:])
+        Thread.sleep(forTimeInterval: 0.01)
+        let head = try pad.save(theirs, spec: counter(fields: #"{"size": "number"}"#), assets: [:])
+        try store.receive(Array(pad.changes().values.joined()), now: Date())
+        #expect(try store.unprovedHeads() == [head])
+        let taps = try #require(try counter(fields: "{}").tables.first?.id)
+        try store.bind(theirs, table: taps, to: try #require(try store.dataset(of: mine, table: taps)))
+        #expect(try store.widget(theirs)?.spec == (try counter(fields: #"{"note": "text"}"#)), "it draws the note")
+
+        let line =
+            "field \"taps.note\" is text in widget \"Counter\", which shares this data, and is number here; keep the kind or use a new field id"
+        #expect(try store.replace(mine, with: counter(fields: #"{"note": "number"}"#), assets: [:]) == line)
+    }
+
     @Test func widgetsListsLiveWidgetsNewestFirst() throws {
         let store = try RowStore.scratch()
         let older = WidgetKey.mint()

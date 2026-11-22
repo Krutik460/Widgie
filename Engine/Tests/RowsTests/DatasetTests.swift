@@ -97,20 +97,30 @@ import Testing
         #expect(try phone.number("glassesToday", at: noon) == 1)
     }
 
-    @Test func sharersAreTheOtherLiveWidgetsOnADataset() throws {
-        let water = try Bench()
+    @Test func aRefinementAgreesOnKindsOnlyWithTheOtherLiveWidgetsOnItsDatasets() throws {
+        func glasses(note kind: String) throws -> Spec {
+            try parse(
+                testDocument.replacingOccurrences(
+                    of: #""glasses": {"fields": {}}"#, with: #""glasses": {"fields": {"note": "\#(kind)"}}"#))
+        }
+        let water = try Bench(spec: glasses(note: "text"))
         let dashboard = try Bench(store: water.store)
-        let glasses = try table(water, "glasses")
+        let numbered = try glasses(note: "number")
         _ = try water.store.save(water.widget, spec: water.spec, assets: [:])
         _ = try water.store.save(dashboard.widget, spec: dashboard.spec, assets: [:])
-        #expect(try water.store.sharers(of: dashboard.widget).isEmpty)
+        #expect(try water.store.refusal(of: numbered, replacing: dashboard.widget) == nil)
 
+        let glasses = try table(water, "glasses")
         let shared = try #require(try water.store.dataset(of: water.widget, table: glasses))
         try water.store.bind(dashboard.widget, table: glasses, to: shared)
-        let sharers = try water.store.sharers(of: dashboard.widget)
-        #expect(sharers.map { [$0.table, $0.widget.key.raw, $0.as] } == [["glasses", water.widget.raw, "glasses"]])
+        #expect(
+            try water.store.refusal(of: numbered, replacing: dashboard.widget)
+                == "field \"glasses.note\" is text in widget \"Test\", which shares this data, and is number here; keep the kind or use a new field id"
+        )
 
         try water.store.delete(water.widget)
-        #expect(try water.store.sharers(of: dashboard.widget).isEmpty, "a deleted widget shares nothing")
+        #expect(
+            try water.store.refusal(of: numbered, replacing: dashboard.widget) == nil,
+            "a deleted widget shares nothing")
     }
 }
