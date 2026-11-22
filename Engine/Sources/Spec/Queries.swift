@@ -11,21 +11,21 @@ extension Spec {
     /// field always belongs to the query's table, and a bool field with no value counts as false.
     package enum Shape: Hashable, Sendable {
         /// Rows in the window that match `where`. The look gets a number.
-        case count(Table, where: FieldValue?, Window)
+        case count(Table, where: Filter?, Window)
         /// The sum of a number field over rows in the window that match `where`. The table is the field's.
         /// A row with no value adds nothing. The look gets a number.
-        case sum(Field<Double>, where: FieldValue?, Window)
+        case sum(Field<Double>, where: Filter?, Window)
         /// The newest row in the window that matches `where`. The look gets a row or null.
-        case latest(Table, where: FieldValue?, Window)
+        case latest(Table, where: Filter?, Window)
         /// Up to `limit` rows in the window that match `where`, in `order`. The look gets a list of rows.
-        case list(Table, where: FieldValue?, Order, limit: Int, Window)
+        case list(Table, where: Filter?, Order, limit: Int, Window)
         /// Consecutive days whose measure over rows matching `where` reaches `goal`, ending today, or ending
         /// yesterday while today has not reached it yet. The look gets a number.
-        case streak(Measure, where: FieldValue?, goal: Double)
+        case streak(Measure, where: Filter?, goal: Double)
         /// One entry per day for the last `days` days, oldest first and today last, with that day's count of
         /// rows matching `where` and, for a field measure, their sum. The look gets a list of
         /// `{ date, weekday, count }`, with `sum` added for a field measure.
-        case daily(Measure, where: FieldValue?, days: Int)
+        case daily(Measure, where: Filter?, days: Int)
 
         package var table: TableID {
             switch self {
@@ -33,6 +33,30 @@ extension Spec {
             case .sum(let field, _, _): field.table
             case .streak(let measure, _, _), .daily(let measure, _, _): measure.table
             }
+        }
+    }
+
+    /// Who wrote a row, as a `where` asks it: the person on this device, or anyone else who shares the data.
+    package enum Author: String, Hashable, Sendable, CaseIterable {
+        case me
+        case others
+    }
+
+    /// A `where`: rows whose field equals a value, rows by an author, or both. At least one is set.
+    package struct Filter: Hashable, Sendable {
+        package let field: FieldValue?
+        package let by: Author?
+
+        init(field: FieldValue?, by: Author?) {
+            self.field = field
+            self.by = by
+        }
+
+        var json: JSONValue {
+            var members: [String: JSONValue] = [:]
+            if let field { members[field.field.id.raw] = field.value.json }
+            if let by { members["by"] = .string(by.rawValue) }
+            return .object(members)
         }
     }
 
@@ -217,14 +241,28 @@ extension Spec.Query {
         return goal
     }
 
-    private static func filter(_ query: Reader, _ table: Spec.Table) throws(Diagnostic) -> Spec.FieldValue? {
+    private static func filter(_ query: Reader, _ table: Spec.Table) throws(Diagnostic) -> Spec.Filter? {
         guard let value = query["where"] else { return nil }
-        let example = "like {\"\(table.fields.first?.id.raw ?? "done")\": false}"
-        let condition = try Reader(value, else: "where must be an object with one field and a value, \(example)")
-        guard condition.keys.count == 1, let name = condition.keys.first, let literal = condition[name] else {
+        let example = "like {\"\(table.fields.first?.id.raw ?? "done")\": false} or {\"by\": \"me\"}"
+        let condition = try Reader(
+            value, else: "where must be an object with one field and a value, \"by\", or both, \(example)")
+        let names = condition.keys.filter { $0 != "by" }
+        guard names.count <= 1, !condition.keys.isEmpty else {
             throw Diagnostic(
-                "where takes exactly one field and a value, \(example); found \(condition.keys.count) (\(condition.keys.joined(separator: ", ")))"
+                "where takes at most one field and a value, plus \"by\", \(example); found \(condition.keys.count) (\(condition.keys.joined(separator: ", ")))"
             )
+        }
+        var by: Spec.Author?
+        if let author = condition["by"] {
+            guard case .string(let raw) = author, let parsed = Spec.Author(rawValue: raw) else {
+                throw Diagnostic(
+                    "where \"by\" must be \"me\" (rows written on this phone) or \"others\" (rows written by anyone the widget is shared with), not \(author.described)"
+                )
+            }
+            by = parsed
+        }
+        guard let name = names.first, let literal = condition[name] else {
+            return Spec.Filter(field: nil, by: by)
         }
         guard let field = table.field(named: name) else {
             throw Diagnostic("where names no field \(Diagnostic.quote(name)) in \(table.id.raw) \(table.fieldChoices)")
@@ -235,7 +273,7 @@ extension Spec.Query {
             )
         }
         do throws(Diagnostic) {
-            return try field.value(from: literal)
+            return Spec.Filter(field: try field.value(from: literal), by: by)
         } catch {
             throw error.within("where")
         }
@@ -259,12 +297,12 @@ extension Spec.Query {
     }
 
     var json: JSONValue {
-        func filtered(_ key: String, _ target: String, _ filter: Spec.FieldValue?) -> [String: JSONValue] {
+        func filtered(_ key: String, _ target: String, _ filter: Spec.Filter?) -> [String: JSONValue] {
             var members: [String: JSONValue] = [key: .string(target)]
-            if let filter { members["where"] = [filter].json }
+            if let filter { members["where"] = filter.json }
             return members
         }
-        func windowed(_ key: String, _ target: String, _ filter: Spec.FieldValue?, _ window: Spec.Window) -> [String:
+        func windowed(_ key: String, _ target: String, _ filter: Spec.Filter?, _ window: Spec.Window) -> [String:
             JSONValue]
         {
             var members = filtered(key, target, filter)

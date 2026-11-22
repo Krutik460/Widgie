@@ -310,9 +310,10 @@ package final class RowStore: Sendable {
         QueryResult]
     {
         try read { db in
+            let me = try local(db).replica
             var results: [Spec.QueryID: QueryResult] = [:]
             for query in queries {
-                results[query.id] = try evaluate(query.shape, widget: widget, today: today, db)
+                results[query.id] = try evaluate(query.shape, widget: widget, today: today, me: me, db)
             }
             return results
         }
@@ -389,13 +390,14 @@ package final class RowStore: Sendable {
         }
     }
 
-    /// Inserts a state's rows through the insert path a tap uses, one per `count`, on `today.day - daysAgo`,
-    /// in one transaction. Rows land at midday of their day, in document order. Every table the sample names
-    /// must be bound.
+    /// Inserts a state's rows through the insert path a tap uses, one per `count`, in one transaction, placed
+    /// as `insertions` describes. A row `by` another member is stamped with that member's sample replica and
+    /// the member's name is recorded, so the look sees it as another person's row. Every table the sample
+    /// names must be bound.
     package func seed(_ sample: Spec.Sample, widget: WidgetKey, today: Today) throws(StoreError) {
         guard !sample.rows.isEmpty else { return }
         try write(at: Date()) { db in
-            .changes(
+            .authored(
                 try insertions(sample, today: today) { table in
                     guard let dataset = try Rows.dataset(of: widget, table: table.id.raw, db) else {
                         throw StoreError(message: "table \(table.id) has no dataset to seed")
@@ -413,14 +415,14 @@ package final class RowStore: Sendable {
     {
         let datasets = tables.map { (table: $0.id, dataset: DatasetKey.mint()) }
         try write(at: Date()) { _ in
-            let binds = datasets.map { Change.bind(widget, table: $0.table.raw, to: $0.dataset) }
+            let binds = datasets.map { Authored(Change.bind(widget, table: $0.table.raw, to: $0.dataset), by: nil) }
             let rows = try insertions(sample, today: today) { table in
                 guard let dataset = datasets.first(where: { $0.table == table.id })?.dataset else {
                     throw StoreError(message: "the sample names table \(table.id), which the widget does not have")
                 }
                 return dataset
             }
-            return binds.isEmpty ? .ignored("the widget has no tables") : .changes(binds + rows)
+            return binds.isEmpty ? .ignored("the widget has no tables") : .authored(binds + rows)
         }
     }
 
@@ -470,6 +472,8 @@ package final class RowStore: Sendable {
 
     private enum Plan {
         case changes([Change])
+        /// Changes some of which another member wrote: only sample rows, never a tap.
+        case authored([Authored])
         case ignored(String)
     }
 
@@ -487,6 +491,19 @@ package final class RowStore: Sendable {
                     let stamp = Stamp.next(after: clock, at: milliseconds(instant))
                     try merge(changes.map { Stamped(change: $0, stamp: stamp, replica: replica) }, in: db)
                     return .written
+                case .authored(let changes):
+                    let (replica, clock) = try local(db)
+                    let stamp = Stamp.next(after: clock, at: milliseconds(instant))
+                    for name in Set(changes.compactMap(\.by)) {
+                        try db.execute(
+                            sql: "INSERT OR REPLACE INTO member(replica, name) VALUES (?, ?)",
+                            arguments: [Authored.replica(of: name), name])
+                    }
+                    try merge(
+                        changes.map {
+                            Stamped(change: $0.change, stamp: stamp, replica: $0.by.map(Authored.replica) ?? replica)
+                        }, in: db)
+                    return .written
                 }
             }
         }
@@ -499,18 +516,47 @@ package final class RowStore: Sendable {
     }
 }
 
-/// A sample's rows as inserts, placed as `seed` describes, each in the dataset `dataset` names for its table.
+/// A change and the sample member who wrote it, or nil for the person on this device.
+private struct Authored {
+    let change: Change
+    let by: String?
+
+    init(_ change: Change, by: String?) {
+        self.change = change
+        self.by = by
+    }
+
+    /// The replica that stands for a sample member. Not a UUID, so it never names a real device.
+    static func replica(of name: String) -> String { "sample:\(name)" }
+}
+
+/// A sample's rows as inserts, each in the dataset `dataset` names for its table. A row placed by
+/// `minutesAgo` lands that many minutes before `today.instant`, on the day that moment falls on. Any other
+/// row lands at midday of `today.day - daysAgo`, or for today, before `today.instant` if that is earlier, so
+/// no sample row is written in the future. Rows keep document order, a millisecond apart.
 private func insertions(
     _ sample: Spec.Sample, today: Today, dataset: (Spec.Table) throws -> DatasetKey
-) rethrows -> [Change] {
+) rethrows -> [Authored] {
     let midday = milliseconds(today.nextDayStart) - 12 * 3_600_000
-    var changes: [Change] = []
+    let now = milliseconds(today.instant)
+    let total = Int64(sample.rows.reduce(0) { $0 + $1.count })
+    var changes: [Authored] = []
     var sequence: Int64 = 0
     for entry in sample.rows {
         let target = try dataset(entry.table)
         for _ in 0..<entry.count {
-            let at = midday - Int64(entry.daysAgo) * 86_400_000 + sequence
-            changes += insertion(into: target, entry.values, day: today.day.adding(-entry.daysAgo), at: at)
+            let latest = now - total + sequence
+            let at: Int64
+            let day: Day
+            if let minutes = entry.minutesAgo {
+                at = latest - Int64(minutes) * 60_000
+                day = today.day(of: date(at))
+            } else {
+                let planned = midday - Int64(entry.daysAgo) * 86_400_000 + sequence
+                at = entry.daysAgo == 0 ? min(planned, latest) : planned
+                day = today.day.adding(-entry.daysAgo)
+            }
+            changes += insertion(into: target, entry.values, day: day, at: at).map { Authored($0, by: entry.by) }
             sequence += 1
         }
     }
@@ -582,7 +628,7 @@ func milliseconds(_ date: Date) -> Int64 {
     Int64((date.timeIntervalSince1970 * 1000).rounded(.down))
 }
 
-private func date(_ milliseconds: Int64) -> Date {
+func date(_ milliseconds: Int64) -> Date {
     Date(timeIntervalSince1970: Double(milliseconds) / 1000)
 }
 
@@ -642,8 +688,18 @@ package enum QueryResult: Sendable, Equatable {
 package struct RowValue: Sendable, Equatable {
     package let key: RowKey
     package let day: Day
+    /// The instant the row was inserted, by the writer's clock.
+    package let at: Date
+    package let by: RowAuthor
     /// Fields with no cell are absent here. The look context writes them as null, and a bool as false.
     package let values: [Spec.FieldID: Spec.Cell]
+}
+
+/// Who inserted a row. `me` when this store's replica wrote it. `name` comes from the local `member` table,
+/// and is nil for a writer it does not name: before sharing exists, every row but a sample's.
+package struct RowAuthor: Sendable, Equatable {
+    package let me: Bool
+    package let name: String?
 }
 
 package struct DayCount: Sendable, Equatable {

@@ -82,7 +82,9 @@ struct Mistake: CustomTestStringConvertible, Sendable {
             line: #"table "items": field "done" must be text, number, bool, or date, not the string "boolean""#),
         Mistake(
             label: "reserved field id", json: document(#""tables": {"items": {"fields": {"day": "date"}}}"#),
-            line: #"table "items": field id "day" is reserved (reserved: day, daysAgo, id, newest, oldest, repeat)"#),
+            line:
+                #"table "items": field id "day" is reserved (reserved: at, by, day, daysAgo, id, minutesAgo, newest, oldest, repeat)"#
+        ),
         Mistake(
             label: "table as a list", json: document(#""tables": {"items": ["title"]}"#),
             line: #"table "items": a table must be an object like {"fields": {"title": "text"}}, not a list"#),
@@ -157,7 +159,9 @@ struct Mistake: CustomTestStringConvertible, Sendable {
             label: "where with two fields",
             json: withTables(
                 #""queries": {"x": {"count": "items", "where": {"done": false, "title": "a"}, "window": "all"}}"#),
-            line: #"query "x": where takes exactly one field and a value, like {"done": false}; found 2 (done, title)"#),
+            line:
+                #"query "x": where takes at most one field and a value, plus "by", like {"done": false} or {"by": "me"}; found 2 (done, title)"#
+        ),
         Mistake(
             label: "where on a date field",
             json: withTables(#""queries": {"x": {"count": "items", "where": {"due": "2026-11-18"}, "window": "all"}}"#),

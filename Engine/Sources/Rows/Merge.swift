@@ -79,7 +79,18 @@ private let migrations: [@Sendable (Database) throws -> Void] = [
         try db.execute(sql: schema)
         try db.execute(
             sql: "INSERT INTO replica(id, clock) VALUES (?, 0)", arguments: [UUID().uuidString.lowercased()])
-    }
+    },
+    // The names the look shows for rows other replicas wrote. Local and never synced: today only sample
+    // members are named, and sharing fills it from the server.
+    { db in
+        try db.execute(
+            sql: """
+                CREATE TABLE member (
+                  replica TEXT PRIMARY KEY,           -- the replica that inserted the rows
+                  name    TEXT NOT NULL
+                ) WITHOUT ROWID
+                """)
+    },
 ]
 
 /// Brings the file to the current schema. Either process may get here first: the version check and every

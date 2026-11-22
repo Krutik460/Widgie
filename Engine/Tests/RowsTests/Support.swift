@@ -222,11 +222,44 @@ struct Bench {
         try store.seed(try #require(spec.sample(named: sample)), widget: widget, today: today(iso))
     }
 
-    /// Everything a widget's reads can see, for comparing two stores.
-    func snapshot(at iso: String) throws -> [QueryResult] {
+    /// Everything a widget's reads can see, for comparing two stores. `by.me` says whether this store wrote
+    /// the row, so it differs between stores by design and is left out.
+    func snapshot(at iso: String) throws -> [Reading] {
         let today = try today(iso)
         let results = try store.results(of: spec.queries, widget: widget, today: today)
-        return spec.queries.compactMap { results[$0.id] }
+        return spec.queries.compactMap { results[$0.id] }.map(Reading.init)
+    }
+}
+
+/// A query result as every store that holds the same rows reads it.
+struct Reading: Equatable {
+    struct SharedRow: Equatable {
+        let key: RowKey
+        let day: Day
+        let at: Date
+        let name: String?
+        let values: [Spec.FieldID: Spec.Cell]
+
+        init(_ row: RowValue) {
+            key = row.key
+            day = row.day
+            at = row.at
+            name = row.by.name
+            values = row.values
+        }
+    }
+
+    let number: Double?
+    let rows: [SharedRow]?
+    let days: [DayCount]?
+
+    init(_ result: QueryResult) {
+        switch result {
+        case .number(let value): (number, rows, days) = (value, nil, nil)
+        case .row(let row): (number, rows, days) = (nil, row.map { [SharedRow($0)] } ?? [], nil)
+        case .rows(let found): (number, rows, days) = (nil, found.map(SharedRow.init), nil)
+        case .days(let found): (number, rows, days) = (nil, nil, found)
+        }
     }
 }
 

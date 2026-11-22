@@ -4,14 +4,19 @@ import Testing
 
 /// Whether a row a state inserts would match a `where`: equal values match, and a bool field with no value
 /// counts as false.
-private func matches(_ row: Spec.SampleRow, _ filter: Spec.FieldValue?) -> Bool {
-    guard let filter else { return true }
+private func matches(_ row: Spec.SampleRow, _ filter: Spec.Filter?) -> Bool {
+    switch filter?.by {
+    case .me?: if row.by != nil { return false }
+    case .others?: if row.by == nil { return false }
+    case nil: break
+    }
+    guard let filter = filter?.field else { return true }
     if let value = row.values.first(where: { $0.field == filter.field }) { return value.value == filter.value }
     return filter.value == .bool(false)
 }
 
 private func rows(
-    of sample: Spec.Sample, table: Spec.TableID, daysAgo: Int? = nil, matching filter: Spec.FieldValue? = nil
+    of sample: Spec.Sample, table: Spec.TableID, daysAgo: Int? = nil, matching filter: Spec.Filter? = nil
 )
     -> Int
 {
@@ -165,7 +170,7 @@ private func rows(
 
     /// A day's row count, or the sum of a field over the day's rows, among rows matching `filter`.
     private func measured(
-        _ sample: Spec.Sample, _ measure: Spec.Measure, daysAgo: Int, matching filter: Spec.FieldValue?
+        _ sample: Spec.Sample, _ measure: Spec.Measure, daysAgo: Int, matching filter: Spec.Filter?
     ) -> Double {
         let day = sample.rows.filter { $0.table.id == measure.table && $0.daysAgo == daysAgo && matches($0, filter) }
         guard case .total(let field) = measure else { return Double(day.reduce(0) { $0 + $1.count }) }
@@ -182,7 +187,7 @@ private func rows(
             switch query.shape {
             case .count(_, let filter?, _), .sum(_, let filter?, _), .latest(_, let filter?, _),
                 .list(_, let filter?, _, _, _), .streak(_, let filter?, _), .daily(_, let filter?, _):
-                filter == value
+                filter.field == value
             default: false
             }
         }

@@ -13,7 +13,7 @@ struct StoredState: Sendable, CustomTestStringConvertible {
 
     var testDescription: String { "\(widget) \(state)" }
 
-    static let all: [StoredState] = ["habit", "todo", "water", "wotd"].flatMap { widget in
+    static let all: [StoredState] = ["dogfed", "habit", "hearts", "todo", "water", "wotd"].flatMap { widget in
         let samples = (try? fixture(widget).samples.map(\.name)) ?? []
         return (["empty"] + samples + ["full"]).map { StoredState(widget: widget, state: $0) }
     }
@@ -42,8 +42,15 @@ struct StoredState: Sendable, CustomTestStringConvertible {
         let widget = WidgetKey.mint()
         try store.bind(tablesOf: spec, to: widget)
         try store.seed(sample, widget: widget, today: today)
+        let folder = engineDirectory.appending(path: "Fixtures/\(state.widget)/assets")
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        var images: [Spec.AssetID: Data] = [:]
+        for asset in spec.assets {
+            let file = try #require(files.first { $0.deletingPathExtension().lastPathComponent == asset.id.raw })
+            images[asset.id] = try Data(contentsOf: file)
+        }
         let drawing = try await composeDrawing(
-            spec: spec, widget: widget, revision: Bindings.unsaved, store: store, images: .inMemory([:]),
+            spec: spec, widget: widget, revision: Bindings.unsaved, store: store, images: .inMemory(images),
             family: family, size: size(family),
             pixelScale: 2, today: today, sandbox: Sandbox(), budget: .proof
         ).drawing

@@ -62,10 +62,12 @@ public final class Engine: Sendable {
     /// Timeline entries for a widget. `widget == nil` means the latest creation, or an onboarding face when
     /// there is none. Never throws: every failure becomes a fallback face and a log line.
     ///
-    /// Runs `composeDrawing` at `date` and again at the next midnight, decoding each image once for both, so
-    /// day windows flip on time without spending refresh budget. `reloadAt` is the midnight after that, or
-    /// five minutes after the next automation run if that is sooner, so a dropped push is caught by the
-    /// timeline.
+    /// Runs `composeDrawing` at `date` and again at the next midnight, decoding each image once for all
+    /// entries, so day windows flip on time without spending refresh budget. When the look draws something
+    /// different 15 minutes later (it shows `now` or a row's `minutesAgo`), it also gets an entry every 15
+    /// minutes for two hours before midnight cuts them off, and the timeline reloads after those two hours.
+    /// `reloadAt` is the earliest of that reload, the midnight after the next one, and five minutes after
+    /// the next automation run, so a dropped push is caught by the timeline.
     public func faces(for widget: WidgetID?, family: Family, size: CGSize, from date: Date) async -> Faces {
         let today = Today(at: date, calendar: calendar)
         let store: RowStore
@@ -90,23 +92,42 @@ public final class Engine: Sendable {
         // WidgetKit gives the provider no display scale, so images decode for 3x, the densest iPhone screen.
         let images = AssetImages.stored(stored.spec, store: store)
         let midnight = Today(at: today.nextDayStart, calendar: calendar)
-        var entries: [Face] = []
-        for (instant, day) in [(date, today), (today.nextDayStart, midnight)] {
+        /// The face at `instant`, and the tree the look returned, or nil when it fell back.
+        func face(at instant: Date) async -> (face: Face, tree: String?) {
+            let day = Today(at: instant, calendar: calendar)
             do throws(Diagnostic) {
                 let composition = try await composeDrawing(
                     spec: stored.spec, widget: stored.key, revision: stored.revision.hex, store: store, images: images,
                     family: family, size: size,
                     pixelScale: 3, today: day, sandbox: sandbox, budget: .widget)
-                entries.append(Face(date: instant, content: .drawing(composition.drawing)))
+                return (Face(date: instant, content: .drawing(composition.drawing)), composition.tree)
             } catch {
                 log.error(
-                    "widget \(stored.key.raw, privacy: .public) fell back on \(day.day.iso, privacy: .public): \(error.line, privacy: .private)"
+                    "widget \(stored.key.raw, privacy: .public) fell back on \(day.day.iso, privacy: .public) \(day.time, privacy: .public): \(error.line, privacy: .private)"
                 )
-                entries.append(Face(date: instant, content: .fallback(name: stored.spec.name, reason: error.line)))
+                return (Face(date: instant, content: .fallback(name: stored.spec.name, reason: error.line)), nil)
             }
         }
+        let first = await face(at: date)
+        var entries = [first.face]
+        var clockReload = Date.distantFuture
+        let step: TimeInterval = 15 * 60
+        if date.addingTimeInterval(step) < today.nextDayStart {
+            let next = await face(at: date.addingTimeInterval(step))
+            if next.tree != first.tree {
+                entries.append(next.face)
+                for index in 2...Self.clockSteps {
+                    let instant = date.addingTimeInterval(step * Double(index))
+                    guard instant < today.nextDayStart else { break }
+                    entries.append(await face(at: instant).face)
+                }
+                clockReload = date.addingTimeInterval(step * Double(Self.clockSteps))
+            }
+        }
+        entries.append(await face(at: today.nextDayStart).face)
         let automation = stored.spec.automations.compactMap { $0.schedule.nextRun(after: date) }.min()
-        let reloadAt = min(midnight.nextDayStart, automation?.addingTimeInterval(5 * 60) ?? .distantFuture)
+        let reloadAt = min(
+            midnight.nextDayStart, clockReload, automation?.addingTimeInterval(5 * 60) ?? .distantFuture)
         return Faces(entries: entries, reloadAt: reloadAt)
     }
 
@@ -219,6 +240,9 @@ public final class Engine: Sendable {
     package let isScratch: Bool
     package let sandbox: Sandbox
     private let opened: Mutex<RowStore?>
+
+    /// Quarter-hour entries a clock-driven look gets after the current one: two hours.
+    static let clockSteps = 8
 
     private static let scratchRoot = URL.temporaryDirectory.appending(path: "scratch-engines")
     private static let run = UUID().uuidString

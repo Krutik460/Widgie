@@ -13,6 +13,11 @@ extension Spec {
     package struct SampleRow: Hashable, Sendable {
         package let table: Table
         package let daysAgo: Int
+        /// Set when the document places the row by minutes before the render instead of by day. Then the
+        /// row's day is the day that moment falls on, and `daysAgo` is 0.
+        package let minutesAgo: Int?
+        /// The name of the member who wrote the row, or nil for the person on this device.
+        package let by: String?
         /// The document's `repeat`: how many identical rows this entry stands for. At least 1.
         package let count: Int
         /// In field id order. Every field belongs to `table`.
@@ -27,19 +32,21 @@ extension Spec {
 
     /// Rows that stress layout: every list filled to its limit, three-digit counts, streaks, and daily
     /// totals, and in every field the longest value the widget can store there. Rows for a filtered query
-    /// match its filter, and every day of a goal streak reaches the goal, as far as 100 rows a day allow. It
-    /// catches spills the model's own samples miss.
+    /// match its filter, and every day of a goal streak reaches the goal, as far as 100 rows a day allow.
+    /// Rows are written by another member with the longest name a member can have, except rows for a query
+    /// that asks for rows by `me`. It catches spills the model's own samples miss.
     package var full: Sample {
         var rows: [SampleRow] = []
         for table in tables {
             let base = table.fields.map(longestStorable)
-            func matching(_ filter: FieldValue?) -> [FieldValue] {
-                (base.filter { $0.field != filter?.field } + [filter].compactMap { $0 }).sorted {
+            func matching(_ filter: Filter?) -> [FieldValue] {
+                let fixed = filter?.field
+                return (base.filter { $0.field != fixed?.field } + [fixed].compactMap { $0 }).sorted {
                     $0.field.id < $1.field.id
                 }
             }
             /// Rows per day for a streak's days to reach `goal`, at most 100.
-            func reaching(_ goal: Double, _ measure: Measure, _ filter: FieldValue?) -> Int {
+            func reaching(_ goal: Double, _ measure: Measure, _ filter: Filter?) -> Int {
                 var each = 1.0
                 if case .total(let field) = measure {
                     let value = matching(filter).first { $0.field == field.erased }?.value
@@ -48,10 +55,10 @@ extension Spec {
                 }
                 return Int(min(100, max(1, (goal / each).rounded(.up))))
             }
-            var today: [(filter: FieldValue?, count: Int)] = []
-            var history: [(filter: FieldValue?, days: Int, each: Int)] = []
+            var today: [(filter: Filter?, count: Int)] = []
+            var history: [(filter: Filter?, days: Int, each: Int)] = []
             /// `count` rows today and, for the `days - 1` days before it, `each` rows a day.
-            func need(_ filter: FieldValue?, _ count: Int, days: Int = 1, each: Int = 1) {
+            func need(_ filter: Filter?, _ count: Int, days: Int = 1, each: Int = 1) {
                 if let index = today.firstIndex(where: { $0.filter == filter }) {
                     today[index].count = max(today[index].count, count)
                 } else {
@@ -77,12 +84,19 @@ extension Spec {
                 case .daily(_, let filter, let days): need(filter, 100, days: days)
                 }
             }
+            func author(_ filter: Filter?) -> String? { filter?.by == .me ? nil : Self.longestMemberName }
             for (filter, count) in today {
-                rows.append(SampleRow(table: table, daysAgo: 0, count: count, values: matching(filter)))
+                rows.append(
+                    SampleRow(
+                        table: table, daysAgo: 0, minutesAgo: nil, by: author(filter), count: count,
+                        values: matching(filter)))
             }
             for (filter, days, each) in history {
                 for daysAgo in 1..<days {
-                    rows.append(SampleRow(table: table, daysAgo: daysAgo, count: each, values: matching(filter)))
+                    rows.append(
+                        SampleRow(
+                            table: table, daysAgo: daysAgo, minutesAgo: nil, by: author(filter), count: each,
+                            values: matching(filter)))
                 }
             }
         }
@@ -91,6 +105,9 @@ extension Spec {
 
     /// How far back `full` fills a streak's days, for a three-digit streak.
     private static let streakDays = 100
+
+    /// A real-looking name at exactly `Limits.memberNameLength` characters, the widest `by.name` can be.
+    static let longestMemberName = "Maximiliana Montgomery-Okonkwo"
 
     /// A form or an automation can write anything into a field, and a toggle flips it, so such a field gets
     /// the longest value of its kind. A field that only fixed action values write, such as one emoji per
@@ -211,19 +228,44 @@ extension Spec.Sample {
             value, else: "a row must be an object like {\"daysAgo\": 0\(example)}, not \(value.described)")
         if row.has("id") { throw Diagnostic("\"id\" is made by the app; leave it out") }
         if row.has("day") { throw Diagnostic("\"day\" comes from \"daysAgo\"; write \"daysAgo\" instead") }
+        if row.has("at") {
+            throw Diagnostic(
+                "\"at\" comes from \"minutesAgo\"; write \"minutesAgo\": 90 for a row written 90 minutes ago")
+        }
+        if row.has("daysAgo") && row.has("minutesAgo") {
+            throw Diagnostic("give \"daysAgo\" or \"minutesAgo\", not both")
+        }
         return Spec.SampleRow(
             table: table,
             daysAgo: try row.wholeNumber("daysAgo", in: Spec.Limits.daysAgo) ?? 0,
+            minutesAgo: try row.wholeNumber("minutesAgo", in: Spec.Limits.minutesAgo),
+            by: try author(row),
             count: try row.wholeNumber("repeat", in: Spec.Limits.repeatCount) ?? 1,
-            values: try table.values(row, skipping: ["daysAgo", "repeat"]))
+            values: try table.values(row, skipping: ["by", "daysAgo", "minutesAgo", "repeat"]))
+    }
+
+    /// `by` is "me" or left out for the person on this device, or another member's name.
+    private static func author(_ row: Reader) throws(Diagnostic) -> String? {
+        guard let name = try row.string("by", maxLength: Spec.Limits.memberNameLength) else { return nil }
+        guard !name.isEmpty, !name.unicodeScalars.contains(where: { $0.properties.generalCategory == .control })
+        else {
+            throw Diagnostic(
+                "\"by\" is \"me\" or another member's name on one line, like \"Sam\", up to \(Spec.Limits.memberNameLength) characters"
+            )
+        }
+        return name == "me" ? nil : name
     }
 
     var json: JSONValue {
         var byTable: [String: [JSONValue]] = [:]
         for row in rows {
-            var members: [String: JSONValue] = [
-                "daysAgo": .number(Double(row.daysAgo)), "repeat": .number(Double(row.count)),
-            ]
+            var members: [String: JSONValue] = ["repeat": .number(Double(row.count))]
+            if let minutes = row.minutesAgo {
+                members["minutesAgo"] = .number(Double(minutes))
+            } else {
+                members["daysAgo"] = .number(Double(row.daysAgo))
+            }
+            if let by = row.by { members["by"] = .string(by) }
             for value in row.values { members[value.field.id.raw] = value.value.json }
             byTable[row.table.id.raw, default: []].append(.object(members))
         }

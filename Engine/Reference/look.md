@@ -19,9 +19,17 @@ The look is one script. It may define constants and helper functions, and it mus
 | `ctx.data` | One key per query id of the widget. `count`, `sum`, and `streak` give a number. `latest` gives a row or `null`. `list` gives a list of rows. `daily` gives a list of `{ date, weekday, count }`, oldest first and today last, with `sum` added when it sums a field. |
 | `ctx.family` | `"small"` or `"medium"`. |
 | `ctx.width`, `ctx.height` | The widget size in points: 158 x 158 for small and 338 x 158 for medium on a typical phone. Other phones differ by a few points, so read these instead of assuming them. |
+| `ctx.now` | The time of this render as `"14:05"`, on a 24-hour clock in the phone's time zone. |
 | `ctx.today` | `{ date, weekday, week }`. `date` is today as `"2026-11-18"`, `weekday` is `"Mon"` to `"Sun"`, and `week` is the seven dates of the current week, first day first. |
 
-A row is `{ id, day, daysAgo, ...fields }`. `id` is a string that a button passes back to say which row it is about. `day` is the date the row belongs to, the day it was written or the day an `insertOn` button gave, and `daysAgo` is how many days before today that is. Every field of the row's table is present. A bool field with no value is `false`, and any other field with no value is `null`.
+A row is `{ id, day, daysAgo, at, minutesAgo, by, ...fields }`.
+
+- `id` is a string that a button passes back to say which row it is about.
+- `day` is the date the row belongs to, the day it was written or the day an `insertOn` button gave, and `daysAgo` is how many days before today that is.
+- `at` is the time the row was written, as `"09:41"` on a 24-hour clock in the phone's time zone. `minutesAgo` is the whole minutes from then to `ctx.now`. Use them for "fed 2 h ago" or "last at 9:41". The widget redraws every 15 minutes while its picture depends on them, so show minutes or hours, never seconds.
+- `by` says who wrote the row: `{ me, name }`. `me` is `true` for a row written on this phone. `name` is the writer's name, or `null` when no name is known, which is always so for a `me` row. A person can share any widget, so write "you" for `me` and the name, or "someone" when it is `null`, for everyone else.
+
+Every field of the row's table is present. A bool field with no value is `false`, and any other field with no value is `null`.
 
 This is the `ctx` of the example widget below, in the small size:
 
@@ -29,11 +37,11 @@ This is the `ctx` of the example widget below, in the small size:
 {
   "data": {
     "pagesToday": 24,
-    "last": { "id": "0193f4c2-7a1e-7000-8000-00000000a012", "day": "2026-11-18", "daysAgo": 0, "pages": 12 },
+    "last": { "id": "0193f4c2-7a1e-7000-8000-00000000a012", "day": "2026-11-18", "daysAgo": 0, "at": "08:15", "minutesAgo": 50, "by": { "me": true, "name": null }, "pages": 12 },
     "books": [
-      { "id": "0193f4c2-7a1e-7000-8000-00000000b001", "day": "2026-11-02", "daysAgo": 16, "title": "Dune", "done": false },
-      { "id": "0193f4c2-7a1e-7000-8000-00000000b002", "day": "2026-11-09", "daysAgo": 9, "title": "The Left Hand of Darkness", "done": false },
-      { "id": "0193f4c2-7a1e-7000-8000-00000000b003", "day": "2026-11-15", "daysAgo": 3, "title": "Piranesi", "done": false }
+      { "id": "0193f4c2-7a1e-7000-8000-00000000b001", "day": "2026-11-02", "daysAgo": 16, "at": "20:30", "minutesAgo": 22355, "by": { "me": true, "name": null }, "title": "Dune", "done": false },
+      { "id": "0193f4c2-7a1e-7000-8000-00000000b002", "day": "2026-11-09", "daysAgo": 9, "at": "20:30", "minutesAgo": 12275, "by": { "me": true, "name": null }, "title": "The Left Hand of Darkness", "done": false },
+      { "id": "0193f4c2-7a1e-7000-8000-00000000b003", "day": "2026-11-15", "daysAgo": 3, "at": "20:30", "minutesAgo": 3635, "by": { "me": true, "name": null }, "title": "Piranesi", "done": false }
     ],
     "week": [
       { "date": "2026-11-12", "weekday": "Thu", "count": 2 },
@@ -48,6 +56,7 @@ This is the `ctx` of the example widget below, in the small size:
   "family": "small",
   "width": 158,
   "height": 158,
+  "now": "09:05",
   "today": {
     "date": "2026-11-18",
     "weekday": "Wed",
@@ -58,7 +67,7 @@ This is the `ctx` of the example widget below, in the small size:
 
 ### Rules
 
-- `render` must be a pure function of `ctx`. The same `ctx` must give the same tree. `Math.random()`, `Date.now()`, `Date()`, and `new Date()` with no arguments fail the look, even inside `try`. Take the date from `ctx.today`. `new Date("2026-11-18")` and other dates built from values in `ctx` are allowed.
+- `render` must be a pure function of `ctx`. The same `ctx` must give the same tree. `Math.random()`, `Date.now()`, `Date()`, and `new Date()` with no arguments fail the look, even inside `try`. Take the date from `ctx.today` and the time from `ctx.now`. `new Date("2026-11-18")` and other dates built from values in `ctx` are allowed.
 - Only standard JavaScript built-ins exist, such as `Math`, `JSON`, `Array`, `String`, `Number`, and `Object`. There is no DOM, no `console`, no network, no timers, and no imports.
 - `render` gets a fixed budget of work and memory, not of time, so it gets the same verdict on every phone. The app checks each look with 500 steps, each 10,000 loop turns or function calls, and 8 MB of memory. A loop that never ends, or one that keeps growing a list or a string, fails the look.
 - The tree is plain data: objects, lists, strings, finite numbers, and booleans. A function, a `NaN`, or an `Infinity` anywhere in it is an error.

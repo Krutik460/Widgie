@@ -190,6 +190,45 @@ import WidgetEngine
     }
 }
 
+@Suite struct ClockTests {
+    /// Dog fed shows how long ago the last feed was, so its picture changes within 15 minutes and the
+    /// timeline gets quarter-hour entries for two hours, then reloads.
+    @Test @MainActor func aLookThatShowsMinutesAgoGetsQuarterHourEntries() async throws {
+        let scratch = Scratch()
+        let id = try await scratch.build(try fixture("dogfed"))
+        let fed = instant("2026-11-18T14:00:00Z")
+        try scratch.engine.perform(try button("feed", on: await scratch.face(id, at: fed)).tap, at: fed)
+
+        let from = instant("2026-11-18T14:10:00Z")
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: from)
+        let quarters = (0...8).map { from.addingTimeInterval(Double($0) * 15 * 60) }
+        #expect(faces.entries.map(\.date) == quarters + [instant("2026-11-19T00:00:00Z")])
+        #expect(faces.reloadAt == from.addingTimeInterval(2 * 3600))
+    }
+
+    @Test @MainActor func midnightCutsTheQuarterHoursShort() async throws {
+        let scratch = Scratch()
+        let id = try await scratch.build(try fixture("dogfed"))
+        let late = instant("2026-11-18T23:20:00Z")
+        try scratch.engine.perform(try button("feed", on: await scratch.face(id, at: late)).tap, at: late)
+
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: late)
+        #expect(
+            faces.entries.map(\.date)
+                == ["23:20", "23:35", "23:50"].map { instant("2026-11-18T\($0):00Z") }
+                + [instant("2026-11-19T00:00:00Z")])
+        #expect(faces.reloadAt == instant("2026-11-19T01:20:00Z"))
+    }
+
+    @Test @MainActor func aLookThatIgnoresTheClockGetsOnlyMidnight() async throws {
+        let scratch = Scratch()
+        let id = try await scratch.build(try fixture("habit"))
+        let morning = instant("2026-11-18T09:00:00Z")
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: morning)
+        #expect(faces.entries.map(\.date) == [morning, instant("2026-11-19T00:00:00Z")])
+    }
+}
+
 @Suite struct MidnightTests {
     @Test @MainActor func todaysCountReadsZeroInTheEntryAfterMidnight() async throws {
         let scratch = Scratch()

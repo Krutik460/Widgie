@@ -9,13 +9,16 @@ import Spec
 // The vocabulary itself is the registry in Vocabulary.swift.
 
 /// Builds `ctx` as JSON text:
-/// `{ data: { queryId: result }, family, width, height, today: { date, weekday, week } }`.
+/// `{ data: { queryId: result }, family, width, height, now, today: { date, weekday, week } }`.
 /// - `count`, `sum`, `streak`: a number. `latest`: a row or null. `list`: a list of rows.
 /// - `daily`: a list of `{ date, weekday, count }`, oldest first and today last, with `sum` added when it
 ///   measures a field.
-/// - A row is `{ id, day, daysAgo, ...fields }`. Dates are ISO strings, weekdays are `Mon` to `Sun`, a bool
+/// - A row is `{ id, day, daysAgo, at, minutesAgo, by: { me, name }, ...fields }`. `at` is the time it was
+///   written as `HH:MM` in the reader's time zone, `minutesAgo` the whole minutes from then to `now`, and
+///   `by.name` the writer's name or null when no name is known. Dates are ISO strings, weekdays are `Mon` to `Sun`, a bool
 ///   field with no value is `false`, and any other field with no value is `null`. The fields come from the
 ///   query's table in `spec`, so a row lists every field of its table.
+/// - `now` is the render's time as `HH:MM` on a 24-hour clock.
 /// - `today.week` is the seven ISO dates of the current week, first day first, by the user's calendar.
 /// Numbers that are whole encode without a fraction, so `3` reads as `3`, not `3.0`. Keys are sorted, so the
 /// same input always gives the same bytes.
@@ -30,6 +33,8 @@ package func lookContext(
             var members: [String: JSONValue] = [
                 "id": .string(row.key.raw), "day": .string(row.day.iso),
                 "daysAgo": .number(Double(today.day.index - row.day.index)),
+                "at": .string(today.clock(row.at)), "minutesAgo": .number(Double(today.minutes(since: row.at))),
+                "by": .object(["me": .bool(row.by.me), "name": row.by.name.map(JSONValue.string) ?? .null]),
             ]
             for field in fields {
                 members[field.id.raw] = row.values[field.id].map(cell) ?? (field.kind == .bool ? .bool(false) : .null)
@@ -57,6 +62,7 @@ package func lookContext(
         "family": .string(family.rawValue),
         "width": .number(Double(size.width)),
         "height": .number(Double(size.height)),
+        "now": .string(today.time),
         "today": .object([
             "date": .string(today.day.iso), "weekday": .string(today.day.weekday.short),
             "week": .array(today.week.map { .string($0.iso) }),

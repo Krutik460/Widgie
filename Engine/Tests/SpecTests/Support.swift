@@ -5,7 +5,7 @@ import Testing
 let engineDirectory = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
     .deletingLastPathComponent()
 
-let referenceWidgets = ["habit", "todo", "water", "wotd"]
+let referenceWidgets = ["dogfed", "habit", "hearts", "todo", "water", "wotd"]
 
 func fixture(_ name: String) throws -> Data {
     try Data(contentsOf: engineDirectory.appending(path: "Fixtures/\(name)/widget.json"))
