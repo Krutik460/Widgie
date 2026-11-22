@@ -63,6 +63,13 @@ public struct InputField: Sendable, Identifiable {
     public let kind: Kind
     /// The current value when the form edits a row.
     public let value: InputValue?
+
+    public init(id: String, label: String, kind: Kind, value: InputValue?) {
+        self.id = id
+        self.label = label
+        self.kind = kind
+        self.value = value
+    }
 }
 
 public enum InputValue: Sendable, Equatable {

@@ -34,4 +34,19 @@ import WidgetEngine
         let picked = try #require(buddhist.date(from: DateComponents(year: 2569, month: 11, day: 22, hour: 23)))
         #expect(format.day(of: picked) == .date(year: 2026, month: 11, day: 22))
     }
+
+    @Test func aNewFormSavesTheDateAndToggleItShows() throws {
+        var paris = Calendar(identifier: .gregorian)
+        paris.timeZone = french.timeZone
+        let now = try #require(paris.date(from: DateComponents(year: 2026, month: 11, day: 22, hour: 9)))
+        let draft = FormDraft(
+            fields: [
+                InputField(id: "when", label: "When", kind: .date, value: nil),
+                InputField(id: "done", label: "Done", kind: .toggle, value: nil),
+            ], format: french, now: now)
+
+        let saved = draft.submission()
+        #expect(saved.input == ["when": .date(year: 2026, month: 11, day: 22), "done": .toggle(false)])
+        #expect(saved.invalid.isEmpty)
+    }
 }
