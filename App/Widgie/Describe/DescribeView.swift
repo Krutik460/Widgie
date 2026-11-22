@@ -40,22 +40,23 @@ struct DescribeView: View {
                 SavedScreen(session: session) { close(savedID) }.transition(.opacity)
             case .failure:
                 if case .failed(let failure) = session.phase {
-                    FailureScreen(failure: failure, session: session).transition(.opacity)
+                    FailureScreen(failure: failure, session: session) { close(nil) }.transition(.opacity)
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ground(screen == .failure ? Palette.failureGround : Palette.ground)
         .animation(reduceMotion ? .linear(duration: 0.2) : .easeInOut(duration: 0.5), value: screen)
         .foregroundStyle(Palette.text)
         .tint(Palette.caret)
-        .sensoryFeedback(trigger: session.phase) { old, new in
+        .sensoryFeedback(trigger: session.phase) { _, new in
             switch new {
             case .saved: .success
             case .failed: .warning
-            case .composing where old != .opening && session.turns.last?.result == .accepted: .success
             default: nil
             }
         }
+        .sensoryFeedback(.success, trigger: session.turns.last?.result) { _, new in new == .accepted }
         .task { await session.open() }
         .confirmationDialog(
             session.editing == nil ? "Discard this widget?" : "Discard your changes?",
@@ -86,8 +87,10 @@ struct DescribeView: View {
         Binding(get: { session.preview.form != nil }, set: { if !$0 { session.preview.form = nil } })
     }
 
-    /// Closes, asking first once there is something to lose.
+    /// Closes, asking first once there is something to lose. Not while saving, because the save would still
+    /// land after a discard.
     private func attemptClose() {
+        guard session.phase != .saving else { return }
         let changed = session.editing == nil ? session.draft != nil : session.turns.contains { $0.result == .accepted }
         if changed { confirmDiscard = true } else { close(nil) }
     }
@@ -178,14 +181,15 @@ private struct DescribeScreen: View {
 
 /// The photo button: the outlined picture icon, or the attached photo with a button to remove it.
 struct PhotoButton: View {
-    @Binding var picture: Attachment?
+    @Binding var picture: Picture?
 
     @State private var item: PhotosPickerItem?
+    @State private var unreadable = false
 
     var body: some View {
         Group {
             if let picture {
-                Thumbnail(attachment: picture, size: 60)
+                Thumbnail(picture: picture, size: 60)
                     .overlay(alignment: .topTrailing) {
                         Button {
                             self.picture = nil
@@ -217,8 +221,14 @@ struct PhotoButton: View {
             guard let item else { return }
             Task {
                 picture = await Picture.load(item)
+                unreadable = picture == nil
                 self.item = nil
             }
+        }
+        .alert("That photo didn't load.", isPresented: $unreadable) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Try another one.")
         }
     }
 }
@@ -264,6 +274,7 @@ struct FlowLayout: Layout {
 private struct BuildingScreen: View {
     let session: DescribeSession
 
+    @State private var settled = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// What a build usually takes: a new widget about 40 seconds on Sonnet, a change or a fix about 15.
@@ -289,6 +300,10 @@ private struct BuildingScreen: View {
                 .padding(.top, 46)
                 .padding(.horizontal, Column.margin)
                 .accessibilityAddTraits(.updatesFrequently)
+                .onChange(of: status, initial: true) { _, status in
+                    guard !status.isEmpty else { return }
+                    AccessibilityNotification.Announcement(status).post()
+                }
             Spacer(minLength: 0)
             Spacer(minLength: 0)
             Button("Cancel") { session.cancel() }
@@ -297,6 +312,12 @@ private struct BuildingScreen: View {
                 .frame(minWidth: 120, minHeight: 44)
                 .contentShape(Rectangle())
                 .padding(.bottom, 14)
+                // Cancel sits where Build it was, so the second tap of a double tap would land on it.
+                .allowsHitTesting(settled)
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(600))
+            settled = true
         }
     }
 }
@@ -389,15 +410,21 @@ private struct Sketch: View {
 private struct FailureScreen: View {
     let failure: DescribeSession.Failure
     let session: DescribeSession
+    let close: () -> Void
+
+    /// Back would land on nothing new: there is no build to go back to, or no widget to refine.
+    private var hidesBack: Bool { failure == .unavailable || failure == .unopened }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 CloseButton(color: Palette.failureText, label: "Back") { session.dismissFailure() }
+                    .opacity(hidesBack ? 0 : 1)
+                    .disabled(hidesBack)
+                    .accessibilityHidden(hidesBack)
                 Spacer()
             }
             .padding(.leading, Column.margin - 13)
-            .opacity(failure == .unavailable ? 0 : 1)
             ScrollView {
                 VStack(spacing: 0) {
                     BrokenBridge().padding(.top, 34)
@@ -440,15 +467,17 @@ private struct FailureScreen: View {
     private var actionTitle: String {
         switch failure {
         case .gaveUp: "Say it another way"
-        case .unavailable: "OK"
-        case .unreachable, .interrupted, .broken: "Try again"
+        case .unsaved, .unavailable: "OK"
+        case .unopened: "Close"
+        case .unreachable, .refused, .interrupted, .broken: "Try again"
         }
     }
 
     private func act() {
         switch failure {
-        case .gaveUp, .unavailable: session.dismissFailure()
-        case .unreachable, .interrupted, .broken: session.retry()
+        case .gaveUp, .unsaved, .unavailable: session.dismissFailure()
+        case .unopened: close()
+        case .unreachable, .refused, .interrupted, .broken: session.retry()
         }
     }
 }

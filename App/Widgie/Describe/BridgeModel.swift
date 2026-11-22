@@ -4,9 +4,11 @@ import WidgetBuilder
 /// The model service in a Debug build: the dev bridge on the Mac (`Engine/Evals/bridge.py`), at the URL in
 /// the Debug-only `WidgieModelBridge` Info.plist key.
 struct BridgeModel: WidgetModel {
-    /// Why the bridge gave no reply. Every case reads the same to the person: the builder could not be reached.
-    struct Unreachable: Error {
+    /// The bridge answered without a reply: an HTTP error such as 400, 413, or 502, or a body with no reply.
+    /// A bridge that cannot be reached throws `URLError` instead.
+    struct Refused: Error, CustomStringConvertible {
         let detail: String
+        var description: String { detail }
     }
 
     let base: URL
@@ -32,7 +34,7 @@ struct BridgeModel: WidgetModel {
         let answer = try? JSONDecoder().decode(Answer.self, from: data)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard status == 200, let reply = answer?.reply else {
-            throw Unreachable(detail: "HTTP \(status): \(answer?.error ?? "no reply")")
+            throw Refused(detail: "HTTP \(status): \(answer?.error ?? "no reply")")
         }
         return reply
     }

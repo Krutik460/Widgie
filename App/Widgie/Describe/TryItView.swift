@@ -54,13 +54,14 @@ struct TryItScreen: View {
     private var topBar: some View {
         HStack {
             CloseButton(action: close)
+                .disabled(session.phase == .saving)
             Spacer()
             Button {
                 typing = false
                 session.save()
             } label: {
                 if session.phase == .saving {
-                    ProgressView().tint(Palette.buttonLabel)
+                    ProgressView().tint(Palette.buttonLabel).accessibilityLabel("Saving")
                 } else {
                     Text("Save")
                 }
@@ -136,7 +137,7 @@ struct TryItScreen: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     if let image = turn.image {
-                        Thumbnail(attachment: image, size: 26)
+                        Thumbnail(picture: image, size: 26)
                     }
                     Text(turn.words)
                         .font(size: 19, weight: .bold, relativeTo: .headline)

@@ -1,8 +1,11 @@
 import Foundation
+import OSLog
 import Observation
 import WidgetBuilder
 import WidgetEngine
 import WidgetHosting
+
+private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describe")
 
 /// A draft's live face, drawn from a scratch engine of its own. The draft never reaches the shared store, so
 /// the home screen widget picker cannot list it before Save, and taps write to sample rows, never the
@@ -51,11 +54,12 @@ final class Preview {
     }
 
     /// Copies a library widget into the scratch engine and shows it with its first sample, so refining it
-    /// never shows or writes the person's rows. Returns the draft's id in the scratch engine.
+    /// never shows or writes the person's rows. Returns the draft's id in the scratch engine, or nil, with the
+    /// reason logged, when the widget is gone or cannot be copied.
     func copy(_ saved: WidgetID) async -> WidgetID? {
         do {
             guard let source = try Hosting.engine.source(of: saved) else {
-                message = "That widget is no longer in the library."
+                log.error("copy: \(saved.rawValue, privacy: .public) is no longer in the library")
                 return nil
             }
             switch try await engine.build(source) {
@@ -63,29 +67,22 @@ final class Preview {
                 await show(draft)
                 return draft
             case .rejected(let line):
-                message = line
+                log.error("copy: the preview rejected it: \(line, privacy: .public)")
                 return nil
             }
         } catch {
-            message = error.message
+            log.error("copy: \(error.message, privacy: .public)")
             return nil
         }
     }
 
     /// Proves the draft once more against the shared store and saves it there, replacing `editing` when the
-    /// person refines a library widget. A rejection carries the line to repair the draft with. Nil, with
-    /// `message` set, when there is no draft or a store failed.
-    func save(replacing editing: WidgetID?) async -> BuildOutcome? {
-        do {
-            guard let widget, let source = try engine.source(of: widget) else {
-                message = "There is no draft to save yet."
-                return nil
-            }
-            return try await Hosting.engine.build(source, replacing: editing)
-        } catch {
-            message = error.message
-            return nil
-        }
+    /// person refines a library widget. A rejection carries the line to repair the draft with. Nil when there
+    /// is no draft. Throws when a store failed, which includes the shared store refusing writes in the
+    /// background.
+    func save(replacing editing: WidgetID?) async throws(EngineError) -> BuildOutcome? {
+        guard let widget, let source = try engine.source(of: widget) else { return nil }
+        return try await Hosting.engine.build(source, replacing: editing)
     }
 
     func perform(_ tap: Tap, input: [String: InputValue] = [:]) {

@@ -21,9 +21,9 @@ struct WidgieApp: App {
         .onChange(of: phase) { _, phase in
             switch phase {
             case .background:
-                Engine.suspend()
+                SharedWrites.suspend()
             case .active:
-                Engine.resume()
+                SharedWrites.resume()
                 library.refresh()
             default:
                 break
