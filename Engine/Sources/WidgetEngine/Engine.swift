@@ -8,8 +8,8 @@ import os
 
 /// The whole runtime behind a few calls. The app and the widget extension each make one on the same App Group
 /// directory, and the app makes a scratch engine (`scratch()`) for each draft it previews. `WidgetBuilder`
-/// adds `build`, `proveReceived`, `source(of:)`, `history(of:)`, `restore`, `samples(of:)`, `load`, and the
-/// static `proof` and `proofs` to this type for the processes that import it.
+/// adds the builder methods to this type for the processes that import it; "Interface depth" in
+/// docs/engine/RATIONALE.md lists them.
 public final class Engine: Sendable {
     /// Opens nothing yet. The store opens, and migrates if needed, on first use. A failure to open is reported
     /// by that call (a fallback face, or a thrown `EngineError`), and the next call tries again.
