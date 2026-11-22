@@ -23,7 +23,7 @@ final class Preview {
     private(set) var states: [DataState] = []
     private(set) var state: DataState = .empty
     private(set) var faces: [Family: Face] = [:]
-    var form: InputForm?
+    var form: ShownForm?
     var message: String?
 
     init(library: Engine = Hosting.engine, engine: Engine = .scratch()) {
@@ -116,7 +116,7 @@ final class Preview {
 
     func showForm(for tap: Tap) {
         do {
-            form = try engine.form(for: tap)
+            form = try engine.form(for: tap).map(ShownForm.init)
         } catch {
             message = error.message
         }

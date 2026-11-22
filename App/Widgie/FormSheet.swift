@@ -1,6 +1,13 @@
 import SwiftUI
 import WidgetEngine
 
+/// One showing of a form. Each gets its own id, so the sheet starts over with fresh values whenever a form
+/// link opens, even while a sheet is up or for the same form again.
+struct ShownForm: Identifiable {
+    let id = UUID()
+    let form: InputForm
+}
+
 /// The input a form button asks for. Starts from the row's current values when the form edits a row.
 struct FormSheet: View {
     let form: InputForm

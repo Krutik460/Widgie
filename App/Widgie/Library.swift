@@ -14,7 +14,7 @@ final class Library {
     }
 
     private(set) var items: [Item] = []
-    var form: InputForm?
+    var form: ShownForm?
     var message: String?
 
     private let engine: Engine
@@ -100,7 +100,7 @@ final class Library {
 
     func showForm(for tap: Tap) {
         do {
-            form = try engine.form(for: tap)
+            form = try engine.form(for: tap).map(ShownForm.init)
         } catch {
             message = error.message
         }

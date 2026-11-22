@@ -44,12 +44,10 @@ struct LibraryView: View {
                 library.refresh()
             }
         }
-        .sheet(isPresented: Binding(get: { library.form != nil }, set: { if !$0 { library.form = nil } })) {
-            if let form = library.form {
-                FormSheet(form: form) { input in
-                    library.perform(form.tap, input: input)
-                    library.form = nil
-                }
+        .sheet(item: Bindable(library).form) { shown in
+            FormSheet(form: shown.form) { input in
+                library.perform(shown.form.tap, input: input)
+                library.form = nil
             }
         }
         .alert(

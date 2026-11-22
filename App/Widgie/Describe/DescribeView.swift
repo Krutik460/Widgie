@@ -65,12 +65,10 @@ struct DescribeView: View {
             Button("Discard", role: .destructive) { close(nil) }
             Button("Keep going", role: .cancel) {}
         }
-        .sheet(isPresented: formShown) {
-            if let form = session.preview.form {
-                FormSheet(form: form) { input in
-                    session.preview.perform(form.tap, input: input)
-                    session.preview.form = nil
-                }
+        .sheet(item: Bindable(session.preview).form) { shown in
+            FormSheet(form: shown.form) { input in
+                session.preview.perform(shown.form.tap, input: input)
+                session.preview.form = nil
             }
         }
         .alert(
@@ -81,10 +79,6 @@ struct DescribeView: View {
 
     private var savedID: WidgetID? {
         if case .saved(let id) = session.phase { id } else { nil }
-    }
-
-    private var formShown: Binding<Bool> {
-        Binding(get: { session.preview.form != nil }, set: { if !$0 { session.preview.form = nil } })
     }
 
     /// Closes, asking first once there is something to lose. Not while saving, because the save would still
