@@ -271,6 +271,22 @@ package final class RowStore: Sendable {
     package func restore(_ key: WidgetKey, to revision: Spec.Digest, bindings: [String: DatasetKey] = [:])
         throws(StoreError)
     {
+        try restore(key, to: revision, bindings: bindings, exactly: false)
+    }
+
+    /// `restore` that also makes `bindings` the widget's whole binding set, so a table a cancelled build
+    /// added no longer reads the rows a sample put there. Sync cannot carry a dropped binding, so only a
+    /// scratch store takes this.
+    package func rollBack(_ key: WidgetKey, to revision: Spec.Digest, bindings: [String: DatasetKey])
+        throws(StoreError)
+    {
+        guard isScratch else { throw StoreError(message: "only a scratch store rolls back its bindings") }
+        try restore(key, to: revision, bindings: bindings, exactly: true)
+    }
+
+    private func restore(_ key: WidgetKey, to revision: Spec.Digest, bindings: [String: DatasetKey], exactly: Bool)
+        throws(StoreError)
+    {
         let now = Date()
         try write(at: now) { db in
             guard
@@ -280,6 +296,7 @@ package final class RowStore: Sendable {
             else {
                 throw StoreError(message: "revision \(revision) was never a head of widget \(key.raw)")
             }
+            if exactly { try db.execute(sql: "DELETE FROM binding WHERE widget = ?", arguments: [key.raw]) }
             return .changes(
                 [.moveHead(key, to: revision, createdAt: milliseconds(now))]
                     + bindings.map { .bind(key, table: $0.key, to: $0.value) })

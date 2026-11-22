@@ -75,6 +75,28 @@ import WidgetEngine
         #expect(try engine.source(of: id)?.json == saved)
     }
 
+    @Test @MainActor func aRestoredCheckpointDropsTheTablesACancelledRefinementAdded() async throws {
+        let engine = Engine.scratch(calendar: utc)
+        let water = try fixture("water")
+        let id = try await build(water, in: engine)
+        let checkpoint = try engine.checkpoint(of: id)
+        func extras(_ kind: String, _ value: String) -> WidgetSource {
+            WidgetSource(
+                json: Data(
+                    String(decoding: water.json, as: UTF8.self)
+                        .replacing(#""tables": {"#, with: #""tables": {"extras": {"fields": {"value": "\#(kind)"}}, "#)
+                        .replacing(#""morning": {"#, with: #""morning": {"extras": [{"value": \#(value)}], "#)
+                        .utf8))
+        }
+
+        #expect(try await engine.build(extras("text", #""a""#), replacing: id) == .saved(id))
+        try engine.load(.sample("morning"), into: id, at: morning)
+        try engine.restore(checkpoint)
+
+        let outcome = try await engine.build(extras("number", "3"), replacing: id)
+        #expect(outcome == .saved(id))
+    }
+
     @Test func aDraftIsInvisibleToEveryOtherEngine() async throws {
         let engine = Engine.scratch(calendar: utc)
         let id = try await build(try fixture("water"), in: engine)
