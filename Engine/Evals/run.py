@@ -417,30 +417,32 @@ def main() -> None:
     prompt_path.write_text(system_prompt)
 
     workdir = tempfile.mkdtemp(prefix="widget-eval-")
-    deadline = time.monotonic() + args.stop_after if args.stop_after else None
-    run = Run(run_dir, system_prompt, workdir, deadline)
-    for case in selected:
-        if case.base:
-            prepare_before(run, case)
-    pending = 0
-    with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        futures = {pool.submit(run_build, run, c, m): (c, m) for c in selected for m in models}
-        for future in as_completed(futures):
-            case, model = futures[future]
-            try:
-                build = future.result()
-            except Deferred:
-                pending += 1
-                print(f"{case.id} {model}: stopped at --stop-after; run again to resume", flush=True)
-                continue
-            except (ModelError, ProofError) as error:
-                pending += 1
-                print(f"{case.id} {model}: did not finish: {error}", flush=True)
-                continue
-            verdicts = "".join(f"\n    {v}" for v in build["verdicts"])
-            print(f"{case.id} {model}: {build['status']} in {build['calls']} calls, {build['seconds']} s{verdicts}",
-                  flush=True)
-    shutil.rmtree(workdir, ignore_errors=True)
+    try:
+        deadline = time.monotonic() + args.stop_after if args.stop_after else None
+        run = Run(run_dir, system_prompt, workdir, deadline)
+        for case in selected:
+            if case.base:
+                prepare_before(run, case)
+        pending = 0
+        with ThreadPoolExecutor(max_workers=args.jobs) as pool:
+            futures = {pool.submit(run_build, run, c, m): (c, m) for c in selected for m in models}
+            for future in as_completed(futures):
+                case, model = futures[future]
+                try:
+                    build = future.result()
+                except Deferred:
+                    pending += 1
+                    print(f"{case.id} {model}: stopped at --stop-after; run again to resume", flush=True)
+                    continue
+                except (ModelError, ProofError) as error:
+                    pending += 1
+                    print(f"{case.id} {model}: did not finish: {error}", flush=True)
+                    continue
+                verdicts = "".join(f"\n    {v}" for v in build["verdicts"])
+                print(f"{case.id} {model}: {build['status']} in {build['calls']} calls, {build['seconds']} s{verdicts}",
+                      flush=True)
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
 
     summarize(run_dir, groups, selected, models)
     print(f"contact sheet: {sheet.write(run_dir)}")
