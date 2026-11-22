@@ -42,9 +42,17 @@ struct FormSheet: View {
                     case .toggle:
                         Toggle(field.label, isOn: binding(field.id, in: $draft.toggles, default: false))
                     case .date:
-                        DatePicker(
-                            field.label, selection: binding(field.id, in: $draft.dates, default: .now),
-                            displayedComponents: .date)
+                        if draft.dates[field.id] != nil {
+                            DatePicker(
+                                field.label, selection: binding(field.id, in: $draft.dates, default: .now),
+                                displayedComponents: .date)
+                        } else {
+                            // Only an edit form's date the row lacks: show it unset rather than a today it would
+                            // not save.
+                            LabeledContent(field.label) {
+                                Button("Set") { draft.dates[field.id] = .now }
+                            }
+                        }
                     }
                 }
             }

@@ -119,4 +119,7 @@ schemes:
       config: Debug
     test:
       config: Debug
-      targets: [WidgieTests]
+      # Serial on purpose: suspending writes reaches every shared store in the process, so suites must not overlap.
+      targets:
+        - name: WidgieTests
+          parallelizable: false

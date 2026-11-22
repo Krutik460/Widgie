@@ -9,7 +9,8 @@ import WidgetEngine
 @testable import Widgie
 
 /// The describe flow against a scripted model, a temporary shared store, and the preview's scratch engine.
-/// Serialized, because suspending writes reaches every shared store in the process.
+/// Serialized, because suspending writes reaches every shared store in the process; the scheme in project.yml
+/// also runs the suites one at a time, so the other suites' stores never open inside a suspension window.
 @MainActor @Suite(.serialized) struct DescribeSessionTests {
     let shared = SharedStore()
 
