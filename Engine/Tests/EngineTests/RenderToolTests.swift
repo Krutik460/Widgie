@@ -109,6 +109,21 @@ import WidgetEngine
         #expect(try pngs("renamed") == pngs("same"))
     }
 
+    @Test func refineModeExitsTwoWhenTheOldWidgetIsUnreadableOrRejected() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let path = { (name: String) in directory.appending(path: name).path(percentEncoded: false) }
+        let water = engineDirectory.appending(path: "Fixtures/water").path(percentEncoded: false)
+        try FileManager.default.createDirectory(
+            at: directory.appending(path: "empty"), withIntermediateDirectories: true)
+        try Broken.blank.write(to: directory.appending(path: "blank"))
+
+        #expect(await RenderTool.run(["refine", path("empty"), water, path("unreadable")]) == 2)
+        #expect(await RenderTool.run(["refine", path("blank"), water, path("rejected")]) == 2)
+        #expect(!FileManager.default.fileExists(atPath: path("unreadable")))
+        #expect(!FileManager.default.fileExists(atPath: path("rejected")))
+    }
+
     @Test func renderModeWritesOnePNGAndUsageErrorsExitTwo() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }
