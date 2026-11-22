@@ -39,12 +39,7 @@ struct TryItScreen: View {
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom, spacing: 0) { composer }
         }
-        .onChange(of: session.words) { _, words in
-            // The field grows to four lines, so return sends instead of starting a new line.
-            guard words.contains("\n") else { return }
-            session.words = words.replacingOccurrences(of: "\n", with: "")
-            send()
-        }
+        .returnSends($session.words, send)
     }
 
     private var topBar: some View {
@@ -89,7 +84,7 @@ struct TryItScreen: View {
     @ViewBuilder private func face(_ family: Family) -> some View {
         let size = family.standardSize
         if let face = preview.faces[family] {
-            FaceView(face, host: .app(tap: { session.perform($0) }, form: { preview.showForm(for: $0) }))
+            FaceView(face, host: .app(tap: { preview.perform($0) }, form: { preview.showForm(for: $0) }))
                 .frame(width: size.width, height: size.height)
                 .faceShadow()
         } else {
@@ -129,7 +124,7 @@ struct TryItScreen: View {
 
     /// Only the latest exchange: what the person asked, and the caret's short reply.
     @ViewBuilder private var exchange: some View {
-        if let turn = session.turns.last {
+        if let turn = session.latest {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     if let image = turn.image {

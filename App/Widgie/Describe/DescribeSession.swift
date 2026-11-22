@@ -9,7 +9,7 @@ import WidgetHosting
 /// Each build's steps and timing, for the perf numbers: `log stream --predicate 'category == "describe"'`.
 private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describe")
 
-/// One describe flow: the person's turns, the build loop they start on the preview's scratch engine, and Save.
+/// One describe flow: the person's latest turn, the build loop it starts on the preview's scratch engine, and Save.
 /// A failed or cancelled turn never replaces the draft, so the person always keeps the last widget that worked.
 @MainActor @Observable
 final class DescribeSession: Identifiable {
@@ -56,8 +56,8 @@ final class DescribeSession: Identifiable {
         }
     }
 
-    struct Turn: Identifiable {
-        let id = UUID()
+    /// What the person asked, and how it went.
+    struct Turn {
         let words: String
         let image: Picture?
         var result: TurnResult
@@ -69,9 +69,9 @@ final class DescribeSession: Identifiable {
         case cancelled
     }
 
-    /// The work the last failure interrupted, for Try again.
+    /// The work the last failure interrupted, for Try again: the latest turn, or Save.
     private enum Job {
-        case turn(Int)
+        case turn
         case save
     }
 
@@ -79,7 +79,11 @@ final class DescribeSession: Identifiable {
     let editing: WidgetID?
     let preview: Preview
     private(set) var phase: Phase
-    private(set) var turns: [Turn] = []
+    /// The only exchange the screen shows.
+    private(set) var latest: Turn?
+    /// What the person asked for in the last accepted turn, which the repair on Save asks again. Nil until
+    /// a turn is accepted.
+    private(set) var acceptedWords: String?
     private(set) var buildStarted = Date.now
 
     var words = ""
@@ -125,13 +129,12 @@ final class DescribeSession: Identifiable {
         let typed = (suggestion ?? words).trimmingCharacters(in: .whitespacesAndNewlines)
         let image = suggestion == nil ? picture : nil
         guard phase == .composing, !typed.isEmpty || image != nil else { return }
-        turns.append(
-            Turn(words: typed.isEmpty ? "Make it look like this picture" : typed, image: image, result: .pending))
+        latest = Turn(words: typed.isEmpty ? "Make it look like this picture" : typed, image: image, result: .pending)
         if suggestion == nil {
             words = ""
             picture = nil
         }
-        start(.turn(turns.count - 1))
+        start(.turn)
     }
 
     func save() {
@@ -150,50 +153,47 @@ final class DescribeSession: Identifiable {
         start(job)
     }
 
-    /// Closes the failure banner. After a give-up the words go back in the composer to say another way.
+    /// Leaves the failure screen. After a give-up the words go back in the composer to say another way.
     func dismissFailure() {
         guard case .failed(let failure) = phase else { return }
-        if failure == .gaveUp, case .turn(let index) = failedJob, words.isEmpty {
-            words = turns[index].words
-            picture = turns[index].image
+        if failure == .gaveUp, failedJob == .turn, words.isEmpty, let latest {
+            words = latest.words
+            picture = latest.image
         }
         failedJob = nil
         phase = .composing
     }
 
-    func perform(_ tap: Tap, input: [String: InputValue] = [:]) {
-        preview.perform(tap, input: input)
-    }
-
     /// Leaves `composing` or `failed` before it returns, so a second tap finds the guards closed.
     private func start(_ job: Job) {
         guard let model else {
-            if case .turn(let index) = job { turns[index].result = .failed(.unavailable) }
+            if job == .turn { latest?.result = .failed(.unavailable) }
             fail(.unavailable, job: nil)
             return
         }
         failedJob = nil
         switch job {
-        case .turn(let index):
-            turns[index].result = .pending
+        case .turn:
+            latest?.result = .pending
             begin(.writing(attempt: 1))
         case .save:
             phase = .saving
         }
         work = Task {
             switch job {
-            case .turn(let index): await runTurn(index, model: model)
+            case .turn: await runTurn(model: model)
             case .save: await runSave(model: model)
             }
         }
     }
 
-    private func runTurn(_ index: Int, model: some WidgetModel) async {
-        let turn = turns[index]
+    private func runTurn(model: some WidgetModel) async {
+        guard let turn = latest else { return }
         let result = await loop(turn.words, image: turn.image?.attachment, replacing: draft, model: model)
-        turns[index].result = result
+        latest?.result = result
+        if result == .accepted { acceptedWords = turn.words }
         if case .failed(let failure) = result {
-            fail(failure, job: .turn(index))
+            fail(failure, job: .turn)
         } else {
             phase = .composing
         }
@@ -209,8 +209,9 @@ final class DescribeSession: Identifiable {
         var outcome = await saveToLibrary()
         if case .rejected(let line)? = outcome {
             begin(.repairing(attempt: 1, line: line))
-            let words = turns.last { $0.result == .accepted }?.words ?? "Keep this widget as it is."
-            switch await loop(words, replacing: draft, repairing: line, model: model) {
+            switch await loop(
+                acceptedWords ?? "Keep this widget as it is.", replacing: draft, repairing: line, model: model)
+            {
             case .accepted:
                 phase = .saving
                 outcome = await saveToLibrary()
