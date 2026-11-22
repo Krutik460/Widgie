@@ -230,7 +230,8 @@ final class DescribeSession: Identifiable {
                 // Cancelled while the reply was being proved: put the draft back as the person last saw it.
                 if let replacing, let before { try? preview.engine.restore(replacing, to: before) }
                 return expired ? .failed(.interrupted) : .cancelled
-            case .gaveUp:
+            case .gaveUp(_, let attempts):
+                log.info("gave up after \(attempts) attempts at \(seconds(), privacy: .public)")
                 return .failed(.gaveUp)
             }
         } catch is CancellationError {
