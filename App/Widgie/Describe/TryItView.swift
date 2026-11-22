@@ -2,17 +2,13 @@ import SwiftUI
 import WidgetBuilder
 import WidgetEngine
 
-/// The draft to try: live faces in both sizes, a compact sample menu, the latest exchange, two suggestions,
-/// and the composer that asks for the next change. Save sits at the top right.
+/// The draft to try: live faces in both sizes, a compact sample menu, the latest exchange, up to two
+/// suggestions, and the composer that asks for the next change. Save sits at the top right.
 struct TryItScreen: View {
     @Bindable var session: DescribeSession
     let close: () -> Void
 
     @FocusState private var typing: Bool
-
-    private static let suggestions: [(words: String, color: ChipColor)] = [
-        ("Make it blue", .lilac), ("Bigger number", .peach),
-    ]
 
     private var preview: Preview { session.preview }
     private var composing: Bool { session.phase == .composing }
@@ -25,7 +21,7 @@ struct TryItScreen: View {
                     faces.padding(.top, 14)
                     exchange
                     FlowLayout(spacing: 8) {
-                        ForEach(Self.suggestions, id: \.words) { suggestion in
+                        ForEach(suggestions, id: \.words) { suggestion in
                             Button(suggestion.words) {
                                 typing = false
                                 session.send(suggestion.words)
@@ -206,6 +202,26 @@ struct TryItScreen: View {
     private func send() {
         typing = false
         session.send()
+    }
+
+    /// Changes that fit the draft on show, read off its face without asking the model: a color across the
+    /// wheel from the one it paints most, and a bigger number when it shows one. None when neither fits.
+    private var suggestions: [(words: String, color: ChipColor)] {
+        guard let traits = preview.faces[.medium]?.traits else { return [] }
+        var suggestions: [(words: String, color: ChipColor)] = []
+        if let hue = traits.hue { suggestions.append(("Make it \(Self.colorName(at: hue + 180))", .lilac)) }
+        if traits.showsNumber { suggestions.append(("Bigger number", .peach)) }
+        return suggestions
+    }
+
+    /// The nearest everyday color name to a hue in degrees.
+    private static func colorName(at hue: Double) -> String {
+        let names: [(hue: Double, name: String)] = [
+            (0, "red"), (30, "orange"), (55, "yellow"), (125, "green"), (180, "teal"), (220, "blue"),
+            (275, "purple"), (325, "pink"), (360, "red"),
+        ]
+        let hue = hue.truncatingRemainder(dividingBy: 360)
+        return names.min { abs($0.hue - hue) < abs($1.hue - hue) }!.name
     }
 
     private func reply(_ result: DescribeSession.TurnResult) -> String {
