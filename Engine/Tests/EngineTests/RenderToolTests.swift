@@ -20,7 +20,7 @@ import WidgetEngine
 
         let samples = try JSONSerialization.jsonObject(with: try fixture(name).json) as? [String: Any]
         let names = ((samples?["samples"] as? [String: Any]) ?? [:]).keys.sorted()
-        let states = ["empty"] + names.map { "sample-" + $0.replacing(" ", with: "-") } + ["full"]
+        let states = ["empty"] + names.map { "sample-" + $0.lowercased().replacing(" ", with: "-") } + ["full"]
         let cells = states.map { ($0, "") } + [("empty", "-tinted"), ("full", "-tinted"), ("full", "-dark")]
         let pngs = cells.flatMap { state, suffix in ["small", "medium"].map { "\(state)-\($0)\(suffix).png" } }
         let written = try FileManager.default.contentsOfDirectory(atPath: output.path(percentEncoded: false))

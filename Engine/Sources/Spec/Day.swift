@@ -98,6 +98,8 @@ package enum Weekday: Int, CaseIterable, Sendable {
 /// Everything time-dependent about one render or one tap, computed once from an instant and a calendar.
 /// Queries and the look context read this and never a clock.
 package struct Today: Sendable, Equatable {
+    /// The instant this was computed from: the render's or the tap's moment.
+    package let instant: Date
     package let day: Day
     /// The first day of the week that contains `day`, by the calendar's first weekday.
     package let weekStart: Day
@@ -107,10 +109,15 @@ package struct Today: Sendable, Equatable {
 
     /// Uses a Gregorian calendar with `calendar`'s time zone and first weekday, so a user on another
     /// calendar system still gets the same days as everyone else.
+    /// The Gregorian calendar the days and times are read in.
+    private let gregorian: Calendar
+
     package init(at instant: Date, calendar: Calendar) {
         var gregorian = Calendar(identifier: .gregorian)
         gregorian.timeZone = calendar.timeZone
         gregorian.firstWeekday = calendar.firstWeekday
+        self.instant = instant
+        self.gregorian = gregorian
         let parts = gregorian.dateComponents([.year, .month, .day], from: instant)
         day = Day(year: parts.year ?? 1970, month: parts.month ?? 1, day: parts.day ?? 1)
         weekStart = day.adding(-((day.weekday.calendarNumber - gregorian.firstWeekday + 7) % 7))
@@ -120,4 +127,25 @@ package struct Today: Sendable, Equatable {
     }
 
     package var week: [Day] { (0..<7).map { weekStart.adding($0) } }
+
+    /// The wall-clock time of `instant` in this calendar's time zone, as `HH:MM` on a 24-hour clock.
+    package var time: String { clock(instant) }
+
+    /// The wall-clock time of `moment` in this calendar's time zone, as `HH:MM` on a 24-hour clock. A row
+    /// written in another time zone reads in the reader's.
+    package func clock(_ moment: Date) -> String {
+        let parts = gregorian.dateComponents([.hour, .minute], from: moment)
+        return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+    }
+
+    /// The day `moment` falls on in this calendar.
+    package func day(of moment: Date) -> Day {
+        Today(at: moment, calendar: gregorian).day
+    }
+
+    /// Whole minutes from `moment` to `instant`, and 0 for a moment after it, such as a row from a peer whose
+    /// clock runs ahead.
+    package func minutes(since moment: Date) -> Int {
+        max(0, Int((instant.timeIntervalSince(moment) / 60).rounded(.down)))
+    }
 }

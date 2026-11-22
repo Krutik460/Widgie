@@ -108,9 +108,10 @@ extension Spec {
         }
     }
 
-    /// Keys a row already uses for something else: the look receives `id`, `day`, and `daysAgo`, a sample
-    /// row uses `daysAgo` and `repeat`, and `sort` reads `newest` and `oldest` as orders.
-    static let reservedFieldIDs = ["day", "daysAgo", "id", "newest", "oldest", "repeat"]
+    /// Keys a row already uses for something else: the look receives `id`, `day`, `daysAgo`, `at`,
+    /// `minutesAgo`, and `by`, a sample row uses `daysAgo`, `minutesAgo`, `by`, and `repeat`, `where` reads
+    /// `by` as the author, and `sort` reads `newest` and `oldest` as orders.
+    static let reservedFieldIDs = ["at", "by", "day", "daysAgo", "id", "minutesAgo", "newest", "oldest", "repeat"]
 }
 
 extension String: Spec.CellType {

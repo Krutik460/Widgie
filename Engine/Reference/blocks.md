@@ -42,7 +42,7 @@ A table is a list of rows. Each field has one kind.
 
 Every row also belongs to a day: the day it was written on, or the day an `insertOn` button gave. That day decides which windows the row falls in, so a table with no fields still counts things: one row per glass of water, one row per check-in.
 
-These field ids are reserved: `day`, `daysAgo`, `id`, `newest`, `oldest`, `repeat`.
+These field ids are reserved: `at`, `by`, `day`, `daysAgo`, `id`, `minutesAgo`, `newest`, `oldest`, `repeat`. The app records who wrote each row and when, so never add a field for the time or the person.
 
 ```json
 {
@@ -82,6 +82,8 @@ Every window ends today, so a row on a later day counts from its day on.
 
 `where` keeps only rows whose field equals a value. It names one field of the query's table and a value of that field's kind. A `bool` field with no value counts as `false`, so `{ "done": false }` includes new rows nobody has touched. `where` cannot compare a `date` field.
 
+`where` can also keep rows by who wrote them: `{ "by": "me" }` for rows written on this phone, `{ "by": "others" }` for rows written by anyone the widget is shared with. It goes beside a field or on its own, as in `{ "by": "me", "done": true }`. Until the person shares the widget, every row is `me`.
+
 `limit` is the most rows a `list` returns, from 1 to 100. `sort` is `newest` (the default), `oldest`, or a field id. Put `-` before a field id to sort it descending. A row with no value for a text, number, or date sort field comes last, and a `bool` field with no value sorts as `false`.
 
 `days` is how many days a `daily` covers, from 1 to 366.
@@ -102,6 +104,19 @@ With `where`, a `streak` or `daily` measures only the rows that match.
     "left": { "count": "items", "where": { "done": false }, "window": "all" },
     "longest": { "list": "items", "window": "week", "sort": "-minutes", "limit": 3 },
     "minutes": { "sum": "items.minutes", "where": { "done": true }, "window": "today" }
+  }
+}
+```
+
+Shared tapping: hearts sent and received today, and the last feed of the dog.
+
+```json
+{
+  "tables": { "hearts": { "fields": {} }, "feeds": { "fields": {} } },
+  "queries": {
+    "sent": { "count": "hearts", "where": { "by": "me" }, "window": "today" },
+    "received": { "count": "hearts", "where": { "by": "others" }, "window": "today" },
+    "lastFeed": { "latest": "feeds", "window": { "days": 2 } }
   }
 }
 ```
@@ -146,10 +161,10 @@ Day tracking: amounts per day, a goal streak, filtered history, and longer windo
 
 `ctx.data` has one key per query id, holding the value from the table above.
 
-A row is an object with `id`, `day`, `daysAgo`, and every field of its table:
+A row is an object with `id`, `day`, `daysAgo`, `at`, `minutesAgo`, `by`, and every field of its table. `at` is the time it was written, `minutesAgo` the whole minutes since, and `by` is `{ me, name }`: `me` is true for a row written on this phone, and `name` is the writer's name or `null`.
 
 ```js
-{ id: "0193f4c2-7d1e-7a3b-9c4e-5f6a7b8c9d0e", day: "2026-11-18", daysAgo: 0, title: "Buy oat milk", done: false }
+{ id: "0193f4c2-7d1e-7a3b-9c4e-5f6a7b8c9d0e", day: "2026-11-18", daysAgo: 0, at: "09:41", minutesAgo: 35, by: { me: false, name: "Sam" }, title: "Buy oat milk", done: false }
 ```
 
 A `daily` entry has the date, the three-letter weekday, and the number of rows that day. A `daily` over a number field also has `sum`, the day's total of that field:
@@ -159,7 +174,7 @@ A `daily` entry has the date, the three-letter weekday, and the number of rows t
 { date: "2026-11-18", weekday: "Wed", count: 3, sum: 750 }
 ```
 
-`ctx.today` is `{ date: "2026-11-18", weekday: "Wed", week: [seven dates of the current week, first day first] }`. The look never reads a clock, so it gets the date from here.
+`ctx.today` is `{ date: "2026-11-18", weekday: "Wed", week: [seven dates of the current week, first day first] }`. `ctx.now` is the time, as `"10:16"`. The look never reads a clock, so it gets the date and time from here. While the picture changes with `ctx.now` or `minutesAgo`, the widget redraws every 15 minutes.
 
 ## Actions
 
@@ -230,7 +245,12 @@ An asset is an image the look may place by id. `about` says what the picture sho
 
 A sample is example data. The app draws the look with no rows, with each sample, and with a stress state of its own, in both sizes. Write at least two samples that look like real use: a light day and a busy one.
 
-A sample maps table ids to lists of rows. In a row, `daysAgo` says which day it was written on (0 is today, 1 is yesterday) and `repeat` makes that many identical rows, from 1 to 100. Both may be left out, and then they are 0 and 1. A day with no rows needs no entry. Every other key is a field value. Leave out `id` and `day`, because the app makes them.
+A sample maps table ids to lists of rows. In a row, `daysAgo` says which day it was written on (0 is today, 1 is yesterday) and `repeat` makes that many identical rows, from 1 to 100. Both may be left out, and then they are 0 and 1. A day with no rows needs no entry. Every other key is a field value. Leave out `id`, `day`, and `at`, because the app makes them.
+
+Two more keys show time and people:
+
+- `minutesAgo` places the row that many minutes before the drawing, up to 10080 (a week), instead of `daysAgo`. Give one or the other. Use it when the look shows `at` or `minutesAgo`.
+- `by` is who wrote the row: another member's name, like `"Sam"`, up to 30 characters, or `"me"`, which is the same as leaving it out. Use it when the look shows `by` or a query reads `where by`, so the samples show the widget shared.
 
 The app makes the no-rows state and the stress state itself, named `empty` and `full`. Write neither as a sample, and give no sample those names.
 
@@ -246,6 +266,18 @@ The app makes the no-rows state and the stress state itself, named `empty` and `
       "items": [{ "title": "Buy oat milk" }, { "daysAgo": 1, "title": "Call the dentist", "done": true }]
     },
     "goal met": { "glasses": [{ "repeat": 9 }] }
+  }
+}
+```
+
+A shared widget's samples, with times and people:
+
+```json
+{
+  "tables": { "feeds": { "fields": {} } },
+  "samples": {
+    "fed by Sam": { "feeds": [{ "minutesAgo": 95, "by": "Sam" }, { "daysAgo": 1 }] },
+    "overdue": { "feeds": [{ "minutesAgo": 840 }] }
   }
 }
 ```
@@ -266,6 +298,8 @@ The app makes the no-rows state and the stress state itself, named `empty` and `
 | rows in one sample, after `repeat` | 1000 |
 | `repeat` | 100 |
 | `daysAgo` | 400 |
+| `minutesAgo` in a sample | 10080 |
+| a sample's `by` | 30 characters |
 | a text value | 300 characters as JavaScript counts them (an emoji counts as 2) |
 | field values `list` and `latest` queries return together (rows times their table's fields, a `latest` is one row) | 1000 |
 | a `prompt` | 2000 characters |

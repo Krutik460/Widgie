@@ -76,6 +76,10 @@ extension Spec {
         static let rowsPerSample = 1000
         static let repeatCount = 1...100
         static let daysAgo = 0...400
+        /// A sample row placed by minutes instead of days reaches back at most a week.
+        static let minutesAgo = 0...10_080
+        /// A member's name, as a sample's `by` writes it and the look receives it.
+        static let memberNameLength = 30
         static let listLimit = 1...100
         /// Rows times their table's fields, over every `list` (at its limit) and `latest` (one row) together.
         static let queryCells = 1000

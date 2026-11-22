@@ -91,7 +91,7 @@ import Testing
     }
 
     struct State: Equatable {
-        let reads: [QueryResult]
+        let reads: [Reading]
         let widgets: [String]
         let history: [[Revision]]
     }

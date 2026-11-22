@@ -39,7 +39,7 @@ flowchart BT
 
 Each area has its own test target, so units of work that run in parallel never share a test directory:
 
-- `SpecTests` tests `Spec` through `Spec.parse`, the encoder, and `Today`. It parses the four reference widgets in `Engine/Fixtures/` and every example in `Engine/Reference/blocks.md`.
+- `SpecTests` tests `Spec` through `Spec.parse`, the encoder, and `Today`. It parses the six reference widgets in `Engine/Fixtures/` and every example in `Engine/Reference/blocks.md`.
 - `RowsTests` tests `Rows`.
 - `LookTests` tests `Sandbox` and the tree validator.
 - `EngineTests` tests `WidgetEngine`, `WidgetBuilder`, `WidgetHosting`, and the render tool.

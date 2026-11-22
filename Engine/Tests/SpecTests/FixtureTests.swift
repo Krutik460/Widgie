@@ -56,13 +56,13 @@ import Testing
             Issue.record("open is not a filtered list of 20, oldest first")
             return
         }
-        #expect(open.field.path == "items.done")
-        #expect(open.value == .bool(false))
+        #expect(open.field?.field.path == "items.done")
+        #expect(open.field?.value == .bool(false))
         guard case .count(_, let finished?, .all)? = spec.query("finished")?.shape else {
             Issue.record("finished is not a filtered count")
             return
         }
-        #expect(finished.value == .bool(true))
+        #expect(finished.field?.value == .bool(true))
         guard case .toggle(let done)? = spec.action(named: "toggle")?.effect else {
             Issue.record("toggle is not a toggle")
             return
