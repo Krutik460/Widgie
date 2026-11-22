@@ -258,13 +258,14 @@ final class DescribeSession: Identifiable {
                 self.phase = .building(step)
             }
             switch outcome {
-            case .accepted(let id, let attempts) where !Task.isCancelled:
-                await preview.show(id)
-                log.info("accepted in \(attempts) attempts, preview shown at \(seconds(), privacy: .public)")
-                return .accepted
-            case .accepted:
-                // Cancelled while the reply was being proved: put the draft back as the person last saw it.
+            case .accepted(let id, let attempts):
+                if await preview.show(id) {
+                    log.info("accepted in \(attempts) attempts, preview shown at \(seconds(), privacy: .public)")
+                    return .accepted
+                }
+                // Cancelled before the new draft was on show: put the draft back as the person last saw it.
                 if let replacing, let before { try? preview.engine.restore(replacing, to: before) }
+                await preview.select(preview.state)
                 return expired ? .failed(.interrupted) : .cancelled
             case .gaveUp(_, let attempts):
                 log.info("gave up after \(attempts) attempts at \(seconds(), privacy: .public)")
