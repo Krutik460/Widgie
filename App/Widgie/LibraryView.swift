@@ -38,7 +38,6 @@ struct LibraryView: View {
         }
         .ground()
         .foregroundStyle(Palette.text)
-        .task { await library.reload() }
         .fullScreenCover(item: $session) { session in
             DescribeView(session: session) { _ in
                 self.session = nil
