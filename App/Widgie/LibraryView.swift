@@ -4,98 +4,166 @@ import WidgetEngine
 struct LibraryView: View {
     let library: Library
 
-    #if DEBUG
-        @State private var lab: PreviewLab.Opening?
-    #endif
+    @State private var session: DescribeSession?
+
+    private let columns = [GridItem(.flexible(), spacing: 14), GridItem(.flexible())]
 
     var body: some View {
-        NavigationStack {
-            // A plain column, not a List: the list's insets leave less than a medium face's 338 points.
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 28) {
-                    if library.items.isEmpty {
-                        ContentUnavailableView(
-                            "No widgets yet", systemImage: "square.grid.2x2",
-                            description: Text("Install a reference widget, then add it from the home screen."))
-                    }
-                    ForEach(library.items) { item in
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text(item.summary.name).font(.headline)
-                                Spacer()
-                                Menu {
-                                    #if DEBUG
-                                        Button("Preview a copy", systemImage: "eye") {
-                                            lab = PreviewLab.Opening(start: .copy(item.id), preview: Preview())
-                                        }
-                                    #endif
-                                    Button("Delete", systemImage: "trash", role: .destructive) {
-                                        library.delete(item.id)
-                                    }
-                                } label: {
-                                    Image(systemName: "ellipsis").frame(width: 32, height: 32)
-                                }
-                                .accessibilityLabel("Options for \(item.summary.name)")
-                            }
-                            ForEach(Family.allCases, id: \.self) { family in
-                                if let face = item.faces[family] {
-                                    FaceView(
-                                        face,
-                                        host: .app(tap: { library.perform($0) }, form: { library.showForm(for: $0) })
-                                    )
-                                    .frame(width: family.standardSize.width, height: family.standardSize.height)
-                                }
-                            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("My widgets").font(.largeTitle.weight(.black))
+                    Spacer()
+                    #if DEBUG
+                        debugMenu
+                    #endif
+                }
+                .padding(.top, 10)
+                .padding(.bottom, 16)
+
+                if library.items.isEmpty {
+                    empty
+                } else {
+                    hero
+                    Text("Saved")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(Palette.muted)
+                        .padding(.top, 26)
+                        .padding(.bottom, 8)
+                        .padding(.leading, 2)
+                    LazyVGrid(columns: columns, spacing: 18) {
+                        ForEach(library.items) { item in
+                            tile(item)
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Widgets")
-            .toolbar {
-                if !library.fixtures.isEmpty {
-                    Menu {
-                        Section("Install") {
-                            ForEach(library.fixtures, id: \.folder) { fixture in
-                                Button(fixture.name) { library.install(fixture.folder) }
-                            }
-                        }
-                        #if DEBUG
-                            Section("Preview without saving") {
-                                ForEach(library.fixtures, id: \.folder) { fixture in
-                                    Button(fixture.name) {
-                                        lab = PreviewLab.Opening(start: .fixture(fixture.folder), preview: Preview())
-                                    }
-                                }
-                            }
-                        #endif
-                    } label: {
-                        Label("Install reference widget", systemImage: "plus")
-                    }
-                }
-            }
-            .refreshable { await library.reload() }
-            .task { await library.reload() }
-            .sheet(isPresented: Binding(get: { library.form != nil }, set: { if !$0 { library.form = nil } })) {
-                if let form = library.form {
-                    FormSheet(form: form) { input in
-                        library.perform(form.tap, input: input)
-                        library.form = nil
-                    }
-                }
-            }
-            .alert(
-                "Something went wrong", isPresented: .constant(library.message != nil),
-                actions: { Button("OK") { library.message = nil } },
-                message: { Text(library.message ?? "") }
-            )
-            #if DEBUG
-                .sheet(item: $lab) { opening in PreviewLab(opening: opening, library: library) }
-            #endif
+            .padding(.horizontal, 18)
+            .padding(.bottom, 24)
         }
+        .background(Palette.ground.ignoresSafeArea())
+        .fontDesign(.rounded)
+        .foregroundStyle(Palette.ink)
+        .refreshable { await library.reload() }
+        .task { await library.reload() }
+        .fullScreenCover(item: $session) { session in
+            DescribeView(session: session) { saved in
+                self.session = nil
+                library.justSaved = saved ?? library.justSaved
+                library.refresh()
+            }
+        }
+        .sheet(isPresented: Binding(get: { library.form != nil }, set: { if !$0 { library.form = nil } })) {
+            if let form = library.form {
+                FormSheet(form: form) { input in
+                    library.perform(form.tap, input: input)
+                    library.form = nil
+                }
+            }
+        }
+        .alert(
+            "Something went wrong", isPresented: .constant(library.message != nil),
+            actions: { Button("OK") { library.message = nil } },
+            message: { Text(library.message ?? "") }
+        )
     }
+
+    private var hero: some View {
+        HStack(spacing: 14) {
+            Mascot(mood: .idle, size: 92)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Got an idea?\nLet's paint it.")
+                    .font(.title3.weight(.black))
+                    .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    session = DescribeSession()
+                } label: {
+                    Label("New widget", systemImage: "plus")
+                }
+                .buttonStyle(ChunkyButtonStyle(height: 50, font: .subheadline.weight(.black)))
+            }
+        }
+        .padding(16)
+        .card()
+    }
+
+    private var empty: some View {
+        VStack(spacing: 0) {
+            Mascot(mood: .idle, size: 130)
+            Text("Your home screen is waiting")
+                .font(.title2.weight(.black))
+                .padding(.top, 8)
+            Text("Tell me an idea in plain words.\nI'll paint you a widget.")
+                .font(.body.weight(.bold))
+                .foregroundStyle(Palette.muted)
+                .padding(.top, 6)
+                .padding(.bottom, 20)
+            Button("Make my first widget") { session = DescribeSession() }
+                .buttonStyle(ChunkyButtonStyle())
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 22)
+        .frame(maxWidth: .infinity)
+        .card()
+    }
+
+    /// A small live face: its buttons work as on the home screen, and a tap anywhere else opens it to change.
+    private func tile(_ item: Library.Item) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let face = item.face {
+                FaceView(face, host: .app(tap: { library.perform($0) }, form: { library.showForm(for: $0) }))
+                    .frame(width: Family.small.standardSize.width, height: Family.small.standardSize.height)
+                    .frame(maxWidth: .infinity)
+            }
+            HStack(spacing: 6) {
+                Text(item.summary.name)
+                    .font(.subheadline.weight(.black))
+                    .lineLimit(1)
+                if library.justSaved == item.id {
+                    Text("New")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(Color(rgb: 0x14204A))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Palette.sun))
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
+        .card(corner: 24)
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .onTapGesture { session = DescribeSession(editing: item.id) }
+        .contextMenu {
+            Button("Change it", systemImage: "paintbrush.pointed") { session = DescribeSession(editing: item.id) }
+            Button("Delete", systemImage: "trash", role: .destructive) { library.delete(item.id) }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityAction(named: "Change it") { session = DescribeSession(editing: item.id) }
+    }
+
+    #if DEBUG
+        private var debugMenu: some View {
+            Menu {
+                Section("Install reference widget") {
+                    ForEach(library.fixtures, id: \.folder) { fixture in
+                        Button(fixture.name) { library.install(fixture.folder) }
+                    }
+                }
+            } label: {
+                Image(systemName: "ladybug.fill")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Palette.muted)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel("Debug")
+        }
+    #endif
 }
 
 extension FaceHost {
