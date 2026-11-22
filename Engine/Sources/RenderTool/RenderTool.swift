@@ -85,7 +85,8 @@ struct RenderTool {
             current/               the old widget as the app sends it to the model to refine: the stored
                                    source, widget.json and assets/, with digests and time zone filled in.
             the PNGs and report.json of proof mode, for the widget that would draw: the saved one when
-                                   the builder accepts the new widget, else the new widget as sent.
+                                   the builder accepts the new widget, else the new widget as sent, with
+                                   the old widget's image for each asset it sends no bytes for.
           Prints one line on stdout: "accepted", or the verdict line the builder would send the model.
           The report's verdict is that line. An old widget the builder rejects is an error.
 
@@ -367,7 +368,7 @@ private struct RefineRun {
                 drawn = after
                 verdict = line
             }
-            matrix = try await Engine.proofs(drawn, at: date, calendar: calendar)
+            matrix = try await Engine.proofs(drawn, keeping: current, at: date, calendar: calendar)
         } catch {
             standardError("error: \(error.message)")
             return 2
