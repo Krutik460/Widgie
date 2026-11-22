@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import Spec
 
 // The public value types. Everything else in this module is `package` or private.
 
@@ -57,6 +58,8 @@ public struct InputForm: Sendable {
 
 public struct InputField: Sendable, Identifiable {
     public enum Kind: Sendable { case text, number, toggle, date }
+    /// The most a text field holds, in UTF-16 units as JavaScript counts them: an emoji counts as 2.
+    public static let textLimit = Spec.Limits.textLength
     public let id: String
     /// The field id made readable: `dueDate` reads "Due date".
     public let label: String

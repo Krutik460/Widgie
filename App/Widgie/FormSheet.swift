@@ -72,6 +72,7 @@ struct FormSheet: View {
         switch problem {
         case .empty: "Can't be empty"
         case .notANumber: "Enter a number, like \(draft.format.text(12.5))"
+        case .tooLong: "Keep it to \(InputField.textLimit) characters or fewer"
         }
     }
 
@@ -93,6 +94,7 @@ struct FormDraft {
     enum Problem: Equatable {
         case empty
         case notANumber
+        case tooLong
     }
 
     let fields: [InputField]
@@ -147,7 +149,7 @@ struct FormDraft {
         switch field.kind {
         case .text:
             guard let value = text[field.id], !value.isEmpty else { return .empty }
-            return .value(.text(value))
+            return value.utf16.count > InputField.textLimit ? .problem(.tooLong) : .value(.text(value))
         case .number:
             guard let value = text[field.id], !value.trimmingCharacters(in: .whitespaces).isEmpty else { return .empty }
             return format.number(value).map { .value(.number($0)) } ?? .problem(.notANumber)

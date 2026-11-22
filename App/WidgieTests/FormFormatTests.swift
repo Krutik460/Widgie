@@ -97,4 +97,18 @@ import WidgetEngine
         #expect(draft.submission().invalid.isEmpty)
         #expect(draft.submission().input == ["title": .text("Bread"), "amount": .number(3)])
     }
+
+    /// The engine counts UTF-16 units, where this emoji is 2, so half the limit in emoji fills a field.
+    @Test func textOverTheEngineLimitHoldsSaveBack() {
+        let fills = String(repeating: "🥛", count: InputField.textLimit / 2)
+        var draft = FormDraft(
+            fields: [InputField(id: "title", label: "Title", kind: .text, value: nil)], edits: false, format: french)
+        draft.text["title"] = fills + "🥛"
+        #expect(draft.submission().invalid == ["title": .tooLong])
+        #expect(draft.submission().input.isEmpty)
+
+        draft.text["title"] = fills
+        #expect(draft.submission().invalid.isEmpty)
+        #expect(draft.submission().input == ["title": .text(fills)])
+    }
 }

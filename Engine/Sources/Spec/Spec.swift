@@ -64,7 +64,7 @@ extension Spec {
     package typealias AssetID = Name<AssetTag>
 
     /// Caps that keep a widget inside the extension's memory and time, and a proof fast.
-    enum Limits {
+    package enum Limits {
         static let nameLength = 40
         static let tables = 8
         static let fieldsPerTable = 16
@@ -86,7 +86,7 @@ extension Spec {
         static let dailyDays = 1...366
         static let goal = 1_000_000.0
         static let rowGoal = 1...100
-        static let textLength = 300
+        package static let textLength = 300
         static let promptLength = 2000
         static let formPromptLength = 80
         static let aboutLength = 200
