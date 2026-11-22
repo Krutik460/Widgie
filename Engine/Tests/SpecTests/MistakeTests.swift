@@ -353,11 +353,23 @@ struct Mistake: CustomTestStringConvertible, Sendable {
         }
     }
 
-    @Test func refinementMayAddRemoveAndKeepFields() throws {
+    @Test func refinementThatRenamesAFieldIsRefusedWithOneLine() throws {
+        let before = try Spec.parse(fixture("todo"))
+        let renamed = String(decoding: try fixture("todo"), as: UTF8.self)
+            .replacing("\"title\"", with: "\"label\"").replacing(".title", with: ".label")
+        let after = try Spec.parse(Data(renamed.utf8))
+        #expect(
+            throws: Diagnostic("field \"items.title\" is gone; keep every field id so the stored values carry over")
+        ) {
+            try after.checkCompatible(replacing: before)
+        }
+    }
+
+    @Test func refinementMayAddTablesAndFieldsBesideTheKeptOnes() throws {
         let before = try Spec.parse(fixture("todo"))
         let after = try parse(
             document(
-                #""tables": {"items": {"fields": {"title": "text", "due": "date"}}, "notes": {"fields": {"done": "text"}}}"#
+                #""tables": {"items": {"fields": {"title": "text", "done": "bool", "due": "date"}}, "notes": {"fields": {"done": "text"}}}"#
             ))
         try after.checkCompatible(replacing: before)
     }

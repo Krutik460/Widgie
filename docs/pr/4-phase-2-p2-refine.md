@@ -6,7 +6,7 @@ Background reading: the plan's "Facts this plan rests on" (the renamed-table fac
 
 ## Core changes
 
-- **Rows always carry over.** `checkCompatible(replacing:)` in [Document.swift](../../Engine/Sources/Spec/Document.swift) rejects a refine that drops a table id, with `table "glasses" is gone; keep every table id so the stored rows carry over`. Before, a rename silently bound the table to a new, empty dataset.
+- **Rows always carry over.** `checkCompatible(replacing:)` in [Document.swift](../../Engine/Sources/Spec/Document.swift) rejects a refine that drops a table id, with `table "glasses" is gone; keep every table id so the stored rows carry over`, or a field id, with `field "items.title" is gone; keep every field id so the stored values carry over`. Before, a table rename silently bound the table to a new, empty dataset, and a field rename blanked every stored value of that field.
 - **The refine message.** `user_message` in [model.py](../../Engine/Evals/model.py) labels the person's words and adds the current document in a `json` fence. A repair during a refine keeps the current document. [refine.jsonl](../../Engine/Evals/testdata/refine.jsonl) and [refine-repair.jsonl](../../Engine/Evals/testdata/refine-repair.jsonl) pin the bytes.
 - **The prompt.** [build-prompt.md](../../Engine/Reference/build-prompt.md) gains "A change to a widget". [blocks.md](../../Engine/Reference/blocks.md) gains a renamed-table mistake example, which the reference tests parse.
 - **`render-tool refine <old> <new> <out>`** in [RenderTool.swift](../../Engine/Sources/RenderTool/RenderTool.swift) builds the old widget into a scratch engine, writes what the app would send as `current`, then builds the new one with `replacing:`.
@@ -22,15 +22,15 @@ flowchart TD
   SRC --> BR["bridge.py"] --> UM["model.user_message: request, current document, and on repair the previous document and line"]
   UM --> CL["claude -p with the build prompt and its refine section"]
   CL --> B["build(source, replacing:)"]
-  B --> CC["checkCompatible(replacing:): every old table id kept, field kinds kept"]
-  CC -->|"table gone"| REJ["rejected line, sent back as a repair"]
+  B --> CC["checkCompatible(replacing:): every old table and field id kept, with its kind"]
+  CC -->|"table or field gone"| REJ["rejected line, sent back as a repair"]
   CC --> PROOF["proof matrix"] --> SAVE["save under the same id, rows bound as before"]
 ```
 
 Key decisions:
 
 - **The rule reads only the two documents.** The scratch preview engine and the real store reach the same verdict, so a refine accepted in the preview is not then rejected on Save for this reason.
-- **A table nothing reads is legal.** "Remove the coffee count" hides data in the look, and a later refine can show it again with its rows.
+- **A table or field nothing reads is legal.** "Remove the coffee count" hides data in the look, and a later refine can show it again with its rows.
 - **`current` is what `source(of:)` returns.** The eval sends the canonical stored bytes, compact with sorted keys and filled-in time zones, exactly as the app will.
 
 ## 2. The eval harness runs a refine case

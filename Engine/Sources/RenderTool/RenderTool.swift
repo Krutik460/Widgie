@@ -78,7 +78,7 @@ struct RenderTool {
         REFINE MODE
           Runs what the app runs when a person refines a widget. Builds the old widget into a scratch
           engine, then builds the new one in its place with the builder's replacing check: every table
-          id kept, every surviving field's kind kept, then the full proof. Writes into <out dir>:
+          id kept, every field id kept with its kind, then the full proof. Writes into <out dir>:
             current/               the old widget as the app sends it to the model to refine: the stored
                                    source, widget.json and assets/, with digests and time zone filled in.
             the PNGs and report.json of proof mode, for the widget that would draw: the saved one when
