@@ -10,8 +10,8 @@ from pathlib import Path
 from unittest import mock
 
 import sheet
-from run import (ADDING_ACTIONS, ENGINE, EVALS, FIXTURES, QUERY_SHAPES, Case, Run, load_cases, prepare_case,
-                 run_build, summarize, table_changes)
+from run import ENGINE, EVALS, FIXTURES, Case, Run, load_cases, prepare_case, run_build, summarize
+from tables import ADDING_ACTIONS, QUERY_SHAPES, table_changes
 
 WATER = {
     "name": "Water",

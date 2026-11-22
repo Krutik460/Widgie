@@ -17,7 +17,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from run import check_tables
+from tables import check_tables
 
 EVALS = Path(__file__).resolve().parent
 STATUSES = ["first try", "repaired once", "repaired twice", "failed"]
