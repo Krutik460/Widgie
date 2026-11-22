@@ -246,8 +246,8 @@ def prepare_case(run: Run, case: Case) -> None:
     """Keeps every build in the case folder true to its `case.json`, which records the inputs they were made from:
     the request and picture, the base, digests of the first model request, the base, and the render tool, and the
     proof date. When one of them changed, every model's builds of the case are removed. The record is written
-    last, so a case folder without one holds no builds to trust. The scoring fields are not inputs, since the
-    summary checks them afresh."""
+    last, so a case folder without one holds no builds to trust. It also holds the group and the scoring fields,
+    which the contact sheet shows; they are not inputs, since the summary checks them afresh."""
     if case.base:
         prepare_before(run, case)
     case_dir = run.directory / case.id
@@ -258,15 +258,19 @@ def prepare_case(run: Run, case: Case) -> None:
         "render_tool": run.render_tool,
         "proof_date": PROOF_DATE,
     }
-    record_path = case_dir / "case.json"
-    if record_path.exists() and read_json(record_path)["inputs"] == inputs:
-        return
-    remove_builds(case_dir)
     image = f"request{case.image.suffix.lower()}" if case.image else None
-    if case.image:
-        shutil.copyfile(case.image, case_dir / image)
-    write_json(record_path, {"request": case.request, "image": image, "base": case.base.name if case.base else None,
-                             "inputs": inputs})
+    record = {"request": case.request, "group": case.group, "image": image,
+              "base": case.base.name if case.base else None, "expect_new_table": case.expect_new_table,
+              "replaces": case.replaces, "inputs": inputs}
+    record_path = case_dir / "case.json"
+    recorded = read_json(record_path) if record_path.exists() else None
+    if recorded == record:
+        return
+    if recorded is None or recorded["inputs"] != inputs:
+        remove_builds(case_dir)
+        if case.image:
+            shutil.copyfile(case.image, case_dir / image)
+    write_json(record_path, record)
 
 
 def write_json(path: Path, value) -> None:

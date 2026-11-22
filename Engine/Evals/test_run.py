@@ -205,6 +205,12 @@ class ResumeTests(unittest.TestCase):
         self.build(case, render_tool="tool 2")
         self.assertEqual((self.call.call_count, self.prove.call_count), (2, 2))
 
+    def test_a_changed_group_or_expectation_keeps_the_build_and_shows_on_the_sheet(self):
+        self.build(Case("refine-water", "refine", "make it blue", None, FIXTURES / "water"))
+        self.build(Case("refine-water", "regrouped", "make it blue", None, FIXTURES / "water", True, "glasses"))
+        self.assertEqual(self.call.call_count, 1)
+        self.assertIn("<h2>regrouped</h2>", sheet.write(self.run_dir).read_text())
+
     def test_a_changed_proof_date_proves_the_base_and_builds_again(self):
         case = Case("refine-water", "refine", "make it blue", None, FIXTURES / "water")
         self.build(case)
@@ -253,6 +259,14 @@ class ResumeTests(unittest.TestCase):
         page = sheet.write(self.run_dir).read_text()
         self.assertIn("an older request", page)
         self.assertNotIn(html.escape(shipped["request"]), page)
+
+    def test_the_contact_sheet_shows_a_recorded_case_that_cases_json_no_longer_has(self):
+        self.build(Case("retired", "retired group", "a retired request", None, None))
+        page = sheet.write(self.run_dir).read_text()
+        self.assertIn("<h2>retired group</h2>", page)
+        self.assertIn("<tr><td>retired group</td><td>1</td>", page)
+        self.assertIn("a retired request", page)
+        self.assertIn('<span class="status first">first try</span>', page)
 
 
 class LoadCasesTests(unittest.TestCase):
