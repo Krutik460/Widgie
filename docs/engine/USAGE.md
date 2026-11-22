@@ -26,9 +26,9 @@ import WidgetEngine
 
 public enum Hosting {
     /// One engine per process. The app and the extension each make their own; both open the same App Group
-    /// directory. In the app every committed write reloads WidgetKit. The extension passes no hook, because
-    /// WidgetKit reloads after an intent on its own.
-    public static let engine = Engine(directory: appGroupDirectory(), onCommit: isExtension ? nil : reloadWidgets)
+    /// directory. Every committed write reloads WidgetKit, in the extension too: the reload WidgetKit runs
+    /// after an intent covers only the tapped widget, so another widget on the same rows would stay stale.
+    public static let engine = Engine(directory: appGroupDirectory(), onCommit: reloadWidgets)
 }
 
 struct Entry: TimelineEntry {

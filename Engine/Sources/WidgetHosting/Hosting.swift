@@ -8,10 +8,11 @@ import WidgetKit
 // so both compile the same intent and the same entity, which App Intents requires.
 
 public enum Hosting {
-    /// One engine per process, on the App Group directory named by the `EngineAppGroup` Info.plist key. In
-    /// the app it reloads WidgetKit after every write. In the extension it does not, because WidgetKit
-    /// reloads after an intent on its own.
-    public static let engine = Engine(directory: appGroupDirectory(), onCommit: isExtension ? nil : reloadWidgets)
+    /// One engine per process, on the App Group directory named by the `EngineAppGroup` Info.plist key. It
+    /// reloads every widget after every write, in the extension too: the reload WidgetKit runs after an
+    /// intent covers only the tapped widget, so another widget on the same rows, even the same widget in the
+    /// other size, would stay stale until its timeline ran out.
+    public static let engine = Engine(directory: appGroupDirectory(), onCommit: reloadWidgets)
 
     /// The link a form button opens: `<scheme>://form?widget=...&revision=...&action=...&row=...`, with the
     /// scheme from the `EngineURLScheme` Info.plist key.
@@ -51,8 +52,6 @@ func appGroupDirectory() -> URL {
     }
     return URL.applicationSupportDirectory.appending(path: "Engine")
 }
-
-private var isExtension: Bool { Bundle.main.bundleURL.pathExtension == "appex" }
 
 private let reloadWidgets: @Sendable () -> Void = { WidgetCenter.shared.reloadAllTimelines() }
 
