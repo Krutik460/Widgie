@@ -7,7 +7,7 @@ One object, `Engine`, does everything. What a caller can do with it depends on w
 | Import | Adds to `Engine` | Who imports it |
 |---|---|---|
 | `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, `Engine.scratch()`, `Engine.removeLeftoverScratch()`, plus `FaceView`, `FaceHost`, and `Face.traits` | app, widget extension (through `WidgetHosting`) |
-| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
+| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `checkpoint(of:)` and `restore(_:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
 | `WidgetHosting` | `Hosting.engine`, `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
 
 The widget extension never imports `WidgetBuilder`, so it cannot build, ingest images, or encode PNGs. That is a link-time fact, not a convention.
@@ -187,7 +187,7 @@ if let source = try scratch.source(of: draft) {
 }
 ```
 
-A refinement is checked against the widget it replaces twice: before the proof, so a mismatch costs no rendering, and again inside the write that moves the head, so a widget deleted while the draft was proved throws, and one refined or written to meanwhile is checked as it is now. `EngineError.isSuspended` is true only when the store refused a write because `Engine.suspend()` holds; no other error is worth retrying as it is.
+A refinement is checked against the head of the widget it replaces twice: before the proof, so a mismatch costs no rendering, and again inside the write that moves the head, so a widget deleted while the draft was proved throws, and one refined or written to meanwhile is checked as it is now. The head counts even when it came from another device and is not proved here yet, so the refinement keeps the fields it added, and a head this device cannot read declines the refinement. `EngineError.isSuspended` is true only when the store refused a write, or a shared store refused to open, because `Engine.suspend()` holds; no other error is worth retrying as it is.
 
 `load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows.
 
