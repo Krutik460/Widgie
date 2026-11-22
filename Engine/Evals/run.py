@@ -48,6 +48,8 @@ ADDING_ACTIONS = ("insert", "insertOn", "form")
 # The first try, then at most two repairs.
 ATTEMPTS = 3
 STATUS = {1: "first try", 2: "repaired once", 3: "repaired twice", None: "failed"}
+# One name per media type: renaming a picture from .jpg to .jpeg sends the same request, so the case is kept.
+SNAPSHOT = {"image/png": "request.png", "image/jpeg": "request.jpg"}
 
 
 @dataclass(frozen=True)
@@ -239,7 +241,7 @@ def prepare_case(run: Run, case: Case) -> None:
     case_dir = run.directory / case.id
     record_path = case_dir / "case.json"
     recorded = read_json(record_path) if record_path.exists() else None
-    image = f"request{case.image.suffix.lower()}" if case.image else None
+    image = SNAPSHOT[MEDIA_TYPES[case.image.suffix.lower()]] if case.image else None
     if recorded is None or recorded["inputs"] != case_inputs(run, case):
         # The record goes first, so an interrupted removal never leaves it beside half a folder.
         record_path.unlink(missing_ok=True)
@@ -250,8 +252,8 @@ def prepare_case(run: Run, case: Case) -> None:
             verdict = prove(case.base, before_dir(run, case), case.base)
             if verdict is not None:
                 sys.exit(f"the base of {case.id} is rejected as a refine of itself: {verdict}")
-        if case.image:
-            shutil.copyfile(case.image, case_dir / image)
+    if image and not (case_dir / image).exists():
+        shutil.copyfile(case.image, case_dir / image)
     record = {"request": case.request, "group": case.group, "image": image,
               "base": case.base.name if case.base else None, "expect_new_table": case.expect_new_table,
               "replaces": case.replaces, "inputs": case_inputs(run, case)}
