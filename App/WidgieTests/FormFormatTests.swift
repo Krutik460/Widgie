@@ -49,4 +49,15 @@ import WidgetEngine
         #expect(saved.input == ["when": .date(year: 2026, month: 11, day: 22), "done": .toggle(false)])
         #expect(saved.invalid.isEmpty)
     }
+
+    @Test func anUntouchedStoredNumberIsLeftOutAndAnEditedOneIsRead() {
+        var draft = FormDraft(
+            fields: [InputField(id: "amount", label: "Amount", kind: .number, value: .number(0.12345678901234566))],
+            format: french)
+        #expect(draft.text["amount"] == "0,123456789012346")
+        #expect(draft.submission().input.isEmpty)
+
+        draft.text["amount"] = "2,5"
+        #expect(draft.submission().input == ["amount": .number(2.5)])
+    }
 }
