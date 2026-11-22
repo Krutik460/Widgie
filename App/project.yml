@@ -47,6 +47,22 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: dev.krutikpatel.widgie
             CFBundleURLSchemes: [widgie]
+    # Debug only: the dev bridge on the Mac and plain HTTP to it. A Release build names no model service, so it
+    # cannot build widgets, and keeps App Transport Security whole.
+    postBuildScripts:
+      - name: Debug model bridge
+        basedOnDependencyAnalysis: false
+        # Names the processed Info.plist so the build edits it after writing it, not before.
+        inputFiles: [$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)]
+        script: |
+          [ "$CONFIGURATION" = Debug ] || exit 0
+          plist="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+          for key in WidgieModelBridge NSAppTransportSecurity; do
+            /usr/libexec/PlistBuddy -c "Delete :$key" "$plist" 2>/dev/null || true
+          done
+          /usr/libexec/PlistBuddy -c "Add :WidgieModelBridge string http://127.0.0.1:8787" \
+            -c "Add :NSAppTransportSecurity dict" \
+            -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$plist"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.krutikpatel.widgie
