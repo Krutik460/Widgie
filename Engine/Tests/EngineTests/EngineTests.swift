@@ -264,6 +264,30 @@ import WidgetEngine
         #expect(!matrix.renders.contains { $0.state.hasSuffix("at 23:59") }, "passing day-edge renders are not listed")
     }
 
+    /// Each quarter hour draws its own crop of a photo, 474 by 632 pixels in a small widget, so five faces fit
+    /// the 1.5 megapixel budget and the sixth does not. The timeline ends before the sixth instead of showing a
+    /// fallback, and the timeline WidgetKit asks for at that instant draws it.
+    @Test @MainActor func aClockPhotoWhoseEntriesOutgrowTheImageBudgetEndsItsTimelineEarly() async throws {
+        let scratch = Scratch()
+        let crop =
+            "{ type: 'image', asset: 'photo', crop: [((Number(ctx.now.slice(0, 2)) * 4 + Number(ctx.now.slice(3, 5)) / 15) % 8) * 0.05, 0, 0.5, 1], frame: { width: 40, height: 40 } },"
+        let id = try await scratch.build(
+            document(
+                look: counterLook(extra: crop), assets: ["photo": ["about": "a sunset"]],
+                images: ["photo": photo(1200, 800)]))
+
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: morning)
+        let cut = instant("2026-11-18T10:15:00Z")
+        #expect(
+            faces.entries.map(\.date)
+                == ["09:00", "09:15", "09:30", "09:45", "10:00"].map { instant("2026-11-18T\($0):00Z") })
+        #expect(faces.reloadAt == cut)
+        for face in faces.entries {
+            guard case .drawing = face.content else { throw Unexpected() }
+        }
+        guard case .drawing = await scratch.face(id, at: cut).content else { throw Unexpected() }
+    }
+
     @Test @MainActor func aLookThatIgnoresTheClockGetsOnlyMidnight() async throws {
         let scratch = Scratch()
         let id = try await scratch.build(try fixture("habit"))
