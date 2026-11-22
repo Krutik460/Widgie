@@ -1,0 +1,52 @@
+[
+  {
+    "name": "a json fence with prose around it",
+    "reply": "Here is your widget.\n\n```json\n{\"name\": \"Water\"}\n```\n\nTap plus to log a glass.",
+    "document": "{\"name\": \"Water\"}"
+  },
+  {
+    "name": "the json fence wins over a longer fence of another kind",
+    "reply": "```text\nthis untagged block is much longer than the document\n```\n```json\n{\"a\": 1}\n```",
+    "document": "{\"a\": 1}"
+  },
+  {
+    "name": "the longest of two json fences",
+    "reply": "```json\n{\"a\": 1}\n```\n```json\n{\"a\": 1, \"b\": 2}\n```",
+    "document": "{\"a\": 1, \"b\": 2}"
+  },
+  {
+    "name": "the longest fence when none is tagged json",
+    "reply": "```\n{\"a\": 1}\n```\n```js\n{\"a\": 1, \"b\": 2}\n```",
+    "document": "{\"a\": 1, \"b\": 2}"
+  },
+  {
+    "name": "the whole reply, trimmed, when it has no fence",
+    "reply": "  \n{\"name\": \"Water\"}\n\n",
+    "document": "{\"name\": \"Water\"}"
+  },
+  {
+    "name": "a fence that never closes runs to the end",
+    "reply": "```json\n{\"a\": 1,\n\"b\": 2}",
+    "document": "{\"a\": 1,\n\"b\": 2}"
+  },
+  {
+    "name": "an opening fence may end in spaces",
+    "reply": "```json   \n{\"a\": 1}\n```",
+    "document": "{\"a\": 1}"
+  },
+  {
+    "name": "an indented fence does not open a block",
+    "reply": "  ```json\n  {\"a\": 1}\n  ```",
+    "document": "```json\n  {\"a\": 1}\n  ```"
+  },
+  {
+    "name": "windows line breaks",
+    "reply": "Here.\r\n```json\r\n{\"a\": 1}\r\n```\r\n",
+    "document": "{\"a\": 1}"
+  },
+  {
+    "name": "a multi-line document keeps its line breaks",
+    "reply": "```json\n{\n  \"a\": 1\n}\n```",
+    "document": "{\n  \"a\": 1\n}"
+  }
+]
