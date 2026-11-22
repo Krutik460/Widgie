@@ -20,7 +20,7 @@ struct FormSheet: View {
     init(form: InputForm, submit: @escaping ([String: InputValue]) -> Void) {
         self.form = form
         self.submit = submit
-        _draft = State(initialValue: FormDraft(fields: form.fields))
+        _draft = State(initialValue: FormDraft(fields: form.fields, edits: form.tap.row != nil))
     }
 
     var body: some View {
@@ -78,17 +78,20 @@ struct FormSheet: View {
 }
 
 /// What the form shows, which is what Save submits. It starts from the row's values when the form edits a
-/// row; otherwise a toggle shows off and a date shows today, and both are sent as shown. An empty text or
-/// number field stays absent. A stored number is sent only once its text is edited, because the text shows it
-/// rounded to 15 significant digits and reading that back would rewrite the stored value.
+/// row; otherwise a toggle shows off and a date shows today. A new form sends every field it shows a value
+/// for, and an empty text or number field stays absent. An edit form sends only the fields the person
+/// changed, so an untouched field never undoes a newer write made elsewhere while the form was open, and a
+/// stored number, which the text shows rounded to 15 significant digits, is never rewritten by reading it back.
 struct FormDraft {
     let fields: [InputField]
     let format: FormFormat
     var text: [String: String] = [:]
     var toggles: [String: Bool] = [:]
     var dates: [String: Date] = [:]
+    /// What each field read when an edit form opened; nil for a new form.
+    private var opened: [String: Reading]?
 
-    init(fields: [InputField], format: FormFormat = FormFormat(), now: Date = .now) {
+    init(fields: [InputField], edits: Bool, format: FormFormat = FormFormat(), now: Date = .now) {
         self.fields = fields
         self.format = format
         for field in fields {
@@ -103,6 +106,7 @@ struct FormDraft {
             case (.text, nil), (.number, nil): break
             }
         }
+        if edits { opened = Dictionary(uniqueKeysWithValues: fields.map { ($0.id, reading(of: $0)) }) }
     }
 
     /// The input to submit, and the number fields whose text is not a number, which hold the submit back.
@@ -110,24 +114,36 @@ struct FormDraft {
         var input: [String: InputValue] = [:]
         var invalid: Set<String> = []
         for field in fields {
-            switch field.kind {
-            case .text:
-                if let value = text[field.id], !value.isEmpty { input[field.id] = .text(value) }
-            case .number:
-                guard let value = text[field.id], !value.trimmingCharacters(in: .whitespaces).isEmpty else { break }
-                if case .number(let stored) = field.value, value == format.text(stored) { break }
-                if let number = format.number(value) {
-                    input[field.id] = .number(number)
-                } else {
-                    invalid.insert(field.id)
-                }
-            case .toggle:
-                if let value = toggles[field.id] { input[field.id] = .toggle(value) }
-            case .date:
-                if let value = dates[field.id] { input[field.id] = format.day(of: value) }
+            let reading = reading(of: field)
+            if let opened, opened[field.id] == reading { continue }
+            switch reading {
+            case .value(let value): input[field.id] = value
+            case .unreadable: invalid.insert(field.id)
+            case .empty: break
             }
         }
         return (input, invalid)
+    }
+
+    private enum Reading: Equatable {
+        case value(InputValue)
+        case empty
+        case unreadable
+    }
+
+    private func reading(of field: InputField) -> Reading {
+        switch field.kind {
+        case .text:
+            guard let value = text[field.id], !value.isEmpty else { return .empty }
+            return .value(.text(value))
+        case .number:
+            guard let value = text[field.id], !value.trimmingCharacters(in: .whitespaces).isEmpty else { return .empty }
+            return format.number(value).map { .value(.number($0)) } ?? .unreadable
+        case .toggle:
+            return toggles[field.id].map { .value(.toggle($0)) } ?? .empty
+        case .date:
+            return dates[field.id].map { .value(format.day(of: $0)) } ?? .empty
+        }
     }
 }
 
