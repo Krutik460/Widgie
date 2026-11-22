@@ -100,7 +100,8 @@ def write(run_dir: Path) -> Path:
 def summary_table(config: dict, builds: dict, models: list[str]) -> str:
     head = "".join(f"<th>{html.escape(m)}: {s}</th>" for m in models for s in STATUSES)
     rows = []
-    for group in config["groups"] + ["all"]:
+    present = [g for g in config["groups"] if any(b["group"] == g for b in builds.values())]
+    for group in present + ["all"]:
         cells = []
         for model in models:
             counts = Counter(b["status"] for (_, m), b in builds.items()
