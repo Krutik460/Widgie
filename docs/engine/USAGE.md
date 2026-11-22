@@ -165,10 +165,12 @@ func submit(_ form: InputForm, values: [String: InputValue]) throws {
 
 Same view, a different host. The app decides what a tap means in its own process.
 
-A draft the person has not saved lives in a scratch engine, never in `Hosting.engine`, so the widget picker cannot list it. The scratch engine runs no commit hook, and it deletes its folder when it is released, after closing its database. `App/Widgie/Preview.swift` owns one per draft.
+A draft the person has not saved lives in a scratch engine, never in `Hosting.engine`, so the widget picker cannot list it. `Engine.scratch()` makes one in a new folder of its own under the app's temporary directory. It runs no commit hook, it deletes that folder when it is released, after closing its database, and it keeps writing after `Engine.suspend()`, so a build can finish in the background. `App/Widgie/Preview.swift` owns one per draft. The app calls `Engine.removeLeftoverScratch()` at launch, which deletes the folders an earlier run left behind when it crashed or iOS ended it.
 
 ```swift
-let scratch = Engine(scratch: URL.temporaryDirectory.appending(path: "preview-\(UUID().uuidString)"))
+Engine.removeLeftoverScratch()                        // once, at launch
+
+let scratch = Engine.scratch()
 guard case .saved(let draft) = try await scratch.build(source) else { return }   // or the build loop
 
 let samples = try scratch.samples(of: draft)          // ["goal met", "morning"], sorted like the saved document
