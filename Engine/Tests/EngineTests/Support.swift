@@ -31,11 +31,13 @@ func fixture(_ name: String) throws -> WidgetSource {
 
 /// An engine on a fresh directory that counts its commits. The directory goes when this does.
 final class Scratch: Sendable {
-    let directory = FileManager.default.temporaryDirectory.appending(path: "engine-tests-\(UUID().uuidString)")
+    let directory: URL
     let engine: Engine
     private let counter: Counter
 
-    init() {
+    init(folder: String = "engine-tests") {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "\(folder)-\(UUID().uuidString)")
+        self.directory = directory
         let counter = Counter()
         self.counter = counter
         engine = Engine(directory: directory, calendar: utc, onCommit: { counter.value.withLock { $0 += 1 } })

@@ -57,6 +57,21 @@ import WidgetEngine
         #expect(try pad.engine.store().widget(fresh) == nil, "with no proved revision, it stays hidden")
     }
 
+    @Test func aReceivedDesignFindsItsImagesInAFolderWithASpace() async throws {
+        let phone = Scratch()
+        let pad = Scratch(folder: "engine tests")
+        let look = counterLook(
+            "{ type: 'image', asset: 'photo', frame: { maxWidth: 'infinity', maxHeight: 'infinity' } }",
+            extra: "{ type: 'text', value: String(ctx.data.n), color: '#FFFFFF', lineLimit: 1 },")
+        let id = try await phone.build(
+            document(look: look, assets: ["photo": ["about": "a sunset"]], images: ["photo": photo(300, 200)]))
+        try sync(phone, to: pad)
+        try FileManager.default.copyItem(
+            at: phone.directory.appending(path: "assets"), to: pad.directory.appending(path: "assets"))
+        try await pad.engine.proveReceived()
+        #expect(try pad.engine.widgets().map(\.id) == [id])
+    }
+
     /// A deleted widget wrote numbers into a dataset another widget now reads.
     func orphaned(_ scratch: Scratch, insert values: [String: Any]) async throws -> WidgetID {
         let scores = document(
