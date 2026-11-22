@@ -342,6 +342,17 @@ struct Mistake: CustomTestStringConvertible, Sendable {
         }
     }
 
+    @Test func refinementThatRenamesATableIsRefusedWithOneLine() throws {
+        let before = try Spec.parse(fixture("water"))
+        let renamed = String(decoding: try fixture("water"), as: UTF8.self).replacing("\"glasses\"", with: "\"cups\"")
+        let after = try Spec.parse(Data(renamed.utf8))
+        #expect(
+            throws: Diagnostic("table \"glasses\" is gone; keep every table id so the stored rows carry over")
+        ) {
+            try after.checkCompatible(replacing: before)
+        }
+    }
+
     @Test func refinementMayAddRemoveAndKeepFields() throws {
         let before = try Spec.parse(fixture("todo"))
         let after = try parse(
