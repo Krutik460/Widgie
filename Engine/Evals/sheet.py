@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Writes index.html into a run folder: one row per case, one column per model, with the final renders of one
-sample and of the full state in both sizes, the build's status, and every verdict line. Paths are relative, so
-the folder can be moved or zipped whole.
+sample and of the full state in both sizes, the build's status, and every verdict line. A refine row puts the
+base widget before the models' results, showing the same sample where the result still has it. Cases the run
+never started are left out. Paths are relative, so the folder can be moved or zipped whole.
 
     sheet.py <run dir>
 """
@@ -77,13 +78,18 @@ def write(run_dir: Path) -> Path:
         "reply with the engine, and sends the verdict line back at most twice.</p>",
         summary_table(config, builds, models),
     ]
-    columns = f"minmax(180px, 260px) repeat({max(len(models), 1)}, minmax(0, 1fr))"
     for group in config["groups"]:
-        page.append(f"<h2>{html.escape(group)}</h2>")
-        for case in (c for c in config["cases"] if c["group"] == group):
+        started = [c for c in config["cases"] if c["group"] == group and (run_dir / c["id"]).exists()]
+        if started:
+            page.append(f"<h2>{html.escape(group)}</h2>")
+        for case in started:
             cells = [case_cell(case, run_dir)]
-            cells += [build_cell(builds.get((case["id"], model)), model, run_dir / case["id"] / model, run_dir)
-                      for model in models]
+            prefer = None
+            if case.get("base"):
+                before, prefer = before_cell(case, run_dir / case["id"] / "before" / "report.json", run_dir)
+                cells.append(before)
+            cells += [build_cell(builds.get((case["id"], model)), model, run_dir, prefer) for model in models]
+            columns = f"minmax(180px, 260px) repeat({max(len(cells) - 1, 1)}, minmax(0, 1fr))"
             page.append(f'<div class="row" style="grid-template-columns: {columns}">{"".join(cells)}</div>')
     page.append("</main></body></html>")
     out = run_dir / "index.html"
@@ -114,14 +120,18 @@ def case_cell(case: dict, run_dir: Path) -> str:
     return "".join(parts)
 
 
-def build_cell(build: dict | None, model: str, build_dir: Path, run_dir: Path) -> str:
+def before_cell(case: dict, report_path: Path, run_dir: Path) -> tuple[str, str | None]:
+    """The base widget as the person had it, and the sample it shows."""
+    faces, sample = faces_html(report_path, run_dir, None)
+    head = (f'<div class="build"><div class="head"><span class="model">before</span></div>'
+            f'<div class="stats">the {html.escape(case["base"])} fixture</div>')
+    return head + faces + "</div>", sample
+
+
+def build_cell(build: dict | None, model: str, run_dir: Path, prefer: str | None) -> str:
     if build is None:
         return (f'<div class="build"><div class="head"><span class="model">{html.escape(model)}</span>'
                 '<span class="status none">not finished</span></div></div>')
-    report_path = run_dir / build["final_report"]
-    renders = json.loads(report_path.read_text())["renders"] if report_path.exists() else []
-    samples = [r["state"] for r in renders if r["state"] not in ("empty", "full")]
-    shown = ([samples[-1]] if samples else []) + ["full"]
     stats = (f'{build["calls"]} {"call" if build["calls"] == 1 else "calls"}, {build["seconds"]:.0f} s, '
              f'{build["output_tokens"]:,} output tokens, {build["attempts"][-1]["document_bytes"]:,} bytes')
     parts = [
@@ -129,7 +139,22 @@ def build_cell(build: dict | None, model: str, build_dir: Path, run_dir: Path) -
         f'<span class="model">{html.escape(model)}</span>',
         f'<span class="status {STATUS_CLASS[build["status"]]}">{html.escape(build["status"])}</span></div>',
         f'<div class="stats">{stats}</div>',
+        faces_html(run_dir / build["final_report"], run_dir, prefer)[0],
     ]
+    if build["verdicts"]:
+        items = "".join(f'<li>{html.escape(v)}</li>' for v in build["verdicts"])
+        parts.append(f'<ol class="verdicts">{items}</ol>')
+    parts.append("</div>")
+    return "".join(parts)
+
+
+def faces_html(report_path: Path, run_dir: Path, prefer: str | None) -> tuple[str, str | None]:
+    """One sample and the full state in both sizes: `prefer` when the report has it, else its last sample."""
+    renders = json.loads(report_path.read_text())["renders"] if report_path.exists() else []
+    samples = [r["state"] for r in renders if r["state"] not in ("empty", "full")]
+    sample = prefer if prefer in samples else (samples[-1] if samples else None)
+    shown = ([sample] if sample else []) + ["full"]
+    parts = []
     for state in shown:
         label = "full" if state == "full" else f'sample "{state}"'
         parts.append(f'<div class="state">{html.escape(label)}</div><div class="pair">')
@@ -142,11 +167,7 @@ def build_cell(build: dict | None, model: str, build_dir: Path, run_dir: Path) -
                 wide = " wide" if family == "medium" else ""
                 parts.append(f'<div class="missing{wide}">no {family} render</div>')
         parts.append("</div>")
-    if build["verdicts"]:
-        items = "".join(f'<li>{html.escape(v)}</li>' for v in build["verdicts"])
-        parts.append(f'<ol class="verdicts">{items}</ol>')
-    parts.append("</div>")
-    return "".join(parts)
+    return "".join(parts), sample
 
 
 if __name__ == "__main__":

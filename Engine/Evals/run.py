@@ -3,10 +3,12 @@
 
 For each case and model: send the build prompt and the person's request to the model, write the reply as a
 widget directory, and run `render-tool proof` on it. On a rejection, send the request, the previous document,
-and the verdict line back, at most twice. Everything lands in Engine/.artifacts/evals/<run name>/. Running the
+and the verdict line back, at most twice. A refine case starts from a base fixture: the model also gets the
+base as the app stores it, from `render-tool refine`, and each reply is checked with `render-tool refine` as a
+replacement of the base. Everything lands in Engine/.artifacts/evals/<run name>/. Running the
 same name again picks up where the last run stopped: finished builds and finished model calls are kept.
 
-    run.py <run name> [--models haiku,sonnet] [--cases id,id] [--jobs 6] [--stop-after SECONDS]
+    run.py <run name> [--models haiku,sonnet] [--group name,name] [--cases id,id] [--jobs 6] [--stop-after SECONDS]
 
 Needs the release render tool: `swift build -c release --build-system native` in Engine/.
 """
@@ -33,6 +35,7 @@ from model import MEDIA_TYPES, ModelError, call, compose_prompt, extract, user_m
 EVALS = Path(__file__).resolve().parent
 ENGINE = EVALS.parent
 RENDER_TOOL = ENGINE / ".build" / "release" / "render-tool"
+FIXTURES = ENGINE / "Fixtures"
 ARTIFACTS = ENGINE / ".artifacts" / "evals"
 
 # Proofs render at one fixed instant, so a rerun of the same reply gets the same verdict.
@@ -48,6 +51,8 @@ class Case:
     group: str
     request: str
     image: Path | None
+    # The fixture a refine case changes, None for a new widget.
+    base: Path | None
 
 
 @dataclass(frozen=True)
@@ -72,27 +77,33 @@ def load_cases() -> tuple[list[str], list[Case]]:
     cases = []
     for entry in raw["cases"]:
         image = EVALS / entry["image"] if entry.get("image") else None
+        base = FIXTURES / entry["base"] if entry.get("base") else None
+        if base and not (base / "widget.json").exists():
+            sys.exit(f"cases.json: case {entry['id']} names a missing base fixture {base}")
         if entry["group"] not in groups:
             sys.exit(f"cases.json: case {entry['id']} has unknown group {entry['group']!r}")
         if image and image.suffix.lower() not in MEDIA_TYPES:
             sys.exit(f"cases.json: case {entry['id']} needs a PNG or JPEG, not {image.name}")
         if image and not image.exists():
             sys.exit(f"cases.json: case {entry['id']} names a missing image {image}")
-        cases.append(Case(entry["id"], entry["group"], entry["request"], image))
+        cases.append(Case(entry["id"], entry["group"], entry["request"], image, base))
     ids = [c.id for c in cases]
     if len(ids) != len(set(ids)):
         sys.exit("cases.json: case ids must be unique")
     return groups, cases
 
 
-def model_request(case: Case, previous: tuple[str, str] | None) -> dict:
-    """The case as the app would ask for it: a create, or a repair of the previous document and its verdict."""
+def model_request(case: Case, current: str | None, previous: tuple[str, str] | None) -> dict:
+    """The case as the app would ask for it: a create or a refine of `current`, or a repair of the previous
+    document and its verdict."""
     request: dict = {"words": case.request}
     if case.image:
         request["image"] = {
             "mime": MEDIA_TYPES[case.image.suffix.lower()],
             "base64": base64.b64encode(case.image.read_bytes()).decode(),
         }
+    if current is not None:
+        request["current"] = current
     if previous:
         request["repair"] = {"document": previous[0], "line": previous[1]}
     return request
@@ -118,18 +129,35 @@ def write_widget(directory: Path, document: str, case: Case) -> None:
         shutil.copyfile(case.image, directory / "assets" / f"reference{case.image.suffix.lower()}")
 
 
-def prove(widget: Path, output: Path) -> str | None:
-    """The verdict line `build` would send, or None when it would save the widget."""
+def prove(widget: Path, output: Path, base: Path | None) -> str | None:
+    """The verdict line `build` would send, or None when it would save the widget. With a base, the widget is
+    checked as a replacement of it, and `output` also gets `current/`, the base as the app stores it."""
     shutil.rmtree(output, ignore_errors=True)
+    mode = ["refine", str(base)] if base else ["proof"]
     proc = subprocess.run(
-        [str(RENDER_TOOL), "proof", str(widget), str(output), "--date", PROOF_DATE],
+        [str(RENDER_TOOL), *mode, str(widget), str(output), "--date", PROOF_DATE],
         capture_output=True, text=True, timeout=600)
     line = proc.stdout.strip()
     if proc.returncode == 0 and line == "accepted":
         return None
     if proc.returncode == 1 and line:
         return line
-    raise ProofError(f"render-tool proof {widget} exited {proc.returncode}: {proc.stderr.strip()[-300:]}")
+    raise ProofError(f"render-tool {mode[0]} {widget} exited {proc.returncode}: {proc.stderr.strip()[-300:]}")
+
+
+def before_dir(run: Run, case: Case) -> Path:
+    """A refine case's base, refined to itself: its renders are the before picture and its `current/` is what
+    the model is sent."""
+    return run.directory / case.id / "before"
+
+
+def prepare_before(run: Run, case: Case) -> None:
+    directory = before_dir(run, case)
+    if (directory / "report.json").exists():
+        return
+    verdict = prove(case.base, directory, case.base)
+    if verdict is not None:
+        sys.exit(f"the base of {case.id} is rejected as a refine of itself: {verdict}")
 
 
 def write_json(path: Path, value) -> None:
@@ -155,7 +183,8 @@ def run_attempt(run: Run, case: Case, model: str, directory: Path, previous: tup
     else:
         if run.deadline is not None and time.monotonic() > run.deadline:
             raise Deferred()
-        content = user_message(model_request(case, previous))
+        current = (before_dir(run, case) / "current" / "widget.json").read_text() if case.base else None
+        content = user_message(model_request(case, current, previous))
         text = next(block["text"] for block in content if block["type"] == "text")
         directory.mkdir(parents=True, exist_ok=True)
         (directory / "message.md").write_text(text + (f"\n\n[image: {case.image.name}]\n" if case.image else "\n"))
@@ -163,7 +192,7 @@ def run_attempt(run: Run, case: Case, model: str, directory: Path, previous: tup
         write_json(reply_path, reply)
     document = extract(reply["text"])
     write_widget(directory / "widget", document, case)
-    verdict = prove(directory / "widget", directory / "proof")
+    verdict = prove(directory / "widget", directory / "proof", case.base)
     fields = parsed(document)
     record = {
         "attempt": int(directory.name),
@@ -288,6 +317,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("run", help="the run's name, a folder under Engine/.artifacts/evals/")
     parser.add_argument("--models", default="haiku,sonnet")
+    parser.add_argument("--group", default="", help="comma-separated group names; all groups when left out")
     parser.add_argument("--cases", default="", help="comma-separated case ids; all cases when left out")
     parser.add_argument("--jobs", type=int, default=6, help="builds that run at once")
     parser.add_argument("--stop-after", type=float, help="start no model call after this many seconds")
@@ -301,7 +331,11 @@ def main() -> None:
     unknown = set(wanted) - {c.id for c in cases}
     if unknown:
         sys.exit(f"unknown case ids: {', '.join(sorted(unknown))}")
-    selected = [c for c in cases if not wanted or c.id in wanted]
+    wanted_groups = [g for g in args.group.split(",") if g]
+    unknown_groups = set(wanted_groups) - set(groups)
+    if unknown_groups:
+        sys.exit(f"unknown groups: {', '.join(sorted(unknown_groups))}")
+    selected = [c for c in cases if (not wanted or c.id in wanted) and (not wanted_groups or c.group in wanted_groups)]
 
     run_dir = ARTIFACTS / args.run
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -314,6 +348,9 @@ def main() -> None:
     workdir = tempfile.mkdtemp(prefix="widget-eval-")
     deadline = time.monotonic() + args.stop_after if args.stop_after else None
     run = Run(run_dir, system_prompt, workdir, deadline)
+    for case in selected:
+        if case.base:
+            prepare_before(run, case)
     pending = 0
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {pool.submit(run_build, run, c, m): (c, m) for c in selected for m in models}
@@ -334,7 +371,7 @@ def main() -> None:
                   flush=True)
     shutil.rmtree(workdir, ignore_errors=True)
 
-    summarize(run_dir, groups, cases, models)
+    summarize(run_dir, groups, selected, models)
     print(f"contact sheet: {sheet.write(run_dir)}")
     if pending:
         print(f"{pending} builds did not finish; run the same command again to resume")

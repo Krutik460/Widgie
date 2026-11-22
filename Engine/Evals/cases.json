@@ -1,5 +1,5 @@
 {
-  "groups": ["reference widgets", "look descriptions", "reference images", "new kinds"],
+  "groups": ["reference widgets", "look descriptions", "reference images", "new kinds", "refine"],
   "cases": [
     {
       "id": "water",
@@ -98,6 +98,61 @@
       "id": "gym",
       "group": "new kinds",
       "request": "a gym tracker with three buttons for push, pull, and legs days"
+    },
+    {
+      "id": "refine-blue",
+      "group": "refine",
+      "base": "wotd",
+      "request": "make it blue"
+    },
+    {
+      "id": "refine-bigger",
+      "group": "refine",
+      "base": "water",
+      "request": "bigger number"
+    },
+    {
+      "id": "refine-chart",
+      "group": "refine",
+      "base": "todo",
+      "request": "add a weekly chart"
+    },
+    {
+      "id": "refine-remove",
+      "group": "refine",
+      "base": "habit",
+      "request": "remove the day count under the title"
+    },
+    {
+      "id": "refine-font",
+      "group": "refine",
+      "base": "todo",
+      "request": "use a handwriting font"
+    },
+    {
+      "id": "refine-photo",
+      "group": "refine",
+      "base": "habit",
+      "request": "use this photo as the background",
+      "image": "images/R3-photo.jpg"
+    },
+    {
+      "id": "refine-coffee",
+      "group": "refine",
+      "base": "water",
+      "request": "track coffee instead of water"
+    },
+    {
+      "id": "refine-nicer",
+      "group": "refine",
+      "base": "wotd",
+      "request": "make it nicer"
+    },
+    {
+      "id": "refine-goal",
+      "group": "refine",
+      "base": "water",
+      "request": "change my goal to 10 glasses"
     }
   ]
 }
