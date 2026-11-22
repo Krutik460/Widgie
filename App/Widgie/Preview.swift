@@ -23,17 +23,20 @@ final class Preview {
 
     /// Shows a draft the scratch engine holds. A new draft starts on its first sample, so it does not look
     /// empty. Showing the same draft again after a refinement keeps the chosen state when the new revision
-    /// still has it, and loads it afresh.
+    /// still has it, and loads it afresh. Nothing changes on show until the state has loaded.
     func show(_ widget: WidgetID) async {
         do {
             let states = [.empty] + (try engine.samples(of: widget)).map(DataState.sample)
-            let kept = self.widget == widget && states.contains(state)
+            let kept = self.widget == widget && states.contains(self.state)
+            let state = kept ? self.state : states.dropFirst().first ?? .empty
+            try engine.load(state, into: widget)
             self.widget = widget
             self.states = states
-            await select(kept ? state : states.dropFirst().first ?? .empty)
+            self.state = state
         } catch {
             message = error.message
         }
+        await redraw()
     }
 
     func select(_ state: DataState) async {
@@ -102,13 +105,19 @@ final class Preview {
         }
     }
 
+    private var redraws = 0
+
+    /// Every write happens on the main actor before the redraw that shows it starts, so the redraw started
+    /// last reads the newest rows. An earlier one that finishes after it is stale and is dropped.
     private func redraw() async {
         guard let widget else { return }
+        redraws += 1
+        let redraw = redraws
         var faces: [Family: Face] = [:]
         for family in Family.allCases {
             faces[family] = await engine.faces(for: widget, family: family, size: family.standardSize, from: .now)
                 .current
         }
-        self.faces = faces
+        if redraw == redraws { self.faces = faces }
     }
 }
