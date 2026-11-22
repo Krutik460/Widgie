@@ -102,6 +102,21 @@ package final class AssetImages: Sendable {
             width: region.width * Double(whole.width), height: region.height * Double(whole.height)
         ).integral
         guard let cropped = whole.cropping(to: pixels), cropped.width > 0, cropped.height > 0 else { return nil }
-        return DecodedImage(cgImage: cropped)
+        return copy(cropped).map(DecodedImage.init)
+    }
+
+    /// A crop shares the whole thumbnail's buffer, so caching it would hold every pixel of the thumbnail
+    /// while the budget charges only the crop's. A copy holds just the crop.
+    private func copy(_ image: CGImage) -> CGImage? {
+        let space =
+            image.colorSpace.flatMap { $0.model == .rgb && $0.supportsOutput ? $0 : nil }
+            ?? CGColorSpace(name: CGColorSpace.sRGB)!
+        guard
+            let context = CGContext(
+                data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+                bytesPerRow: image.width * 4, space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        return context.makeImage()
     }
 }
