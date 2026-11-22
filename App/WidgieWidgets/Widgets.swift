@@ -1,6 +1,7 @@
 import AppIntents
 import SwiftUI
 import WidgetHosting
+import WidgetKit
 
 @main
 struct WidgieWidgets: WidgetBundle {
