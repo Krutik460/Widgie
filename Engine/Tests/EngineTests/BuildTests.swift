@@ -340,7 +340,10 @@ enum Broken {
         usleep(500_000)
         try scratch.engine.delete(id)
 
-        await #expect(throws: EngineError.self) { try await refinement.value }
+        let error = await #expect(throws: EngineError.self) { try await refinement.value }
+        #expect(
+            error?.message.contains("was deleted while its refinement was proved") == true,
+            "\(String(describing: error))")
         #expect(try scratch.engine.widgets().isEmpty)
         #expect(try scratch.engine.source(of: id) == nil)
     }

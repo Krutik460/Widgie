@@ -142,7 +142,11 @@ package final class RowStore: Sendable {
     /// Nil for an unknown or deleted widget, or one with no revision proved here. Throws when the drawn
     /// revision does not parse.
     package func widget(_ key: WidgetKey) throws(StoreError) -> StoredWidget? {
-        try read { db in try liveWidget(key, db) }
+        try read { db in
+            try Row.fetchOne(
+                db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL AND w.key = ?", arguments: [key.raw]
+            ).map(StoredWidget.init(row:))
+        }
     }
 
     /// Saves a new revision and moves the widget's head to it, creating the widget when `key` is new. Hashes
@@ -156,7 +160,8 @@ package final class RowStore: Sendable {
     /// `save` for a refinement of the live widget `key`. The write transaction checks `spec` against the
     /// widget first, as `refusal(of:replacing:)` does, so a refinement proved while the widget was deleted,
     /// refined again, or written to never moves a head it no longer fits. Returns the line saying why it
-    /// did not fit, with nothing written, or nil once saved. Throws when `key` names no live widget.
+    /// did not fit, with nothing written, or nil once saved. Throws, saying the widget was deleted while its
+    /// refinement was proved, when `key` names no live widget.
     package func replace(_ key: WidgetKey, with spec: Spec, assets: [Spec.AssetID: Data]) throws(StoreError)
         -> String?
     {
@@ -167,11 +172,13 @@ package final class RowStore: Sendable {
     }
 
     /// Why `spec` cannot replace the live widget `key` as the store holds it now, or nil when it can. It must
-    /// keep the widget's tables and fields (`Spec.checkCompatible(replacing:)`), agree on field kinds with
-    /// every other live widget bound to one of its datasets (`sharers(of:)`), and keep the kinds of the cells
-    /// already stored there (`storedKinds(of:)`). Throws when `key` names no live widget.
+    /// keep the tables and fields of the widget's head (`Spec.checkCompatible(replacing:)`), even a head
+    /// another device saved that is not proved here yet, and a head this device cannot read refuses it. It
+    /// must agree on field kinds with every other live widget bound to one of its datasets (`sharers(of:)`),
+    /// and keep the kinds of the cells already stored there (`storedKinds(of:)`). Throws when `key` names no
+    /// live widget.
     package func refusal(of spec: Spec, replacing key: WidgetKey) throws(StoreError) -> String? {
-        try read { db in try Rows.refusal(of: spec, replacing: key, db) }
+        try read { db in try Rows.refusal(of: spec, replacing: key, db, missing: "no widget \(key.raw) to replace") }
     }
 
     private func commit(_ key: WidgetKey, spec: Spec, assets: [Spec.AssetID: Data], replacing: Bool)
@@ -182,7 +189,13 @@ package final class RowStore: Sendable {
         let revision = digest(of: body)
         let now = Date()
         let applied = try write(at: now) { db in
-            if replacing, let line = try Rows.refusal(of: spec, replacing: key, db) { return .ignored(line) }
+            if replacing,
+                let line = try Rows.refusal(
+                    of: spec, replacing: key, db,
+                    missing: "widget \(key.raw) was deleted while its refinement was proved")
+            {
+                return .ignored(line)
+            }
             try mark(revision, verdict: nil, db)
             return .changes(
                 [.putRevision(body: body), .moveHead(key, to: revision, createdAt: milliseconds(now))]
@@ -607,18 +620,29 @@ func dataset(of widget: WidgetKey, table: String, _ db: Database) throws -> Data
     ).flatMap(DatasetKey.init(parsing:))
 }
 
-private func liveWidget(_ key: WidgetKey, _ db: Database) throws -> StoredWidget? {
-    try Row.fetchOne(db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL AND w.key = ?", arguments: [key.raw])
-        .map(StoredWidget.init(row:))
-}
-
-/// `RowStore.refusal(of:replacing:)` inside the caller's transaction.
-private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database) throws -> String? {
-    guard let old = try liveWidget(key, db) else { throw StoreError(message: "no widget \(key.raw) to replace") }
+/// `RowStore.refusal(of:replacing:)` inside the caller's transaction, throwing `missing` when `key` names no
+/// live widget. It checks against the head, not the drawn revision: a head received from another device can
+/// add a field before its proof passes here, and the replacement must keep that field too.
+private func refusal(of spec: Spec, replacing key: WidgetKey, _ db: Database, missing: String) throws -> String? {
+    guard
+        let found = try Row.fetchOne(
+            db,
+            sql: """
+                SELECT r.body FROM widget w LEFT JOIN revision r ON r.digest = w.head
+                WHERE w.deleted IS NULL AND w.key = ?
+                """, arguments: [key.raw])
+    else { throw StoreError(message: missing) }
+    let head: Spec
+    do throws(Diagnostic) {
+        guard let body = found["body"] as Data? else { throw Diagnostic("its revision has not arrived") }
+        head = try Spec.parse(body)
+    } catch {
+        return "the widget's newest version cannot be read on this device (\(error.line)), so it cannot be replaced yet"
+    }
     let sharers = try sharers(of: key, db)
     let stored = try storedKinds(of: key, db)
     do throws(Diagnostic) {
-        try spec.checkCompatible(replacing: old.spec)
+        try spec.checkCompatible(replacing: head)
         for sharer in sharers {
             try spec.checkCompatible(sharer.table, with: sharer.widget.spec, table: sharer.as)
         }
