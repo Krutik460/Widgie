@@ -1,12 +1,17 @@
 import contextlib
+import html
 import io
 import json
 import re
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from run import ADDING_ACTIONS, ENGINE, FIXTURES, QUERY_SHAPES, Case, load_cases, summarize, table_changes
+import sheet
+from run import (ADDING_ACTIONS, ENGINE, EVALS, FIXTURES, QUERY_SHAPES, Case, Run, load_cases, prepare_case,
+                 run_build, summarize, table_changes)
 
 WATER = {
     "name": "Water",
@@ -155,6 +160,68 @@ class SummarizeTests(unittest.TestCase):
         wording = Case("refine-coffee", "refine", "say coffee", None, FIXTURES / "water")
         self.assertEqual(self.table_checks(replacing)["haiku"]["passed"], 1)
         self.assertEqual(self.table_checks(wording)["haiku"]["misses"], ["refine-coffee"])
+
+
+def fake_prove(widget: Path, output: Path, base: Path | None) -> None:
+    """Accepts every widget and, like `render-tool refine`, stores the refined widget as `current/`."""
+    if base:
+        (output / "current").mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(widget / "widget.json", output / "current" / "widget.json")
+
+
+class ResumeTests(unittest.TestCase):
+    def setUp(self):
+        self.run_dir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.run_dir)
+        reply = {"text": "```json\n{}\n```", "seconds": 1, "api_seconds": 1, "input_tokens": 1, "output_tokens": 1,
+                 "cost_usd": 0, "models": ["claude-haiku-5-5"]}
+        for name, patch in [("call", mock.patch("run.call", return_value=reply)),
+                            ("prove", mock.patch("run.prove", side_effect=fake_prove))]:
+            setattr(self, name, patch.start())
+            self.addCleanup(patch.stop)
+
+    def build(self, case: Case, render_tool: str = "tool 1") -> dict:
+        run = Run(self.run_dir, "prompt", "/tmp", None, render_tool)
+        prepare_case(run, case)
+        return run_build(run, case, "haiku")
+
+    def sent_words(self) -> str:
+        return self.call.call_args.args[2][-1]["text"]
+
+    def test_an_unchanged_rerun_reuses_the_build(self):
+        case = Case("water", "basic", "a water tracker", None, None)
+        first = self.build(case)
+        self.assertEqual(self.build(case), first)
+        self.assertEqual((self.call.call_count, self.prove.call_count), (1, 1))
+
+    def test_a_changed_request_builds_again(self):
+        self.build(Case("water", "basic", "a water tracker", None, None))
+        self.build(Case("water", "basic", "a coffee tracker", None, None))
+        self.assertEqual((self.call.call_count, self.sent_words()), (2, "a coffee tracker"))
+
+    def test_a_changed_render_tool_builds_again(self):
+        case = Case("water", "basic", "a water tracker", None, None)
+        self.build(case, render_tool="tool 1")
+        self.build(case, render_tool="tool 2")
+        self.assertEqual((self.call.call_count, self.prove.call_count), (2, 2))
+
+    def test_a_changed_base_fixture_refines_its_new_document(self):
+        base = self.run_dir / "fixture"
+        shutil.copytree(FIXTURES / "water", base)
+        case = Case("refine-water", "refine", "make it blue", None, base)
+        self.build(case)
+        document = json.loads((base / "widget.json").read_text())
+        (base / "widget.json").write_text(json.dumps({**document, "name": "Juice"}))
+        self.build(case)
+        self.assertEqual(self.call.call_count, 2)
+        self.assertIn('"name": "Juice"', self.sent_words())
+
+    def test_the_contact_sheet_shows_the_request_the_builds_were_made_from(self):
+        shipped = json.loads((EVALS / "cases.json").read_text())["cases"][0]
+        self.build(Case(shipped["id"], shipped["group"], "an older request", None, None))
+        page = sheet.write(self.run_dir).read_text()
+        self.assertIn("an older request", page)
+        self.assertNotIn(html.escape(shipped["request"]), page)
 
 
 class LoadCasesTests(unittest.TestCase):

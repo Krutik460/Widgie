@@ -2,8 +2,10 @@
 """Writes index.html into a run folder: one row per case, one column per model, with the final renders of one
 sample and of the full state in both sizes, the build's status, and every verdict line. A refine row puts the
 base widget before the models' results, showing the same sample where the result still has it, and each accepted
-refine says which tables and fields it added and whether that meets the case, as `results.json` records it. Cases
-the run never started are left out. Paths are relative, so the folder can be moved or zipped whole.
+refine says which tables and fields it added and whether that meets the case, as `results.json` records it. Each
+row shows the request and picture its builds were made from, from the case's `case.json`, even when `cases.json`
+has changed since. Cases the run never started are left out. Paths are relative, so the folder can be moved or
+zipped whole.
 
     sheet.py <run dir>
 """
@@ -85,14 +87,15 @@ def write(run_dir: Path) -> Path:
         table_check_summary(table_checks),
     ]
     for group in config["groups"]:
-        started = [c for c in config["cases"] if c["group"] == group and (run_dir / c["id"]).exists()]
+        started = [c for c in config["cases"] if c["group"] == group and (run_dir / c["id"] / "case.json").exists()]
         if started:
             page.append(f"<h2>{html.escape(group)}</h2>")
         for case in started:
-            cells = [case_cell(case, run_dir)]
+            recorded = json.loads((run_dir / case["id"] / "case.json").read_text())
+            cells = [case_cell(case["id"], recorded)]
             prefer = None
-            if case.get("base"):
-                before, prefer = before_cell(case, run_dir / case["id"] / "before" / "report.json", run_dir)
+            if recorded["base"]:
+                before, prefer = before_cell(recorded, run_dir / case["id"] / "before" / "report.json", run_dir)
                 cells.append(before)
             cells += [build_cell(builds.get((case["id"], model)), model, run_dir, prefer,
                                  table_checks.get(model, {}).get("cases", {}).get(case["id"]), case)
@@ -139,21 +142,22 @@ def tables_line(tables: dict, case: dict) -> str:
             f'{html.escape(f"tables added: {added}{fields}. {wanted}: {verdict}")}</div>')
 
 
-def case_cell(case: dict, run_dir: Path) -> str:
-    parts = [f'<div class="case"><div class="id">{html.escape(case["id"])}</div>',
-             f'<div class="request">{html.escape(case["request"])}</div>']
-    if case.get("image"):
-        src = os.path.relpath(EVALS / case["image"], run_dir)
+def case_cell(case_id: str, recorded: dict) -> str:
+    """The request and picture the case's builds were made from, as `case.json` records them."""
+    parts = [f'<div class="case"><div class="id">{html.escape(case_id)}</div>',
+             f'<div class="request">{html.escape(recorded["request"])}</div>']
+    if recorded["image"]:
+        src = f"{case_id}/{recorded['image']}"
         parts.append(f'<a href="{html.escape(src)}"><img src="{html.escape(src)}" alt="the reference picture"></a>')
     parts.append("</div>")
     return "".join(parts)
 
 
-def before_cell(case: dict, report_path: Path, run_dir: Path) -> tuple[str, str | None]:
+def before_cell(recorded: dict, report_path: Path, run_dir: Path) -> tuple[str, str | None]:
     """The base widget as the person had it, and the sample it shows."""
     faces, sample = faces_html(report_path, run_dir, None)
     head = (f'<div class="build"><div class="head"><span class="model">before</span></div>'
-            f'<div class="stats">the {html.escape(case["base"])} fixture</div>')
+            f'<div class="stats">the {html.escape(recorded["base"])} fixture</div>')
     return head + faces + "</div>", sample
 
 
