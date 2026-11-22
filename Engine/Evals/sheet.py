@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Writes index.html into a run folder: one row per case, one column per model, with the final renders of one
 sample and of the full state in both sizes, the build's status, and every verdict line. A refine row puts the
-base widget before the models' results, showing the same sample where the result still has it. Cases the run
+base widget before the models' results, showing the same sample where the result still has it, and each refine
+build says which tables and fields it added and whether that meets the case. Cases the run
 never started are left out. Paths are relative, so the folder can be moved or zipped whole.
 
     sheet.py <run dir>
@@ -48,6 +49,8 @@ table.summary thead th { color: var(--muted); font-weight: 500; }
 .status.first { color: var(--first); } .status.once { color: var(--once); }
 .status.twice { color: var(--twice); } .status.failed { color: var(--failed); } .status.none { color: var(--muted); }
 .stats { color: var(--muted); font-size: 12px; margin: 2px 0 10px; }
+.tables { font-size: 12px; margin: -6px 0 10px; }
+.tables.pass { color: var(--first); } .tables.fail { color: var(--failed); }
 .state { color: var(--muted); font-size: 12px; margin: 8px 0 4px; }
 .pair { display: grid; grid-template-columns: 158fr 338fr; gap: 8px; align-items: start; }
 .pair img { display: block; width: 100%; }
@@ -77,6 +80,7 @@ def write(run_dir: Path) -> Path:
         f'<p class="meta">{len(builds)} builds finished. Each build sends the request to the model, proves the '
         "reply with the engine, and sends the verdict line back at most twice.</p>",
         summary_table(config, builds, models),
+        table_check_summary(builds, models),
     ]
     for group in config["groups"]:
         started = [c for c in config["cases"] if c["group"] == group and (run_dir / c["id"]).exists()]
@@ -111,6 +115,27 @@ def summary_table(config: dict, builds: dict, models: list[str]) -> str:
     return f'<table class="summary"><thead><tr><th>group</th>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
 
 
+def table_check_summary(builds: dict, models: list[str]) -> str:
+    parts = []
+    for model in models:
+        checked = [b for (_, m), b in builds.items() if m == model and b.get("tables")]
+        if checked:
+            misses = [b["case"] for b in checked if not b["tables"]["ok"]]
+            missed = f" (missed {', '.join(misses)})" if misses else ""
+            parts.append(f'{html.escape(model)} {len(checked) - len(misses)} of {len(checked)}{html.escape(missed)}')
+    return f'<p class="meta">Table check on refines: {"; ".join(parts)}.</p>' if parts else ""
+
+
+def tables_line(tables: dict) -> str:
+    """What a refine added, and whether the case wanted a new table: one the widget reads and adds rows to."""
+    added = ", ".join(tables["added"]) or "none"
+    fields = "".join(f'; fields added to {t}: {", ".join(f)}' for t, f in tables["fields_added"].items())
+    wanted = "expects a new table" if tables["expected"] else "expects no new table"
+    verdict = "pass" if tables["ok"] else "fail"
+    return (f'<div class="tables {verdict}">tables added: {html.escape(added)}{html.escape(fields)}. '
+            f'{wanted}: {verdict}</div>')
+
+
 def case_cell(case: dict, run_dir: Path) -> str:
     parts = [f'<div class="case"><div class="id">{html.escape(case["id"])}</div>',
              f'<div class="request">{html.escape(case["request"])}</div>']
@@ -140,6 +165,7 @@ def build_cell(build: dict | None, model: str, run_dir: Path, prefer: str | None
         f'<span class="model">{html.escape(model)}</span>',
         f'<span class="status {STATUS_CLASS[build["status"]]}">{html.escape(build["status"])}</span></div>',
         f'<div class="stats">{stats}</div>',
+        tables_line(build["tables"]) if build.get("tables") else "",
         faces_html(run_dir / build["final_report"], run_dir, prefer)[0],
     ]
     if build["verdicts"]:

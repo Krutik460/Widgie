@@ -151,7 +151,8 @@
       "id": "refine-coffee",
       "group": "refine",
       "base": "water",
-      "request": "track coffee instead of water"
+      "request": "track coffee instead of water",
+      "expect_new_table": true
     },
     {
       "id": "refine-nicer",
