@@ -454,8 +454,8 @@ struct TreeParser {
                 throw props.error("asset \(Diagnostic.quote(raw)) has no readable image; send the image again")
             case .overBudget:
                 throw props.error(
-                    "images decode to more than 1.5 megapixels in this render; draw fewer images, or fewer distinct crops of one asset, since each crop decodes again at the widget's size"
-                )
+                    "images decode to more than 1.5 megapixels in this render; draw fewer images, or fewer distinct crops of one asset, since each crop decodes again at the widget's size",
+                    kind: .overImageBudget)
             }
         }
         return Picture(

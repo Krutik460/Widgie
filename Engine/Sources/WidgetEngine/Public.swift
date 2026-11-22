@@ -79,7 +79,8 @@ public struct Faces: Sendable {
     /// Never empty, ascending dates.
     public let entries: [Face]
     /// The soonest of the midnight after the last entry, two hours from now for a look that reads the clock,
-    /// and five minutes after the next automation run.
+    /// five minutes after the next automation run, and the first later face whose images did not fit beside
+    /// the earlier entries' images.
     public let reloadAt: Date
     public var current: Face { entries[0] }
 }

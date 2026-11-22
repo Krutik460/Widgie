@@ -68,6 +68,10 @@ public final class Engine: Sendable {
     /// "fed 11 h ago" turns into "Feed me!" within 15 minutes of the 12th hour. `reloadAt` is the earliest of
     /// that reload, the midnight after the next one, and five minutes after the next automation run, so a
     /// dropped push is caught by the timeline.
+    ///
+    /// All entries share one image budget. When a later face's images would pass it, the timeline ends before
+    /// that face and reloads at its date, so the next call draws it with a fresh budget. Only a current face
+    /// whose images pass the budget on their own falls back.
     public func faces(for widget: WidgetID?, family: Family, size: CGSize, from date: Date) async -> Faces {
         let today = Today(at: date, calendar: calendar)
         let store: RowStore
@@ -92,44 +96,68 @@ public final class Engine: Sendable {
         // WidgetKit gives the provider no display scale, so images decode for 3x, the densest iPhone screen.
         let images = AssetImages.stored(stored.spec, store: store)
         let midnight = Today(at: today.nextDayStart, calendar: calendar)
-        /// The face at `instant`, the tree the look returned, and whether it read the clock. The tree is nil
-        /// when the face fell back.
-        func face(at instant: Date) async -> (face: Face, tree: String?, readsClock: Bool) {
+        func compose(at instant: Date) async throws(Diagnostic) -> Composition {
+            try await composeDrawing(
+                spec: stored.spec, widget: stored.key, revision: stored.revision.hex, store: store, images: images,
+                family: family, size: size,
+                pixelScale: 3, today: Today(at: instant, calendar: calendar), sandbox: sandbox, budget: .widget)
+        }
+        func fallback(at instant: Date, _ error: Diagnostic) -> Face {
             let day = Today(at: instant, calendar: calendar)
+            log.error(
+                "widget \(stored.key.raw, privacy: .public) fell back on \(day.day.iso, privacy: .public) \(day.time, privacy: .public): \(error.line, privacy: .private)"
+            )
+            return Face(date: instant, content: .fallback(name: stored.spec.name, reason: error.line))
+        }
+        /// A later face and the tree the look returned, nil when the face fell back. The whole result is nil
+        /// when the images this call already decoded leave no room for the face's own.
+        func later(at instant: Date) async -> (face: Face, tree: String?)? {
             do throws(Diagnostic) {
-                let composition = try await composeDrawing(
-                    spec: stored.spec, widget: stored.key, revision: stored.revision.hex, store: store, images: images,
-                    family: family, size: size,
-                    pixelScale: 3, today: day, sandbox: sandbox, budget: .widget)
-                return (
-                    Face(date: instant, content: .drawing(composition.drawing)), composition.tree,
-                    composition.readsClock
-                )
+                let composition = try await compose(at: instant)
+                return (Face(date: instant, content: .drawing(composition.drawing)), composition.tree)
             } catch {
-                log.error(
-                    "widget \(stored.key.raw, privacy: .public) fell back on \(day.day.iso, privacy: .public) \(day.time, privacy: .public): \(error.line, privacy: .private)"
-                )
-                return (Face(date: instant, content: .fallback(name: stored.spec.name, reason: error.line)), nil, false)
+                if error.kind == .overImageBudget { return nil }
+                return (fallback(at: instant, error), nil)
             }
         }
-        let first = await face(at: date)
+
+        let first: (face: Face, tree: String?, readsClock: Bool)
+        do throws(Diagnostic) {
+            let composition = try await compose(at: date)
+            first = (Face(date: date, content: .drawing(composition.drawing)), composition.tree, composition.readsClock)
+        } catch {
+            first = (fallback(at: date, error), nil, false)
+        }
         var entries = [first.face]
+        // The first later instant whose images do not fit. The timeline ends there, and the one WidgetKit asks
+        // for at that instant starts with a fresh image budget.
+        var cut: Date?
         var clockReload = Date.distantFuture
         if first.readsClock {
             var shown = first.tree
             for index in 1...Self.clockSteps {
                 let instant = date.addingTimeInterval(Self.clockStep * Double(index))
                 guard instant < today.nextDayStart else { break }
-                let next = await face(at: instant)
+                guard let next = await later(at: instant) else {
+                    cut = instant
+                    break
+                }
                 if next.tree == nil || next.tree != shown { entries.append(next.face) }
                 shown = next.tree
             }
             clockReload = date.addingTimeInterval(Self.clockStep * Double(Self.clockSteps))
         }
-        entries.append(await face(at: today.nextDayStart).face)
+        if cut == nil {
+            if let midnightFace = await later(at: today.nextDayStart) {
+                entries.append(midnightFace.face)
+            } else {
+                cut = today.nextDayStart
+            }
+        }
         let automation = stored.spec.automations.compactMap { $0.schedule.nextRun(after: date) }.min()
         let reloadAt = min(
-            midnight.nextDayStart, clockReload, automation?.addingTimeInterval(5 * 60) ?? .distantFuture)
+            cut ?? .distantFuture, midnight.nextDayStart, clockReload,
+            automation?.addingTimeInterval(5 * 60) ?? .distantFuture)
         return Faces(entries: entries, reloadAt: reloadAt)
     }
 

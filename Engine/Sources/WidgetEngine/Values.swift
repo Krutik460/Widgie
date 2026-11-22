@@ -25,7 +25,9 @@ struct Props {
 
     var label: String { "\(type) at \(path)" }
 
-    func error(_ message: String) -> Diagnostic { Diagnostic(message, at: [label]) }
+    func error(_ message: String, kind: Diagnostic.Kind = .mistake) -> Diagnostic {
+        Diagnostic(message, at: [label], kind: kind)
+    }
 
     /// Parses one prop with a value reader, naming this node in any error. Nil when the prop is absent.
     func read<T>(_ key: String, _ parse: (JSONValue, String) throws(Diagnostic) -> T) throws(Diagnostic) -> T? {

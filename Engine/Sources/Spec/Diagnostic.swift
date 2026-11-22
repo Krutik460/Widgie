@@ -5,10 +5,21 @@
 package struct Diagnostic: Error, Sendable, Equatable, CustomStringConvertible {
     package let path: [String]
     package let message: String
+    package let kind: Kind
 
-    package init(_ message: String, at path: [String] = []) {
+    /// What a caller can do about the problem besides showing the line.
+    package enum Kind: Sendable, Equatable {
+        /// The document or its look is wrong, so the same input fails the same way.
+        case mistake
+        /// The images this render already decoded leave no room for the next one. A render with a fresh image
+        /// budget may draw it.
+        case overImageBudget
+    }
+
+    package init(_ message: String, at path: [String] = [], kind: Kind = .mistake) {
         self.message = Self.oneLine(message)
         self.path = path.map(Self.oneLine)
+        self.kind = kind
     }
 
     package var line: String {
@@ -18,7 +29,7 @@ package struct Diagnostic: Error, Sendable, Equatable, CustomStringConvertible {
     package var description: String { line }
 
     package func within(_ context: String) -> Diagnostic {
-        Diagnostic(message, at: [context] + path)
+        Diagnostic(message, at: [context] + path, kind: kind)
     }
 
     /// Text from a document, quoted for an error line: escaped, on one line, and at most 40 characters.
