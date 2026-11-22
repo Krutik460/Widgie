@@ -81,6 +81,34 @@ import WidgetEngine
         #expect(await RenderTool.run(["refine", fixturePath, path("cups")]) == 2)
     }
 
+    /// The model sends a refine's JSON without the image bytes, as it got them in `current/`.
+    @Test func rejectedRefineDrawsTheNewWidgetWithTheOldWidgetsImages() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let path = { (name: String) in directory.appending(path: name).path(percentEncoded: false) }
+        let look = counterLook(
+            "{ type: 'image', asset: 'photo', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, cornerRadius: 12 }",
+            extra: "{ type: 'text', value: String(ctx.data.n), color: '#FFFFFF', lineLimit: 1 },")
+        try document(look: look, assets: ["photo": ["about": "a sunset"]], images: ["photo": photo(300, 200)])
+            .write(to: directory.appending(path: "old"))
+        #expect(await RenderTool.run(["refine", path("old"), path("old"), path("same")]) == 0)
+
+        let current = try WidgetSource(directory: directory.appending(path: "same/current"))
+        let renamed = String(decoding: current.json, as: UTF8.self).replacing("\"taps\"", with: "\"clicks\"")
+        try WidgetSource(json: Data(renamed.utf8)).write(to: directory.appending(path: "new"))
+        #expect(await RenderTool.run(["refine", path("old"), path("new"), path("renamed")]) == 1)
+        let report = try #require(
+            try JSONSerialization.jsonObject(with: Data(contentsOf: directory.appending(path: "renamed/report.json")))
+                as? [String: Any])
+        #expect(
+            report["verdict"] as? String == "table \"taps\" is gone; keep every table id so the stored rows carry over")
+        let pngs = { (name: String) in
+            try FileManager.default.contentsOfDirectory(atPath: path(name)).filter { $0.hasSuffix(".png") }.sorted()
+        }
+        #expect(try pngs("renamed").count == 12)
+        #expect(try pngs("renamed") == pngs("same"))
+    }
+
     @Test func renderModeWritesOnePNGAndUsageErrorsExitTwo() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: "render-tool-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: directory) }

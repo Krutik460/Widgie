@@ -51,15 +51,27 @@ extension Engine {
     public static func proofs(_ source: WidgetSource, at date: Date = .now, calendar: Calendar = .current)
         async throws(EngineError) -> ProofMatrix
     {
+        try await proofs(source, keeping: nil, at: date, calendar: calendar)
+    }
+
+    /// `proofs` of a refine's new widget, which leaves out the bytes of the images it keeps: an asset with no
+    /// bytes in `source` draws from the image of the same id in `old`, as `build` draws it from the store.
+    package static func proofs(_ source: WidgetSource, keeping old: WidgetSource?, at date: Date, calendar: Calendar)
+        async throws(EngineError) -> ProofMatrix
+    {
         let spec: Spec
         do throws(Diagnostic) {
             spec = try Spec.parse(source.json).fillingTimeZone(calendar.timeZone)
         } catch {
             return ProofMatrix(name: nil, renders: [], verdict: error.line)
         }
+        var bytes = source.images
+        for asset in spec.assets where bytes[asset.id.raw] == nil {
+            bytes[asset.id.raw] = old?.images[asset.id.raw]
+        }
         let images: [Spec.AssetID: Data]
         do throws(Diagnostic) {
-            images = try ingest(source.images, spec: spec, keeping: nil, store: nil)
+            images = try ingest(bytes, spec: spec, keeping: nil, store: nil)
         } catch {
             return ProofMatrix(name: spec.name, renders: [], verdict: error.line)
         }
