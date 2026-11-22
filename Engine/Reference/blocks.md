@@ -451,3 +451,38 @@ The change renames the table to count cups:
 ```text
 table "glasses" is gone; keep every table id so the stored rows carry over
 ```
+
+A change that gives a table a new meaning. The app accepts it, because every id is kept, so no line comes back, but the stored rows now mean something else. The widget counted glasses of water:
+
+```json
+{
+  "name": "Water",
+  "tables": { "glasses": { "fields": {} } },
+  "queries": { "today": { "count": "glasses", "window": "today" } },
+  "actions": { "drink": { "insert": "glasses" } }
+}
+```
+
+The person asks to track coffee instead, and the change calls `glasses` coffee in the name and the look. Every glass of water already logged now counts as a cup of coffee:
+
+<!-- replaces the json block above -->
+```json
+{
+  "name": "Coffee",
+  "tables": { "glasses": { "fields": {} } },
+  "queries": { "today": { "count": "glasses", "window": "today" } },
+  "actions": { "drink": { "insert": "glasses" } }
+}
+```
+
+The right change adds a table for the new data, points the queries and actions at it, and keeps `glasses` with its rows, even though nothing reads it:
+
+<!-- replaces the json block above -->
+```json
+{
+  "name": "Coffee",
+  "tables": { "glasses": { "fields": {} }, "cups": { "fields": {} } },
+  "queries": { "today": { "count": "cups", "window": "today" } },
+  "actions": { "drink": { "insert": "cups" } }
+}
+```
