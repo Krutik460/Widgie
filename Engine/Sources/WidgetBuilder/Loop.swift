@@ -1,4 +1,78 @@
 import Foundation
+import Spec
+import WidgetEngine
+
+/// The first try, then at most two repairs, as `Engine/Evals/run.py` runs it.
+private let maxAttempts = 3
+
+extension Engine {
+    /// The build loop: asks `model` for a widget, builds its reply with `build(_:replacing:)`, and sends each
+    /// rejection back as a repair, until a reply is saved or three attempts were rejected.
+    ///
+    /// - `replacing` refines that widget: the model gets its stored document as `current`, and the accepted
+    ///   reply replaces it under the same id, keeping its rows.
+    /// - `repairing` makes the first call a repair of the `replacing` widget's stored document with that line,
+    ///   for a document another store rejected. It needs `replacing`.
+    /// - `image` goes to the model with every call. A reply that declares the asset `reference` gets it as that
+    ///   asset's bytes; any other reply builds without it, and a refine that sent no image keeps the stored one.
+    ///
+    /// Only a rejected reply uses an attempt. An error from `model` is rethrown as it is. Cancellation is
+    /// checked around each model call and throws `CancellationError` with nothing saved; a `build` already
+    /// under way finishes, and its outcome is returned. Throws `EngineError` when `replacing` names no widget
+    /// or the store fails.
+    public func build(
+        _ words: String, image: Attachment? = nil, replacing: WidgetID? = nil, repairing line: String? = nil,
+        model: some WidgetModel, progress: @Sendable (BuildStep) -> Void = { _ in }
+    ) async throws -> LoopOutcome {
+        var request = ModelRequest(words: words, image: image)
+        if let replacing {
+            guard let stored = try source(of: replacing) else {
+                throw EngineError(message: "no widget \(replacing.rawValue) to replace")
+            }
+            request.current = String(decoding: stored.json, as: UTF8.self)
+        }
+        if let line {
+            guard let current = request.current else {
+                throw EngineError(message: "repairing needs the widget to repair in replacing")
+            }
+            request.repair = Repair(document: current, line: line)
+        }
+        var attempt = 1
+        while true {
+            try Task.checkCancellation()
+            progress(request.repair.map { .repairing(attempt: attempt, line: $0.line) } ?? .writing(attempt: attempt))
+            let reply: String
+            do {
+                reply = try await model.reply(to: request)
+            } catch {
+                // A cancelled URLSession throws URLError, not CancellationError.
+                try Task.checkCancellation()
+                throw error
+            }
+            try Task.checkCancellation()
+            let document = extractDocument(reply)
+            progress(.checking(attempt: attempt))
+            switch try await build(proposal(document, image: image), replacing: replacing) {
+            case .saved(let id):
+                return .accepted(id, attempts: attempt)
+            case .rejected(let rejection):
+                if attempt == maxAttempts { return .gaveUp(lastLine: rejection, attempts: attempt) }
+                request.repair = Repair(document: document, line: rejection)
+                attempt += 1
+            }
+        }
+    }
+}
+
+/// The source `build` proves for a reply. `ingest` refuses an image the document has no asset for, so the
+/// picture goes in only when the document declares `reference`.
+private func proposal(_ document: String, image: Attachment?) -> WidgetSource {
+    let json = Data(document.utf8)
+    guard let image, (try? Spec.parse(json))?.asset(named: "reference") != nil else {
+        return WidgetSource(json: json)
+    }
+    return WidgetSource(json: json, images: ["reference": image.bytes])
+}
 
 /// The document in a model reply: the longest fenced `json` block, else the longest fenced block of any kind,
 /// else the whole reply trimmed. This is `extract` in `Engine/Evals/model.py`, line for line, so the eval
