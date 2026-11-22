@@ -452,7 +452,7 @@ private struct LoopRun {
     let words: String
     let output: URL
     let image: Attachment?
-    let bridge: Bridge
+    let bridge: BridgeModel
     let calendar: Calendar
 
     init(_ options: inout Options, calendar: Calendar) throws(Usage) {
@@ -473,7 +473,7 @@ private struct LoopRun {
         }
         words = options.positional[1]
         output = URL(filePath: options.positional[2])
-        self.bridge = Bridge(url: url)
+        self.bridge = BridgeModel(base: url)
         self.calendar = calendar
     }
 
@@ -493,12 +493,12 @@ private struct LoopRun {
         } catch let error as EngineError {
             standardError("error: \(error.message)")
             return 2
-        } catch let error as BridgeFailure {
+        } catch let error as BridgeModel.Refused {
             standardError("error: the bridge failed: \(error.description)")
             return 2
         } catch {
             standardError(
-                "error: the bridge at \(bridge.url.absoluteString) did not answer: \(error.localizedDescription)")
+                "error: the bridge at \(bridge.base.absoluteString) did not answer: \(error.localizedDescription)")
             return 2
         }
         let ended = ContinuousClock.now
@@ -540,35 +540,6 @@ private struct LoopRun {
         case .repairing(let attempt, let line): "repairing, attempt \(attempt): \(line)"
         }
     }
-}
-
-/// The dev bridge: `POST /v1/reply` with a `ModelRequest`, `{"reply": text}` back, or `{"error": line}` with a
-/// status other than 200.
-private struct Bridge: WidgetModel {
-    let url: URL
-
-    func reply(to request: ModelRequest) async throws -> String {
-        var post = URLRequest(url: url.appending(path: "v1/reply"), timeoutInterval: 120)
-        post.httpMethod = "POST"
-        post.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        post.httpBody = try JSONEncoder().encode(request)
-        let (data, response) = try await URLSession.shared.data(for: post)
-        let body = try? JSONDecoder().decode(Body.self, from: data)
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard status == 200, let reply = body?.reply else {
-            throw BridgeFailure(description: body?.error ?? "status \(status) with no reply")
-        }
-        return reply
-    }
-
-    private struct Body: Decodable {
-        let reply: String?
-        let error: String?
-    }
-}
-
-private struct BridgeFailure: Error, CustomStringConvertible {
-    let description: String
 }
 
 /// report.json. Optional values encode as null, so every key is always present.

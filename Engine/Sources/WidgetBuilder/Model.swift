@@ -55,6 +55,41 @@ public protocol WidgetModel: Sendable {
     func reply(to request: ModelRequest) async throws -> String
 }
 
+/// The dev bridge on the Mac (`Engine/Evals/bridge.py`): `POST <base>/v1/reply` with a `ModelRequest`, then
+/// `{"reply": text}` back, or `{"error": line}` with a status other than 200.
+public struct BridgeModel: WidgetModel {
+    /// The bridge answered without a reply: an HTTP error such as 400, 413, or 502, or a body with no reply.
+    /// A bridge that cannot be reached throws `URLError` instead.
+    public struct Refused: Error, CustomStringConvertible {
+        public let description: String
+    }
+
+    public let base: URL
+
+    public init(base: URL) { self.base = base }
+
+    public func reply(to request: ModelRequest) async throws -> String {
+        // Longer than bridge.py's 110 s model timeout, so a slow model comes back as the bridge's error line
+        // instead of a request timeout.
+        var post = URLRequest(url: base.appending(path: "v1/reply"), timeoutInterval: 120)
+        post.httpMethod = "POST"
+        post.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        post.httpBody = try JSONEncoder().encode(request)
+        let (data, response) = try await URLSession.shared.data(for: post)
+        let body = try? JSONDecoder().decode(Body.self, from: data)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200, let reply = body?.reply else {
+            throw Refused(description: "HTTP \(status): \(body?.error ?? "no reply")")
+        }
+        return reply
+    }
+
+    private struct Body: Decodable {
+        let reply: String?
+        let error: String?
+    }
+}
+
 /// Where `Engine.build(_:image:replacing:repairing:model:isolation:progress:)` is, for a progress line.
 public enum BuildStep: Sendable, Equatable {
     /// Waiting on the model for a new document.
