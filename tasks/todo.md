@@ -360,6 +360,9 @@ An outside review (two models) raised eight findings. Each was checked against t
     - [ ] "add a weekly chart": Sonnet's small drops from three rows to two to fit it in both runs. Run 2's small chart has no weekday labels, and run 1 shrinks the full-state titles.
     - [ ] "use a handwriting font": the fit repair shrinks long titles in the full state, to tiny text on Haiku run 1 and Sonnet in both runs. Sonnet also drops small's second title line.
     - [ ] "bigger number": Sonnet run 2 also shrinks "/ 8" to a small suffix. Haiku run 1's bump is barely visible.
+  - [ ] Refine follow-ups from the PR 4 review:
+    - [ ] A widget holds at most 8 tables of 16 fields, and a refine can never drop a table or a field, so repeated "track X instead" refines can get stuck at the cap, and a person cannot delete a tracker's history.
+    - [ ] `run.py`: `prepare_before` reuses a stale `before/` after a base fixture changes, the summary prints zero rows for groups the run did not select, and `--group` on an existing run name overwrites `results.json` with only that group.
 - [ ] Grow the eval set toward 40 requests and add a visual score, since the engine accepts some widgets that look wrong
 - [ ] App Attest and per-device quotas on the endpoint
 - [ ] Check: the four reference prompts and the eval set meet a valid-spec bar set from the first baseline run
