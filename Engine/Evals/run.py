@@ -205,7 +205,10 @@ def prepare_case(run: Run, case: Case) -> None:
             if verdict is not None:
                 sys.exit(f"the base of {case.id} is rejected as a refine of itself: {verdict}")
     if image and not (case_dir / image).exists():
-        shutil.copyfile(case.image, case_dir / image)
+        # Whole or not at all, since a resume keeps any snapshot it finds.
+        temporary = case_dir / (image + ".tmp")
+        shutil.copyfile(case.image, temporary)
+        os.replace(temporary, case_dir / image)
     record = {"request": case.request, "group": case.group, "image": image,
               "base": case.base.name if case.base else None, "expect_new_table": case.expect_new_table,
               "replaces": case.replaces, "inputs": case_inputs(run, case)}
