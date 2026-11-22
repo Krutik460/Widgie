@@ -163,15 +163,13 @@ public final class Engine: Sendable {
         }
         var values: [Spec.FieldValue] = []
         if case .form(let form) = target.action.effect { values = try Self.values(input, for: form) }
-        do throws(StoreError) {
-            let applied = try store.apply(
+        let applied = try attempt { () throws(StoreError) in
+            try store.apply(
                 target.action, widget: target.widget.key, row: row, day: day, input: values,
                 today: Today(at: date, calendar: calendar), at: date)
-            if case .ignored(let reason) = applied {
-                log.info("tap ignored: \(reason, privacy: .public)")
-            }
-        } catch {
-            throw EngineError(message: error.message)
+        }
+        if case .ignored(let reason) = applied {
+            log.info("tap ignored: \(reason, privacy: .public)")
         }
     }
 
@@ -186,14 +184,12 @@ public final class Engine: Sendable {
         var current: [Spec.FieldID: Spec.Cell]?
         if let raw = tap.row {
             guard let row = RowKey(parsing: raw) else { return nil }
-            do throws(StoreError) {
-                guard let cells = try store.values(of: row, in: form.table, widget: target.widget.key) else {
-                    return nil
-                }
-                current = cells
-            } catch {
-                throw EngineError(message: error.message)
-            }
+            guard
+                let cells = try attempt({ () throws(StoreError) in
+                    try store.values(of: row, in: form.table, widget: target.widget.key)
+                })
+            else { return nil }
+            current = cells
         }
         return InputForm(
             tap: tap, title: form.prompt ?? readable(target.action.id.raw),
@@ -207,12 +203,8 @@ public final class Engine: Sendable {
     /// Newest first. The widget picker's default is the first entry.
     public func widgets() throws(EngineError) -> [WidgetSummary] {
         let store = try self.store()
-        do throws(StoreError) {
-            return try store.widgets().map {
-                WidgetSummary(id: WidgetID(rawValue: $0.key.raw), name: $0.spec.name, createdAt: $0.createdAt)
-            }
-        } catch {
-            throw EngineError(message: error.message)
+        return try attempt { () throws(StoreError) in try store.widgets() }.map {
+            WidgetSummary(id: WidgetID(rawValue: $0.key.raw), name: $0.spec.name, createdAt: $0.createdAt)
         }
     }
 
@@ -220,11 +212,7 @@ public final class Engine: Sendable {
     public func delete(_ widget: WidgetID) throws(EngineError) {
         guard let key = WidgetKey(parsing: widget.rawValue) else { return }
         let store = try self.store()
-        do throws(StoreError) {
-            try store.delete(key)
-        } catch {
-            throw EngineError(message: error.message)
-        }
+        try attempt { () throws(StoreError) in try store.delete(key) }
     }
 
     /// Every engine in this process but the scratch ones stops writing, and reads still work, so iOS never
@@ -287,7 +275,7 @@ public final class Engine: Sendable {
             return nil
         }
         guard let key = WidgetKey(parsing: tap.widget) else { return stale("no widget \(tap.widget)") }
-        do throws(StoreError) {
+        return try attempt { () throws(StoreError) -> Target? in
             guard let widget = try store.widget(key) else { return stale("widget \(key.raw) is not live") }
             guard let raw = tap.revision, let revision = Spec.Digest(hex: raw) else {
                 return stale("the tap names no revision of widget \(key.raw)")
@@ -308,8 +296,6 @@ public final class Engine: Sendable {
                 return stale("revision \(revision) has no action \(tap.action)")
             }
             return Target(widget: widget, action: action)
-        } catch {
-            throw EngineError(message: error.message)
         }
     }
 
@@ -335,6 +321,15 @@ public final class Engine: Sendable {
 }
 
 private let log = Logger(subsystem: "WidgetEngine", category: "engine")
+
+/// Runs a store call and reports its failure as an `EngineError`, the one error the public API throws.
+package func attempt<T>(_ body: () throws(StoreError) -> T) throws(EngineError) -> T {
+    do throws(StoreError) {
+        return try body()
+    } catch {
+        throw EngineError(message: error.message)
+    }
+}
 
 extension Faces {
     /// One calm face for a whole widget that cannot be drawn.
