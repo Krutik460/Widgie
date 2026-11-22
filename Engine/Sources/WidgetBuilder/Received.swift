@@ -12,7 +12,7 @@ extension Engine {
     ///
     /// The revision is proved exactly as stored: its bytes are canonical and named by their hash, so nothing
     /// is filled in (the sender filled the time zone before saving). Images come from the store's asset files,
-    /// and the proof is `build`'s: `prove(..., stopAtFirstFailure: true)`. A revision this build cannot parse
+    /// and the proof is `build`'s: `prove(..., keepsRenders: false)`. A revision this build cannot parse
     /// (a newer format) or whose asset files have not arrived yet gets no verdict, so it is tried again later.
     public func proveReceived() async throws(EngineError) {
         let store = try self.store()
@@ -32,7 +32,7 @@ extension Engine {
             }
             let verdict = try await prove(
                 spec, images: images, today: Today(at: .now, calendar: calendar), sandbox: sandbox,
-                stopAtFirstFailure: true
+                keepsRenders: false
             ).verdict
             try attempt { () throws(StoreError) in try store.recordProof(of: revision, verdict: verdict) }
         }

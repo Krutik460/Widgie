@@ -63,7 +63,7 @@ extension Engine {
         let zoned = spec.fillingTimeZone(calendar.timeZone)
         let matrix = try await prove(
             zoned, images: images, today: Today(at: date, calendar: calendar), sandbox: sandbox,
-            stopAtFirstFailure: true)
+            keepsRenders: false)
         if let verdict = matrix.verdict { return .rejected(verdict) }
         if old == nil {
             _ = try attempt { () throws(StoreError) in try store.save(key, spec: zoned, assets: images) }
