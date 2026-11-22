@@ -148,6 +148,11 @@ package struct Today: Sendable, Equatable {
             at: gregorian.date(bySettingHour: 12, minute: 0, second: 0, of: instant) ?? instant, calendar: gregorian)
     }
 
+    /// The same calendar at another instant.
+    package static func at(_ instant: Date, like other: Today) -> Today {
+        Today(at: instant, calendar: other.gregorian)
+    }
+
     /// The day `moment` falls on in this calendar.
     package func day(of moment: Date) -> Day {
         Today(at: moment, calendar: gregorian).day

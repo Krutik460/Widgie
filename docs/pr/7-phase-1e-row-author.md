@@ -46,8 +46,9 @@ Key decisions:
 flowchart TD
   B["Engine.build / proofs / proveReceived"] --> PR["prove(today): today = today.noon"]
   PR --> ST["ProofState.all: empty, samples, full"]
+  PR -->|"look read the clock"| DE["every state again at 00:01 and 23:59, listed only on failure"]
   ST --> SE["RowStore.seed: insertions(sample, today)"]
-  SE -->|"minutesAgo"| R1["at = now - minutes; day = day of that moment"]
+  SE -->|"minutesAgo"| R1["at = now - minutes (full: never before dayStart); day = day of that moment"]
   SE -->|"daysAgo 0"| R2["at = min(midday, max(now, dayStart))"]
   SE -->|"daysAgo n"| R3["at = midday of that day"]
   SE -->|"by: name"| R4["replica sample:name, member row with the name"]
@@ -60,6 +61,8 @@ flowchart TD
 Key decisions:
 
 - **Proofs render at noon.** Seeding by minutes and `ctx.now` made the verdict depend on the hour: hearts proved at 03:00 lost its 5-hour-old hearts to yesterday. A revision built at 09:00 could have been rejected by `proveReceived` on a partner's phone at 21:00. At noon, every `minutesAgo` up to 719 stays on today. A test compares proofs run at 03:00 and 21:30.
+- **Clock-reading looks are also proved at 00:01 and 23:59.** Noon alone would never draw a "Good morning" branch. Those extra renders appear in the matrix only when they fail, so a passing proof keeps the same files.
+- **`full` never goes before the day began.** On a 23-hour day noon is only 660 minutes after midnight, so a fixed 719 would put today's rows on yesterday. `full`'s rows carry `staysToday`, while a document's `minutesAgo` keeps its exact meaning. A test seeds New York's 2026-03-08.
 - **`full` stresses the new widths.** Today's rows are 719 minutes old ("11 h 59 min ago"), and other members' rows carry "Maximiliana Montgomery-Okonkwo", 30 UTF-16 units, the limit. Names are counted in UTF-16 like text values, so combining marks cannot inflate one.
 - **Sample authors use fake replicas only in scratch stores.** `seed` and `replaceRows` run only on proof and preview stores. `changes(after:)` sends only the local replica's rows, so `sample:*` rows never sync.
 - **No sample row lands in the future or on yesterday's clock.** Today rows clamp between the day's start and the render instant.

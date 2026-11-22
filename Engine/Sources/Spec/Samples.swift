@@ -16,8 +16,11 @@ extension Spec {
         /// Set when the document places the row by minutes before the render instead of by day. Then the
         /// row's day is the day that moment falls on, and `daysAgo` is 0.
         package let minutesAgo: Int?
-        /// The name of the member who wrote the row, or nil for the person on this device.
+        /// The name of the member who wrote the row, or nil for the person.
         package let by: String?
+        /// Never placed before today began, however large `minutesAgo` is. Only `full` sets it, so its rows
+        /// stay on today on a 23-hour day and at any hour, while a document's `minutesAgo` means what it says.
+        package let staysToday: Bool
         /// The document's `repeat`: how many identical rows this entry stands for. At least 1.
         package let count: Int
         /// In field id order. Every field belongs to `table`.
@@ -34,8 +37,8 @@ extension Spec {
     /// totals, and in every field the longest value the widget can store there. Rows for a filtered query
     /// match its filter, and every day of a goal streak reaches the goal, as far as 100 rows a day allow.
     /// Rows are written by another member whose name is as long as a name may be, except rows for a query
-    /// that asks for rows by `me`. Today's rows were written `widestMinutesAgo` minutes before the render, so
-    /// "11 h 59 min ago" is drawn; proofs render at noon, where that is still today. It catches spills the
+    /// that asks for rows by `me`. Today's rows were written `widestMinutesAgo` minutes before the render, or
+    /// as the day began if that is later, so "11 h 59 min ago" is drawn at noon. It catches spills the
     /// model's own samples miss.
     package var full: Sample {
         var rows: [SampleRow] = []
@@ -90,15 +93,15 @@ extension Spec {
             for (filter, count) in today {
                 rows.append(
                     SampleRow(
-                        table: table, daysAgo: 0, minutesAgo: Self.widestMinutesAgo, by: author(filter), count: count,
-                        values: matching(filter)))
+                        table: table, daysAgo: 0, minutesAgo: Self.widestMinutesAgo, by: author(filter),
+                        staysToday: true, count: count, values: matching(filter)))
             }
             for (filter, days, each) in history {
                 for daysAgo in 1..<days {
                     rows.append(
                         SampleRow(
-                            table: table, daysAgo: daysAgo, minutesAgo: nil, by: author(filter), count: each,
-                            values: matching(filter)))
+                            table: table, daysAgo: daysAgo, minutesAgo: nil, by: author(filter), staysToday: false,
+                            count: each, values: matching(filter)))
                 }
             }
         }
@@ -111,8 +114,8 @@ extension Spec {
     /// A real-looking name at exactly `Limits.memberNameLength` UTF-16 units, the longest `by.name` can be.
     static let longestMemberName = "Maximiliana Montgomery-Okonkwo"
 
-    /// The age of `full`'s rows for today: the most minutes that stay on today at noon, and the longest
-    /// "h min ago" text under 12 hours.
+    /// The age of `full`'s rows for today: the longest "h min ago" text under 12 hours. The rows never go
+    /// before today began (`staysToday`), so a 23-hour day or an early proof keeps them on today.
     static let widestMinutesAgo = 719
 
     /// A form or an automation can write anything into a field, and a toggle flips it, so such a field gets
@@ -246,11 +249,12 @@ extension Spec.Sample {
             daysAgo: try row.wholeNumber("daysAgo", in: Spec.Limits.daysAgo) ?? 0,
             minutesAgo: try row.wholeNumber("minutesAgo", in: Spec.Limits.minutesAgo),
             by: try author(row),
+            staysToday: false,
             count: try row.wholeNumber("repeat", in: Spec.Limits.repeatCount) ?? 1,
             values: try table.values(row, skipping: ["by", "daysAgo", "minutesAgo", "repeat"]))
     }
 
-    /// `by` is "me" in any case, or left out, for the person on this device, or another member's name: one
+    /// `by` is "me" in any case, or left out, for the person, or another member's name: one
     /// line, not blank, at most `Limits.memberNameLength` UTF-16 units like a text value.
     private static func author(_ row: Reader) throws(Diagnostic) -> String? {
         guard let value = row["by"] else { return nil }

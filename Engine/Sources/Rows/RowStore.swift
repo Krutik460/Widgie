@@ -516,7 +516,7 @@ package final class RowStore: Sendable {
     }
 }
 
-/// A change and the sample member who wrote it, or nil for the person on this device.
+/// A change and the sample member who wrote it, or nil for the person.
 private struct Authored {
     let change: Change
     let by: String?
@@ -531,7 +531,8 @@ private struct Authored {
 }
 
 /// A sample's rows as inserts, each in the dataset `dataset` names for its table. A row placed by
-/// `minutesAgo` lands that many minutes before `today.instant`, on the day that moment falls on. Any other
+/// `minutesAgo` lands that many minutes before `today.instant`, on the day that moment falls on, or as today
+/// began for a `staysToday` row if that is later. Any other
 /// row lands at midday of `today.day - daysAgo`, or for today, just before `today.instant` if that is
 /// earlier but never before today began, so no sample row is written in the future or shows yesterday's
 /// time. Rows keep document order, a millisecond apart.
@@ -551,7 +552,8 @@ private func insertions(
             let at: Int64
             let day: Day
             if let minutes = entry.minutesAgo {
-                at = latest - Int64(minutes) * 60_000
+                let placed = latest - Int64(minutes) * 60_000
+                at = entry.staysToday ? max(placed, dayStart + sequence) : placed
                 day = today.day(of: date(at))
             } else {
                 let planned = midday - Int64(entry.daysAgo) * 86_400_000 + sequence

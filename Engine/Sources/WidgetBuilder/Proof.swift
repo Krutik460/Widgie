@@ -232,7 +232,8 @@ struct Cell: Sendable {
 /// redraws the same trees tinted (`empty`, the sparsest, where a blank or a backdrop shape shows most, and
 /// `full`, the busiest) and dark (`full`, where every color pair is in use). The first failing render's line
 /// is the verdict. When every render passes, coverage and the content check run on the whole matrix.
-/// Every proof renders at noon of `today`'s day (`Today.noon`), so the verdict never depends on the hour.
+/// Every proof renders at noon of `today`'s day (`Today.noon`), so the verdict never depends on the hour. A
+/// look that reads the clock is also drawn in every state at 00:01 and 23:59 of that day.
 func prove(
     _ spec: Spec, images: [Spec.AssetID: Data], today: Today, sandbox: Sandbox, stopAtFirstFailure: Bool
 ) async throws(EngineError) -> (renders: [ProofRender], verdict: String?) {
@@ -283,6 +284,45 @@ func prove(
                         state: state, family: cell.family, appearance: appearance, outcome: .success(proof)))
                 verdict = verdict ?? proof.verdict
                 if verdict != nil, stopAtFirstFailure { return (renders, verdict) }
+            }
+        }
+    }
+    // A look that reads the clock may draw something else at another hour, such as "Good morning" before
+    // noon, so it is also drawn at the day's first and last minute. Those renders are listed only when they
+    // fail, so a passing proof keeps the same matrix.
+    if cells.contains(where: \.composition.readsClock) {
+        for instant in [today.dayStart.addingTimeInterval(60), today.nextDayStart.addingTimeInterval(-60)] {
+            let other = Today.at(instant, like: today)
+            for state in ProofState.all(of: spec) {
+                let timed = ProofState(
+                    name: "\(state.name) at \(other.time)", label: "\(state.label) at \(other.time)",
+                    sample: state.sample)
+                for family in Family.allCases {
+                    let failed: String
+                    do throws(ProofStop) {
+                        let cell = try await proveCell(
+                            spec, images: images, state: timed, family: family, size: family.standardSize,
+                            today: other, sandbox: sandbox)
+                        guard let line = cell.proof.verdict else { continue }
+                        renders.append(
+                            ProofRender(
+                                state: timed.name, family: family, appearance: .light, outcome: .success(cell.proof)))
+                        failed = line
+                    } catch {
+                        switch error {
+                        case .rejected(let line):
+                            renders.append(
+                                ProofRender(
+                                    state: timed.name, family: family, appearance: .light,
+                                    outcome: .failure(Rejected(line: line))))
+                            failed = line
+                        case .broken(let message):
+                            throw EngineError(message: "the proof could not run: \(message)")
+                        }
+                    }
+                    verdict = verdict ?? failed
+                    if stopAtFirstFailure { return (renders, verdict) }
+                }
             }
         }
     }
