@@ -121,8 +121,67 @@ import WidgetEngine
         try engine.load(.sample("morning"), into: id)
     }
 
-    private func build(_ source: WidgetSource, in engine: Engine) async throws -> WidgetID {
-        let outcome = try await engine.build(source)
+    @Test @MainActor func savingADraftCarriesItsDocumentAndNoneOfItsSampleRows() async throws {
+        let draft = Engine.scratch(calendar: utc)
+        let source = try fixture("water")
+        let id = try await build(source, in: draft)
+        try draft.load(.sample("morning"), into: id, at: morning)
+        try draft.perform(try button("drink", on: await face(id, in: draft)).tap, at: morning)
+        #expect(!picture(await face(id, in: draft)).looksLike(try await proof(source, .empty)))
+
+        let shared = Scratch()
+        let saved = try await shared.build(try #require(try draft.source(of: id)))
+        for family in Family.allCases {
+            #expect(
+                picture(await shared.face(saved, family), family).looksLike(try await proof(source, .empty, family)))
+        }
+    }
+
+    @Test func samplesOfAnIdThatNamesNoWidgetHereAreEmpty() async throws {
+        let elsewhere = try await build(try fixture("water"), in: Engine.scratch(calendar: utc))
+        #expect(try Engine.scratch(calendar: utc).samples(of: elsewhere).isEmpty)
+    }
+
+    @Test @MainActor func theEmptyStateLoadsIntoAWidgetWithNoTables() async throws {
+        let engine = Engine.scratch(calendar: utc)
+        let still = document(
+            name: "Still",
+            look: """
+                function render(ctx) {
+                  return { type: 'vstack', padding: 14, frame: { maxWidth: 'infinity', maxHeight: 'infinity' },
+                    widgetBackground: '#102030',
+                    children: [{ type: 'text', value: 'Hello', size: 30, weight: 'bold', color: '#FFFFFF' }] };
+                }
+                """,
+            tables: [:], queries: [:], actions: [:], samples: [:])
+        let id = try await build(still, in: engine)
+        #expect(try engine.samples(of: id).isEmpty)
+
+        try engine.load(.empty, into: id, at: morning)
+        #expect(picture(await face(id, in: engine)).looksLike(try await proof(still, .empty)))
+    }
+
+    @Test @MainActor func aSampleLoadsIntoARefinedDraft() async throws {
+        let engine = Engine.scratch(calendar: utc)
+        let water = try fixture("water")
+        let id = try await build(water, in: engine)
+        try engine.load(.sample("morning"), into: id, at: morning)
+        let bluer = WidgetSource(
+            json: Data(String(decoding: water.json, as: UTF8.self).replacing("#0B2A3C", with: "#1B3A8C").utf8))
+        #expect(try await build(bluer, in: engine, replacing: id) == id)
+
+        try engine.load(.sample("goal met"), into: id, at: morning)
+        for family in Family.allCases {
+            let face = picture(await face(id, in: engine, family), family)
+            #expect(face.looksLike(try await proof(bluer, .sample("goal met"), family)))
+            #expect(!face.looksLike(try await proof(water, .sample("goal met"), family)))
+        }
+    }
+
+    private func build(_ source: WidgetSource, in engine: Engine, replacing: WidgetID? = nil) async throws
+        -> WidgetID
+    {
+        let outcome = try await engine.build(source, replacing: replacing)
         guard case .saved(let id) = outcome else {
             Issue.record("expected the widget to save, got \(outcome)")
             throw Unexpected()
