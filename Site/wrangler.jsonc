@@ -1,0 +1,34 @@
+// The early access site: static pages in public/ plus a small API for the pair waitlist. A separate Worker from the
+// model service in Backend/, so a site deploy can never touch the app's API.
+// Secrets: TURNSTILE_SECRET (the Turnstile widget's secret), RESEND_API_KEY (sends confirmation mail), LINK_SECRET (random
+// bytes that sign confirm and leave links, so no token is ever stored).
+// SIGNUP_LIMIT rate-limits POST /api/signup per client address.
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "widgie-site",
+    "main": "src/index.ts",
+    "compatibility_date": "2026-08-15",
+    "observability": { "enabled": true },
+    "routes": [{ "pattern": "widgie.krutikpatel.dev", "custom_domain": true }],
+    "workers_dev": false,
+    "assets": {
+        "directory": "./public",
+        "binding": "ASSETS",
+        "not_found_handling": "404-page",
+        "run_worker_first": ["/api/*", "/confirm", "/p/*"]
+    },
+    "vars": {
+        "SITE_URL": "https://widgie.krutikpatel.dev",
+        "EMAIL_FROM": "Widgie <hello@widgie.krutikpatel.dev>",
+        "REPLY_TO": "hello@widgie.krutikpatel.dev"
+    },
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "widgie-site",
+            "database_id": "bd78fdc3-5d3a-4236-8bca-0f01f4aa51a9",
+            "migrations_dir": "migrations"
+        }
+    ],
+    "ratelimits": [{ "name": "SIGNUP_LIMIT", "namespace_id": "2001", "simple": { "limit": 5, "period": 60 } }]
+}

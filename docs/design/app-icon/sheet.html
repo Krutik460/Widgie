@@ -1,0 +1,49 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1600px;background:#1b1b1d;color:#eee;font-family:-apple-system,system-ui,sans-serif;padding:56px 60px}
+h1{font:700 40px/1.1 -apple-system;letter-spacing:-.6px}
+.lede{color:#b9b9bf;font-size:18px;margin:10px 0 40px;max-width:1100px;line-height:1.5}
+.row{display:grid;grid-template-columns:300px 1fr;gap:44px;align-items:center;padding:30px 0;border-top:1px solid #333}
+.big{width:300px;height:300px;border-radius:22.4%;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.4)}
+.big svg,.ic svg{width:100%;height:100%;display:block}
+.name{font:700 26px -apple-system;letter-spacing:-.4px}
+.note{color:#b9b9bf;font-size:17px;margin:8px 0 20px;max-width:720px;line-height:1.45}
+.screens{display:flex;gap:20px}
+.screen{display:flex;gap:22px;align-items:flex-start;padding:22px 26px;border-radius:26px}
+.screen.light{background:linear-gradient(160deg,#ffd8b5,#c4d8f3)}
+.screen.dark{background:linear-gradient(160deg,#1a2238,#3a2a48)}
+.app{width:60px;text-align:center;font-size:11px;font-weight:500}
+.light .app{color:#121a2e}
+.ic{width:60px;height:60px;border-radius:22.4%;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.fake{background:linear-gradient(160deg,#5ac8fa,#007aff)}
+.fake2{background:linear-gradient(160deg,#ffd60a,#ff9f0a)}
+.fake3{background:linear-gradient(160deg,#34c759,#248a3d)}
+.tiny{display:flex;gap:14px;align-items:center;margin-left:8px}
+.tiny .ic{width:29px;height:29px}
+.label{margin-top:5px}
+</style></head><body>
+<h1>Widgie app icon</h1>
+<p class="lede">Every icon uses the exact caret from App/Widgie/Design/Caret.swift. Left: the 1024 art under the iOS mask. Right: at real home screen size (60 pt) between other apps on a light and a dark wallpaper, then dark mode, then Settings size (29 pt).</p>
+<div id="rows"></div>
+<script src="../../../Site/public/caret.js"></script>
+<script src="icons.js"></script>
+<script>
+const rows = document.getElementById("rows");
+const shortlist = new URLSearchParams(location.search).get("only")?.split(",");
+for (const [key, icon] of Object.entries(ICONS)) {
+  if (shortlist && !shortlist.includes(key)) continue;
+  const light = icon.svg();
+  const dark = variant(light, "dark");
+  const app = (svg, label) => `<div class="app"><div class="ic">${svg}</div><div class="label">${label}</div></div>`;
+  const fake = (cls, label) => `<div class="app"><div class="ic ${cls}"></div><div class="label">${label}</div></div>`;
+  rows.insertAdjacentHTML("beforeend", `<div class="row"><div class="big">${light}</div><div>
+    <div class="name">${icon.name}</div><div class="note">${icon.note}</div>
+    <div class="screens">
+      <div class="screen light">${fake("fake","Weather")}${app(light,"Widgie")}${fake("fake2","Notes")}${fake("fake3","Phone")}</div>
+      <div class="screen dark">${fake("fake","Weather")}${app(dark,"Widgie")}${fake("fake2","Notes")}</div>
+      <div class="tiny"><div class="ic">${light}</div><div class="ic">${dark}</div></div>
+    </div></div></div>`);
+}
+</script>
+</body></html>

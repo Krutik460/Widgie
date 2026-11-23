@@ -1,0 +1,17 @@
+{
+    "$schema": "node_modules/@biomejs/biome/configuration_schema.json",
+    "files": {
+        "includes": [
+            "src/**",
+            "test/**",
+            "public/*.js",
+            "pages/*.mjs",
+            "*.ts",
+            "*.json",
+            "*.jsonc",
+            "!package-lock.json"
+        ]
+    },
+    "formatter": { "indentStyle": "space", "indentWidth": 4, "lineWidth": 120 },
+    "linter": { "enabled": true, "rules": { "preset": "recommended" } }
+}

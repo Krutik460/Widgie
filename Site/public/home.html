@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Widgie for the house: did anyone feed Luna?</title>
+<meta name="description" content="One widget for the whole house. Anyone taps it, everyone's home screen knows who fed the dog and when. Join the early list with your household.">
+<meta name="theme-color" content="#9cc3f5">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Widgie for the house: did anyone feed Luna?">
+<meta property="og:description" content="One widget for the whole house. Anyone taps it, everyone's home screen knows who fed the dog and when. Join the early list with your household.">
+<meta property="og:url" content="https://widgie.krutikpatel.dev/home">
+<meta property="og:image" content="https://widgie.krutikpatel.dev/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<script src="/caret.js" defer></script>
+<script type="module" src="/app.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" defer></script>
+</head>
+<body>
+<header class="top">
+<a class="mark" href="/" aria-label="Widgie home">widgie<i></i></a>
+<nav><a href="/home">For the house</a><a href="/us">For two</a><a class="key" href="#join">Get early access</a></nav>
+</header>
+<main>
+<section class="field coral house" id="house">
+<h2 class="display"><span>Did anyone</span><span>feed Luna<span class="anchor" id="q">?<span class="blk luna lean-q" data-widget="luna"></span></span></span></h2>
+<p class="copy">One widget for the whole house. <b>Anyone taps it, everyone's home screen knows.</b> No group chat required.</p>
+<div class="cta"><a class="key" href="#join">Get early access</a></div>
+<div class="scene" data-scene="house" data-first="1"></div>
+</section>
+<section class="field grape join" id="join">
+<div class="join-col">
+<h2 class="display"><span>What would</span><span>yours say?</span></h2>
+<form class="signup" data-segment="home" novalidate>
+
+<label class="sr" for="idea-home">Your first widget, in your words (optional)</label>
+<input class="say" id="idea-home" name="idea" maxlength="500" autocomplete="off" placeholder="Tell us when the plants need water">
+<div class="row"><label class="sr" for="email-home">Your email</label><input id="email-home" name="email" type="email" autocomplete="email" placeholder="you@home.com" required><button class="key" type="submit">Get early access</button></div>
+<div class="turnstile"></div>
+<p class="error" role="alert"></p>
+<p class="fine">Say your first widget if you like. Free while it's early: one short email a month about what shipped, and your invite. Leave any time.</p>
+</form>
+<div class="done" hidden><span class="caret" data-pose="jump" data-eyes="happy" data-moon="1"></span><h3>Check your inbox.</h3><p>Tap the link we sent to hold your spot. Then you'll get a link to bring your people.</p></div>
+</div>
+<div class="scene" data-scene="join"></div>
+<div class="foot"><span>Widgie, built in public by Krutik. Made for the people you live with.</span><span><a href="/privacy">Privacy</a><a href="mailto:hello@widgie.krutikpatel.dev">Contact</a></span></div>
+</section>
+</main>
+</body>
+</html>

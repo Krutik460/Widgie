@@ -1,0 +1,29 @@
+{
+    "name": "widgie-site",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "wrangler dev",
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit",
+        "lint": "biome check .",
+        "migrate": "wrangler d1 migrations apply widgie-site --remote",
+        "deploy": "wrangler deploy",
+        "pages": "node pages/build.mjs"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.6.8",
+        "@cloudflare/vitest-plugin": "1.9.0",
+        "@cloudflare/workers-types": "5.20261123.1",
+        "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+        "typescript": "7.0.2",
+        "vitest": "5.1.1",
+        "wrangler": "4.166.0"
+    },
+    "allowScripts": {
+        "workerd@1.20260815.1": true,
+        "workerd@1.20261119.1": true,
+        "esbuild@0.28.1": true,
+        "esbuild@0.28.2": true
+    }
+}

@@ -27,3 +27,19 @@
 **Rule.** "Like X apps" can mean "as distinct as X", not "styled like X". When the user named the cat apps, they meant apps with their own identity, and confirmed Widgie needs its own, not a copied genre look. Ask which one is meant before briefing design. Then build from one ownable idea about the product itself. A palette, a button style, and a mascot drawn from primitives is a template, not an identity.
 
 **Rule.** Before any visual direction goes to the user, ask whether it looks like a person drew it or like an AI template. Redo anything that reads as the second.
+
+## 2026-11-23. A marketing site needs the product moment, not a tidy template
+
+**What happened.** The first landing pages used the right tokens: sky blue, the caret, soft chips, two flat widgets side by side. The user asked to rethink the phone screens around the ICP examples and make the site have "a lot of character".
+
+**Rule.** For anything people see first, lead with the one moment only this product has (here: a sentence turning into a working widget on a real home screen) and give the character a job in it. Tokens and a mascot standing beside the content are not character.
+
+**Rule.** Use the research's own examples as the content (baby feeds red after 3 hours, the bins rota, a countdown with a real date), so each audience recognises its own life in the first screen.
+
+## 2026-11-23. "Agency-made" means a world, not a nicer page
+
+**What happened.** The second pass had the product moment (the caret building widgets on a phone) but still sat inside a standard landing layout: hero, three steps, form. The user called it "very first draft type" and asked for a site that feels made by a design agency, where "you have entered our world".
+
+**Rule.** For brand-facing pages, decide the world's rules first and apply them everywhere: here the caret is wherever a cursor would be (the pointer, the end of every headline, the typing in the bubble), and the sky changes with the time of day as you scroll. Then pick a display face of its own and let type carry the scale.
+
+**Rule.** Give the visitor something to do that the brand would do: typing a widget and seeing it built beats reading about it, and what they type feeds the research.
