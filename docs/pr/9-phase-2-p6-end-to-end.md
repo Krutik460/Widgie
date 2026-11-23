@@ -1,4 +1,4 @@
-# PR draft: run the app flow end to end, record the numbers, and fix what it showed
+# PR 9: run the app flow end to end, record the numbers, and fix what it showed
 
 Branch `phase-2-p6-end-to-end` into `main`. This is P6 of [tasks/phase-2-app-flow.md](../../tasks/phase-2-app-flow.md), the last unit of the phase 2 app flow plan. It runs the whole loop through the real app on the simulator, records each build in a table, measures the widget extension's memory, and fixes the visual flaws the run turned up. The look is The Caret in Sky ([docs/design/app-feel/README.md](../design/app-feel/README.md)).
 
