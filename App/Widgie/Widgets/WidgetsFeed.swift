@@ -153,7 +153,7 @@ struct WidgetsFeed: View {
         .padding(.top, 6)
     }
 
-    /// In debug builds, a long press on the title installs a reference widget.
+    /// In debug builds, a long press on the title installs a reference widget or captures attestation fixtures.
     @ViewBuilder private func title(_ words: String) -> some View {
         let title = Text(words).display(size: 40).accessibilityAddTraits(.isHeader)
         #if DEBUG
@@ -164,6 +164,9 @@ struct WidgetsFeed: View {
                             Task { if let id = await library.install(fixture.folder) { added(id) } }
                         }
                     }
+                }
+                Section("Backend") {
+                    Button("Capture attestation fixtures") { Task { await AttestCapture.run() } }
                 }
             }
         #else

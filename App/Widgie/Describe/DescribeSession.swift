@@ -50,13 +50,15 @@ final class DescribeSession {
         case unopened
         /// This build names no model service.
         case unavailable
+        /// This install used up today's builds.
+        case dailyLimit
 
-        /// Whether running the same work again can help. Rewording, a store that refused the draft, or a build without
-        /// a model service cannot.
+        /// Whether running the same work again can help. Rewording, a store that refused the draft, a build without
+        /// a model service, or a spent daily limit cannot.
         var retryable: Bool {
             switch self {
             case .unreachable, .refused, .interrupted, .broken: true
-            case .gaveUp, .unsaved, .unopened, .unavailable: false
+            case .gaveUp, .unsaved, .unopened, .unavailable, .dailyLimit: false
             }
         }
 
@@ -70,6 +72,7 @@ final class DescribeSession {
             case .broken: "Something went wrong on this phone."
             case .unopened: "I couldn’t open that widget."
             case .unavailable: "Building widgets is not available in this build."
+            case .dailyLimit: "That’s all I can build today."
             }
         }
     }
@@ -143,7 +146,7 @@ final class DescribeSession {
 
     /// A draft starts on its empty data, as the saved widget will, so a new pet tracker says "Not fed".
     init(
-        _ origin: Origin = .nothing, model: (any WidgetModel)? = BridgeModel.configured,
+        _ origin: Origin = .nothing, model: (any WidgetModel)? = ModelService.configured,
         preview: Preview = Preview(startsEmpty: true),
         sharedWritesOpen: @escaping @MainActor () async -> Void = SharedWrites.open
     ) {
@@ -432,6 +435,12 @@ final class DescribeSession {
         } catch let error as URLError {
             log.error("the model service gave no answer: \(error.localizedDescription, privacy: .public)")
             return .failed(.unreachable)
+        } catch let error as AttestedModel.Unreachable {
+            log.error("the model service gave no answer: \(error.description, privacy: .public)")
+            return .failed(.unreachable)
+        } catch let error as AttestedModel.Refused where error.code == "daily-quota" {
+            log.info("the daily limit was reached: \(error.description, privacy: .public)")
+            return .failed(.dailyLimit)
         } catch {
             log.error("the model service failed: \(String(describing: error), privacy: .public)")
             return .failed(.refused)

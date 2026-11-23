@@ -76,8 +76,7 @@ struct RenderTool {
           at most three attempts in all. Prints each step on stderr with the seconds since the start,
           then the seconds each attempt spent with the model and in the build. Prints one line on
           stdout: "accepted in <n> attempts", or "gave up after 3 attempts: " and the last verdict. On
-          acceptance, writes the saved widget to <out dir> as a widget dir. When WIDGIE_BRIDGE_TOKEN is
-          set, sends it as a bearer token, which the dev Worker asks for while its operator gate stands.
+          acceptance, writes the saved widget to <out dir> as a widget dir.
 
         REFINE MODE
           Runs what the app runs when a person refines a widget. Builds the old widget into a scratch
@@ -489,7 +488,7 @@ private struct LoopRun {
         }
         words = options.positional[1]
         output = URL(filePath: options.positional[2])
-        self.bridge = BridgeModel(base: url, token: ProcessInfo.processInfo.environment["WIDGIE_BRIDGE_TOKEN"])
+        self.bridge = BridgeModel(base: url)
         self.calendar = calendar
     }
 

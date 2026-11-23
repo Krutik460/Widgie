@@ -120,6 +120,15 @@ Depends on D0 (signing) and B1.
 - [ ] App, failures: a 429 `daily-quota` becomes its own failure with its own message, and any other 429 stays a refusal (the one new piece of copy, through the review gate). The Debug hint names the endpoint the build is using instead of always saying "the bridge".
 - [ ] Debug-only fixture capture: a hidden action in the Debug build runs the real `AttestedModel` against `dev` and writes the key id, challenge, attestation, capture time, and two signed requests with their exact bytes to the app's Documents, copied off with `xcrun devicectl device copy from`.
 
+**B2 wire protocol (2026-11-23).** Both sides build exactly these bytes.
+
+- **Key id.** The base64 string `DCAppAttestService.generateKey()` returns: standard base64 of `SHA256` of the key's X9.62 uncompressed public point, 44 characters. It names the key's `AttestedKey` object, and the Worker refuses any other shape.
+- **Challenge.** `POST /v1/attest/challenge` with `{"keyId": "<key id>"}` answers `{"challenge": "<43 base64url characters of 32 random bytes>"}`. The app attests with `clientDataHash = SHA256(UTF-8 of the challenge string)`.
+- **Attestation.** `POST /v1/attest` with `{"keyId", "challenge", "attestation": "<standard base64 of the attestation object>"}` answers 204. The object is Apple's CBOR map: `fmt`, `attStmt` with `x5c` and `receipt`, and `authData`. The receipt is not checked.
+- **Signed request.** Each `/v1/reply` carries `X-Widgie-Key: <key id>` and `X-Widgie-Assertion: <standard base64 of the assertion>`. The client data is the UTF-8 of `METHOD + "\n" + PATH + "\n" + lowercase hex SHA256(body bytes)`, for example `POST\n/v1/reply\n9f86...`. The app asks for an assertion over `SHA256(client data)`. The assertion is Apple's CBOR map of `signature` (DER ECDSA) and `authenticatorData`.
+- **Verifying an assertion.** `nonce = SHA256(authenticatorData ‖ SHA256(client data))`, and the signature is ECDSA P-256 with SHA-256 over `nonce` as the message, so WebCrypto's `verify` gets `nonce` as its data. The captured fixtures confirm this before B2 merges.
+- **Errors.** `{"error": "<line>", "code": "<code>"}`. Codes: `unknown-key` (401, the app attests again), `bad-assertion` (401, the build fails, the key stays), `bad-attestation` (401), `attested` (409), `daily-quota` (429), `rate-limited` (429).
+
 Verify.
 - [ ] Unit, Worker: the verifier passes on the captured fixtures at their capture time and fails on an expired chain and on each numbered check. DO tests: two concurrent requests with the same counter, one passes; with the quota var at 2, the third call is 429; an alarm that fires after attestation leaves the key and its counter; a second attestation of an attested key is 409.
 - [ ] Unit, app (`WidgieTests`, key store, attestor, and transport injected, so no test touches the real Keychain): `invalidKey` attests again and succeeds; `unknown-key` attests again once and stops; `bad-assertion` keeps the key; `serverUnavailable` keeps the pending key; 429 `daily-quota` becomes the new failure and another 429 does not; two concurrent calls attest once.
