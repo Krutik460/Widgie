@@ -46,13 +46,13 @@ final class DescribeSession: Identifiable {
 
         var title: String {
             switch self {
-            case .unreachable: "Couldn't reach the widget builder."
+            case .unreachable: "Couldn’t reach the widget builder."
             case .refused: "The widget builder ran into a problem."
-            case .gaveUp: "I couldn't make that work."
-            case .unsaved: "I couldn't save this widget."
+            case .gaveUp: "I couldn’t make that work."
+            case .unsaved: "I couldn’t save this widget."
             case .interrupted: "The build stopped in the background."
             case .broken: "Something went wrong on this phone."
-            case .unopened: "I couldn't open that widget."
+            case .unopened: "I couldn’t open that widget."
             case .unavailable: "Building widgets is not available in this build."
             }
         }

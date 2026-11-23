@@ -78,7 +78,7 @@ struct FormSheet: View {
 
     private func hint(_ problem: FormDraft.Problem) -> String {
         switch problem {
-        case .empty: "Can't be empty"
+        case .empty: "Can’t be empty"
         case .notANumber: "Enter a number, like \(draft.format.text(12.5))"
         case .tooLong: "Keep it to \(InputField.textLimit) characters or fewer"
         }

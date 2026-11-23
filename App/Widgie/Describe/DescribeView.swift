@@ -247,7 +247,7 @@ struct PhotoButton: View {
             unreadable = loaded == nil
             self.item = nil
         }
-        .alert("That photo didn't load.", isPresented: $unreadable) {
+        .alert("That photo didn’t load.", isPresented: $unreadable) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Try another one.")
