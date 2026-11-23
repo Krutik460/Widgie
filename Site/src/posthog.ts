@@ -10,23 +10,27 @@ const API_HOST = "https://us.i.posthog.com";
 const ASSET_HOST = "https://us-assets.i.posthog.com";
 
 /// Forwards one SDK request. Scripts and remote config come from the assets host, everything else from the API host.
-/// Cookies and any credential but a PostHog key are dropped, and PostHog sees the visitor's address rather than this
-/// Worker's, so location and bot filtering still work.
+/// Cookies and credentials are dropped both ways (the browser SDK sends none, so PostHog's private API stays out of
+/// reach), the body streams through untouched, and PostHog sees the visitor's address rather than this Worker's, so
+/// location and bot filtering still work.
 export async function forward(request: Request, fetcher: typeof fetch): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname.slice(PROXY_PREFIX.length) || "/";
     const host = path.startsWith("/static/") || path.startsWith("/array/") ? ASSET_HOST : API_HOST;
     const headers = new Headers(request.headers);
     headers.delete("cookie");
-    if (!/^Bearer ph[csx]_/.test(headers.get("authorization") ?? "")) headers.delete("authorization");
+    headers.delete("authorization");
     headers.set("X-Forwarded-For", request.headers.get("CF-Connecting-IP") ?? "");
     const hasBody = request.method !== "GET" && request.method !== "HEAD";
-    return fetcher(`${host}${path}${url.search}`, {
+    const response = await fetcher(`${host}${path}${url.search}`, {
         method: request.method,
         headers,
-        body: hasBody ? await request.arrayBuffer() : null,
+        body: hasBody ? request.body : null,
         redirect: "manual",
     });
+    const answer = new Response(response.body, response);
+    answer.headers.delete("set-cookie");
+    return answer;
 }
 
 export interface ServerEvent {
@@ -46,7 +50,13 @@ export async function capture(key: string, fetcher: typeof fetch, now: Date, eve
             event: event.event,
             distinct_id: event.distinctId,
             timestamp: now.toISOString(),
-            properties: { ...event.properties, $process_person_profile: false, $lib: "widgie-site" },
+            // No GeoIP: the only address PostHog would see is this Worker's.
+            properties: {
+                ...event.properties,
+                $process_person_profile: false,
+                $geoip_disable: true,
+                $lib: "widgie-site",
+            },
         }),
     });
     if (!response.ok) throw new Error(`posthog answered ${response.status}`);

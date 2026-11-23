@@ -102,6 +102,7 @@ async function row(email: string) {
         idea: string | null;
         source: string | null;
         visitor: string | null;
+        content: string | null;
         sent_at: string;
         confirmed_at: string | null;
     }>();
@@ -124,7 +125,10 @@ describe("parseSignup", () => {
             email: "me@example.com",
             segment: "partners",
             source: "tiktok",
-            attribution: { medium: null, campaign: null, content: null, referrer: null },
+            medium: null,
+            campaign: null,
+            content: null,
+            referrer: null,
             visitor: null,
             turnstile: "t",
         });
@@ -142,14 +146,15 @@ describe("parseSignup", () => {
         };
         expect(parseSignup(body)).toMatchObject({
             source: "reddit",
-            attribution: { medium: "community", campaign: "bip", content: "longdistance", referrer: "www.reddit.com" },
+            medium: "community",
+            campaign: "bip",
+            content: "longdistance",
+            referrer: "www.reddit.com",
             visitor: "019a8f3e-1c2d-7e4f-8a9b-0c1d2e3f4a5b",
         });
         expect(parseSignup({ ...valid, visitor: "<script>" })).toMatchObject({ visitor: null });
         expect(parseSignup({ ...valid, visitor: 42 })).toMatchObject({ visitor: null });
-        expect(parseSignup({ ...valid, content: "x".repeat(500) })).toMatchObject({
-            attribution: { content: "x".repeat(100) },
-        });
+        expect(parseSignup({ ...valid, content: "x".repeat(500) })).toMatchObject({ content: "x".repeat(100) });
     });
 
     it("treats a body without a segment as a signup for anyone", () => {
@@ -379,9 +384,10 @@ describe("PostHog events from the server", () => {
                 first_content: "longdistance",
                 $host: "widgie.krutikpatel.dev",
                 $process_person_profile: false,
+                $geoip_disable: true,
             },
         });
-        expect((await row(email))?.visitor).toBe(visitor);
+        expect(await row(email)).toMatchObject({ visitor, source: "reddit", content: "longdistance" });
     });
 
     it("never sends an email address", async () => {
@@ -417,7 +423,7 @@ describe("PostHog events from the server", () => {
     it("sends waitlist_confirmed once, with the hours it took, even when the link is opened twice", async () => {
         const s = services();
         const { email } = fresh();
-        await signUp(s, { email, segment: "growth", source: "x", visitor });
+        await signUp(s, { email, segment: "growth", source: "x", content: "first-widget", visitor });
         const link = linkIn(s.sent[0], "/confirm");
         s.advance(90 * 60_000);
         await handle(new Request(link), env, s.deps);
@@ -428,7 +434,7 @@ describe("PostHog events from the server", () => {
         expect(confirms).toHaveLength(1);
         expect(confirms[0]).toMatchObject({
             distinct_id: visitor,
-            properties: { segment: "growth", first_source: "x", hours_to_confirm: 1.5 },
+            properties: { segment: "growth", first_source: "x", first_content: "first-widget", hours_to_confirm: 1.5 },
         });
     });
 
@@ -496,7 +502,7 @@ describe("/hop, the PostHog proxy", () => {
         const { url, init } = s.forwarded[0] ?? { url: "", init: undefined };
         expect(url).toBe("https://us.i.posthog.com/e/?ip=0&ver=1.300.0");
         expect(init?.method).toBe("POST");
-        expect(new TextDecoder().decode(init?.body as ArrayBuffer)).toBe('{"event":"$pageview"}');
+        expect(await new Response(init?.body).text()).toBe('{"event":"$pageview"}');
         const headers = new Headers(init?.headers);
         expect(headers.get("X-Forwarded-For")).toBe("203.0.113.7");
         expect(headers.get("Cookie")).toBeNull();
@@ -504,10 +510,32 @@ describe("/hop, the PostHog proxy", () => {
         expect(headers.get("Content-Type")).toBe("application/json");
     });
 
-    it("keeps a PostHog key in the authorization header", async () => {
+    it("drops even a PostHog key, so the private API cannot be reached through the site", async () => {
         const s = services();
-        await handle(hop("/flags/?v=2", { method: "POST", headers: { Authorization: "Bearer phc_abc" } }), env, s.deps);
-        expect(new Headers(s.forwarded[0]?.init?.headers).get("Authorization")).toBe("Bearer phc_abc");
+        await handle(
+            hop("/api/projects/@current/", { headers: { Authorization: "Bearer phx_personal" } }),
+            env,
+            s.deps,
+        );
+        expect(new Headers(s.forwarded[0]?.init?.headers).get("Authorization")).toBeNull();
+    });
+
+    it("passes a gzipped body through byte for byte, and never sets a cookie on our domain", async () => {
+        const s = services();
+        const gzip = new Uint8Array([0x1f, 0x8b, 0x08, 0x00, 0xff, 0x00, 0x80, 0x7f]);
+        s.fetcher.mockImplementationOnce(async (input, init) => {
+            s.forwarded.push({ url: String(input), init });
+            const bytes = new Uint8Array(await new Response(init?.body).arrayBuffer());
+            return new Response(bytes, { headers: { "Set-Cookie": "ph=1", "Content-Type": "text/plain" } });
+        });
+        const response = await handle(
+            hop("/e/?compression=gzip-js", { method: "POST", body: gzip, headers: { "Content-Type": "text/plain" } }),
+            env,
+            s.deps,
+        );
+        expect(new Uint8Array(await response.arrayBuffer())).toEqual(gzip);
+        expect(response.headers.get("Set-Cookie")).toBeNull();
+        expect(s.forwarded[0]?.url).toBe("https://us.i.posthog.com/e/?compression=gzip-js");
     });
 
     it("fetches the SDK's scripts and remote config from the assets host", async () => {
@@ -519,6 +547,27 @@ describe("/hop, the PostHog proxy", () => {
             "https://us-assets.i.posthog.com/array/phc_test/config.js",
         ]);
         expect(s.forwarded[0]?.init?.body).toBeNull();
+    });
+});
+
+describe("short links for posts", () => {
+    it.each([
+        ["/go/x/first-widget", "/?utm_source=x&utm_content=first-widget"],
+        ["/go/reddit", "/?utm_source=reddit"],
+        ["/partners/reddit/longdistance", "/partners?utm_source=reddit&utm_content=longdistance"],
+        ["/growth/x", "/growth?utm_source=x"],
+    ])("%s redirects to %s", async (path, target) => {
+        const response = await handle(new Request(`${SITE}${path}`, { redirect: "manual" }), env, services().deps);
+        expect(response.status).toBe(302);
+        expect(
+            new URL(response.headers.get("Location") ?? "", SITE).pathname +
+                new URL(response.headers.get("Location") ?? "", SITE).search,
+        ).toBe(target);
+    });
+
+    it("leaves the pages themselves alone", async () => {
+        const response = await handle(new Request(`${SITE}/partners`), env, services().deps);
+        expect(response.status).toBe(200);
     });
 });
 
