@@ -78,7 +78,8 @@ import WidgetEngine
         #expect(draft.submission().invalid.isEmpty)
 
         draft.toggles["done"] = true
-        draft.dates["due"] = try #require(paris.date(from: DateComponents(year: 2026, month: 11, day: 24, hour: 15)))
+        let due = try #require(paris.date(from: DateComponents(year: 2026, month: 11, day: 24, hour: 15)))
+        draft.dates["due"] = due
         #expect(draft.submission().input == ["done": .toggle(true), "due": .date(year: 2026, month: 11, day: 24)])
 
         let today = Date.now
