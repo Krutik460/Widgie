@@ -162,7 +162,14 @@ private struct Figure: View, Animatable {
     }
 
     var body: some View {
-        Canvas { context, _ in draw(in: &context) }
+        // The round foot cap reaches below the square, and the draw pose's tip past its side, so the canvas
+        // overhangs the frame the caret takes in layout instead of clipping them.
+        let overhang = size * 0.25
+        Canvas { context, _ in
+            context.translateBy(x: overhang, y: overhang)
+            draw(in: &context)
+        }
+        .padding(-overhang)
     }
 
     private func draw(in context: inout GraphicsContext) {
