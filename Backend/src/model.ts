@@ -1,11 +1,15 @@
-// One model call through OpenRouter: the build prompt as a cached system message and one user turn. Phase 3's
-// scheduler calls this too, so it knows nothing about HTTP routes.
+// One model call to an OpenAI-compatible chat completions endpoint: Bedrock Mantle on the user's AWS account, or
+// OpenRouter. The build prompt goes as a cached system message, then one user turn. Phase 3's scheduler calls this
+// too, so it knows nothing about HTTP routes.
 
 import type { UserTurn } from "./request";
 
 export interface ModelSettings {
+    /// The chat completions URL.
+    url: string;
     apiKey: string;
     model: string;
+    /// OpenRouter only: the one provider every call goes to. Empty for an endpoint that serves the model itself.
     provider: string;
 }
 
@@ -30,7 +34,6 @@ export class ModelFailure extends Error {
     }
 }
 
-export const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 export const MAX_TOKENS = 16_000;
 /// Under the app's 120 s request timeout, so the app always gets the Worker's answer instead of its own timeout.
 export const DEADLINE_MS = 95_000;
@@ -50,9 +53,11 @@ export function requestBody(settings: ModelSettings, system: string, turn: UserT
             { role: "system", content: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] },
             { role: "user", content },
         ],
-        // One provider and no fallbacks, so every call reads the same prompt cache.
-        provider: { order: [settings.provider], allow_fallbacks: false },
-        usage: { include: true },
+        // On OpenRouter: one provider and no fallbacks, so every call reads the same prompt cache, and the cost.
+        ...(settings.provider && {
+            provider: { order: [settings.provider], allow_fallbacks: false },
+            usage: { include: true },
+        }),
     };
 }
 
@@ -68,7 +73,7 @@ export async function callModel(
     let raw: string;
     let status: number;
     try {
-        const response = await fetcher(ENDPOINT, {
+        const response = await fetcher(settings.url, {
             method: "POST",
             headers: { Authorization: `Bearer ${settings.apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify(requestBody(settings, system, turn)),

@@ -35,9 +35,9 @@
     "document": "{\"a\": 1}"
   },
   {
-    "name": "an indented fence does not open a block",
+    "name": "a fence and document indented by two spaces",
     "reply": "  ```json\n  {\"a\": 1}\n  ```",
-    "document": "```json\n  {\"a\": 1}\n  ```"
+    "document": "{\"a\": 1}"
   },
   {
     "name": "windows line breaks",
@@ -123,5 +123,20 @@
     "name": "only LF ends a line, not a vertical tab, form feed, or next line",
     "reply": "```json\n{\"a\":\u000b1,\f\"b\":2}\n```",
     "document": "{\"a\":\u000b1,\f\"b\":2}"
+  },
+  {
+    "name": "an opening fence indented by a space, as Kimi K2.5 writes it",
+    "reply": " ```json\n{\"name\": \"Water\"}\n```",
+    "document": "{\"name\": \"Water\"}"
+  },
+  {
+    "name": "an opening fence indented by three spaces",
+    "reply": "Here:\n   ```json\n{\"a\": 1}\n```",
+    "document": "{\"a\": 1}"
+  },
+  {
+    "name": "a fence indented by four spaces does not open a block",
+    "reply": "    ```json\n{\"a\": 1}\n    ```",
+    "document": "```json\n{\"a\": 1}\n    ```"
   }
 ]

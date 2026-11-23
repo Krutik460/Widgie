@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import invalid from "../../Engine/Evals/testdata/invalid-requests.json";
 import requests from "../../Engine/Evals/testdata/requests.json";
-import { requestBody } from "../src/openrouter";
+import { requestBody } from "../src/model";
 import { BadRequest, kindOf, LIMITS, userTurn } from "../src/request";
 
-const settings = { apiKey: "k", model: "anthropic/claude-sonnet-5.5", provider: "amazon-bedrock" };
+const openrouter = {
+    url: "https://openrouter.test/v1/chat/completions",
+    apiKey: "k",
+    model: "anthropic/claude-sonnet-5.5",
+    provider: "amazon-bedrock",
+};
+const mantle = { ...openrouter, model: "moonshotai.kimi-k2.5", provider: "" };
 
 describe("userTurn", () => {
     it("refuses each malformed request with the same line as model.py", () => {
@@ -41,6 +47,14 @@ describe("userTurn", () => {
         expect(kindOf([])).toBe("-");
     });
 
+    it("takes base64 as strictly as Python's decoder", () => {
+        const picture = (base64: string) => () => userTurn({ words: "a", image: { mime: "image/png", base64 } });
+        for (const good of ["AAAA", "AA==", "AAA=", "ab+/"]) expect(picture(good), good).not.toThrow();
+        for (const bad of ["AAA", "A===", "AA AA", "AAAA\n", "AA=A", "AA-_"]) {
+            expect(picture(bad), bad).toThrow('"image" must hold "base64" image data');
+        }
+    });
+
     it("refuses a field longer than its limit", () => {
         const long = (n: number) => "a".repeat(n + 1);
         expect(() => userTurn({ words: long(LIMITS.words) })).toThrow(`"words" is longer than ${LIMITS.words}`);
@@ -55,8 +69,8 @@ describe("userTurn", () => {
 });
 
 describe("requestBody", () => {
-    it("caches the system prompt, pins one provider, and asks for usage", () => {
-        const body = requestBody(settings, "SYSTEM", userTurn(requests.create));
+    it("caches the system prompt, and on OpenRouter pins one provider and asks for usage", () => {
+        const body = requestBody(openrouter, "SYSTEM", userTurn(requests.create));
         expect(body.messages[0]).toEqual({
             role: "system",
             content: [{ type: "text", text: "SYSTEM", cache_control: { type: "ephemeral" } }],
@@ -67,9 +81,16 @@ describe("requestBody", () => {
         expect(body).not.toHaveProperty("reasoning");
     });
 
+    it("sends no OpenRouter fields to an endpoint that serves the model itself", () => {
+        const body = requestBody(mantle, "SYSTEM", userTurn(requests.create));
+        expect(body.model).toBe("moonshotai.kimi-k2.5");
+        expect(body).not.toHaveProperty("provider");
+        expect(body).not.toHaveProperty("usage");
+    });
+
     it("sends a picture as a data URL before the words", () => {
         const request = requests["create-image"];
-        const body = requestBody(settings, "SYSTEM", userTurn(request));
+        const body = requestBody(mantle, "SYSTEM", userTurn(request));
         expect(body.messages[1]?.content).toEqual([
             { type: "image_url", image_url: { url: `data:${request.image.mime};base64,${request.image.base64}` } },
             { type: "text", text: request.words },

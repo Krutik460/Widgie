@@ -3,7 +3,7 @@
 
 import { readCapped, TooLarge } from "./body";
 import prompt from "./build-prompt.txt";
-import { callModel, ModelFailure } from "./openrouter";
+import { callModel, ModelFailure } from "./model";
 import { BadRequest, kindOf, userTurn } from "./request";
 
 export type Env = Cloudflare.Env;
@@ -66,7 +66,7 @@ async function reply(request: Request, env: Env, deps: Dependencies): Promise<Re
         throw error;
     }
 
-    const settings = { apiKey: env.OPENROUTER_API_KEY, model: env.MODEL, provider: env.PROVIDER };
+    const settings = { url: env.MODEL_URL, apiKey: env.MODEL_API_KEY, model: env.MODEL, provider: env.PROVIDER };
     const called = Date.now();
     try {
         const result = await callModel(settings, prompt, turn, deps.fetch, deps.deadlineMs);

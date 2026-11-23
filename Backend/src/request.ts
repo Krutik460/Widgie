@@ -18,7 +18,6 @@ export class BadRequest extends Error {}
 
 const FIELDS = new Set(["words", "image", "current", "repair"]);
 const MEDIA_TYPES = ["image/jpeg", "image/png"];
-const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 // Far above anything the app sends: a person's words, or a stored document of a few kilobytes. They keep one
 // request from filling the model's context. The Python bridge has none, so only Vitest covers them.
@@ -74,12 +73,23 @@ export function userTurn(request: unknown): UserTurn {
     if (!isObject(image) || typeof image.mime !== "string" || !MEDIA_TYPES.includes(image.mime)) {
         throw new BadRequest(`"image" must hold a "mime" of ${MEDIA_TYPES.join(" or ")}`);
     }
-    // Checked by shape, not decoded, so a picture costs no decode CPU. Python's strict decode accepts the same set.
     const data = image.base64;
-    if (typeof data !== "string" || data === "" || !BASE64.test(data)) {
-        throw new BadRequest('"image" must hold "base64" image data');
-    }
+    if (typeof data !== "string" || !isBase64(data)) throw new BadRequest('"image" must hold "base64" image data');
     return { text, image: { mime: image.mime, base64: data } };
+}
+
+/// The set Python's strict `b64decode(validate=True)` accepts. `atob` is native: a regex over a picture's 170 KB
+/// runs in V8's regex interpreter on a fresh isolate and costs about 5 ms of the free plan's 10 ms of CPU.
+function isBase64(data: string): boolean {
+    if (data === "" || data.length % 4 !== 0) return false;
+    // atob skips ASCII whitespace; the strict decode refuses it.
+    if ([" ", "\t", "\n", "\f", "\r"].some((space) => data.includes(space))) return false;
+    try {
+        atob(data);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 function capped(name: string, value: string, limit: number) {

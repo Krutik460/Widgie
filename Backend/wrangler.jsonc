@@ -1,16 +1,26 @@
 // The top level is production. Environments inherit no vars, secrets, or bindings, so each declares its own.
-// Secrets per environment: OPENROUTER_API_KEY, and OPERATOR_TOKEN on dev only, until B2 removes it.
+// Secrets per environment: MODEL_API_KEY, and OPERATOR_TOKEN on dev only, until B2 removes it.
+// The model service is Bedrock Mantle on the user's AWS account. For OpenRouter instead, set MODEL_URL to
+// https://openrouter.ai/api/v1/chat/completions, MODEL to its slug, and PROVIDER to the provider to pin.
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "widgie",
     "main": "src/index.ts",
     "compatibility_date": "2026-08-15",
     "observability": { "enabled": true },
-    "vars": { "MODEL": "anthropic/claude-sonnet-5.5", "PROVIDER": "amazon-bedrock" },
+    "vars": {
+        "MODEL_URL": "https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions",
+        "MODEL": "moonshotai.kimi-k2.5",
+        "PROVIDER": ""
+    },
     "env": {
         "dev": {
             "name": "widgie-dev",
-            "vars": { "MODEL": "anthropic/claude-sonnet-5.5", "PROVIDER": "amazon-bedrock" }
+            "vars": {
+                "MODEL_URL": "https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions",
+                "MODEL": "moonshotai.kimi-k2.5",
+                "PROVIDER": ""
+            }
         }
     }
 }

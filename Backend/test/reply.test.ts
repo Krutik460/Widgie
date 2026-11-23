@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import requests from "../../Engine/Evals/testdata/requests.json";
 import prompt from "../src/build-prompt.txt";
 import { handle, MAX_BODY } from "../src/index";
-import { ENDPOINT } from "../src/openrouter";
 
 const ANSWER = {
     model: "anthropic/claude-sonnet-5.5",
@@ -112,11 +111,11 @@ describe("the model call", () => {
         expect(typeof body.seconds).toBe("number");
 
         const [url, init] = fetcher.mock.calls[0] ?? [];
-        expect(url).toBe(ENDPOINT);
+        expect(url).toBe(env.MODEL_URL);
         expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-key");
         const sent = JSON.parse(String(init?.body));
         expect(sent.model).toBe(env.MODEL);
-        expect(sent.provider).toEqual({ order: [env.PROVIDER], allow_fallbacks: false });
+        expect(sent).not.toHaveProperty("provider");
         expect(sent.messages[0].content[0].text).toBe(prompt);
     });
 
