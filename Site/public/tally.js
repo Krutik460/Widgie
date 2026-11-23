@@ -3,80 +3,29 @@
 // (src/posthog.ts), so blockers that know PostHog's hosts let them through. A local dev server sends nothing unless
 // the URL has ?tally.
 
+import { touchOf } from "/channels.js";
+
 const KEY = "phc_Aj3Mbof3qJ2N455cGitXopyyY9dY3B2hbnrTLjJvszKF";
 const FIRST_TOUCH = "widgie.first";
+// Pages reached only from our own emails. They carry signed links (a leave token must never reach analytics), and an
+// email client's referrer would credit the wrong channel, so they record nothing. The server counts confirm and leave.
+const EMAIL_PAGES = ["/confirmed", "/leave", "/link-expired"];
 
-const params = new URLSearchParams(location.search);
+const emailPage = EMAIL_PAGES.includes(location.pathname);
 const local = ["localhost", "127.0.0.1"].includes(location.hostname);
-const enabled = !local || params.has("tally");
+const enabled = (!local || new URLSearchParams(location.search).has("tally")) && !emailPage;
 
 // ---------- Where the visitor came from ----------
 
-// Referrers that arrive without UTM tags (a copied link, an app's in-app browser) still get a channel name.
-const CHANNELS = [
-    [/(^|\.)(x|twitter)\.com$|^t\.co$/, "x"],
-    [/(^|\.)reddit\.com$|^redd\.it$/, "reddit"],
-    [/(^|\.)producthunt\.com$/, "producthunt"],
-    [/^news\.ycombinator\.com$/, "hn"],
-    [/(^|\.)indiehackers\.com$/, "indiehackers"],
-    [/(^|\.)linkedin\.com$|^lnkd\.in$/, "linkedin"],
-    [/(^|\.)threads\.(net|com)$/, "threads"],
-    [/(^|\.)bsky\.app$/, "bluesky"],
-    [/(^|\.)(tiktok|instagram|youtube|facebook)\.com$/, (host) => host.replace(/^(www|m|l|lm)\./, "").split(".")[0]],
-    [/(^|\.)google\./, "google"],
-];
-const MEDIUMS = {
-    x: "social",
-    linkedin: "social",
-    threads: "social",
-    bluesky: "social",
-    facebook: "social",
-    reddit: "community",
-    hn: "community",
-    indiehackers: "community",
-    producthunt: "launch",
-    tiktok: "video",
-    instagram: "video",
-    youtube: "video",
-    google: "search",
-    email: "email",
-};
-
-function channelOf(host) {
-    for (const [pattern, name] of CHANNELS) {
-        if (pattern.test(host)) return typeof name === "function" ? name(host) : name;
-    }
-    return host.replace(/^www\./, "");
-}
-
-/// This visit's own touch: UTM tags (or Product Hunt's ?ref), else the referring site. Null for a direct visit or a
-/// move between our own pages.
-function thisTouch() {
-    let referrer = "";
-    try {
-        const host = document.referrer ? new URL(document.referrer).hostname : "";
-        if (host && host !== location.hostname) referrer = host;
-    } catch {}
-    const source = (params.get("utm_source") || params.get("ref") || "").toLowerCase();
-    if (!source && !referrer) return null;
-    const channel = source || channelOf(referrer);
-    return {
-        first_source: channel,
-        first_medium: (params.get("utm_medium") || MEDIUMS[channel] || "referral").toLowerCase(),
-        first_campaign: params.get("utm_campaign")?.toLowerCase() || null,
-        first_content: params.get("utm_content")?.toLowerCase() || null,
-        first_referrer: referrer || null,
-    };
-}
-
-/// The first touch that brought this visitor, kept for good, so a signup days later still credits that post.
+/// The first touch that brought this visitor, kept so a signup days later still credits that post. (Safari clears
+/// storage a script set after 7 days without a visit, so on iPhones "kept" means about a week.)
 function firstTouch() {
     let kept = null;
     try {
         kept = JSON.parse(localStorage.getItem(FIRST_TOUCH) || "null");
     } catch {}
     if (kept) return kept;
-    const touch = thisTouch();
+    const touch = touchOf(location.search, document.referrer, location.hostname);
     if (touch) {
         try {
             localStorage.setItem(FIRST_TOUCH, JSON.stringify(touch));
@@ -85,7 +34,7 @@ function firstTouch() {
     return touch;
 }
 
-const first = firstTouch();
+const first = emailPage ? null : firstTouch();
 
 // ---------- PostHog ----------
 
@@ -107,6 +56,11 @@ if (enabled) {
             // Visitors stay anonymous: no person profiles, and nothing typed is ever recorded.
             person_profiles: "identified_only",
             session_recording: { maskAllInputs: true },
+            // The cookie belongs to this site alone, not every krutikpatel.dev site.
+            cross_subdomain_cookie: false,
+            // Never let an email or a signed link's parts into a recorded URL.
+            mask_personal_data_properties: true,
+            custom_personal_data_properties: ["email", "id", "t"],
         });
         // Every event carries the first touch, so any step of the funnel can be split by channel and by post.
         if (first) posthog.register(first);

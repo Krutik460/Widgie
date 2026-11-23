@@ -1,8 +1,11 @@
 // Behavior for every page: the toy box scenes and their motion, the sign-up form and the leave page.
 // A plain ES module, no build step; each part runs only when its elements are on the page.
 
-import { attribution, track } from "/tally.js";
 import { mountCaret, mountWidget, SCENES } from "/widgets.js";
+
+// Analytics loads on the side, so a blocked or broken tally.js can never stop the page.
+const tally = import("/tally.js").catch(() => null);
+const track = (event, properties) => void tally.then((analytics) => analytics?.track(event, properties));
 
 const TURNSTILE_SITE_KEY = ["localhost", "127.0.0.1"].includes(location.hostname)
     ? "1x00000000000000000000AA" // Cloudflare's always-pass test key
@@ -390,6 +393,8 @@ function setupForm(form) {
     const done = form.parentElement.querySelector(".done");
     const segment = form.dataset.segment || "any";
     const fail = (reason, status = null) => track("signup_failed", { segment, reason, status });
+    // The button ships disabled, so nothing submits (and puts the email in a URL) before this script runs.
+    button.disabled = false;
     form.addEventListener("input", () => track("signup_started", { segment }), { once: true });
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -409,7 +414,7 @@ function setupForm(form) {
                 body: JSON.stringify({
                     email: data.get("email"),
                     segment: form.dataset.segment || "",
-                    ...attribution(),
+                    ...(await tally)?.attribution(),
                     turnstile: token,
                 }),
             }).catch((failure) => {

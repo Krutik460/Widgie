@@ -65,13 +65,19 @@ function refuse(status: number, error: string) {
     return Response.json({ error }, { status });
 }
 
-interface SignupBody {
+/// Which visit and which post brought a person: the first touch's labels and their anonymous PostHog id.
+interface Attribution {
+    source: string | null;
+    medium: string | null;
+    campaign: string | null;
+    content: string | null;
+    referrer: string | null;
+    visitor: string | null;
+}
+
+interface SignupBody extends Attribution {
     email: string;
     segment: Segment;
-    source: string | null;
-    /// Where the visitor came from beyond the source; sent to PostHog, not stored.
-    attribution: { medium: string | null; campaign: string | null; content: string | null; referrer: string | null };
-    visitor: string | null;
     turnstile: string;
 }
 
@@ -90,18 +96,15 @@ export function parseSignup(raw: unknown): SignupBody | string {
     const segment = body.segment === undefined || body.segment === "" ? "any" : body.segment;
     if (segment !== "partners" && segment !== "growth" && segment !== "any") return "pick partners or growth";
     if (typeof body.turnstile !== "string" || body.turnstile === "") return "the check didn't load, reload the page";
-    const visitor = typeof body.visitor === "string" && VISITOR.test(body.visitor) ? body.visitor : null;
     return {
         email,
         segment,
         source: label(body.source, MAX_SOURCE),
-        attribution: {
-            medium: label(body.medium, MAX_ATTRIBUTION),
-            campaign: label(body.campaign, MAX_ATTRIBUTION),
-            content: label(body.content, MAX_ATTRIBUTION),
-            referrer: label(body.referrer, MAX_ATTRIBUTION),
-        },
-        visitor,
+        medium: label(body.medium, MAX_ATTRIBUTION),
+        campaign: label(body.campaign, MAX_ATTRIBUTION),
+        content: label(body.content, MAX_ATTRIBUTION),
+        referrer: label(body.referrer, MAX_ATTRIBUTION),
+        visitor: typeof body.visitor === "string" && VISITOR.test(body.visitor) ? body.visitor : null,
         turnstile: body.turnstile,
     };
 }
@@ -128,11 +131,22 @@ async function signup(request: Request, env: Env, deps: Dependencies): Promise<R
     const stamp = now.toISOString();
 
     const inserted = await env.DB.prepare(
-        `INSERT INTO signups (email, segment, source, visitor, created_at, sent_at)
-         VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id`,
+        `INSERT INTO signups (email, segment, source, medium, campaign, content, referrer, visitor, created_at, sent_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING ${LIST_COLUMNS}`,
     )
-        .bind(body.email, body.segment, body.source, body.visitor, stamp, stamp)
-        .first<{ id: number }>();
+        .bind(
+            body.email,
+            body.segment,
+            body.source,
+            body.medium,
+            body.campaign,
+            body.content,
+            body.referrer,
+            body.visitor,
+            stamp,
+            stamp,
+        )
+        .first<ListRow>();
 
     if (inserted) {
         const mail = confirmMail(
@@ -147,18 +161,7 @@ async function signup(request: Request, env: Env, deps: Dependencies): Promise<R
             await env.DB.prepare("DELETE FROM signups WHERE id = ?").bind(inserted.id).run();
             throw error;
         }
-        track(env, deps, {
-            event: "waitlist_joined",
-            distinctId: body.visitor ?? `signup_${inserted.id}`,
-            properties: {
-                segment: body.segment,
-                first_source: body.source,
-                first_medium: body.attribution.medium,
-                first_campaign: body.attribution.campaign,
-                first_content: body.attribution.content,
-                first_referrer: body.attribution.referrer,
-            },
-        });
+        track(env, deps, listEvent("waitlist_joined", inserted));
         return Response.json({ ok: true });
     }
 
@@ -205,21 +208,31 @@ function track(env: Env, deps: Dependencies, event: ServerEvent) {
     );
 }
 
-interface ListRow {
+/// The row's columns a list event needs. Never the email.
+const LIST_COLUMNS = "id, segment, source, medium, campaign, content, referrer, visitor, created_at, confirmed_at";
+
+interface ListRow extends Attribution {
     id: number;
     segment: Segment;
-    source: string | null;
-    visitor: string | null;
     created_at: string;
     confirmed_at: string | null;
 }
 
-/// The event's distinct id and the properties every list event carries.
+/// A list event under the visitor's own id, carrying the same first-touch properties as their browser events, so it
+/// joins their funnel and can be split by channel and by post.
 function listEvent(event: ServerEvent["event"], row: ListRow, extra: ServerEvent["properties"] = {}): ServerEvent {
     return {
         event,
         distinctId: row.visitor ?? `signup_${row.id}`,
-        properties: { segment: row.segment, first_source: row.source, ...extra },
+        properties: {
+            segment: row.segment,
+            first_source: row.source,
+            first_medium: row.medium,
+            first_campaign: row.campaign,
+            first_content: row.content,
+            first_referrer: row.referrer,
+            ...extra,
+        },
     };
 }
 
@@ -263,7 +276,7 @@ async function confirm(url: URL, env: Env, deps: Dependencies): Promise<Response
     if (typeof id !== "number") return Response.redirect(`${env.SITE_URL}/link-expired`, 303);
     const now = deps.now();
     const first = await env.DB.prepare(
-        "UPDATE signups SET confirmed_at = ? WHERE id = ? AND confirmed_at IS NULL RETURNING *",
+        `UPDATE signups SET confirmed_at = ? WHERE id = ? AND confirmed_at IS NULL RETURNING ${LIST_COLUMNS}`,
     )
         .bind(now.toISOString(), id)
         .first<ListRow>();
@@ -279,7 +292,9 @@ async function leave(url: URL, env: Env, deps: Dependencies): Promise<Response> 
     const id = await signedRow(url, env, "leave");
     if (id === null) return refuse(403, "that link is not valid");
     if (id !== "gone") {
-        const left = await env.DB.prepare("DELETE FROM signups WHERE id = ? RETURNING *").bind(id).first<ListRow>();
+        const left = await env.DB.prepare(`DELETE FROM signups WHERE id = ? RETURNING ${LIST_COLUMNS}`)
+            .bind(id)
+            .first<ListRow>();
         if (left) track(env, deps, listEvent("waitlist_left", left, { was_confirmed: left.confirmed_at !== null }));
     }
     return Response.json({ ok: true });

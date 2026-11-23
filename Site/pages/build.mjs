@@ -102,7 +102,7 @@ const couple = () => `<section class="field pink two" id="us">
 function signupForm({ segment }) {
     const id = segment || "any";
     return `<form class="signup"${segment ? ` data-segment="${segment}"` : ""} novalidate>
-<div class="row"><label class="sr" for="email-${id}">Your email</label><input id="email-${id}" name="email" type="email" autocomplete="email" placeholder="you@home.com" required><button class="key" type="submit">Get early access</button></div>
+<div class="row"><label class="sr" for="email-${id}">Your email</label><input id="email-${id}" name="email" type="email" autocomplete="email" placeholder="you@home.com" required><button class="key" type="submit" disabled>Get early access</button></div>
 <div class="turnstile"></div>
 <p class="error" role="alert"></p>
 <p class="fine">Free while it's early. One short email a month, and your invite when Widgie is ready. Leave any time.</p>

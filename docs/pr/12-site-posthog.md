@@ -31,7 +31,7 @@ flowchart TD
   E --> F["Worker: forward() to us.i.posthog.com, cookie dropped, X-Forwarded-For = visitor"]
 ```
 
-Files: [tally.js](../../Site/public/tally.js), [posthog.ts](../../Site/src/posthog.ts), [site.ts](../../Site/src/site.ts) (`handle`), [wrangler.jsonc](../../Site/wrangler.jsonc) (`run_worker_first` gains `/hop/*`), [_headers](../../Site/public/_headers).
+Files: [tally.js](../../Site/public/tally.js), [channels.js](../../Site/public/channels.js) (pure channel logic, tested in [channels.test.ts](../../Site/test/channels.test.ts)), [posthog.ts](../../Site/src/posthog.ts), [site.ts](../../Site/src/site.ts) (`handle`), [wrangler.jsonc](../../Site/wrangler.jsonc) (`run_worker_first` gains `/hop/*`), [_headers](../../Site/public/_headers).
 
 Key decisions:
 
@@ -39,6 +39,8 @@ Key decisions:
 - **The SDK script is loaded directly instead of through PostHog's inline snippet.** The snippet is inline (the CSP blocks that) and minified (lint fails on it). `array.js` loaded without a stub leaves an uninitialized PostHog on `window`, and `tally.js` calls `init` in `onload`. Events from before that wait in a small queue with their original timestamps.
 - **The first touch lives in our localStorage, not only in PostHog.** The form can then credit the right post even when PostHog is blocked, and the server's events still carry it.
 - **The proxy path is `/hop`, not `/ingest` or `/posthog`.** Blocker lists know the obvious names.
+- **Pages reached only from our emails record nothing** (`EMAIL_PAGES` in `tally.js`). The leave page's URL carries a signed token, and an email client's referrer would set the wrong first touch.
+- **The proxy drops every Authorization header and strips `Set-Cookie`.** The browser SDK sends neither, and a `phx_` personal key must never reach PostHog's private API through our domain. Bodies stream through, so gzip uploads arrive byte for byte.
 - **`X-Forwarded-For` is set to `CF-Connecting-IP`.** Otherwise every visitor would look like the Worker, with one location and no bot filtering.
 - **The `worker-src 'self' blob: data:` CSP addition** is for the replay recorder's compression worker.
 
@@ -72,7 +74,8 @@ Files: [site.ts](../../Site/src/site.ts) (`parseSignup`, `signup`, `track`, `lis
 
 Key decisions:
 
-- **Server events use the browser's id.** The client funnel (visit, typing, submit) and the server's confirmation join under one person, so "visit to confirmed email, by post" is one funnel. Only the visitor id is stored. Medium, campaign, content and referrer go to PostHog and never into D1.
+- **Server events use the browser's id and the row's attribution.** The client funnel (visit, typing, submit) and the server's confirmation join under one person, so "visit to confirmed email, by post" is one funnel. The row stores the first touch (source, medium, campaign, content, referrer), so confirm and leave events can also be counted per post on their own.
+- **The submit button ships disabled** and `setupForm` enables it, so a submit before the script runs can't do a native GET that puts the email in the URL. PostHog also masks `email`, `id` and `t` query params.
 - **Analytics never touches a response.** Events go through `deps.defer` and failures are logged, never thrown. A test runs signup, confirm and leave with PostHog answering 503.
 - **No person profiles** (`$process_person_profile: false`), and no email in any event. A test checks every payload for `@`.
 - **Confirm sends an event only on the first confirm.** The `UPDATE` now runs only while `confirmed_at IS NULL`, so mail scanners that open the link first, and second clicks, send nothing. The redirect is unchanged.

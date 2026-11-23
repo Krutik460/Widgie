@@ -9,7 +9,8 @@
         "noUncheckedIndexedAccess": true,
         "resolveJsonModule": true,
         "noEmit": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "allowJs": true
     },
-    "include": ["src", "test", "vitest.config.ts"]
+    "include": ["src", "test", "vitest.config.ts", "public/channels.js"]
 }
