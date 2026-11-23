@@ -11,6 +11,9 @@ export interface ModelSettings {
     model: string;
     /// OpenRouter only: the one provider every call goes to. Empty for an endpoint that serves the model itself.
     provider: string;
+    /// "off" turns the model's thinking off, "low", "medium", or "high" sets its effort, and empty sends nothing,
+    /// for a model that does not think unless asked.
+    reasoning: string;
 }
 
 export interface Usage {
@@ -47,12 +50,14 @@ export function requestBody(settings: ModelSettings, system: string, turn: UserT
     return {
         model: settings.model,
         max_tokens: MAX_TOKENS,
-        // Array form, because cache_control only works on a content part. No reasoning field: the model then
-        // answers without thinking, as the Mac baseline's Claude Code calls did.
+        // Array form, because cache_control only works on a content part.
         messages: [
             { role: "system", content: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] },
             { role: "user", content },
         ],
+        ...(settings.reasoning && {
+            reasoning: settings.reasoning === "off" ? { enabled: false } : { effort: settings.reasoning },
+        }),
         // On OpenRouter: one provider and no fallbacks, so every call reads the same prompt cache, and the cost.
         ...(settings.provider && {
             provider: { order: [settings.provider], allow_fallbacks: false },

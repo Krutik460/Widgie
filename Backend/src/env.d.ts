@@ -9,5 +9,7 @@ declare namespace Cloudflare {
         MODEL: string;
         /// OpenRouter only: the provider every call is pinned to. Empty for Bedrock Mantle.
         PROVIDER: string;
+        /// "off", "low", "medium", "high", or empty to send no reasoning setting.
+        REASONING: string;
     }
 }
