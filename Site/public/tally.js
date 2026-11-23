@@ -48,6 +48,9 @@ if (enabled) {
     const script = document.createElement("script");
     script.src = `${HOST}/static/array.js`;
     script.async = true;
+    // No cookies with the script: the proxy sits on our own parent domain, so the browser would otherwise send any
+    // krutikpatel.dev cookie along.
+    script.crossOrigin = "anonymous";
     script.addEventListener("load", () => {
         posthog = window.posthog;
         posthog.init(KEY, {

@@ -180,6 +180,6 @@ Both PostHog projects in the account (Brio, Landing Page) belong to Brio (heybri
 
 **Worker request budget.** Every SDK request through `/hop` counted against Workers Free (100k a day), which a big launch day could exhaust, breaking signup and confirm. The user chose to stay on Free for now (paid plan if traffic needs it) and to move the browser SDK to PostHog's managed proxy at `hop.widgie.krutikpatel.dev` (free), so the Worker only serves the list's API. The proxy is created in PostHog and waits for one DNS record:
 
-- [ ] **DNS.** In Cloudflare DNS for krutikpatel.dev: `CNAME hop.widgie -> 54f280421dfcf2176edf.cf-prod-us-proxy.proxyhog.com`, proxy status DNS only (grey cloud), so PostHog can issue the certificate.
-- [x] **Switch, on branch `site-managed-proxy`.** `tally.js` loads and reports through `https://hop.widgie.krutikpatel.dev`, the CSP allows it, and the Worker's `/hop` route and its tests are gone.
+- [x] **DNS.** In Cloudflare DNS for krutikpatel.dev: `CNAME hop.widgie -> 54f280421dfcf2176edf.cf-prod-us-proxy.proxyhog.com`, proxy status DNS only (grey cloud), so PostHog can issue the certificate.
+- [x] **Switch, on branch `site-managed-proxy`.** `tally.js` loads and reports through `https://hop.widgie.krutikpatel.dev` (the script with `crossorigin=anonymous`, so no parent-domain cookie rides along), the CSP allows it, and the Worker's `/hop` route is gone, with a test that `/hop` no longer reaches PostHog. Checked locally in desktop Chromium and phone WebKit: every SDK asset, event and replay request goes through the new host, with no CSP or script errors. A fresh review found nothing serious.
 - [ ] **Verify and ship** once PostHog shows the proxy as valid: a live visit lands through the new host, then PR, review, merge, deploy.
