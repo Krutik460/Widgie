@@ -1,37 +1,10 @@
-// PostHog, reached only through this Worker, for two jobs:
-//
-//   1. Forward the browser SDK's requests under /hop, so blockers that know PostHog's own hosts still let visits through.
-//   2. Send the list's own events (joined, confirmed, left) from the server, which no blocker can hide.
+// The list's own PostHog events (joined, confirmed, left), sent from the server, which no blocker can hide. The browser
+// SDK reaches PostHog through its managed proxy at hop.widgie.krutikpatel.dev instead (public/tally.js), so its
+// traffic never counts against this Worker's requests.
 //
 // Never send an email address to PostHog.
 
-export const PROXY_PREFIX = "/hop";
 const API_HOST = "https://us.i.posthog.com";
-const ASSET_HOST = "https://us-assets.i.posthog.com";
-
-/// Forwards one SDK request. Scripts and remote config come from the assets host, everything else from the API host.
-/// Cookies and credentials are dropped both ways (the browser SDK sends none, so PostHog's private API stays out of
-/// reach), the body streams through untouched, and PostHog sees the visitor's address rather than this Worker's, so
-/// location and bot filtering still work.
-export async function forward(request: Request, fetcher: typeof fetch): Promise<Response> {
-    const url = new URL(request.url);
-    const path = url.pathname.slice(PROXY_PREFIX.length) || "/";
-    const host = path.startsWith("/static/") || path.startsWith("/array/") ? ASSET_HOST : API_HOST;
-    const headers = new Headers(request.headers);
-    headers.delete("cookie");
-    headers.delete("authorization");
-    headers.set("X-Forwarded-For", request.headers.get("CF-Connecting-IP") ?? "");
-    const hasBody = request.method !== "GET" && request.method !== "HEAD";
-    const response = await fetcher(`${host}${path}${url.search}`, {
-        method: request.method,
-        headers,
-        body: hasBody ? request.body : null,
-        redirect: "manual",
-    });
-    const answer = new Response(response.body, response);
-    answer.headers.delete("set-cookie");
-    return answer;
-}
 
 export interface ServerEvent {
     event: "waitlist_joined" | "waitlist_confirmed" | "waitlist_left";

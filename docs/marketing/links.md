@@ -55,3 +55,7 @@ For a launch or a push across channels, use the full form with `utm_campaign`, f
 
 - The first tagged or referred visit is kept for good, so someone who comes back days later and signs up still credits the post that first brought them.
 - Signups and confirmations are counted by the server, so ad blockers cannot hide them. Visits are counted in the browser through our own domain, which most blockers let through.
+
+## Checking the live site
+
+Add `?utm_source=test` to any page you open yourself, for example `widgie.krutikpatel.dev/partners?utm_source=test`. PostHog's internal-traffic filter drops every event from a browser whose first touch is `test`, and from localhost, so the dashboard counts real visitors only. The first touch is kept, so open your first visit in each browser this way.
