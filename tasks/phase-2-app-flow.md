@@ -180,7 +180,7 @@ A picture belongs to the turn it was sent with. A later turn does not send it ag
 
 **Merge.**
 
-- [ ] `scripts/check` passes, and the results path is noted in the PR description.
+- [x] `scripts/check` passes, and the results path is noted in the PR description. Merged as PR #4, with `p2-refine-1` and `p2-refine-2` in its description.
 
 ## Add the build loop to WidgetBuilder (P3)
 
@@ -373,13 +373,13 @@ A draft must not appear in the home screen widget picker before the person saves
 
 **Merge.**
 
-- [ ] The results commit lands with P5 or right after it.
+- [x] The results commit lands with P5 or right after it. PR #9, merged right after P5's PR #8.
 
 ## Close the plan
 
-- [ ] Every box above is checked with its evidence.
+- [x] Every box above is checked with its evidence.
 - [x] Write the PR review doc in `docs/pr/` per the user's global rules, one per PR. P6's is `docs/pr/9-phase-2-p6-end-to-end.md`.
-- [ ] Report to the user with the results table, the screenshots, what is still open, and anything you decided that they might want changed.
+- [x] Report to the user with the results table, the screenshots, what is still open, and anything you decided that they might want changed. Reported on 2026-11-22.
 
 ## Appendix A. What is still unproven
 
