@@ -38,9 +38,10 @@ ${turnstile ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.j
 `;
 }
 
-const HEADER = `<header class="top">
+/// The header. Its key jumps to the sign-up on this page, or to the home page sign-up from pages that have none.
+const header = (join = "#join") => `<header class="top">
 <a class="mark" href="/" aria-label="Widgie home"><span class="app"><img src="/mark.svg" alt="" width="46" height="46"></span><span class="name">widgie</span></a>
-<nav><a href="/partners">For partners</a><a href="/growth">For personal growth</a><a class="key" href="#join">Get early access</a></nav>
+<nav><a href="/partners">For partners</a><a href="/growth">For personal growth</a><a class="key" href="${join}">Get early access</a></nav>
 </header>
 `;
 
@@ -226,7 +227,7 @@ for (const page of PAGES) {
     writeFileSync(
         OUT + page.file,
         `${head({ title: page.title, description: page.description, path: page.path, turnstile: true })}<body>
-${HEADER}<main>
+${header()}<main>
 ${page.sections().join("\n")}
 ${join(page.join)}
 </main>
@@ -240,11 +241,11 @@ ${join(page.join)}
 
 const PAGE_FOOT = `<div class="page-foot"><span>Widgie, built in public by Krutik.</span><a href="/privacy">Privacy</a></div>`;
 
-function smallPage({ file, title, description, path = "/", body, turnstile = false }) {
+function smallPage({ file, title, description, path = "/", body, turnstile = false, join = "/#join" }) {
     writeFileSync(
         OUT + file,
         `${head({ title, description, path, turnstile })}<body>
-${HEADER}<main class="field sky page">
+${header(join)}<main class="field sky page">
 ${body}
 ${PAGE_FOOT}
 </main>
@@ -261,6 +262,7 @@ smallPage({
     title: "Join me on Widgie",
     description: "You've been invited to share widgets on Widgie. Join the early list together.",
     turnstile: true,
+    join: "#join-root",
     body: `<div id="join-root" class="center">
 <section id="join-state" hidden>
 ${bigCaret()}
