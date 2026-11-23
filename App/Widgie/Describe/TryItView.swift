@@ -126,7 +126,7 @@ struct TryItScreen: View {
     @ViewBuilder private var exchange: some View {
         if let turn = session.latest {
             VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     if let image = turn.image {
                         Thumbnail(picture: image, size: 26)
                     }
@@ -138,6 +138,7 @@ struct TryItScreen: View {
                 HStack(alignment: .center, spacing: 4) {
                     Caret(pose: .lean(.right), size: 30, alive: false, grounded: false)
                         .padding(.leading, -9)
+                        .padding(.trailing, -8)
                     Text(reply(turn.result))
                         .font(size: 17, weight: .semibold)
                         .foregroundStyle(Palette.secondary)
