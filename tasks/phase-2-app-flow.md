@@ -345,29 +345,29 @@ A draft must not appear in the home screen widget picker before the person saves
 
 **Files.**
 
-- [ ] Edit `tasks/todo.md`. Check the app-flow item in phase 2, add a review section with the numbers, and add every look or behavior problem found.
+- [x] Edit `tasks/todo.md`. Check the app-flow item in phase 2, add a review section with the numbers, and add every look or behavior problem found. Done: the app-flow item is checked, "App flow review (P6)" holds the table and the numbers, and the eval findings and app follow-ups sit under the app-flow item.
 
 **Build.**
 
-- [ ] Run the four reference prompts, three look prompts from `cases.json`, one reference image, and three refines through the app on the simulator. Use `sonnet` once and `haiku` once.
-- [ ] Fix every visual flaw you see in the screen itself, such as spacing, alignment, truncation, or keyboard overlap. Be picky. That is the user's standing rule for UI work.
+- [x] Run the four reference prompts, three look prompts from `cases.json`, one reference image, and three refines through the app on the simulator. Use `sonnet` once and `haiku` once. Done: water, todo, wotd, and habit; water-glass, habit-graph, and todo-sticky; R1 with "make my widget look like this. its a habit tracker"; and "bigger number", "add a weekly chart", and "make it blue" on their `cases.json` bases (`bridge-sonnet.log`, `bridge-haiku.log`, `app-log.txt`, `app-log-sonnet.txt` in `Engine/.artifacts/app-flow/p6/`). Sonnet accepted 11 of 11 on the first attempt; Haiku accepted 9 of 11.
+- [x] Fix every visual flaw you see in the screen itself, such as spacing, alignment, truncation, or keyboard overlap. Be picky. That is the user's standing rule for UI work. Done: the caret's clipped foot, prompts and the sample menu cut off at large text sizes, the gap before "Done.", the picture thumbnail's alignment, and straight apostrophes (`fix-caret-foot-before-after.png`, `after-dt-describe.png`, `after-dt-tryit.png`, `bridge-down-after.png`). Keyboard overlap could not be seen: the headless simulator never shows the soft keyboard. Larger changes (an app icon, the widget's edit sheet) are listed in `tasks/todo.md`.
 
 **You see.**
 
-- [ ] A table in `tasks/todo.md` with each request, the model, the attempts, the seconds, and accepted or not.
+- [x] A table in `tasks/todo.md` with each request, the model, the attempts, the seconds, and accepted or not. Done, 24 rows.
 
 **Verify, unit.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] `scripts/check` passes at the end.
+- [x] `scripts/check` passes at the end. Passed on the final commit.
 
 **Verify, live.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Every request in the table has a screenshot of its preview and, for saved ones, its home screen face.
+- [x] Every request in the table has a screenshot of its preview and, for saved ones, its home screen face. Done: 24 previews and the ten saved widgets' faces (`home-*.png`), each looked at.
 
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
-- [ ] Metric. Widget extension memory while it draws the largest saved AI-built widget, read from the simulator as in the phase 0 review.
-- [ ] Rule. Under 20 MB peak on the simulator, the phase 0 number for the fixtures. More than that is a finding to explain before the device step.
+- [x] Metric. Widget extension memory while it draws the largest saved AI-built widget, read from the simulator as in the phase 0 review. Done with `vmmap --summary` on the extension process (`memory.txt`): 17.8 MB peak in three fresh processes, against 16.1 to 16.6 MB for the water fixture in the same slot.
+- [x] Rule. Under 20 MB peak on the simulator, the phase 0 number for the fixtures. More than that is a finding to explain before the device step. Passed for the largest widget. A process that drew all ten saved widgets in turn peaked at 21.0 MB: memory grows about 0.3 MB per distinct widget drawn, listed in `tasks/todo.md` for a heap diff before the device step.
 
 **Review gate.** None. P6 records results and changes no interaction beyond P5's fixes, which go back through the P5 gate if they are large.
 
@@ -378,7 +378,7 @@ A draft must not appear in the home screen widget picker before the person saves
 ## Close the plan
 
 - [ ] Every box above is checked with its evidence.
-- [ ] Write the PR review doc in `docs/pr/` per the user's global rules, one per PR.
+- [x] Write the PR review doc in `docs/pr/` per the user's global rules, one per PR. P6's is drafted as `docs/pr/DRAFT-phase-2-p6-end-to-end.md`, to be renamed with its PR number.
 - [ ] Report to the user with the results table, the screenshots, what is still open, and anything you decided that they might want changed.
 
 ## Appendix A. What is still unproven
@@ -386,6 +386,8 @@ A draft must not appear in the home screen widget picker before the person saves
 Nothing below was run while writing this plan. Settle each as early as its unit allows.
 
 - Settled in P5: the simulator reaches `127.0.0.1:8787` with only `NSAllowsLocalNetworking`.
+- Open after P6: keyboard overlap on the describe and try-it screens. The headless simulator never shows the soft keyboard, so no lane saw it. Check on a device or a simulator with a window.
+- Open after P6: widget extension memory grows about 0.3 MB for each distinct widget one process draws (`Engine/.artifacts/app-flow/p6/memory.txt`). A heap diff should say whether it is a cache or a leak before the device step.
 - Open after P5: on the simulator, a tapped home screen widget shows its new count one redraw late. Its timeline already holds the count, which shows after a page swipe or any redraw. Check on a device before chasing it in code.
 - The simulator reaching `127.0.0.1:8787` with only `NSAllowsLocalNetworking`. Settle it in the first hour of P5 with a one-line request from the app. A physical phone needs the Mac's LAN address or Bonjour, which is out of scope here.
 - A refine prompt that changes only what was asked. P2 measures it. If Sonnet misses often, the fallback is to send a smaller target ("change only the look") and keep the blocks unchanged in the app. Raise that with the user first, because it limits what refine can do.

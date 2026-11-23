@@ -385,7 +385,7 @@ What was built.
 - [x] Fit check that catches dropped content (a query no render shows, an action with no button)
 - [x] Eval set of 19 requests, run on a weaker and a stronger stand-in model
 - [ ] Backend endpoint that forwards the request and image to our own model. The build loop itself runs in the app, because fit can only be measured where SwiftUI runs.
-- [ ] App flow: describe in words or attach a reference image, live preview, refine by chat ("make it blue"). Plan in `tasks/phase-2-app-flow.md`
+- [x] App flow: describe in words or attach a reference image, live preview, refine by chat ("make it blue"). Plan in `tasks/phase-2-app-flow.md`. Done in P1 to P6; the end-to-end results and review are below the Phase 2 list.
   - [ ] Refine misses seen on the P2 contact sheets (`Engine/.artifacts/evals/p2-refine-1`, `p2-refine-2`):
     - [x] "track coffee instead of water": both models in both runs keep `glasses` and relabel it Coffee instead of adding a table, so past water rows count as coffee. No rows are lost. Fixed by the coffee example in the refine section of `build-prompt.md` and in `blocks.md`. `p2-refine-3` ran a three-block `blocks.md` example, `p2-refine-4` the shipped coffee example and `blocks.md` before the new-field bullet, and `p2-refine-6` the shipped prompt. In all three both models add `cups`, point the queries, actions, and samples at it, and stop reading `glasses`, and so do 6 more coffee trials on the `p2-refine-4` prompt. In `p2-refine-6` both models also add a table and drop the old one for the held-out "track yoga instead of meditation" and "change it to a daily quote", and add none for "say cups instead of glasses" or "log the size of each glass". In `p2-refine-5`, before the bullet's "new word" sentence, Haiku moved the count to a new `cups` table for "say cups instead of glasses".
     - [ ] "add a weekly chart": Haiku adds it to medium only in both runs and cuts the fourth title to "Book flights for the weddi...".
@@ -401,10 +401,66 @@ What was built.
     - [x] `run.py`: `prepare_before` reuses a stale `before/` after a base fixture changes. Fixed with the case fingerprint: `before/` and every build are made again when the base, the first model request, or the render tool changes.
     - [ ] `run.py`: the summary prints zero rows for groups the run did not select, and `--group` on an existing run name overwrites `results.json` with only that group.
   - [ ] From the PR 8 council review: a query named `now` or `minutesAgo` makes the sandbox watch `ctx.data.now` as a clock read, so the widget gets clock entries and proof renders it does not need. Field ids already reserve both names; query ids do not. Reserve them for queries too, with a line in the prompt, or keep the clock watch to the top-level keys.
+  - [ ] Eval findings from the P6 end-to-end run (`Engine/.artifacts/app-flow/p6/`). These are faces the model wrote, not app flaws:
+    - [ ] Both models build a water tracker from the LCD watch picture with "make my widget look like this. its a habit tracker": the picture's "GLASSES" label wins over the words (`image-lcd-habit-sonnet.png`, `image-lcd-habit-haiku.png`, `dark-tryit-image-after.png`). The image-to-widget prompt should say that the words name the kind and the picture gives only the look.
+    - [ ] Haiku gave up on two of the three look prompts. "A water tracker that looks like a glass..." failed 3 of 3 attempts twice in the app, and the sticky-note to-do list failed once; phase-1d accepted every look on Haiku. A Mac rerun (`Engine/.artifacts/evals/p6-haiku-gaveup/`) shows the lines: `widgetBackground` put on an inner vstack instead of the root, the small overflowing 7 to 18 pt past its top, and a full-size flat shape that hides the face in tinted mode. Eight of Haiku's nine first replies are short (1,400 to 2,700 output tokens, against 3,300 to 7,100 for Sonnet's creates), so the repairs start from a thin document. The bridge's `haiku` alias now runs `claude-haiku-5-5`.
+    - [ ] The LCD look's dark "+ ADD" button draws as a plain white bar in tinted mode, with no label (`home-tinted-lcd-haiku.png`). The cutout rule in `look.md` covers icons on accent discs; a filled button with dark text needs the same.
+    - [ ] Medium faces leave half their width empty: Sonnet's habit (`habit-sonnet.png`) and habit graph (`habit-graph-sonnet.png`), Haiku's water (`water-haiku.png`), to-do (`todo-haiku.png`), and habit graph, whose 5-week grid fills a fifth of the face (`habit-graph-haiku.png`).
+    - [ ] Text cut with an ellipsis while room is left: Sonnet's small to-do titles ("Call the d...", `todo-sonnet.png`), Haiku's small to-do ("Return libr..." in a mostly empty face, `todo-haiku.png`), and Haiku's word of the day definition and example in both sizes (`wotd-haiku-morning.png`).
+    - [ ] Haiku's word of the day opens on its "A week gap" sample, which shows no word, so the first preview is an empty card (`wotd-haiku.png`). The first sample should show the widget at its best.
+    - [ ] "bigger number" grows the number only slightly on both models when it sits in a ring (`water-sonnet-refine-bigger.png`, `water-haiku-refine-bigger.png`).
+    - [ ] Sonnet's water medium writes "Last glass at 20:41" on a phone set to a 12-hour clock (`home-water-sonnet-tapped.png`), and after the first glass the undo button appears and pushes "+ Glass" to the right.
+    - [ ] Sonnet's small habit graph floats its flame above the number, off the grid (`habit-graph-sonnet.png`). Sonnet's sticky note in small shows a lone "0" beside the title (`todo-sticky-sonnet.png`).
+  - [ ] App follow-ups from P6 that change what a person sees too much for P6 (they go through the P5 review gate):
+    - [ ] The app has no icon. The home screen, the widget gallery, and the widget's edit sheet show the blank grid placeholder (`home-image-lcd-habit-haiku.png`, `widget-edit.png`).
+    - [ ] The widget's edit sheet titles the widget "Widget" and shows "Widget: Widget" when the configured widget no longer exists, as after a reinstall (`widget-edit.png`).
+    - [ ] iOS autocorrect rewrote "a yellow sticky note" as "a yellow sticky notes" in the describe field on both runs (`todo-sticky-sonnet.png`). Decide whether the describe field keeps autocorrect, which helps people with typos, or drops it.
+    - [ ] The soft keyboard never showed on this headless simulator, so keyboard overlap is unchecked. Both screens put their bottom bar in a `safeAreaInset` of a `ScrollView`, which SwiftUI lifts above the keyboard. Check it on a device or a simulator with a window.
+    - [ ] Widget extension memory grows about 0.3 MB for each distinct widget one process draws (`memory.txt`). Find out with a heap diff whether it is a reclaimable cache or a leak before the device step.
 - [x] The home screen edit sheet lists widgets by name only, so three "Water" widgets look the same (seen in P4, `Engine/.artifacts/app-flow/p4/05-widget-picker-while-draft-open.png`). Give each entry something that tells it apart before people build several of one kind. Done in PR 8: the sheet shows when each was made.
 - [ ] Grow the eval set toward 40 requests and add a visual score, since the engine accepts some widgets that look wrong
 - [ ] App Attest and per-device quotas on the endpoint
 - [ ] Check: the four reference prompts and the eval set meet a valid-spec bar set from the first baseline run
+
+**App flow review (P6, 2026-11-22).** The whole loop ran through the real app on the iPhone 18 Pro simulator (iOS 27.2, Debug build, booted slim), with the dev bridge on `sonnet`, then on `haiku`: describe in words or with a picture, watch it build, try the live preview, refine by chat, save, and place on the home screen. `scripts/check` passes.
+
+Every request was typed into the app with AXe. Attempts and the total come from the app's `describe` log (send to live preview). The model's share is the sum of the bridge log's model seconds for the build's calls. Screenshots are in `Engine/.artifacts/app-flow/p6/`: the preview after the build, and for each saved widget its Saved screen (`<name>-saved.png`) and its medium face on the home screen (`home-<name>.png`).
+
+| Request | Model | Attempts | Total s | Model s | Result | Preview | Home face |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| water (reference) | sonnet | 1 | not logged | 32.6 | accepted, refined, saved | `water-sonnet.png` | `home-water-sonnet.png` |
+| water, second run for the total | sonnet | 1 | 27.16 | 26.8 | accepted, discarded | `water-sonnet-run2.png` | |
+| todo (reference) | sonnet | 1 | 23.08 | 22.5 | accepted, refined, saved | `todo-sonnet.png` | `home-todo-sonnet.png` |
+| wotd (reference) | sonnet | 1 | 35.50 | 35.1 | accepted, refined, saved | `wotd-sonnet.png` | `home-wotd-sonnet.png` |
+| habit (reference) | sonnet | 1 | 31.64 | 31.2 | accepted, saved | `habit-sonnet.png` | `home-habit-sonnet.png` |
+| water-glass (look) | sonnet | 1 | 41.72 | 41.3 | accepted, discarded | `water-glass-sonnet.png` | |
+| habit-graph (look) | sonnet | 1 | 42.32 | 41.9 | accepted, discarded | `habit-graph-sonnet.png` | |
+| todo-sticky (look) | sonnet | 1 | 54.24 | 53.7 | accepted, discarded | `todo-sticky-sonnet.png` | |
+| image-lcd-habit (R1 picture) | sonnet | 1 | 42.19 | 41.8 | accepted, saved | `image-lcd-habit-sonnet.png` | `home-image-lcd-habit-sonnet.png` |
+| refine "bigger number" on water | sonnet | 1 | 13.71 | 13.4 | accepted | `water-sonnet-refine-bigger.png` | `home-water-sonnet.png` |
+| refine "add a weekly chart" on todo | sonnet | 1 | 25.08 | 24.7 | accepted | `todo-sonnet-refine-chart.png` | `home-todo-sonnet.png` |
+| refine "make it blue" on wotd | sonnet | 1 | 12.01 | 11.7 | accepted | `wotd-sonnet-refine-blue.png` | `home-wotd-sonnet.png` |
+| water (reference) | haiku | 2 | 20.69 | 19.9 | accepted, refined, saved | `water-haiku.png` | `home-water-haiku.png` |
+| todo (reference) | haiku | 2 | 29.00 | 28.5 | accepted, refined, saved | `todo-haiku.png` | `home-todo-haiku.png` |
+| wotd (reference) | haiku | 2 | 49.93 | 49.4 | accepted, refined, saved | `wotd-haiku-morning.png` | `home-wotd-haiku.png` |
+| habit (reference) | haiku | 1 | 8.87 | 8.5 | accepted, saved | `habit-haiku.png` | `home-habit-haiku.png` |
+| water-glass (look) | haiku | 3 | 66.39 | 65.7 | gave up | `water-glass-haiku.png` | |
+| water-glass (look), retried | haiku | 3 | 39.11 | 38.6 | gave up | `water-glass-haiku-retry.png` | |
+| habit-graph (look) | haiku | 3 | 44.91 | 44.3 | accepted, discarded | `habit-graph-haiku.png` | |
+| todo-sticky (look) | haiku | 3 | 40.10 | 39.7 | gave up | `todo-sticky-haiku.png` | |
+| image-lcd-habit (R1 picture) | haiku | 2 | 31.20 | 30.7 | accepted, saved | `image-lcd-habit-haiku.png` | `home-image-lcd-habit-haiku.png` |
+| refine "bigger number" on water | haiku | 1 | 10.90 | 10.5 | accepted | `water-haiku-refine-bigger.png` | `home-water-haiku.png` |
+| refine "add a weekly chart" on todo | haiku | 1 | 33.25 | 32.8 | accepted | `todo-haiku-refine-chart.png` | `home-todo-haiku.png` |
+| refine "make it blue" on wotd | haiku | 1 | 10.17 | 9.9 | accepted | `wotd-haiku-refine-blue.png` | `home-wotd-haiku.png` |
+
+- **Sonnet accepted all 11 requests on the first attempt.** Median total 38.6 s for a new widget (eight creates, 23.1 to 54.2 s, counting the water rerun) and 13.7 s for a refine. Phase-1d's `run.py` median was 36.8 s.
+- **Haiku accepted 9 of 11.** Five needed one or two repairs, and it gave up on two of the three look prompts (water-glass twice). Its replies are fast, 6 to 11 s for most first attempts, so even a 3-attempt build took 39 to 66 s. The repair step showed as "Fixing a problem (2 of 3)" (`habit-graph-haiku-building.png`) and the give-up as the failure screen (`water-glass-haiku.png`). Phase-1d's Haiku failed none, see the eval findings above.
+- **The app's own share stays small.** Total minus model seconds is 0.31 to 0.58 s per build on Sonnet and 0.27 to 0.79 s on Haiku, at most 0.40 s per attempt (water on Haiku, 2 attempts). P5's rule is under 3 s per attempt.
+- **Every saved widget drew on the home screen as it did in the preview**, and a tap on "+ Glass" wrote without opening the app (`home-water-sonnet-tapped.png`). The library and the widget picker list all ten saved widgets with their times (`library-all.png`, `widget-pick.png`).
+- **Widget extension memory: 17.8 MB peak for the largest AI-built widget, under the 20 MB rule.** Read with `vmmap --summary` on the extension process, three fresh processes each, with the medium on Sonnet's LCD water (the largest saved document, 5,395 bytes) and the small on the water fixture. The water fixture in the same slot peaked at 16.1 to 16.6 MB. One reading went over: 21.0 MB peak in a process that had drawn all ten saved widgets in turn and the edit sheet's previews. Memory grows about 0.3 MB for each distinct widget a process draws, which is listed above for a heap diff before the device step (`memory.txt`).
+- **Fixed in the app along the way.** The caret's round foot was clipped flat on every screen, because its canvas stopped at its frame and the cap reaches below it (`fix-caret-foot-before-after.png`). The describe and composer prompts were cut to "Describe a..." and "Change so..." at large text sizes, and the sample menu to "Goal..." (`dt-describe.png`, `dt-tryit.png` before, `after-dt-describe.png`, `after-dt-tryit.png` after). The caret before "Done." sat 15 pt away instead of beside it (`water-sonnet-refine-bigger.png` before, `water-haiku-refine-bigger.png` after). An attached picture's thumbnail centered on a two-line request instead of starting with it (`image-lcd-habit-sonnet.png` before, `dark-tryit-image-after.png` after). The failure and form messages used straight apostrophes (`water-glass-haiku.png` before, `bridge-down-after.png` after). Two build warnings are gone.
+- **Dark mode** matches the Sky dark mock on the library, describe, building, try-it, and failure screens (`dark-library-after.png`, `dark-describe-after.png`, `dark-building-after.png`, `dark-tryit-image-after.png`, `dark-bridge-down-after.png`).
+- **Not checked.** Keyboard overlap, because this simulator runs without a window and never shows the soft keyboard. A build that iOS cuts off in the background is still unproven, as after P5.
 
 ### Phase 3. AI block
 
