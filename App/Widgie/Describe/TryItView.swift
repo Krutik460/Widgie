@@ -106,7 +106,7 @@ struct TryItScreen: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Text(label(preview.state)).lineLimit(1)
+                Text(label(preview.state)).lineLimit(2).multilineTextAlignment(.leading)
                 Image(systemName: "chevron.down").font(.system(size: 12, weight: .bold))
             }
             .font(size: 15, weight: .semibold)
@@ -157,16 +157,14 @@ struct TryItScreen: View {
                         .padding(.leading, -6)
                         .padding(.trailing, -10)
                 }
-                TextField(
-                    "Change something", text: $session.words,
-                    prompt: Text("Change something").foregroundStyle(Palette.secondary), axis: .vertical
-                )
-                .lineLimit(1...4)
-                .font(size: 18, weight: .semibold)
-                .foregroundStyle(Palette.text)
-                .focused($typing)
-                .submitLabel(.send)
-                .accessibilityLabel("Change something")
+                TextField("Change something", text: $session.words, prompt: Text(""), axis: .vertical)
+                    .lineLimit(1...4)
+                    .foregroundStyle(Palette.text)
+                    .focused($typing)
+                    .submitLabel(.send)
+                    .accessibilityLabel("Change something")
+                    .wrappingPrompt("Change something", shown: session.words.isEmpty)
+                    .font(size: 18, weight: .semibold)
                 if session.canSend {
                     Button(action: send) {
                         Image(systemName: "arrow.up")
