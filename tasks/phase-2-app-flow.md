@@ -367,7 +367,7 @@ A draft must not appear in the home screen widget picker before the person saves
 **Verify, perf.** Tests alone are not sufficient verification. A unit is verified only when its unit, live, and perf boxes are all checked.
 
 - [x] Metric. Widget extension memory while it draws the largest saved AI-built widget, read from the simulator as in the phase 0 review. Done with `vmmap --summary` on the extension process (`memory.txt`): 17.8 MB peak in three fresh processes, against 16.1 to 16.6 MB for the water fixture in the same slot.
-- [x] Rule. Under 20 MB peak on the simulator, the phase 0 number for the fixtures. More than that is a finding to explain before the device step. Passed for the largest widget. A process that drew all ten saved widgets in turn peaked at 21.0 MB: memory grows about 0.3 MB per distinct widget drawn, listed in `tasks/todo.md` for a heap diff before the device step.
+- [x] Rule. Under 20 MB peak on the simulator, the phase 0 number for the fixtures. More than that is a finding to explain before the device step. Passed for the largest widget. A process that drew all ten saved widgets in turn peaked at 21.0 MB, while a fresh process switching through seven of them stayed at 17.8 MB peak. The long-lived growth is listed in `tasks/todo.md` for a heap diff before the device step.
 
 **Review gate.** None. P6 records results and changes no interaction beyond P5's fixes, which go back through the P5 gate if they are large.
 
@@ -378,7 +378,7 @@ A draft must not appear in the home screen widget picker before the person saves
 ## Close the plan
 
 - [ ] Every box above is checked with its evidence.
-- [x] Write the PR review doc in `docs/pr/` per the user's global rules, one per PR. P6's is drafted as `docs/pr/DRAFT-phase-2-p6-end-to-end.md`, to be renamed with its PR number.
+- [x] Write the PR review doc in `docs/pr/` per the user's global rules, one per PR. P6's is `docs/pr/9-phase-2-p6-end-to-end.md`.
 - [ ] Report to the user with the results table, the screenshots, what is still open, and anything you decided that they might want changed.
 
 ## Appendix A. What is still unproven
@@ -387,7 +387,7 @@ Nothing below was run while writing this plan. Settle each as early as its unit 
 
 - Settled in P5: the simulator reaches `127.0.0.1:8787` with only `NSAllowsLocalNetworking`.
 - Open after P6: keyboard overlap on the describe and try-it screens. The headless simulator never shows the soft keyboard, so no lane saw it. Check on a device or a simulator with a window.
-- Open after P6: widget extension memory grows about 0.3 MB for each distinct widget one process draws (`Engine/.artifacts/app-flow/p6/memory.txt`). A heap diff should say whether it is a cache or a leak before the device step.
+- Open after P6: a widget extension process that had drawn all ten saved widgets peaked at 21.0 MB, 3.1 MB above a fresh one at rest, though a fresh process switching through seven of them did not grow (`Engine/.artifacts/app-flow/p6/memory.txt`). A heap diff should say whether it is a cache or a leak before the device step.
 - Open after P5: on the simulator, a tapped home screen widget shows its new count one redraw late. Its timeline already holds the count, which shows after a page swipe or any redraw. Check on a device before chasing it in code.
 - The simulator reaching `127.0.0.1:8787` with only `NSAllowsLocalNetworking`. Settle it in the first hour of P5 with a one-line request from the app. A physical phone needs the Mac's LAN address or Bonjour, which is out of scope here.
 - A refine prompt that changes only what was asked. P2 measures it. If Sonnet misses often, the fallback is to send a smaller target ("change only the look") and keep the blocks unchanged in the app. Raise that with the user first, because it limits what refine can do.
