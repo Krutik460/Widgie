@@ -56,13 +56,13 @@ async function reply(request: Request, env: Env, deps: Dependencies): Promise<Re
     let turn: ReturnType<typeof userTurn>;
     try {
         try {
-            parsed = JSON.parse(new TextDecoder().decode(bytes));
+            parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes));
         } catch {
             throw new BadRequest("the body must be a ModelRequest JSON object");
         }
         turn = userTurn(parsed);
     } catch (error) {
-        if (error instanceof BadRequest) return answer(400, { error: `bad request: ${error.message}` });
+        if (error instanceof BadRequest) return answer(400, { error: oneLine(`bad request: ${error.message}`) });
         throw error;
     }
 
@@ -84,8 +84,15 @@ async function reply(request: Request, env: Env, deps: Dependencies): Promise<Re
         );
     } catch (error) {
         if (!(error instanceof ModelFailure)) throw error;
-        return answer(502, { error: "the model gave no answer" }, { reason: error.reason });
+        return answer(502, { error: "the model gave no answer" }, { reason: oneLine(error.reason) });
     }
+}
+
+/// One line of at most 300 characters, as bridge.py's `one_line` makes it, so an echoed key name or a provider's
+/// message can neither break the line nor carry much of a request.
+function oneLine(text: string): string {
+    const line = text.split(/\s+/).filter(Boolean).join(" ");
+    return line.length > 300 ? `${line.slice(0, 299)}…` : line;
 }
 
 async function authorized(request: Request, env: Env): Promise<boolean> {

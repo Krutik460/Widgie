@@ -104,5 +104,18 @@
       "repair": "fix it"
     },
     "error": "\"repair\" must hold \"document\" and \"line\" strings"
+  },
+  {
+    "request": {
+      "words": "\u0085"
+    },
+    "error": "\"words\" must be a non-empty string"
+  },
+  {
+    "request": {
+      "words": "a",
+      "current": "\u2003\n"
+    },
+    "error": "\"current\" must be the document being refined, as a non-empty string"
   }
 ]

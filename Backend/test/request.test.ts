@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import invalid from "../../Engine/Evals/testdata/invalid-requests.json";
 import requests from "../../Engine/Evals/testdata/requests.json";
+import turns from "../../Engine/Evals/testdata/user-turns.json";
 import { requestBody } from "../src/model";
 import { BadRequest, kindOf, LIMITS, userTurn } from "../src/request";
 
@@ -26,17 +27,15 @@ describe("userTurn", () => {
         }
     });
 
-    it("sends a create's words alone and a repair's sections in model.py's order", () => {
-        expect(userTurn(requests.create).text).toBe(requests.create.words);
-        const { text } = userTurn(requests["refine-repair"]);
-        const order = [
-            "The person's request:",
-            "The current document:",
-            "Your previous document:",
-            "The line from the app:",
-            "Reply with the complete corrected document.",
-        ].map((heading) => text.indexOf(heading));
-        expect(order.every((at, i) => at >= 0 && (i === 0 || at > (order[i - 1] ?? 0)))).toBe(true);
+    it("sends the model the same user turn as model.py", () => {
+        for (const [name, request] of Object.entries(requests)) {
+            expect(userTurn(request).text, name).toBe(turns[name as keyof typeof turns]);
+        }
+    });
+
+    it("judges an empty field by Python's whitespace, not JavaScript's", () => {
+        expect(() => userTurn({ words: "\u0085\u001c" })).toThrow('"words" must be a non-empty string');
+        expect(() => userTurn({ words: "\ufeff" })).not.toThrow();
     });
 
     it("names each request's kind", () => {

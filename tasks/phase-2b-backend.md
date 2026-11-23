@@ -19,7 +19,7 @@ Written 2026-11-23, revised the same day after three council rounds. Covers the 
 - The widget supports small and medium only (`Hosting.swift:176`) and taps through `Button(intent:)`, never `Toggle`.
 - `Picture.swift` sends a JPEG at most 1080 px on its long side, well under 1 MB.
 - OpenRouter takes images as `image_url` data URLs. Anthropic `cache_control` works only on an array-form system message. Cost and cached-token counts come back only with `usage: {include: true}`. Unless the provider is pinned with fallbacks off, consecutive calls can land on Anthropic, Bedrock, or Vertex, each with its own cache. OpenRouter bills a generation even after the caller stops waiting. OpenRouter charges a 5.5 percent fee on credit purchases.
-- Workers Free allows 10 ms CPU per request and 100,000 requests a day, and includes SQLite-backed Durable Objects. Waiting on a fetch costs no CPU, so a build spends its CPU only on parsing and re-encoding its body (under 1 MB with a picture), one signature check, and the log line. Attestation, once per install, adds CBOR and X.509 work. Decided 2026-11-23: start on **Free** and measure. Every log line carries the request's CPU time, and the Worker never fully decodes the picture's base64 (it checks the header and length only). Move to Workers Paid ($5 a month) only if a route's CPU time measured in B1 or B2 comes within 2 ms of the limit.
+- Workers Free allows 10 ms CPU per request and 100,000 requests a day, and includes SQLite-backed Durable Objects. Waiting on a fetch costs no CPU, so a build spends its CPU only on parsing and re-encoding its body (under 1 MB with a picture), one signature check, and the log line. Attestation, once per install, adds CBOR and X.509 work. Decided 2026-11-23: start on **Free** and measure. Workers observability records each request's CPU time beside its log line, and the picture's base64 is checked with the native `atob` (see B1 results for why not a regex). Move to Workers Paid ($5 a month) only if a route's CPU time measured in B1 or B2 comes within 2 ms of the limit.
 - A Durable Object class created with key-value storage can never become SQLite-backed. Phases 3 and 4 will want SQL.
 - An App Attest key is per install. It is gone after a reinstall or a restore, while a Keychain item can survive, and `generateAssertion` then fails on the phone with `DCError.invalidKey`. A widget extension cannot use App Attest.
 - A development-signed build attests in the development environment unless the `com.apple.developer.devicecheck.appattest-environment` entitlement says `production`.
@@ -39,7 +39,7 @@ flowchart LR
 - `Backend/` at the repo root: one TypeScript Worker, `wrangler.jsonc` with a `dev` and a `production` environment (each declares its own vars, secrets, and bindings, since environments do not inherit them), Vitest with the Workers pool.
 - `AttestedKey`, a SQLite-backed Durable Object, one per App Attest key. It holds only the public key, the assertion counter, and the day's build quota. Accounts, push tokens, and sync state are not here: they get their own objects in phases 3 and 4, because a key changes on reinstall and the widget extension has none.
 - The Worker calls the DO once per request, a short RPC that answers before any model call. The Worker, not the DO, waits on OpenRouter.
-- The model call is a module (`openrouter.ts`) that takes a system prompt and content, so phase 3's scheduler can call it without going through `/v1/reply`.
+- The model call is a module (`model.ts`) that takes a system prompt and content, so phase 3's scheduler can call it without going through `/v1/reply`.
 - Each environment has its own OpenRouter key with a credit limit set at OpenRouter. The limit is the backstop if every other guard fails.
 
 ## Units
@@ -73,7 +73,7 @@ Runs alongside B1. It needs only signing.
 - [x] Settings in `wrangler.jsonc`: `MODEL_URL`, `MODEL`, `PROVIDER`, `REASONING`; secret `MODEL_API_KEY` per environment.
 
 Verify.
-- [x] Unit: `scripts/check` passes: 21 Worker tests, prompt parity, the shared valid and invalid requests, the shared extraction cases, limits, the order of work, and the gate.
+- [x] Unit: `scripts/check` passes: 26 Worker tests, prompt parity, the pinned user turns, the shared valid and invalid requests, the shared extraction cases, limits, the order of work, and the gate.
 - [x] Live on DeepSeek V4.1 Flash, reasoning low (`Engine/.artifacts/backend/b1-deepseek-low/`): water, to-do, habit, word of the day, dog fed, and the R1 picture accepted within two attempts. Thinking of you got one 502 (most likely the 95 s deadline) and was accepted in one attempt on its rerun. `refine` and `refine-repair` answered 200 in 7.7 and 8.0 s, and `render-tool refine` accepted both against their `current` documents (`b1-deepseek-refine/`). A request with no token is 401.
 - [x] Perf: a second build within five minutes read 16,384 to 17,024 cached prompt tokens from Together. CPU per request: about 1 ms for a text build, 3 to 7 ms for a picture build, under the Free plan's 10 ms, so the plan stays on Free.
 
