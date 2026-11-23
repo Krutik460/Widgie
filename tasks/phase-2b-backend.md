@@ -32,7 +32,7 @@ flowchart LR
   W -->|verifyAndReserve| K[AttestedKey DO<br/>SQLite: key, counter, quota]
   K -->|bad or replayed: 401<br/>over quota: 429| W
   K -->|reserved| W
-  W -->|after reserve| OR[OpenRouter<br/>Anthropic pinned, prompt cached]
+  W -->|after reserve| OR[Model service<br/>OpenRouter or Bedrock Mantle, prompt cached]
   OR --> W -->|reply, seconds, model, usage| App
 ```
 
@@ -59,23 +59,40 @@ Runs alongside B1. It needs only signing.
 - [ ] Keyboard overlap on the describe and try-it screens.
 - [ ] Record every result in a device review in `tasks/todo.md`, with screenshots in `Engine/.artifacts/device/`.
 
-### B1. Worker that answers `/v1/reply` through OpenRouter, gated from the first deploy
+### B1. Worker that answers `/v1/reply` through a model service, gated from the first deploy
 
-- [ ] `Backend/` scaffold: Worker, `wrangler.jsonc`, `npm test`, lint and typecheck, wired into the top-level `scripts/check`. `observability.enabled` on.
-- [ ] Prompt: `Backend/scripts/prompt` runs `compose_prompt()` and writes `Backend/src/build-prompt.txt`, imported as a Text module. The file is checked in. A Python test in `Engine/Evals` fails when it differs from `compose_prompt()`. No second implementation of the compose rules.
-- [ ] Request validation ported from `user_message`, with the same error lines. The malformed cases now inline in `test_model.py` move to `Engine/Evals/testdata/invalid-requests.json` with their expected lines, both suites read it and `requests.json`, and the Python test asserts the exact line, not only the `ValueError`. The Worker's length caps are tested in Vitest only, since `user_message` has none. Vitest checks the OpenAI wire shape (array-form system with `cache_control`, `image_url` data URL) on its own expected outputs, since the existing `.jsonl` files are Claude Code's format.
-- [ ] Order of work in `/v1/reply`: the gate (B1's bearer token, B2's key and assertion headers present) answers 401 before any body is read; then the body is read as a stream and refused at 8 MB with 413, with or without `Content-Length`; then (B2) `verifyAndReserve`; then the `ModelRequest` is validated; then OpenRouter. `words`, `current`, `repair.document`, and `repair.line` have length caps a real build never reaches.
-- [ ] OpenRouter call: `max_tokens` 16,000, default temperature, reasoning at the lowest setting the model accepts (read from OpenRouter's page for the model, since some refuse it off), `provider: {order: ["Anthropic"], allow_fallbacks: false}`, `usage: {include: true}`, one try, and a 95 s deadline that also covers reading the response body. A 200 whose body carries an error is a 502. Upstream error text is never passed on; the app gets fixed lines.
-- [ ] The reply adds an optional `usage` object (input, cached, and output tokens, cost). The app's decoder ignores unknown keys.
-- [ ] One log line per request: kind, model, provider, seconds, tokens, cached tokens, cost, status, and CPU time from Workers observability. Never the words, the document, or the image.
-- [ ] Gate: in B1, `/v1/reply` answers only `Authorization: Bearer <OPERATOR_TOKEN>`, compared in constant time. The token is a `dev` secret, used only by Mac tools from an environment variable, never in the app or the repo. A test proves an unauthenticated request makes no upstream call.
-- [ ] `render-tool loop` sends `WIDGIE_BRIDGE_TOKEN` from the environment as the bearer header, through a short copy of `BridgeModel`'s POST inside `RenderTool` that adds the header and throws `BridgeModel.Refused`. `LoopRun.bridge` becomes `any WidgetModel`. `BridgeModel`'s public API does not change. B2 deletes the copy with the operator token.
-- [ ] `MODEL` is a var defaulting to OpenRouter's Sonnet 5.5 slug, read from OpenRouter's model list. `OPENROUTER_API_KEY` is a secret per environment.
+- [x] `Backend/` scaffold: Worker, `wrangler.jsonc`, `npm test`, lint and typecheck (Biome, `tsc`), wired into the top-level `scripts/check` through `Backend/scripts/check`. `observability.enabled` on. Tests run inside workerd with `@cloudflare/vitest-plugin` (the renamed `vitest-pool-workers`).
+- [x] Prompt: `Backend/scripts/prompt` runs `compose_prompt()` and writes `Backend/src/build-prompt.txt`, imported as a Text module. The file is checked in. `PromptTests` in `test_model.py` fails when it differs from `compose_prompt()`.
+- [x] Request validation ported from `user_message`, with the same error lines. The malformed cases moved to `Engine/Evals/testdata/invalid-requests.json` with their lines; both suites read it and `requests.json`, and the Python test asserts the exact line. Length caps are tested in Vitest only. Vitest checks the wire shape on its own expectations.
+- [x] Order of work in `/v1/reply`: the gate answers 401 before any body is read; then 415 for a body that is not JSON; then the body is streamed and refused at 8 MB with 413, with or without `Content-Length`; then the `ModelRequest` is validated; then the model call. B2 adds `verifyAndReserve` after the body.
+- [x] Model call: `max_tokens` 16,000, default temperature, array-form system with `cache_control`, one try, a 95 s deadline that covers the body, a 200 carrying an error is a 502, and the app gets the fixed line "the model gave no answer". Changed during B1 (below): the service, model, pinned provider, and reasoning are settings.
+- [x] The reply adds an optional `usage` object (input, cached, and output tokens, cost).
+- [x] One JSON log line per request: kind, status, ms, model, provider, seconds, tokens, cached tokens, cost, and the failure reason on a 502. Workers observability adds CPU time. Never the words, the document, or the image.
+- [x] Gate: `Authorization: Bearer <OPERATOR_TOKEN>`, compared in constant time over SHA-256 digests. Unset means every request is refused. Tests prove an unauthenticated request makes no upstream call, even with an oversized body.
+- [x] `render-tool loop` sends `WIDGIE_BRIDGE_TOKEN` as the bearer header. Changed: `BridgeModel` got an optional `token` instead of a copied POST in `RenderTool`, because `BridgeModel.Refused` cannot be built outside its module and the copy would have needed its own error type. B2 removes the property with the gate.
+- [x] Settings in `wrangler.jsonc`: `MODEL_URL`, `MODEL`, `PROVIDER`, `REASONING`; secret `MODEL_API_KEY` per environment.
 
 Verify.
-- [ ] Unit: `scripts/check` passes, including prompt parity, the shared valid and invalid requests, limits, the order of work, and the gate test.
-- [ ] Live: deploy `dev`. `render-tool loop --bridge <dev url>` on the six reference prompts and the R1 picture (`image-lcd-habit`), each accepted within three attempts. `curl` posts the `refine` and `refine-repair` bodies from `requests.json` with the bearer header; each answers 200 with a fenced document, and `render-tool refine` accepts both replies against the request's `current` document. A request with no token is 401.
-- [ ] Perf: two different requests within five minutes, the second showing cached prompt tokens and the Anthropic provider in the log. Record seconds and cost per build next to the Mac numbers from P6, and CPU time per request for a text build and a picture build against the Free plan's 10 ms. If acceptance falls below the Mac baseline, compare the call settings before anything else.
+- [x] Unit: `scripts/check` passes: 21 Worker tests, prompt parity, the shared valid and invalid requests, the shared extraction cases, limits, the order of work, and the gate.
+- [x] Live on DeepSeek V4.1 Flash, reasoning low (`Engine/.artifacts/backend/b1-deepseek-low/`): water, to-do, habit, word of the day, dog fed, and the R1 picture accepted within two attempts. Thinking of you got one 502 (most likely the 95 s deadline) and was accepted in one attempt on its rerun. `refine` and `refine-repair` answered 200 in 7.7 and 8.0 s, and `render-tool refine` accepted both against their `current` documents (`b1-deepseek-refine/`). A request with no token is 401.
+- [x] Perf: a second build within five minutes read 16,384 to 17,024 cached prompt tokens from Together. CPU per request: about 1 ms for a text build, 3 to 7 ms for a picture build, under the Free plan's 10 ms, so the plan stays on Free.
+
+**B1 results (2026-11-23).**
+
+| Model (service) | Reasoning | Accepted of 7 | Seconds per attempt | Cost per call |
+| --- | --- | --- | --- | --- |
+| Kimi K2.5 (Bedrock Mantle) | none | 3 | 6 to 39 | not reported |
+| DeepSeek V4.1 Flash (OpenRouter, Together) | off | 4 | 4 to 8 | about $0.003 |
+| DeepSeek V4.1 Flash (OpenRouter, Together) | low | 6, and 7 with the rerun | 10 to 64 | $0.003 to $0.02 |
+| Sonnet 5.5 (Mac bridge, P6, for comparison) | none | 11 of 11 | 23 to 54 | |
+
+Decisions and findings:
+
+- **Model: DeepSeek V4.1 Flash on Together, reasoning low, chosen by the user.** Together serves it at full precision and does not train on requests. DeepSeek's own endpoint is excluded by the OpenRouter account's training setting, which stays on.
+- **The service is a setting.** Claude was planned through OpenRouter pinned to Anthropic, then Bedrock. The user's AWS account refuses the classic `bedrock-runtime` path for every model ("Operation not allowed"), and Claude and GPT are not available to it on Mantle. Kimi K2.5 works on Mantle (`https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions`, Bedrock API key, no project header) and reads the R1 picture, but failed four of seven builds on fit. Any OpenAI-compatible endpoint now works by changing `MODEL_URL`, `MODEL`, `PROVIDER`, and `REASONING`.
+- **The reply parser accepted only a fence at the start of a line.** Kimi starts every reply with a space before its fence, so both copies (`extractDocument` in `Loop.swift`, `extract` in `model.py`) took the closing fence for an empty block. They now allow up to three spaces, as Markdown does, with cases in `testdata/extract.json`.
+- **A regex base64 check cost about 5 ms of CPU** on a 170 KB picture, because V8 first runs a regex in its interpreter on a fresh isolate. `atob` after a length and whitespace check does the same job in 0.03 ms, as strictly as Python's decoder.
+- **Open:** reasoning low sometimes passes 60 s per attempt, and one call likely hit the 95 s deadline. Watch the deadline's 502s in the log before raising it toward the app's 120 s.
 
 ### B2. App Attest and per-key quotas
 
