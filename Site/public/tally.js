@@ -1,11 +1,12 @@
 // PostHog on every page: visits, how far people read, what they play with and each signup step, so every post on X,
-// Reddit or Product Hunt can be judged by the signups it brings. All requests go through /hop on this domain
-// (src/posthog.ts), so blockers that know PostHog's hosts let them through. A local dev server sends nothing unless
-// the URL has ?tally.
+// Reddit or Product Hunt can be judged by the signups it brings. All requests go through PostHog's managed proxy on our
+// own subdomain, so blockers that know PostHog's hosts let most of them through, and none of it costs Worker requests.
+// A local dev server sends nothing unless the URL has ?tally.
 
 import { touchOf } from "/channels.js";
 
 const KEY = "phc_Aj3Mbof3qJ2N455cGitXopyyY9dY3B2hbnrTLjJvszKF";
+const HOST = "https://hop.widgie.krutikpatel.dev";
 const FIRST_TOUCH = "widgie.first";
 // Pages reached only from our own emails. They carry signed links (a leave token must never reach analytics), and an
 // email client's referrer would credit the wrong channel, so they record nothing. The server counts confirm and leave.
@@ -45,12 +46,12 @@ const waiting = [];
 
 if (enabled) {
     const script = document.createElement("script");
-    script.src = "/hop/static/array.js";
+    script.src = `${HOST}/static/array.js`;
     script.async = true;
     script.addEventListener("load", () => {
         posthog = window.posthog;
         posthog.init(KEY, {
-            api_host: `${location.origin}/hop`,
+            api_host: HOST,
             ui_host: "https://us.posthog.com",
             defaults: "2026-08-30",
             // Visitors stay anonymous: no person profiles, and nothing typed is ever recorded.

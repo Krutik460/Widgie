@@ -35,7 +35,6 @@ function services(
 ) {
     const sent: Sent[] = [];
     const captured: Captured[] = [];
-    const forwarded: { url: string; init: RequestInit | undefined }[] = [];
     const pending: Promise<unknown>[] = [];
     const fetcher = vi.fn<typeof fetch>(async (input, init) => {
         const url = String(input);
@@ -43,10 +42,6 @@ function services(
             if (options.posthogStatus) return new Response("down", { status: options.posthogStatus });
             captured.push(JSON.parse(String(init?.body)));
             return Response.json({ status: 1 });
-        }
-        if (url.startsWith("https://us.i.posthog.com/") || url.startsWith("https://us-assets.i.posthog.com/")) {
-            forwarded.push({ url, init });
-            return new Response("from posthog", { status: 200 });
         }
         if (url.startsWith("https://challenges.cloudflare.com/")) {
             return Response.json({ success: options.human ?? true });
@@ -62,7 +57,6 @@ function services(
     return {
         sent,
         captured,
-        forwarded,
         fetcher,
         deps: { fetch: fetcher, now: () => clock, defer: (task: Promise<unknown>) => void pending.push(task) },
         /// Waits for the work the Worker runs after answering, such as PostHog events.
@@ -470,83 +464,6 @@ describe("PostHog events from the server", () => {
         expect((await handle(new Request(oneClick, { method: "POST" }), env, s.deps)).status).toBe(200);
         await expect(s.settle()).resolves.toBeUndefined();
         expect(s.captured).toHaveLength(0);
-    });
-});
-
-describe("/hop, the PostHog proxy", () => {
-    function hop(path: string, init: RequestInit = {}) {
-        const headers = new Headers(init.headers);
-        headers.set("CF-Connecting-IP", "203.0.113.7");
-        return new Request(`${SITE}/hop${path}`, { ...init, headers });
-    }
-
-    it("sends events to the API host with the visitor's address, and no cookies or other credentials", async () => {
-        const s = services();
-        const response = await handle(
-            hop("/e/?ip=0&ver=1.300.0", {
-                method: "POST",
-                body: '{"event":"$pageview"}',
-                headers: {
-                    "Content-Type": "application/json",
-                    Cookie: "session=secret",
-                    Authorization: "Basic dXNlcjpwYXNz",
-                    "X-Forwarded-For": "10.9.9.9",
-                },
-            }),
-            env,
-            s.deps,
-        );
-
-        expect(await response.text()).toBe("from posthog");
-        expect(s.forwarded).toHaveLength(1);
-        const { url, init } = s.forwarded[0] ?? { url: "", init: undefined };
-        expect(url).toBe("https://us.i.posthog.com/e/?ip=0&ver=1.300.0");
-        expect(init?.method).toBe("POST");
-        expect(await new Response(init?.body).text()).toBe('{"event":"$pageview"}');
-        const headers = new Headers(init?.headers);
-        expect(headers.get("X-Forwarded-For")).toBe("203.0.113.7");
-        expect(headers.get("Cookie")).toBeNull();
-        expect(headers.get("Authorization")).toBeNull();
-        expect(headers.get("Content-Type")).toBe("application/json");
-    });
-
-    it("drops even a PostHog key, so the private API cannot be reached through the site", async () => {
-        const s = services();
-        await handle(
-            hop("/api/projects/@current/", { headers: { Authorization: "Bearer phx_personal" } }),
-            env,
-            s.deps,
-        );
-        expect(new Headers(s.forwarded[0]?.init?.headers).get("Authorization")).toBeNull();
-    });
-
-    it("passes a gzipped body through byte for byte, and never sets a cookie on our domain", async () => {
-        const s = services();
-        const gzip = new Uint8Array([0x1f, 0x8b, 0x08, 0x00, 0xff, 0x00, 0x80, 0x7f]);
-        s.fetcher.mockImplementationOnce(async (input, init) => {
-            s.forwarded.push({ url: String(input), init });
-            const bytes = new Uint8Array(await new Response(init?.body).arrayBuffer());
-            return new Response(bytes, { headers: { "Set-Cookie": "ph=1", "Content-Type": "text/plain" } });
-        });
-        const response = await handle(
-            hop("/e/?compression=gzip-js", { method: "POST", body: gzip, headers: { "Content-Type": "text/plain" } }),
-            env,
-            s.deps,
-        );
-        expect(new Uint8Array(await response.arrayBuffer())).toEqual(gzip);
-        expect(response.headers.get("Set-Cookie")).toBeNull();
-        expect(s.forwarded[0]?.url).toBe("https://us.i.posthog.com/e/?compression=gzip-js");
-    });
-
-    it("fetches the SDK's scripts and remote config from the assets host", async () => {
-        const s = services();
-        await handle(hop("/static/array.js"), env, s.deps);
-        await handle(hop("/array/phc_test/config.js"), env, s.deps);
-        expect(s.forwarded.map((f) => f.url)).toEqual([
-            "https://us-assets.i.posthog.com/static/array.js",
-            "https://us-assets.i.posthog.com/array/phc_test/config.js",
-        ]);
-        expect(s.forwarded[0]?.init?.body).toBeNull();
     });
 });
 

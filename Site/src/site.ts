@@ -5,7 +5,6 @@
 //                      reveals who is on the list. The fields after segment say which post brought the visitor.
 //   GET  /confirm      ?id&t -> marks the row confirmed and redirects to /confirmed.
 //   POST /api/leave    ?id&t -> deletes the row. The leave page posts here, and so do mail clients (List-Unsubscribe).
-//   /hop/*             the PostHog SDK's requests, forwarded (see posthog.ts).
 //
 // Joining, confirming and leaving each send one PostHog event after the answer, so analytics can never slow or fail
 // a request.
@@ -14,7 +13,7 @@
 
 import { alreadyInMail, confirmMail, type Leave, type Segment, send } from "./email";
 import { sign, verify } from "./links";
-import { capture, forward, PROXY_PREFIX, type ServerEvent } from "./posthog";
+import { capture, type ServerEvent } from "./posthog";
 
 export type Env = Cloudflare.Env;
 
@@ -42,7 +41,6 @@ export async function handle(request: Request, env: Env, deps: Dependencies): Pr
     if (pathname === "/confirm" && method === "GET") return logged("confirm", () => confirm(url, env, deps));
     if (pathname === "/api/signup" && method === "POST") return logged("signup", () => signup(request, env, deps));
     if (pathname === "/api/leave" && method === "POST") return logged("leave", () => leave(url, env, deps));
-    if (pathname === PROXY_PREFIX || pathname.startsWith(`${PROXY_PREFIX}/`)) return forward(request, deps.fetch);
     if (pathname.startsWith("/api/")) return Response.json({ error: "not found" }, { status: 404 });
     return env.ASSETS.fetch(request);
 }
