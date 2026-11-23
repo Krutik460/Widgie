@@ -5,6 +5,7 @@
             "src/**",
             "test/**",
             "public/*.js",
+            "public/*.css",
             "pages/*.mjs",
             "*.ts",
             "*.json",
@@ -13,5 +14,11 @@
         ]
     },
     "formatter": { "indentStyle": "space", "indentWidth": 4, "lineWidth": 120 },
-    "linter": { "enabled": true, "rules": { "preset": "recommended" } }
+    "linter": { "enabled": true, "rules": { "preset": "recommended" } },
+    "overrides": [
+        {
+            "includes": ["public/*.css"],
+            "linter": { "rules": { "style": { "noDescendingSpecificity": "off" } } }
+        }
+    ]
 }

@@ -29,6 +29,8 @@ Written 2026-11-22. Based on two web research passes covering competitors, Apple
 
 Ranked by fit with what v1 can do, multiplied by willingness to pay.
 
+**Decision (2026-11-23).** The early access site leads with two audiences, each with its own page. **Partners** (`/partners`) merges ICP 1 and ICP 2: a couple who share a home and a relationship, wanting both the household widgets (who fed the dog, baby feeds, bins, groceries, chores) and the relationship widgets (hearts, countdowns, moods, a daily question). **Personal growth** (`/growth`) is ICP 3, the multi-tracker self-improver (habit streaks and grids, water, pushups, days alcohol-free, a savings jar, a word of the day). The home page opens a door to each.
+
 **Decision (2026-11-22).** The target ICPs are 1, 2, 3, 4 and 6. ICP 5, the aesthetic customizer, is not a target: we don't design features, onboarding or pricing for them. Their section stays as research. Free-form looks still matter, because every target ICP wants the widget in their own style.
 
 ### ICP 1. The shared-household coordinator

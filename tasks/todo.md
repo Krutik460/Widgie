@@ -15,7 +15,7 @@ Written 2026-11-18.
 A non-coder describes a widget in plain words and gets a working, tappable iPhone home screen widget.
 Six reference widgets define v1: water logger, to-do list, habit tracker, word of the day, dog fed, and thinking of you.
 The last two were added on 2026-11-22 from the ICP research in `docs/research/icp-and-widgets.md`. They are the core widgets of the two segments most likely to pay and to spread through invites: shared households and couples.
-Target users (decided 2026-11-22): shared households, couples and close friends, multi-trackers, ADHD adults, and learners. Aesthetic-only customizers are not a target.
+Target users (decided 2026-11-22): shared households, couples and close friends, multi-trackers, ADHD adults, and learners. Aesthetic-only customizers are not a target. On 2026-11-23 the early access site settled on two lead audiences: partners (the first two merged: a couple sharing a home and a relationship) and personal growth (multi-trackers). See `docs/research/icp-and-widgets.md`.
 
 ## Definition of done for v1
 

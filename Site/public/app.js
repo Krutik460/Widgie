@@ -27,6 +27,125 @@ for (const scene of document.querySelectorAll("[data-scene]")) {
 for (const el of document.querySelectorAll("[data-widget]")) mountWidget(el);
 for (const el of document.querySelectorAll(".caret[data-pose]")) mountCaret(el);
 
+// ---------- The home hero: the caret draws one widget after another ----------
+
+// Each widget in turn: its words type out at the easel beside the caret, the caret sketches the outline, color
+// fills in, and the finished widget flies to its place in the group and greys out. When all are drawn the group
+// rests, clears and the caret starts again. Without motion the page keeps its still arrangement.
+const castMembers = [...document.querySelectorAll(".cast")];
+const easelSpot = document.querySelector(".easel");
+const maker = document.querySelector(".caret.maker");
+if (castMembers.length && easelSpot && maker && !reducedMotion) {
+    const pile = easelSpot.parentElement;
+    let onScreen = false;
+    new IntersectionObserver(([entry]) => {
+        onScreen = entry.isIntersecting;
+    }).observe(pile.closest(".field"));
+    // Waits `ms` of visible time: the drawing pauses while the hero is off screen or the tab is hidden.
+    const wait = (ms) =>
+        new Promise((done) => {
+            let left = ms;
+            let last = performance.now();
+            const tick = (now) => {
+                if (onScreen && !document.hidden) left -= now - last;
+                last = now;
+                if (left <= 0) done();
+                else requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        });
+    const words = castMembers.map((member) => member.querySelector(".ask").innerHTML);
+    const typeOut = async (ask, html) => {
+        const lines = html.split("<br>");
+        ask.innerHTML = "";
+        for (const [n, line] of lines.entries()) {
+            if (n) ask.append(document.createElement("br"));
+            const text = document.createTextNode("");
+            ask.append(text);
+            for (const char of line) {
+                text.data += char;
+                await wait(34);
+            }
+        }
+    };
+    // Moves a member onto the easel: offsets in the pile's pixels, scaled up to the easel's size.
+    const toEasel = (member) => {
+        const scale = Number(easelSpot.dataset.k) / Number(member.dataset.k);
+        const dx = easelSpot.offsetLeft - member.offsetLeft;
+        const dy = easelSpot.offsetTop - member.offsetTop;
+        member.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    };
+    const draw = async (member, i) => {
+        member.classList.add("placing");
+        toEasel(member);
+        void member.offsetWidth; // place it before the transition comes back on
+        member.classList.remove("placing");
+        member.classList.add("drawing");
+        await typeOut(member.querySelector(".ask"), words[i]);
+        maker.classList.add("scribble");
+        member.classList.add("sketching");
+        await wait(1500);
+        member.classList.add("filling");
+        await wait(800);
+        maker.classList.remove("scribble");
+        member.classList.add("lit");
+        await wait(1200);
+        // Off to the group.
+        member.style.transform = "";
+        member.classList.add("joined");
+        member.classList.remove("drawing", "sketching", "filling", "lit");
+        maker.classList.remove("turn");
+        void maker.offsetWidth; // restart the hop
+        maker.classList.add("turn");
+        await wait(900);
+    };
+    const run = async () => {
+        pile.classList.add("drawing-mode");
+        for (const member of castMembers) member.classList.remove("lit");
+        await wait(1400);
+        for (;;) {
+            for (const [i, member] of castMembers.entries()) await draw(member, i);
+            await wait(3200);
+            pile.classList.add("clearing");
+            await wait(700);
+            for (const member of castMembers) member.classList.remove("joined");
+            pile.classList.remove("clearing");
+            await wait(600);
+        }
+    };
+    run();
+}
+
+// ---------- The growth hero: every curl counts a rep ----------
+
+const curl = document.querySelector(".workout .curl");
+const reps = document.querySelector(".workout .count");
+if (curl && reps) {
+    let count = 12;
+    curl.addEventListener("animationiteration", () => {
+        count = count >= 20 ? 1 : count + 1;
+        reps.textContent = String(count);
+    });
+}
+
+// ---------- The header: a tray once you scroll, tucked away while reading down ----------
+
+const header = document.querySelector(".top");
+if (header) {
+    let lastY = scrollY;
+    addEventListener(
+        "scroll",
+        () => {
+            const y = scrollY;
+            header.classList.toggle("scrolled", y > 30);
+            if (y <= 400 || y < lastY - 3) header.classList.remove("tucked");
+            else if (y > lastY + 3) header.classList.add("tucked");
+            lastY = y;
+        },
+        { passive: true },
+    );
+}
+
 // ---------- Motion: things arrive when their section does ----------
 
 /// Wraps each letter of a headline's own text in a span, so the letters can pop in one after another.
@@ -115,7 +234,8 @@ if (!reducedMotion) {
 // ---------- Interaction: pick up, throw and stack the blocks (mouse and pen; touch keeps scrolling and tapping) ----------
 
 let lifted = 100;
-for (const blk of blocks) {
+// The home hero's cast stays under its words, so only free blocks can be picked up.
+for (const blk of blocks.filter((b) => !b.closest(".cast"))) {
     let start = null;
     let moved = false;
     let last = null;
@@ -205,10 +325,10 @@ for (const blk of blocks) {
 
 // ---------- Interaction: every caret watches the pointer ----------
 
-const eyes = [...document.querySelectorAll(".caret .look")];
-if (mouse && !reducedMotion && eyes.length) {
+// Looked up on every move: the home hero's caret redraws when it turns, which replaces its eyes.
+if (mouse && !reducedMotion && document.querySelector(".caret .look")) {
     addEventListener("pointermove", (event) => {
-        for (const look of eyes) {
+        for (const look of document.querySelectorAll(".caret .look")) {
             const box = look.getBoundingClientRect();
             const dx = event.clientX - (box.left + box.width / 2);
             const dy = event.clientY - (box.top + box.height / 2);
@@ -305,30 +425,34 @@ for (const form of document.querySelectorAll("form.signup:not([data-pair])")) se
 
 // ---------- Pair page: /p/<code> to join someone, /p/<code>?joined=1 after confirming ----------
 
+const PARTNERS = {
+    invite: "Your partner wants widgets you both share: the home you run and the little things between you.",
+    waiting: () => "They're already on the list",
+    share: (n) =>
+        n === 1
+            ? "Send this to your partner. When they join, you get in together."
+            : "You're both on the list, so you'll get in together.",
+    count: (n) => (n === 1 ? "Just you so far" : n === 2 ? "You two are in" : `${n} of you are in`),
+    complete: (n) => n >= 2,
+    text: "Widgets for the two of us, on both our phones. Join me on the Widgie early list:",
+};
+
 const COPY = {
-    home: {
-        invite: "Someone in your home wants to share widgets with you.",
-        waiting: (n) =>
-            n === 1 ? "1 person from this home is on the list" : `${n} people from this home are on the list`,
+    partners: PARTNERS,
+    growth: {
+        invite: "A friend wants you along while they build their habits.",
+        waiting: (n) => (n === 1 ? "They're already on the list" : `${n} friends are on the list`),
         share: (n) =>
             n === 1
-                ? "Send this to the people you live with. When they join, you get in together."
-                : "Your home is on the list together. Anyone else who lives with you? Send them this too.",
-        count: (n) => (n === 1 ? "Just you so far" : `${n} people in this home`),
+                ? "Send this to a friend who keeps you going. When they join, you get in together."
+                : "Your crew is on the list together. Anyone else who'd keep you honest? Send them this too.",
+        count: (n) => (n === 1 ? "Just you so far" : `${n} of you are in`),
         complete: () => false,
-        text: "Let's stop asking who fed the dog. Join me on the Widgie early list:",
+        text: "I'm tracking my habits with Widgie. Join me on the early list:",
     },
-    us: {
-        invite: "Your person wants a widget only the two of you share.",
-        waiting: () => "They're already on the list",
-        share: (n) =>
-            n === 1
-                ? "Send this to your person. When they join, you get in together."
-                : "You're both on the list, so you'll get in together.",
-        count: (n) => (n === 1 ? "Just you so far" : n === 2 ? "You two are in" : `${n} of you are in`),
-        complete: (n) => n >= 2,
-        text: "I want a widget only we share. Join me on the Widgie early list:",
-    },
+    // Rows made before the audiences became partners and growth.
+    home: PARTNERS,
+    us: PARTNERS,
 };
 
 async function setupPair(root) {
@@ -351,7 +475,7 @@ async function setupPair(root) {
         const share = root.querySelector("#share");
         share.hidden = false;
         share.querySelector(".share-copy").textContent = copy.share(info.members);
-        share.querySelector(".count").textContent = copy.count(info.members);
+        share.querySelector(".tally").textContent = copy.count(info.members);
         if (info.members > 1) {
             const party = share.querySelector(".caret");
             party.dataset.pose = "jump";
@@ -386,7 +510,7 @@ async function setupPair(root) {
     const join = root.querySelector("#join-state");
     join.hidden = false;
     join.querySelector(".invite-copy").textContent = copy.invite;
-    join.querySelector(".count").textContent = copy.waiting(info.members);
+    join.querySelector(".tally").textContent = copy.waiting(info.members);
     const form = join.querySelector("form");
     form.dataset.segment = info.segment;
     setupForm(form, () => ({ pair: code }));

@@ -1,4 +1,4 @@
-# Early access and build in public for ICP 1 and ICP 2
+# Early access and build in public: partners and personal growth
 
 Written 2026-11-23. Status: W1 built and live at https://widgie.krutikpatel.dev (2026-11-23). Signups wait on a Resend API key.
 
@@ -107,6 +107,7 @@ Real recordings, no AI-generated footage, since the promise is "this is your wid
 2. Posting: your personal accounts, screen-only ICP videos (captions or voiceover, no face).
 3. Email: Resend. Cloudflare Email Service sends to arbitrary recipients only on Workers Paid, and the account is on Workers Free.
 4. Name: Widgie (assumed; say if not).
+5. Heroes show no widgets the sections repeat. Home: the caret draws each widget at an easel beside it (words type in, pencil outline, color wipe) and sends it to a greyed group around it, on a loop. /partners: two carets on a couch with hearts and the dog. /growth: the caret curls a dumbbell and counts reps. Concepts in `docs/design/hero-concepts/`.
 
 ## Review
 
@@ -118,5 +119,6 @@ W1 is in `Site/`, a Worker separate from `Backend/`.
 - **Verified.** 24 Worker tests. The full flow was clicked through locally: sign up, confirm, share page, partner joins through the link, pair complete. Live pages return 200 with the CSP header and no console errors. Not verified live: a real signup, because Resend is not set up yet.
 - **Second redesign (same day).** The site became "Widgie's world": the pointer is the caret (desktop), every headline is typed with the caret as its cursor, a type-a-widget field builds known ideas live on the pinned phone and saves any idea into the sign-up, the story scrolls through a sky that changes with the day (with the partner's phone sliding in for "shared"), then a marquee of prompts and a night-sky sign-up. Display face: Bricolage Grotesque (OFL), self-hosted. Pages come from `Site/pages/build.mjs` (`npm run pages`).
 - **Third direction, chosen (same day): the toy box.** Three directions were mocked up in `docs/design/site-directions/` (home screen, night glass, toy box; compared in `compare.png`). The user picked the toy box: full-bleed color fields (sky, coral, sun, grape), widgets as chunky blocks with a solid edge, and a big caret acting in each scene. `/` has every section, `/home` opens on the coral house scene, `/us` on the yellow couples scene, and each ends in the grape sign-up ("What would yours say?"), whose first field is the visitor's widget idea. Motion: blocks drop in with a bounce, headline letters pop up, blocks drift with scroll and lean toward the pointer, mouse users can pick up and throw blocks, carets sway, blink and watch the pointer, and joining ends in confetti. `Site/public/widgets.js` is now the one widget source and `Site/public/caret.js` the one caret drawing, shared with the icon renderer.
+- **Two audiences, a page each (same day).** After a one-page partners pass, the user settled on two lead audiences. The home page (`/`) has the hero and a door to each: **For partners** and **For personal growth**. `/partners` (ICP 1 and 2 merged) has a couple hero ("Made for two.", two carets and a heart), a home section (Luna with a drawn puppy, groceries, baby feeds, chores, the plant) and a couple section (countdown, hearts, moods, the daily question, days together). `/growth` (ICP 3) has "Track anything." and sections for daily habits (habit grid, meditation streak, water bottle, pushups) and goals over time (savings jar, days alcohol-free, word of the day). Each page's sign-up records its segment ("partners" or "growth", migration `0002_audiences.sql`); the home page asks which. /home and /us redirect into `/partners`.
 - **App icon (same day).** B3, "Peek, closer", in light, dark and tinted, in `App/Widgie/AppIcon.xcassets`; drawn by `docs/design/app-icon/`.
 - **Found by the browser run, not the tests.** The global `fetch` called as `deps.fetch` throws "Illegal invocation" in workerd (now bound in `index.ts`). The Turnstile script defines `window.turnstile` before `render` exists, which used to stop the rest of the page script.
