@@ -170,6 +170,8 @@ private struct Figure: View, Animatable {
             draw(in: &context)
         }
         .padding(-overhang)
+        // Decoration only: the overhanging canvas must not catch taps meant for the field or menu beside it.
+        .allowsHitTesting(false)
     }
 
     private func draw(in context: inout GraphicsContext) {
