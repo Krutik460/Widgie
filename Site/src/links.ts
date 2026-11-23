@@ -25,19 +25,3 @@ export async function verify(secret: string, purpose: Purpose, id: number, signa
     const bytes = Uint8Array.from(signature.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
     return crypto.subtle.verify("HMAC", await key(secret, "verify"), bytes, message(purpose, id));
 }
-
-const PAIR_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
-
-/// Ten characters from 31 that are hard to misread: about 50 bits, so codes cannot be guessed or collide in practice.
-/// Bytes at or above 248 (8 times 31) are skipped so every character is equally likely.
-export function pairCode(): string {
-    let code = "";
-    while (code.length < 10) {
-        for (const byte of crypto.getRandomValues(new Uint8Array(16))) {
-            if (byte < 248 && code.length < 10) code += PAIR_ALPHABET[byte % 31];
-        }
-    }
-    return code;
-}
-
-export const PAIR_CODE = /^[23456789abcdefghjkmnpqrstuvwxyz]{10}$/;

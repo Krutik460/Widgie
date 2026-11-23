@@ -1608,8 +1608,7 @@ main > .field + .field + .field + .field {
     display: flex;
     gap: 16px;
 }
-.signup input[type="email"],
-.signup .say {
+.signup input[type="email"] {
     width: 100%;
     min-width: 0;
     height: 64px;
@@ -1633,9 +1632,6 @@ main > .field + .field + .field + .field {
 }
 .signup input::placeholder {
     color: #6b7990;
-}
-.signup .say {
-    font-weight: 650;
 }
 .join .key,
 .signup .key {
@@ -1795,55 +1791,6 @@ main > .field + .field + .field + .field {
 }
 .story.right .go {
     right: var(--gx);
-}
-
-/* The audience picker in the home page sign-up */
-.pick {
-    display: flex;
-    gap: 12px;
-    border: 0;
-}
-.pick legend {
-    margin-bottom: 10px;
-    font-size: 15px;
-    font-weight: 700;
-    opacity: 0.75;
-}
-.pick label {
-    flex: 1;
-    cursor: pointer;
-}
-.pick input {
-    position: absolute;
-    opacity: 0;
-}
-.pick span {
-    display: block;
-    padding: 15px 18px;
-    border: 3px solid rgba(233, 242, 255, 0.35);
-    border-radius: 16px;
-    font-family: var(--display);
-    font-size: 19px;
-    font-weight: 700;
-    font-stretch: 90%;
-    text-align: center;
-    transition:
-        transform 0.12s,
-        background 0.15s,
-        border-color 0.15s;
-}
-.pick span:hover {
-    transform: translateY(-2px);
-}
-.pick input:checked + span {
-    border-color: var(--ink);
-    background: var(--moon);
-    color: var(--ink);
-    box-shadow: 0 6px 0 var(--ink);
-}
-.pick input:focus-visible + span {
-    outline: 3px solid var(--sun);
-    outline-offset: 3px;
 }
 
 /* ---------- Phones ---------- */
@@ -2031,15 +1978,14 @@ main > .field + .field + .field + .field {
     .signup .row {
         flex-direction: column;
     }
-    /* 17px keeps the idea's example on one line and stays above the 16px that makes iOS zoom into a field. */
+    /* 17px stays above the 16px that makes iOS zoom into a field. */
     .signup {
         gap: 16px;
     }
     .signup .row {
         gap: 16px;
     }
-    .signup input[type="email"],
-    .signup .say {
+    .signup input[type="email"] {
         height: 54px;
         padding: 0 16px;
         border-radius: 14px;
@@ -2055,11 +2001,6 @@ main > .field + .field + .field + .field {
     .signup .key {
         justify-content: center;
         height: 54px;
-    }
-    .pick span {
-        padding: 12px 16px;
-        border-radius: 14px;
-        font-size: 17px;
     }
     .story h2 {
         font-size: 17vw;
@@ -2102,9 +2043,6 @@ main > .field + .field + .field + .field {
         left: auto;
         right: auto;
         margin-top: 28px;
-    }
-    .pick {
-        flex-direction: column;
     }
     .house .lean-q {
         display: none;
@@ -2415,63 +2353,8 @@ main > .field + .field + .field + .field {
     font-weight: 500;
     line-height: 1.45;
 }
-/* Only a page's own key gets the gap; keys inside a form or the share box sit level with their field. */
-.center > .key,
-.center section > .key {
+.center .key {
     margin-top: 30px;
-}
-.tally:empty {
-    display: none;
-}
-.tally {
-    display: inline-block;
-    margin-top: 22px;
-    padding: 10px 16px;
-    border: 3px solid var(--ink);
-    border-radius: 13px;
-    background: #a9e9cd;
-    box-shadow: 0 5px 0 var(--ink);
-    font-weight: 750;
-    color: var(--ink);
-}
-.card {
-    margin-top: 36px;
-    padding: 34px;
-    border: 3px solid var(--ink);
-    border-radius: 28px;
-    background: var(--grape);
-    color: var(--moon);
-    box-shadow: 0 10px 0 var(--ink);
-    text-align: left;
-}
-.card .signup {
-    margin-top: 0;
-}
-.share-box {
-    display: flex;
-    gap: 12px;
-    margin-top: 30px;
-}
-.share-box input {
-    flex: 1;
-    min-width: 0;
-    height: 64px;
-    padding: 0 18px;
-    border: 3px solid var(--ink);
-    border-radius: 16px;
-    background: #fff;
-    color: var(--ink);
-    font: 600 16px var(--text);
-    box-shadow: 0 7px 0 var(--ink);
-}
-.share-box .key::after,
-#native-share::after {
-    display: none;
-}
-#native-share {
-    margin-top: 18px;
-    background: #fff;
-    color: var(--ink);
 }
 .page-foot {
     display: flex;
@@ -2518,22 +2401,6 @@ main > .field + .field + .field + .field {
 @media (max-width: 760px) {
     .page {
         padding-top: 110px;
-    }
-    .share-box {
-        flex-direction: column;
-    }
-    /* Stacked, the field's flex: 1 would shrink it to nothing; it takes its own height instead. */
-    .share-box input {
-        flex: none;
-        height: 54px;
-        border-radius: 14px;
-        box-shadow: 0 5px 0 var(--ink);
-    }
-    .share-box .key {
-        justify-content: center;
-    }
-    .card {
-        padding: 24px;
     }
 }
 
@@ -2726,8 +2593,7 @@ main > .field + .field + .field + .field {
     outline-offset: 3px;
     border-radius: 6px;
 }
-.grape :focus-visible,
-.card :focus-visible {
+.grape :focus-visible {
     outline-color: var(--sun);
 }
 .key:focus-visible {

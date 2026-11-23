@@ -1,4 +1,4 @@
-// Writes every page in public/ from one template: the toy box story pages (/, /home, /us) and the small pages share
+// Writes every page in public/ from one template: the toy box story pages (/, /partners, /growth) and the small pages share
 // one head, header and footer. Run `npm run pages` after editing; the output is committed and served as is.
 
 import { writeFileSync } from "node:fs";
@@ -97,34 +97,22 @@ const couple = () => `<section class="field pink two" id="us">
 <div class="scene" data-scene="couple"></div>
 </section>`;
 
-const INVITES = {
-    partners: "You'll get a link for your partner, and couples who join together get in first.",
-    growth: "You'll get a link for a friend who keeps you going, and friends who join together get in first.",
-    "": "You'll get a link to bring someone along, and people who join together get in first.",
-};
-
-function signupForm({ segment, placeholder, pair = false }) {
-    const invite = `${INVITES[segment] ?? INVITES[""]} Free while it's early: one short email a month and your invite. Leave any time.`;
-    const id = pair ? "pair" : segment || "any";
-    const picker =
-        segment || pair
-            ? ""
-            : `<fieldset class="pick"><legend>It's for</legend><label><input type="radio" name="segment" value="partners" checked><span>The two of us</span></label><label><input type="radio" name="segment" value="growth"><span>My own goals</span></label></fieldset>`;
-    return `<form class="signup"${segment ? ` data-segment="${segment}"` : ""}${pair ? " data-pair" : ""} novalidate>
-${picker}
-<label class="sr" for="idea-${id}">Your first widget, in your words (optional)</label>
-<input class="say" id="idea-${id}" name="idea" maxlength="500" autocomplete="off" placeholder="${esc(placeholder)}">
+/// The sign-up asks for an email and nothing else. An audience page's form carries its segment; the home page's carries
+/// none and is stored as "any".
+function signupForm({ segment }) {
+    const id = segment || "any";
+    return `<form class="signup"${segment ? ` data-segment="${segment}"` : ""} novalidate>
 <div class="row"><label class="sr" for="email-${id}">Your email</label><input id="email-${id}" name="email" type="email" autocomplete="email" placeholder="you@home.com" required><button class="key" type="submit">Get early access</button></div>
 <div class="turnstile"></div>
 <p class="error" role="alert"></p>
-<p class="fine">${invite}</p>
+<p class="fine">Free while it's early. One short email a month, and your invite when Widgie is ready. Leave any time.</p>
 </form>
-<div class="done" hidden><span class="caret" data-pose="jump" data-eyes="happy" data-moon="1"></span><h3>Check your inbox.</h3><p>Tap the link we sent to hold your spot. Then you'll get a link to bring your person along.</p></div>`;
+<div class="done" hidden><span class="caret" data-pose="jump" data-eyes="happy" data-moon="1"></span><h3>Check your inbox.</h3><p>Tap the link we sent to hold your spot.</p></div>`;
 }
 
 const join = (page) => `<section class="field grape join" id="join">
 <div class="join-col">
-<h2 class="display"><span>What would</span><span>yours say?</span></h2>
+<h2 class="display"><span>Hold your</span><span>spot.</span></h2>
 ${signupForm(page)}
 </div>
 <div class="scene" data-scene="${page.scene}"></div>
@@ -165,7 +153,7 @@ const PAGES = [
                 door: { href: "/growth", label: "See it for growth" },
             }),
         ],
-        join: { segment: "", placeholder: "Tell me when the plants need water", scene: "joinAny" },
+        join: { segment: "", scene: "joinAny" },
     },
     {
         file: "partners.html",
@@ -184,7 +172,7 @@ const PAGES = [
             home(),
             couple(),
         ],
-        join: { segment: "partners", placeholder: "Tell us when the plants need water", scene: "joinPartners" },
+        join: { segment: "partners", scene: "joinPartners" },
     },
     {
         file: "growth.html",
@@ -219,7 +207,7 @@ const PAGES = [
                 scene: "goals",
             }),
         ],
-        join: { segment: "growth", placeholder: "Remind me to stretch every evening", scene: "joinGrowth" },
+        join: { segment: "growth", scene: "joinGrowth" },
     },
 ];
 
@@ -241,11 +229,11 @@ ${join(page.join)}
 
 const PAGE_FOOT = `<div class="page-foot"><span>Widgie, built in public by Krutik.</span><a href="/privacy">Privacy</a></div>`;
 
-function smallPage({ file, title, description, path = "/", body, turnstile = false, join = "/#join" }) {
+function smallPage({ file, title, description, path = "/", body }) {
     writeFileSync(
         OUT + file,
-        `${head({ title, description, path, turnstile })}<body>
-${header(join)}<main class="field sky page">
+        `${head({ title, description, path })}<body>
+${header("/#join")}<main class="field sky page">
 ${body}
 ${PAGE_FOOT}
 </main>
@@ -257,37 +245,6 @@ ${PAGE_FOOT}
 
 const bigCaret = () => `<span class="caret" data-pose="idle" data-shadow="1"></span>`;
 
-smallPage({
-    file: "p.html",
-    title: "Join me on Widgie",
-    description: "You've been invited to share widgets on Widgie. Join the early list together.",
-    turnstile: true,
-    join: "#join-root",
-    body: `<div id="join-root" class="center">
-<section id="join-state" hidden>
-${bigCaret()}
-<h1 data-hide-on-done>You're invited.</h1>
-<p class="invite-copy" data-hide-on-done></p>
-<p class="tally" data-hide-on-done></p>
-<div class="card">${signupForm({ segment: "", placeholder: "Tell us when it's my turn", pair: true })}</div>
-</section>
-<section id="share" hidden>
-${bigCaret()}
-<h1>You're on the list.</h1>
-<p class="share-copy"></p>
-<div class="share-box"><input aria-label="Your invite link" readonly><button class="key" id="copy" type="button">Copy</button></div>
-<button class="key" id="native-share" type="button" hidden>Share link</button>
-<p class="tally"></p>
-</section>
-<section id="unknown" hidden>
-${bigCaret()}
-<h1>This invite isn't ready.</h1>
-<p>Whoever sent it may not have confirmed their email yet. You can still get on the list yourself.</p>
-<a class="key" href="/">Go to Widgie</a>
-</section>
-</div>`,
-});
-
 const simple = (file, title, h1, inner) =>
     smallPage({
         file,
@@ -296,6 +253,12 @@ const simple = (file, title, h1, inner) =>
         body: `<div class="center">${bigCaret()}<h1>${h1}</h1>${inner}</div>`,
     });
 
+smallPage({
+    file: "confirmed.html",
+    title: "You're on the list · Widgie",
+    description: "You're on the Widgie early list.",
+    body: `<div class="center"><span class="caret" data-pose="jump" data-eyes="happy" data-shadow="1"></span><h1>You're on the list.</h1><p>That's all. We'll email you when Widgie is ready for you, and about once a month until then.</p><a class="key" href="/">Back to Widgie</a></div>`,
+});
 simple(
     "leave.html",
     "Leave the list",
@@ -329,14 +292,13 @@ smallPage({
 <h2>What we store</h2>
 <ul>
 <li>Your email address, so we can confirm your spot and invite you when Widgie is ready.</li>
-<li>Whether you signed up for a home or for two people, and which group you joined.</li>
-<li>Your widget idea, if you wrote one. It helps decide what Widgie should build well first.</li>
+<li>Which page you signed up from (partners or personal growth), if any.</li>
 <li>The site or channel that sent you, if the link said so.</li>
 </ul>
 <h2>What we don't do</h2>
 <ul>
 <li>No ad trackers and no cookies. Visit counts come from Cloudflare Web Analytics, which does not identify you.</li>
-<li>We never sell or share your email. It is used only for Widgie updates and your invite.</li>
+<li>We never sell or share your email. It is used only for Widgie updates and your invite to the app.</li>
 </ul>
 <h2>Who handles it</h2>
 <p>The list lives in a Cloudflare database. Emails are sent through Resend. Bot checks use Cloudflare Turnstile.</p>
