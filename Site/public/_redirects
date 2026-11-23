@@ -1,2 +1,4 @@
 /home /partners#home 301
 /us /partners#us 301
+# Invite links from before the list dropped invites.
+/p/* / 302

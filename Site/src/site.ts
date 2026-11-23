@@ -1,16 +1,14 @@
 // The early access site. Static pages come from public/; the Worker runs first only for the routes below.
 //
-//   POST /api/signup   {email, segment, idea?, source?, pair?, turnstile} -> {ok: true}, the same answer whether the
-//                      email is new, pending or confirmed, so the form never reveals who is on the list.
-//   GET  /api/pair/:c  -> {segment, members}: confirmed people in that pair, for the join and share pages.
-//   GET  /confirm      ?id&t -> marks the row confirmed and redirects to its share page.
+//   POST /api/signup   {email, segment?, idea?, source?, turnstile} -> {ok: true}, the same answer whether the email is
+//                      new, pending or confirmed, so the form never reveals who is on the list.
+//   GET  /confirm      ?id&t -> marks the row confirmed and redirects to /confirmed.
 //   POST /api/leave    ?id&t -> deletes the row. The leave page posts here, and so do mail clients (List-Unsubscribe).
-//   GET  /p/:code      -> the join page for a pair, served from public/p.html.
 //
 // Logs are one line per API request with the route, status and time. Never an email address or an idea.
 
 import { alreadyInMail, confirmMail, type Leave, type Segment, send } from "./email";
-import { PAIR_CODE, pairCode, sign, verify } from "./links";
+import { sign, verify } from "./links";
 
 export type Env = Cloudflare.Env;
 
@@ -19,8 +17,6 @@ export interface Dependencies {
     now: () => Date;
 }
 
-/// A home can be a big family; a couple plus a close friend or two still fits. Joins past this start their own pair.
-export const MAX_PAIR = 8;
 /// A second confirmation email for the same address waits this long, so the form cannot be used to flood an inbox.
 export const RESEND_AFTER_MS = 10 * 60 * 1000;
 const MAX_IDEA = 500;
@@ -33,14 +29,9 @@ export async function handle(request: Request, env: Env, deps: Dependencies): Pr
     const { pathname } = url;
     const method = request.method;
 
-    if (pathname.startsWith("/p/") && method === "GET") {
-        return PAIR_CODE.test(pathname.slice(3)) ? env.ASSETS.fetch(new URL("/p", url)) : notFound(env, url);
-    }
     if (pathname === "/confirm" && method === "GET") return logged("confirm", () => confirm(url, env, deps));
     if (pathname === "/api/signup" && method === "POST") return logged("signup", () => signup(request, env, deps));
     if (pathname === "/api/leave" && method === "POST") return logged("leave", () => leave(url, env));
-    if (pathname.startsWith("/api/pair/") && method === "GET")
-        return logged("pair", () => pair(pathname.slice(10), env));
     if (pathname.startsWith("/api/")) return Response.json({ error: "not found" }, { status: 404 });
     return env.ASSETS.fetch(request);
 }
@@ -59,11 +50,6 @@ async function logged(route: string, run: () => Promise<Response>): Promise<Resp
     return response;
 }
 
-async function notFound(env: Env, url: URL) {
-    const page = await env.ASSETS.fetch(new URL("/404", url));
-    return new Response(page.body, { status: 404, headers: page.headers });
-}
-
 function refuse(status: number, error: string) {
     return Response.json({ error }, { status });
 }
@@ -73,7 +59,6 @@ interface SignupBody {
     segment: Segment;
     idea: string | null;
     source: string | null;
-    pair: string | null;
     turnstile: string;
 }
 
@@ -83,19 +68,18 @@ export function parseSignup(raw: unknown): SignupBody | string {
     const body = raw as Record<string, unknown>;
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     if (email.length > 254 || !EMAIL.test(email)) return "that email doesn't look right";
-    if (body.segment !== "partners" && body.segment !== "growth") return "pick partners or growth";
+    // An audience page names its segment; the home page sends none, and that signup is for anyone.
+    const segment = body.segment === undefined || body.segment === "" ? "any" : body.segment;
+    if (segment !== "partners" && segment !== "growth" && segment !== "any") return "pick partners or growth";
     const idea = typeof body.idea === "string" ? body.idea.trim() : "";
     if (idea.length > MAX_IDEA) return `keep the idea under ${MAX_IDEA} characters`;
     const source = typeof body.source === "string" ? body.source.trim().toLowerCase().slice(0, MAX_SOURCE) : "";
-    const pair = typeof body.pair === "string" && body.pair !== "" ? body.pair : null;
-    if (pair !== null && !PAIR_CODE.test(pair)) return "that invite link is not valid";
     if (typeof body.turnstile !== "string" || body.turnstile === "") return "the check didn't load, reload the page";
     return {
         email,
-        segment: body.segment,
+        segment,
         idea: idea || null,
         source: source || null,
-        pair,
         turnstile: body.turnstile,
     };
 }
@@ -121,34 +105,15 @@ async function signup(request: Request, env: Env, deps: Dependencies): Promise<R
     const now = deps.now();
     const stamp = now.toISOString();
 
-    // Joining a pair takes its segment and code. A pair that does not exist yet, or is full, starts a new one.
-    let segment = body.segment;
-    let code = pairCode();
-    let viaLink = 0;
-    if (body.pair) {
-        const found = await pairInfo(body.pair, env);
-        if (found && found.members < MAX_PAIR) {
-            segment = found.segment;
-            code = body.pair;
-            viaLink = 1;
-        }
-    }
-
     const inserted = await env.DB.prepare(
-        `INSERT INTO signups (email, segment, pair_code, joined_via_link, idea, source, created_at, sent_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id`,
+        `INSERT INTO signups (email, segment, idea, source, created_at, sent_at)
+         VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id`,
     )
-        .bind(body.email, segment, code, viaLink, body.idea, body.source, stamp, stamp)
+        .bind(body.email, body.segment, body.idea, body.source, stamp, stamp)
         .first<{ id: number }>();
 
     if (inserted) {
-        const mail = confirmMail(
-            body.email,
-            segment,
-            viaLink === 1,
-            await confirmUrl(env, inserted.id),
-            await leaveLinks(env, inserted.id),
-        );
+        const mail = confirmMail(body.email, await confirmUrl(env, inserted.id), await leaveLinks(env, inserted.id));
         try {
             await send(env, deps.fetch, mail);
         } catch (error) {
@@ -162,27 +127,15 @@ async function signup(request: Request, env: Env, deps: Dependencies): Promise<R
     // Already on the list. Remind them, at most once per RESEND_AFTER_MS, and answer exactly as for a new email.
     const cutoff = new Date(now.getTime() - RESEND_AFTER_MS).toISOString();
     const existing = await env.DB.prepare(
-        "UPDATE signups SET sent_at = ? WHERE email = ? AND sent_at < ? RETURNING id, segment, pair_code, joined_via_link, confirmed_at",
+        "UPDATE signups SET sent_at = ? WHERE email = ? AND sent_at < ? RETURNING id, confirmed_at",
     )
         .bind(stamp, body.email, cutoff)
-        .first<{
-            id: number;
-            segment: Segment;
-            pair_code: string;
-            joined_via_link: number;
-            confirmed_at: string | null;
-        }>();
+        .first<{ id: number; confirmed_at: string | null }>();
     if (existing) {
         const leave = await leaveLinks(env, existing.id);
         const mail = existing.confirmed_at
-            ? alreadyInMail(body.email, existing.segment, `${env.SITE_URL}/p/${existing.pair_code}?joined=1`, leave)
-            : confirmMail(
-                  body.email,
-                  existing.segment,
-                  existing.joined_via_link === 1,
-                  await confirmUrl(env, existing.id),
-                  leave,
-              );
+            ? alreadyInMail(body.email, leave)
+            : confirmMail(body.email, await confirmUrl(env, existing.id), leave);
         await send(env, deps.fetch, mail);
     }
     return Response.json({ ok: true });
@@ -226,12 +179,11 @@ async function confirm(url: URL, env: Env, deps: Dependencies): Promise<Response
         id === null
             ? null
             : await env.DB.prepare(
-                  "UPDATE signups SET confirmed_at = COALESCE(confirmed_at, ?) WHERE id = ? RETURNING pair_code",
+                  "UPDATE signups SET confirmed_at = COALESCE(confirmed_at, ?) WHERE id = ? RETURNING id",
               )
                   .bind(deps.now().toISOString(), id)
-                  .first<{ pair_code: string }>();
-    if (!row) return Response.redirect(`${env.SITE_URL}/link-expired`, 303);
-    return Response.redirect(`${env.SITE_URL}/p/${row.pair_code}?joined=1`, 303);
+                  .first<{ id: number }>();
+    return Response.redirect(`${env.SITE_URL}/${row ? "confirmed" : "link-expired"}`, 303);
 }
 
 async function leave(url: URL, env: Env): Promise<Response> {
@@ -239,20 +191,4 @@ async function leave(url: URL, env: Env): Promise<Response> {
     if (id === null) return refuse(403, "that link is not valid");
     await env.DB.prepare("DELETE FROM signups WHERE id = ?").bind(id).run();
     return Response.json({ ok: true });
-}
-
-async function pairInfo(code: string, env: Env): Promise<{ segment: Segment; members: number } | null> {
-    const row = await env.DB.prepare(
-        "SELECT MIN(segment) AS segment, COUNT(confirmed_at) AS members FROM signups WHERE pair_code = ?",
-    )
-        .bind(code)
-        .first<{ segment: Segment | null; members: number }>();
-    return row?.segment && row.members > 0 ? { segment: row.segment, members: row.members } : null;
-}
-
-async function pair(code: string, env: Env): Promise<Response> {
-    if (!PAIR_CODE.test(code)) return refuse(404, "no such invite");
-    const found = await pairInfo(code, env);
-    if (!found) return refuse(404, "no such invite");
-    return Response.json(found, { headers: { "Cache-Control": "no-store" } });
 }

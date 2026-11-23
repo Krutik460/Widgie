@@ -1,4 +1,4 @@
-// Behavior for every page: the toy box scenes and their motion, the sign-up form, the pair page and the leave page.
+// Behavior for every page: the toy box scenes and their motion, the sign-up form and the leave page.
 // A plain ES module, no build step; each part runs only when its elements are on the page.
 
 import { mountCaret, mountWidget, SCENES } from "/widgets.js";
@@ -378,7 +378,7 @@ function confetti() {
     setTimeout(() => layer.remove(), 2600);
 }
 
-function setupForm(form, extra) {
+function setupForm(form) {
     const error = form.querySelector(".error");
     const button = form.querySelector("button[type=submit]");
     const check = form.querySelector(".turnstile");
@@ -399,17 +399,14 @@ function setupForm(form, extra) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: data.get("email"),
-                    idea: data.get("idea") || "",
-                    segment: form.dataset.segment || data.get("segment") || "home",
+                    segment: form.dataset.segment || "",
                     source: sessionStorage.getItem("source") || "",
                     turnstile: token,
-                    ...extra(),
                 }),
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(body.error || "Something went wrong, try again.");
             form.hidden = true;
-            for (const element of document.querySelectorAll("[data-hide-on-done]")) element.hidden = true;
             done.hidden = false;
             for (const el of done.querySelectorAll(".caret[data-pose]")) mountCaret(el);
             confetti();
@@ -423,103 +420,7 @@ function setupForm(form, extra) {
     });
 }
 
-for (const form of document.querySelectorAll("form.signup:not([data-pair])")) setupForm(form, () => ({}));
-
-// ---------- Pair page: /p/<code> to join someone, /p/<code>?joined=1 after confirming ----------
-
-const PARTNERS = {
-    invite: "Your partner wants widgets you both share: the home you run and the little things between you.",
-    waiting: () => "They're already on the list",
-    share: (n) =>
-        n === 1
-            ? "Send this to your partner. When they join, you get in together."
-            : "You're both on the list, so you'll get in together.",
-    count: (n) => (n === 1 ? "Just you so far" : n === 2 ? "You two are in" : `${n} of you are in`),
-    complete: (n) => n >= 2,
-    text: "Widgets for the two of us, on both our phones. Join me on the Widgie early list:",
-};
-
-const COPY = {
-    partners: PARTNERS,
-    growth: {
-        invite: "A friend wants you along while they build their habits.",
-        waiting: (n) => (n === 1 ? "They're already on the list" : `${n} friends are on the list`),
-        share: (n) =>
-            n === 1
-                ? "Send this to a friend who keeps you going. When they join, you get in together."
-                : "Your crew is on the list together. Anyone else who'd keep you honest? Send them this too.",
-        count: (n) => (n === 1 ? "Just you so far" : `${n} of you are in`),
-        complete: () => false,
-        text: "I'm tracking my habits with Widgie. Join me on the early list:",
-    },
-    // Rows made before the audiences became partners and growth.
-    home: PARTNERS,
-    us: PARTNERS,
-};
-
-async function setupPair(root) {
-    const code = location.pathname.split("/")[2];
-    const joined = params.get("joined") === "1";
-    let info = null;
-    try {
-        const response = await fetch(`/api/pair/${code}`);
-        if (response.ok) info = await response.json();
-    } catch {}
-
-    if (!info) {
-        root.querySelector("#unknown").hidden = false;
-        return;
-    }
-    const copy = COPY[info.segment];
-    const shareUrl = `${location.origin}/p/${code}`;
-
-    if (joined) {
-        const share = root.querySelector("#share");
-        share.hidden = false;
-        share.querySelector(".share-copy").textContent = copy.share(info.members);
-        share.querySelector(".tally").textContent = copy.count(info.members);
-        if (info.members > 1) {
-            const party = share.querySelector(".caret");
-            party.dataset.pose = "jump";
-            party.dataset.eyes = "happy";
-            mountCaret(party);
-            party.classList.add("hopping");
-            confetti();
-        }
-        if (copy.complete(info.members)) {
-            share.querySelector(".share-box").hidden = true;
-            return;
-        }
-        share.querySelector(".share-box input").value = shareUrl;
-        const copyButton = share.querySelector("#copy");
-        copyButton.addEventListener("click", async () => {
-            await navigator.clipboard.writeText(shareUrl);
-            copyButton.textContent = "Copied";
-            setTimeout(() => {
-                copyButton.textContent = "Copy";
-            }, 1600);
-        });
-        const nativeShare = share.querySelector("#native-share");
-        if (navigator.share) {
-            nativeShare.hidden = false;
-            nativeShare.addEventListener("click", () =>
-                navigator.share({ title: "Join me on Widgie", text: copy.text, url: shareUrl }).catch(() => {}),
-            );
-        }
-        return;
-    }
-
-    const join = root.querySelector("#join-state");
-    join.hidden = false;
-    join.querySelector(".invite-copy").textContent = copy.invite;
-    join.querySelector(".tally").textContent = copy.waiting(info.members);
-    const form = join.querySelector("form");
-    form.dataset.segment = info.segment;
-    setupForm(form, () => ({ pair: code }));
-}
-
-const pairRoot = document.getElementById("join-root");
-if (pairRoot) setupPair(pairRoot);
+for (const form of document.querySelectorAll("form.signup")) setupForm(form);
 
 // ---------- Leave page ----------
 
