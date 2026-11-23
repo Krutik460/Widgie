@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Lint and format, types, and the Worker tests (run inside workerd). Exits non-zero at the first failure.
+# The prompt file's freshness is checked by the eval harness tests in Engine/scripts/check.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+step() { printf '\n== %s\n' "$1"; }
+
+[ -d node_modules ] || npm ci
+step "backend lint and format"
+npx biome check .
+step "backend types"
+npx tsc --noEmit
+step "backend tests"
+npx vitest run

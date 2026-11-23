@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Writes src/build-prompt.txt from Engine/Reference with compose_prompt(), the one implementation of the compose
+# rules. Run it after any change in Engine/Reference; the eval harness tests fail until you do.
+set -euo pipefail
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+python3 -I -c '
+import sys
+sys.path.insert(0, sys.argv[1])
+from model import compose_prompt
+open(sys.argv[2], "w").write(compose_prompt())
+' "$root/Engine/Evals" "$root/Backend/src/build-prompt.txt"
