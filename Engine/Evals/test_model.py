@@ -46,6 +46,14 @@ class UserMessageTests(unittest.TestCase):
             self.assertEqual(str(caught.exception), case["error"])
 
 
+    def test_each_request_becomes_the_pinned_user_turn(self):
+        # The Worker in Backend/ checks the same file, so both services send the model the same words.
+        turns = json.loads((TESTDATA / "user-turns.json").read_text())
+        for name, request in json.loads((TESTDATA / "requests.json").read_text()).items():
+            with self.subTest(name):
+                self.assertEqual(model.user_message(request)[-1]["text"], turns[name])
+
+
 class PromptTests(unittest.TestCase):
     def test_the_worker_sends_the_composed_build_prompt(self):
         # Backend/scripts/prompt writes the file. Run it after changing anything in Engine/Reference.

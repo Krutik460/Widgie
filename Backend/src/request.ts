@@ -37,11 +37,11 @@ export function userTurn(request: unknown): UserTurn {
     if (unknown.length > 0) throw new BadRequest(`unknown request fields: ${unknown.join(", ")}`);
 
     const { words, current, repair, image } = request;
-    if (typeof words !== "string" || words.trim() === "") {
+    if (typeof words !== "string" || isBlank(words)) {
         throw new BadRequest('"words" must be a non-empty string');
     }
     capped("words", words, LIMITS.words);
-    if (current != null && (typeof current !== "string" || current.trim() === "")) {
+    if (current != null && (typeof current !== "string" || isBlank(current))) {
         throw new BadRequest('"current" must be the document being refined, as a non-empty string');
     }
     if (typeof current === "string") capped("current", current, LIMITS.document);
@@ -90,6 +90,15 @@ function isBase64(data: string): boolean {
     } catch {
         return false;
     }
+}
+
+/// Python's `str.strip()` set, so the Worker and the bridge agree on an empty field. JavaScript's `trim()` differs
+/// on U+001C to U+001F and U+0085, which only Python strips, and U+FEFF, which only JavaScript strips.
+// biome-ignore lint/suspicious/noControlCharactersInRegex: U+001C to U+001F are in Python's whitespace set.
+const BLANK = /^[\t-\r\x1c-\x20\x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]*$/;
+
+function isBlank(text: string): boolean {
+    return BLANK.test(text);
 }
 
 function capped(name: string, value: string, limit: number) {

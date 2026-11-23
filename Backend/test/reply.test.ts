@@ -89,6 +89,17 @@ describe("the body", () => {
         expect(fetcher).not.toHaveBeenCalled();
     });
 
+    it("refuses a body that is not UTF-8", async () => {
+        const { status } = await send(post(new Uint8Array([0x7b, 0x22, 0xff, 0x22, 0x7d])));
+        expect(status).toBe(400);
+    });
+
+    it("answers with one short line even when a key holds newlines", async () => {
+        const { body } = await send(post(JSON.stringify({ words: "a", [`x\n${"y".repeat(5000)}`]: 1 })));
+        expect(String(body.error).length).toBeLessThanOrEqual(300);
+        expect(String(body.error)).not.toContain("\n");
+    });
+
     it("answers a malformed request with the bridge's bad-request line", async () => {
         expect((await send(post("not json"))).body.error).toBe(
             "bad request: the body must be a ModelRequest JSON object",
@@ -96,6 +107,34 @@ describe("the body", () => {
         const { status, body, fetcher } = await send(post(JSON.stringify({ words: "a", colour: "blue" })));
         expect([status, body.error]).toEqual([400, "bad request: unknown request fields: colour"]);
         expect(fetcher).not.toHaveBeenCalled();
+    });
+});
+
+describe("the log", () => {
+    it("never holds the words, the document, the picture, or the reply", async () => {
+        const log = vi.spyOn(console, "log").mockImplementation(() => {});
+        const request = requests["refine-repair"];
+        const picture = requests["create-image"];
+        await send(post(JSON.stringify(request)));
+        await send(post(JSON.stringify(picture)));
+        await send(post(JSON.stringify({ ...request, colour: "blue" })));
+        const lines = log.mock.calls.flat().join("\n");
+        log.mockRestore();
+        expect(lines).toContain('"route":"reply"');
+        for (const secret of [request.words, request.current, request.repair.line, picture.image.base64.slice(0, 40)]) {
+            expect(lines).not.toContain(secret);
+        }
+        expect(lines).not.toContain(ANSWER.choices[0]?.message.content);
+    });
+
+    it("keeps a failure's reason to one short line", async () => {
+        const log = vi.spyOn(console, "log").mockImplementation(() => {});
+        const long = `quoted input\n${"x".repeat(5000)}`;
+        await send(post(JSON.stringify(requests.create)), upstream(400, { error: { code: 400, message: long } }));
+        const line = JSON.parse(String(log.mock.calls[0]?.[0]));
+        log.mockRestore();
+        expect(line.reason.length).toBeLessThanOrEqual(300);
+        expect(line.reason).not.toContain("\n");
     });
 });
 
