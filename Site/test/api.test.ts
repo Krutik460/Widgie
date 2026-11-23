@@ -22,10 +22,32 @@ interface Sent {
     headers: Record<string, string>;
 }
 
-function services(options: { human?: boolean; mailStatus?: number; mailThrows?: boolean } = {}) {
+interface Captured {
+    api_key: string;
+    event: string;
+    distinct_id: string;
+    timestamp: string;
+    properties: Record<string, unknown>;
+}
+
+function services(
+    options: { human?: boolean; mailStatus?: number; mailThrows?: boolean; posthogStatus?: number } = {},
+) {
     const sent: Sent[] = [];
+    const captured: Captured[] = [];
+    const forwarded: { url: string; init: RequestInit | undefined }[] = [];
+    const pending: Promise<unknown>[] = [];
     const fetcher = vi.fn<typeof fetch>(async (input, init) => {
         const url = String(input);
+        if (url === "https://us.i.posthog.com/i/v0/e/") {
+            if (options.posthogStatus) return new Response("down", { status: options.posthogStatus });
+            captured.push(JSON.parse(String(init?.body)));
+            return Response.json({ status: 1 });
+        }
+        if (url.startsWith("https://us.i.posthog.com/") || url.startsWith("https://us-assets.i.posthog.com/")) {
+            forwarded.push({ url, init });
+            return new Response("from posthog", { status: 200 });
+        }
         if (url.startsWith("https://challenges.cloudflare.com/")) {
             return Response.json({ success: options.human ?? true });
         }
@@ -39,8 +61,14 @@ function services(options: { human?: boolean; mailStatus?: number; mailThrows?: 
     let clock = new Date("2026-11-23T12:00:00Z");
     return {
         sent,
+        captured,
+        forwarded,
         fetcher,
-        deps: { fetch: fetcher, now: () => clock },
+        deps: { fetch: fetcher, now: () => clock, defer: (task: Promise<unknown>) => void pending.push(task) },
+        /// Waits for the work the Worker runs after answering, such as PostHog events.
+        async settle() {
+            await Promise.all(pending);
+        },
         advance(ms: number) {
             clock = new Date(clock.getTime() + ms);
         },
@@ -73,6 +101,7 @@ async function row(email: string) {
         segment: string;
         idea: string | null;
         source: string | null;
+        visitor: string | null;
         sent_at: string;
         confirmed_at: string | null;
     }>();
@@ -95,7 +124,31 @@ describe("parseSignup", () => {
             email: "me@example.com",
             segment: "partners",
             source: "tiktok",
+            attribution: { medium: null, campaign: null, content: null, referrer: null },
+            visitor: null,
             turnstile: "t",
+        });
+    });
+
+    it("keeps the post that brought the visitor, and a visitor id only when it looks like one", () => {
+        const body = {
+            ...valid,
+            source: "Reddit",
+            medium: "community",
+            campaign: " BIP ",
+            content: "longdistance",
+            referrer: "www.reddit.com",
+            visitor: "019a8f3e-1c2d-7e4f-8a9b-0c1d2e3f4a5b",
+        };
+        expect(parseSignup(body)).toMatchObject({
+            source: "reddit",
+            attribution: { medium: "community", campaign: "bip", content: "longdistance", referrer: "www.reddit.com" },
+            visitor: "019a8f3e-1c2d-7e4f-8a9b-0c1d2e3f4a5b",
+        });
+        expect(parseSignup({ ...valid, visitor: "<script>" })).toMatchObject({ visitor: null });
+        expect(parseSignup({ ...valid, visitor: 42 })).toMatchObject({ visitor: null });
+        expect(parseSignup({ ...valid, content: "x".repeat(500) })).toMatchObject({
+            attribution: { content: "x".repeat(100) },
         });
     });
 
@@ -302,6 +355,170 @@ describe("signed links after a row is gone", () => {
         const oneClick = s.sent[0]?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
         expect((await handle(new Request(oneClick, { method: "POST" }), env, s.deps)).status).toBe(200);
         expect((await handle(new Request(oneClick, { method: "POST" }), env, s.deps)).status).toBe(200);
+    });
+});
+
+describe("PostHog events from the server", () => {
+    const visitor = "019a8f3e-1c2d-7e4f-8a9b-0c1d2e3f4a5b";
+
+    it("sends waitlist_joined for a new row, under the visitor's id, with the post that brought them", async () => {
+        const s = services();
+        const { email } = fresh();
+        await signUp(s, { email, segment: "partners", source: "reddit", content: "longdistance", visitor });
+        await s.settle();
+
+        expect(s.captured).toHaveLength(1);
+        expect(s.captured[0]).toMatchObject({
+            api_key: "phc_test",
+            event: "waitlist_joined",
+            distinct_id: visitor,
+            timestamp: "2026-11-23T12:00:00.000Z",
+            properties: {
+                segment: "partners",
+                first_source: "reddit",
+                first_content: "longdistance",
+                $host: "widgie.krutikpatel.dev",
+                $process_person_profile: false,
+            },
+        });
+        expect((await row(email))?.visitor).toBe(visitor);
+    });
+
+    it("never sends an email address", async () => {
+        const s = services();
+        const { email } = fresh();
+        await confirmed(s, { email, segment: "growth", visitor });
+        s.advance(RESEND_AFTER_MS + 1000);
+        await signUp(s, { email, segment: "growth", visitor });
+        const oneClick = s.sent[0]?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
+        await handle(new Request(oneClick, { method: "POST" }), env, s.deps);
+        await s.settle();
+
+        expect(s.captured.map((c) => c.event)).toEqual(["waitlist_joined", "waitlist_confirmed", "waitlist_left"]);
+        expect(JSON.stringify(s.captured)).not.toContain(email);
+        expect(JSON.stringify(s.captured)).not.toContain("@");
+    });
+
+    it("sends nothing for a repeat, a refused check, or a signup whose email failed", async () => {
+        const s = services();
+        const { email } = fresh();
+        await signUp(s, { email, segment: "partners" });
+        await signUp(s, { email, segment: "partners" });
+        await signUp(services({ human: false }), { email: fresh().email, segment: "partners" });
+        const failing = services({ mailStatus: 500 });
+        await signUp(failing, { email: fresh().email, segment: "partners" });
+        await s.settle();
+        await failing.settle();
+
+        expect(s.captured.map((c) => c.event)).toEqual(["waitlist_joined"]);
+        expect(failing.captured).toHaveLength(0);
+    });
+
+    it("sends waitlist_confirmed once, with the hours it took, even when the link is opened twice", async () => {
+        const s = services();
+        const { email } = fresh();
+        await signUp(s, { email, segment: "growth", source: "x", visitor });
+        const link = linkIn(s.sent[0], "/confirm");
+        s.advance(90 * 60_000);
+        await handle(new Request(link), env, s.deps);
+        await handle(new Request(link), env, s.deps);
+        await s.settle();
+
+        const confirms = s.captured.filter((c) => c.event === "waitlist_confirmed");
+        expect(confirms).toHaveLength(1);
+        expect(confirms[0]).toMatchObject({
+            distinct_id: visitor,
+            properties: { segment: "growth", first_source: "x", hours_to_confirm: 1.5 },
+        });
+    });
+
+    it("falls back to the row's own id when the form sent no visitor", async () => {
+        const s = services();
+        const { email } = fresh();
+        await signUp(s, { email, segment: "partners" });
+        await s.settle();
+        expect(s.captured[0]?.distinct_id).toBe(`signup_${(await row(email))?.id}`);
+    });
+
+    it("sends waitlist_left once, saying whether the person had confirmed", async () => {
+        const s = services();
+        const { email } = fresh();
+        await confirmed(s, { email, segment: "partners", visitor });
+        const oneClick = s.sent[0]?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
+        await handle(new Request(oneClick, { method: "POST" }), env, s.deps);
+        await handle(new Request(oneClick, { method: "POST" }), env, s.deps);
+        await s.settle();
+
+        const left = s.captured.filter((c) => c.event === "waitlist_left");
+        expect(left).toHaveLength(1);
+        expect(left[0]?.properties).toMatchObject({ segment: "partners", was_confirmed: true });
+    });
+
+    it("keeps every answer the same when PostHog is down", async () => {
+        const s = services({ posthogStatus: 503 });
+        const { email } = fresh();
+        expect(await (await signUp(s, { email, segment: "partners", visitor })).json()).toEqual({ ok: true });
+        const confirm = await handle(new Request(linkIn(s.sent[0], "/confirm")), env, s.deps);
+        expect(confirm.headers.get("Location")).toBe(`${SITE}/confirmed`);
+        const oneClick = s.sent[0]?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
+        expect((await handle(new Request(oneClick, { method: "POST" }), env, s.deps)).status).toBe(200);
+        await expect(s.settle()).resolves.toBeUndefined();
+        expect(s.captured).toHaveLength(0);
+    });
+});
+
+describe("/hop, the PostHog proxy", () => {
+    function hop(path: string, init: RequestInit = {}) {
+        const headers = new Headers(init.headers);
+        headers.set("CF-Connecting-IP", "203.0.113.7");
+        return new Request(`${SITE}/hop${path}`, { ...init, headers });
+    }
+
+    it("sends events to the API host with the visitor's address, and no cookies or other credentials", async () => {
+        const s = services();
+        const response = await handle(
+            hop("/e/?ip=0&ver=1.300.0", {
+                method: "POST",
+                body: '{"event":"$pageview"}',
+                headers: {
+                    "Content-Type": "application/json",
+                    Cookie: "session=secret",
+                    Authorization: "Basic dXNlcjpwYXNz",
+                    "X-Forwarded-For": "10.9.9.9",
+                },
+            }),
+            env,
+            s.deps,
+        );
+
+        expect(await response.text()).toBe("from posthog");
+        expect(s.forwarded).toHaveLength(1);
+        const { url, init } = s.forwarded[0] ?? { url: "", init: undefined };
+        expect(url).toBe("https://us.i.posthog.com/e/?ip=0&ver=1.300.0");
+        expect(init?.method).toBe("POST");
+        expect(new TextDecoder().decode(init?.body as ArrayBuffer)).toBe('{"event":"$pageview"}');
+        const headers = new Headers(init?.headers);
+        expect(headers.get("X-Forwarded-For")).toBe("203.0.113.7");
+        expect(headers.get("Cookie")).toBeNull();
+        expect(headers.get("Authorization")).toBeNull();
+        expect(headers.get("Content-Type")).toBe("application/json");
+    });
+
+    it("keeps a PostHog key in the authorization header", async () => {
+        const s = services();
+        await handle(hop("/flags/?v=2", { method: "POST", headers: { Authorization: "Bearer phc_abc" } }), env, s.deps);
+        expect(new Headers(s.forwarded[0]?.init?.headers).get("Authorization")).toBe("Bearer phc_abc");
+    });
+
+    it("fetches the SDK's scripts and remote config from the assets host", async () => {
+        const s = services();
+        await handle(hop("/static/array.js"), env, s.deps);
+        await handle(hop("/array/phc_test/config.js"), env, s.deps);
+        expect(s.forwarded.map((f) => f.url)).toEqual([
+            "https://us-assets.i.posthog.com/static/array.js",
+            "https://us-assets.i.posthog.com/array/phc_test/config.js",
+        ]);
+        expect(s.forwarded[0]?.init?.body).toBeNull();
     });
 });
 

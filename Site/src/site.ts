@@ -1,25 +1,36 @@
 // The early access site. Static pages come from public/; the Worker runs first only for the routes below.
 //
-//   POST /api/signup   {email, segment?, source?, turnstile} -> {ok: true}, the same answer whether the email is
-//                      new, pending or confirmed, so the form never reveals who is on the list.
+//   POST /api/signup   {email, segment?, source?, medium?, campaign?, content?, referrer?, visitor?, turnstile}
+//                      -> {ok: true}, the same answer whether the email is new, pending or confirmed, so the form never
+//                      reveals who is on the list. The fields after segment say which post brought the visitor.
 //   GET  /confirm      ?id&t -> marks the row confirmed and redirects to /confirmed.
 //   POST /api/leave    ?id&t -> deletes the row. The leave page posts here, and so do mail clients (List-Unsubscribe).
+//   /hop/*             the PostHog SDK's requests, forwarded (see posthog.ts).
+//
+// Joining, confirming and leaving each send one PostHog event after the answer, so analytics can never slow or fail
+// a request.
 //
 // Logs are one line per API request with the route, status and time. Never an email address.
 
 import { alreadyInMail, confirmMail, type Leave, type Segment, send } from "./email";
 import { sign, verify } from "./links";
+import { capture, forward, PROXY_PREFIX, type ServerEvent } from "./posthog";
 
 export type Env = Cloudflare.Env;
 
 export interface Dependencies {
     fetch: typeof fetch;
     now: () => Date;
+    /// Runs work after the response is sent (the Worker's `waitUntil`).
+    defer: (task: Promise<unknown>) => void;
 }
 
 /// A second confirmation email for the same address waits this long, so the form cannot be used to flood an inbox.
 export const RESEND_AFTER_MS = 10 * 60 * 1000;
 const MAX_SOURCE = 40;
+const MAX_ATTRIBUTION = 100;
+/// PostHog's anonymous ids are UUIDs; anything else is ignored rather than stored.
+const VISITOR = /^[\w.:-]{1,100}$/;
 const MAX_BODY = 4096;
 const EMAIL = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
@@ -30,7 +41,8 @@ export async function handle(request: Request, env: Env, deps: Dependencies): Pr
 
     if (pathname === "/confirm" && method === "GET") return logged("confirm", () => confirm(url, env, deps));
     if (pathname === "/api/signup" && method === "POST") return logged("signup", () => signup(request, env, deps));
-    if (pathname === "/api/leave" && method === "POST") return logged("leave", () => leave(url, env));
+    if (pathname === "/api/leave" && method === "POST") return logged("leave", () => leave(url, env, deps));
+    if (pathname === PROXY_PREFIX || pathname.startsWith(`${PROXY_PREFIX}/`)) return forward(request, deps.fetch);
     if (pathname.startsWith("/api/")) return Response.json({ error: "not found" }, { status: 404 });
     return env.ASSETS.fetch(request);
 }
@@ -57,7 +69,15 @@ interface SignupBody {
     email: string;
     segment: Segment;
     source: string | null;
+    /// Where the visitor came from beyond the source; sent to PostHog, not stored.
+    attribution: { medium: string | null; campaign: string | null; content: string | null; referrer: string | null };
+    visitor: string | null;
     turnstile: string;
+}
+
+/// A short, lowercase label from the form, or null.
+function label(value: unknown, max: number): string | null {
+    return typeof value === "string" ? value.trim().toLowerCase().slice(0, max) || null : null;
 }
 
 /// Checks shape and size only; returns the cleaned body or the one line to show the person.
@@ -69,12 +89,19 @@ export function parseSignup(raw: unknown): SignupBody | string {
     // An audience page names its segment; the home page sends none, and that signup is for anyone.
     const segment = body.segment === undefined || body.segment === "" ? "any" : body.segment;
     if (segment !== "partners" && segment !== "growth" && segment !== "any") return "pick partners or growth";
-    const source = typeof body.source === "string" ? body.source.trim().toLowerCase().slice(0, MAX_SOURCE) : "";
     if (typeof body.turnstile !== "string" || body.turnstile === "") return "the check didn't load, reload the page";
+    const visitor = typeof body.visitor === "string" && VISITOR.test(body.visitor) ? body.visitor : null;
     return {
         email,
         segment,
-        source: source || null,
+        source: label(body.source, MAX_SOURCE),
+        attribution: {
+            medium: label(body.medium, MAX_ATTRIBUTION),
+            campaign: label(body.campaign, MAX_ATTRIBUTION),
+            content: label(body.content, MAX_ATTRIBUTION),
+            referrer: label(body.referrer, MAX_ATTRIBUTION),
+        },
+        visitor,
         turnstile: body.turnstile,
     };
 }
@@ -101,10 +128,10 @@ async function signup(request: Request, env: Env, deps: Dependencies): Promise<R
     const stamp = now.toISOString();
 
     const inserted = await env.DB.prepare(
-        `INSERT INTO signups (email, segment, source, created_at, sent_at)
-         VALUES (?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id`,
+        `INSERT INTO signups (email, segment, source, visitor, created_at, sent_at)
+         VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id`,
     )
-        .bind(body.email, body.segment, body.source, stamp, stamp)
+        .bind(body.email, body.segment, body.source, body.visitor, stamp, stamp)
         .first<{ id: number }>();
 
     if (inserted) {
@@ -120,6 +147,18 @@ async function signup(request: Request, env: Env, deps: Dependencies): Promise<R
             await env.DB.prepare("DELETE FROM signups WHERE id = ?").bind(inserted.id).run();
             throw error;
         }
+        track(env, deps, {
+            event: "waitlist_joined",
+            distinctId: body.visitor ?? `signup_${inserted.id}`,
+            properties: {
+                segment: body.segment,
+                first_source: body.source,
+                first_medium: body.attribution.medium,
+                first_campaign: body.attribution.campaign,
+                first_content: body.attribution.content,
+                first_referrer: body.attribution.referrer,
+            },
+        });
         return Response.json({ ok: true });
     }
 
@@ -150,6 +189,38 @@ async function signup(request: Request, env: Env, deps: Dependencies): Promise<R
         }
     }
     return Response.json({ ok: true });
+}
+
+/// Sends a PostHog event once the answer is out. A failure is logged, never raised.
+function track(env: Env, deps: Dependencies, event: ServerEvent) {
+    if (!env.POSTHOG_KEY) return;
+    // The host lets PostHog's test filter drop events from a local dev server. It comes from SITE_URL, since the dev
+    // server hands the Worker requests addressed to the production domain.
+    event.properties.$host = new URL(env.SITE_URL).host;
+    deps.defer(
+        capture(env.POSTHOG_KEY, deps.fetch, deps.now(), event).catch((error) => {
+            const failure = error instanceof Error ? error.message.split("\n")[0] : "unknown";
+            console.log(JSON.stringify({ route: "posthog", event: event.event, failure }));
+        }),
+    );
+}
+
+interface ListRow {
+    id: number;
+    segment: Segment;
+    source: string | null;
+    visitor: string | null;
+    created_at: string;
+    confirmed_at: string | null;
+}
+
+/// The event's distinct id and the properties every list event carries.
+function listEvent(event: ServerEvent["event"], row: ListRow, extra: ServerEvent["properties"] = {}): ServerEvent {
+    return {
+        event,
+        distinctId: row.visitor ?? `signup_${row.id}`,
+        properties: { segment: row.segment, first_source: row.source, ...extra },
+    };
 }
 
 async function humanCheck(token: string, address: string, env: Env, deps: Dependencies): Promise<boolean> {
@@ -186,20 +257,30 @@ async function signedRow(url: URL, env: Env, purpose: "confirm" | "leave"): Prom
     return (await verify(env.LINK_SECRET, purpose, id, row.email, signature)) ? id : null;
 }
 
-/// Idempotent, because mail scanners often open links before the person does.
+/// Idempotent, because mail scanners often open links before the person does. Only the first confirm is an event.
 async function confirm(url: URL, env: Env, deps: Dependencies): Promise<Response> {
     const id = await signedRow(url, env, "confirm");
     if (typeof id !== "number") return Response.redirect(`${env.SITE_URL}/link-expired`, 303);
-    await env.DB.prepare("UPDATE signups SET confirmed_at = COALESCE(confirmed_at, ?) WHERE id = ?")
-        .bind(deps.now().toISOString(), id)
-        .run();
+    const now = deps.now();
+    const first = await env.DB.prepare(
+        "UPDATE signups SET confirmed_at = ? WHERE id = ? AND confirmed_at IS NULL RETURNING *",
+    )
+        .bind(now.toISOString(), id)
+        .first<ListRow>();
+    if (first) {
+        const hours = (now.getTime() - Date.parse(first.created_at)) / 3_600_000;
+        track(env, deps, listEvent("waitlist_confirmed", first, { hours_to_confirm: Math.round(hours * 10) / 10 }));
+    }
     return Response.redirect(`${env.SITE_URL}/confirmed`, 303);
 }
 
 /// A link whose row is already gone answers ok, so pressing leave twice, or unsubscribing after leaving, is not an error.
-async function leave(url: URL, env: Env): Promise<Response> {
+async function leave(url: URL, env: Env, deps: Dependencies): Promise<Response> {
     const id = await signedRow(url, env, "leave");
     if (id === null) return refuse(403, "that link is not valid");
-    if (id !== "gone") await env.DB.prepare("DELETE FROM signups WHERE id = ?").bind(id).run();
+    if (id !== "gone") {
+        const left = await env.DB.prepare("DELETE FROM signups WHERE id = ? RETURNING *").bind(id).first<ListRow>();
+        if (left) track(env, deps, listEvent("waitlist_left", left, { was_confirmed: left.confirmed_at !== null }));
+    }
     return Response.json({ ok: true });
 }

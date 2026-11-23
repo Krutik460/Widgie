@@ -1,6 +1,7 @@
 // Behavior for every page: the toy box scenes and their motion, the sign-up form and the leave page.
 // A plain ES module, no build step; each part runs only when its elements are on the page.
 
+import { attribution, track } from "/tally.js";
 import { mountCaret, mountWidget, SCENES } from "/widgets.js";
 
 const TURNSTILE_SITE_KEY = ["localhost", "127.0.0.1"].includes(location.hostname)
@@ -10,11 +11,6 @@ const TURNSTILE_SITE_KEY = ["localhost", "127.0.0.1"].includes(location.hostname
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const mouse = matchMedia("(hover: hover) and (pointer: fine)").matches;
 document.documentElement.classList.add("js");
-
-// Remember where the visitor came from for the whole visit, so a signup two pages later still credits the channel.
-const params = new URLSearchParams(location.search);
-const arrivedFrom = params.get("utm_source") || params.get("ref");
-if (arrivedFrom) sessionStorage.setItem("source", arrivedFrom);
 
 // ---------- Scenes ----------
 
@@ -238,6 +234,7 @@ if (!reducedMotion) {
 // ---------- Interaction: pick up, throw and stack the blocks (mouse and pen; touch keeps scrolling and tapping) ----------
 
 let lifted = 100;
+let thrownOnce = false;
 // The home hero's cast stays under its words, so only free blocks can be picked up.
 for (const blk of blocks.filter((b) => !b.closest(".cast"))) {
     let start = null;
@@ -295,6 +292,10 @@ for (const blk of blocks.filter((b) => !b.closest(".cast"))) {
         if (!start) return;
         start = null;
         if (!moved) return;
+        if (!thrownOnce) {
+            thrownOnce = true;
+            track("demo_block_thrown", { widget: blk.dataset.widget ?? null });
+        }
         // A throw: keep going a little in the direction of travel, then settle with a bounce. Speed is capped and the
         // landing spot stays inside the block's own section, so nothing can be flung off the page.
         const at = position();
@@ -387,12 +388,16 @@ function setupForm(form) {
     const button = form.querySelector("button[type=submit]");
     const check = form.querySelector(".turnstile");
     const done = form.parentElement.querySelector(".done");
+    const segment = form.dataset.segment || "any";
+    const fail = (reason, status = null) => track("signup_failed", { segment, reason, status });
+    form.addEventListener("input", () => track("signup_started", { segment }), { once: true });
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         error.textContent = "";
         const token = check?.dataset.token;
         if (!token) {
             error.textContent = "One second, checking you're a person. Try again in a moment.";
+            fail("bot_check_pending");
             return;
         }
         button.disabled = true;
@@ -404,12 +409,19 @@ function setupForm(form) {
                 body: JSON.stringify({
                     email: data.get("email"),
                     segment: form.dataset.segment || "",
-                    source: sessionStorage.getItem("source") || "",
+                    ...attribution(),
                     turnstile: token,
                 }),
+            }).catch((failure) => {
+                fail("network");
+                throw failure;
             });
             const body = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(body.error || "Something went wrong, try again.");
+            if (!response.ok) {
+                fail(body.error || "unknown", response.status);
+                throw new Error(body.error || "Something went wrong, try again.");
+            }
+            track("signup_submitted", { segment });
             form.hidden = true;
             done.hidden = false;
             for (const el of done.querySelectorAll(".caret[data-pose]")) mountCaret(el);
@@ -432,9 +444,55 @@ const leaveButton = document.getElementById("leave");
 leaveButton?.addEventListener("click", async () => {
     leaveButton.disabled = true;
     const response = await fetch(`/api/leave${location.search}`, { method: "POST" }).catch(() => null);
+    track("leave_clicked", { ok: Boolean(response?.ok) });
     document.getElementById(response?.ok ? "left" : "leave-failed").hidden = false;
     leaveButton.hidden = true;
 });
+
+// ---------- Analytics: what people read, click and play with ----------
+
+// Which link was pressed and where it sits, so a hero key can be told from the header's.
+document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[href]");
+    if (!link) return;
+    const place = link.closest(".top")
+        ? "header"
+        : link.closest(".hero")
+          ? "hero"
+          : link.closest(".story")
+            ? "door"
+            : "page";
+    track("cta_clicked", { place, target: link.getAttribute("href"), label: link.textContent.trim().slice(0, 40) });
+});
+
+// Each demo widget's first tap on this page: which everyday use pulls people in. Caught on the way down, since a tap
+// redraws the widget and the clicked button is gone by the time the click bubbles up.
+const tapped = new Set();
+document.addEventListener(
+    "click",
+    (event) => {
+        const widget = event.target.closest("[data-tap]")?.closest("[data-widget]")?.dataset.widget;
+        if (!widget || tapped.has(widget)) return;
+        tapped.add(widget);
+        track("demo_widget_tapped", { widget });
+    },
+    { capture: true },
+);
+
+// How far people read: each section once.
+const reached = new IntersectionObserver(
+    (entries) => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            reached.unobserve(entry.target);
+            const field = entry.target;
+            track("section_viewed", { section: field.id || (field.classList.contains("hero") ? "hero" : "page") });
+        }
+    },
+    // Fires once a section's top passes the middle of the screen, however tall the section is.
+    { rootMargin: "0px 0px -50% 0px" },
+);
+for (const field of fields) reached.observe(field);
 
 // Last, so nothing above waits on the bot check's script.
 renderTurnstile();

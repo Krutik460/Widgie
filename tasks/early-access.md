@@ -136,3 +136,41 @@ The app will have shared widgets built in, so the waitlist stops tracking invite
 - [x] **Verify.** Lint, types and tests; then sign up and confirm through the real form on a phone-sized WebKit, and check that an old `/p/<code>` link lands on the home page.
 
 **Result.** Done as planned. 23 Worker tests (pair tests removed; new ones cover email-only signups landing on `/confirmed`, the plain note for a confirmed address, and the pair API being gone). Checked in phone-sized WebKit against the local dev server: sign-up through the /partners form, the confirmation email text, confirm redirecting to `/confirmed`, and an old `/p/<code>` link landing on `/`. Before the next deploy, run `npm run migrate` so the live table matches.
+
+## Plan: PostHog tracking for distribution (2026-11-23)
+
+Goal: see, per channel and per post, how many people arrive, how far they read, what they play with, and how many sign up and confirm, so build in public on X, Reddit, Product Hunt and the rest can be steered by numbers. The audience on those channels runs ad blockers, so every request goes through our own domain.
+
+Both PostHog projects in the account (Brio, Landing Page) belong to Brio (heybrio.ai), so Widgie gets its own project.
+
+### Decision (user, 2026-11-23)
+
+- **Cookies, no banner.** The user expects mostly US traffic. PostHog keeps a first-party cookie, so identity holds across days and session replay works (typed fields masked). The privacy page says so plainly. With a stable visitor id, the signup form passes it to the Worker, which stores it on the row, so one funnel runs from the post that brought someone to their confirmed email.
+
+### Steps
+
+- [x] **Project.** Create "Widgie" in the same PostHog org (US cloud). Set the app URL, keep the localhost test-account filter, turn on heatmaps, web vitals and session replay with every input masked.
+- [x] **Proxy.** The Worker forwards `/hop/*` to PostHog (`/hop/static/*` and `/hop/array/*` to the assets host, cached; everything else to the API host), drops cookies and stray credentials, and sets `X-Forwarded-For` to the visitor's address so location and bot filtering see the real visitor. Add `/hop/*` to `run_worker_first`. The CSP stays `'self'` for scripts and requests.
+- [x] **Client.** A small module loads posthog-js through `/hop` on every page (cookie persistence, no person profiles for anonymous visitors, autocapture, pageleave, heatmaps, web vitals, replay with inputs masked), skipped on localhost unless asked. It registers first-touch attribution once per visitor (utm source, medium, campaign, content, and the referring domain) as super properties kept in the cookie, so a signup two pages or two days later still credits the post that first brought them. Named events:
+  - `cta_clicked` {place: header, hero, door; target}
+  - `section_viewed` {section} once per section per page, for read depth
+  - `demo_widget_tapped` {widget} once per widget per page, to see which use cases pull
+  - `signup_started` on the first keystroke in the email field
+  - `signup_submitted` when the API answers ok, `signup_failed` {reason}
+  - `leave_clicked` on the leave page
+  - `demo_block_thrown` the first time a mouse visitor picks up and throws a block
+- [x] **Server.** The Worker sends three events to PostHog after the response (`waitUntil`), never with an email, never blocking or failing a request: `waitlist_joined` (new row), `waitlist_confirmed` (first confirm only, with hours to confirm), `waitlist_left`. The distinct id is the visitor's PostHog id, sent by the form and stored on the row (migration `0004_visitor.sql`), so server events join that visitor's own funnel; rows without one use `signup_<row id>`. No person profile. They carry segment and the attribution the form sent. These are the numbers ad blockers cannot hide.
+- [x] **Links for posting.** `/go/<source>/<content>` redirects to `/?utm_source=<source>&utm_content=<content>` via `_redirects`, so posts carry a short clean link (`widgie.krutikpatel.dev/go/reddit/longdistance`) instead of a long UTM string, which reads as an ad on Reddit. The client maps source to medium (x and linkedin: social, reddit and indiehackers: community, producthunt: launch). Product Hunt's own `?ref=producthunt` already counts. `docs/marketing/links.md` lists the convention and ready links per channel.
+- [x] **Privacy page.** Say PostHog keeps a first-party cookie to count visits and see how pages are used, records sessions with typed fields hidden, goes through our domain, and never receives your email.
+- [x] **Dashboard "Widgie distribution".** Visitors by channel; visit to signup to confirmed funnel by channel, by post (utm_content) and by page; signups by segment; read depth by section; demo widgets tapped; signup failures by reason; phone vs desktop conversion.
+- [x] **Tests.** Worker tests: proxy routing, headers and cookie stripping; each server event's payload (and that no email is in it); a PostHog outage never changes a signup, confirm or leave answer; the visitor id is stored and reused on confirm; `/go` redirects.
+- [x] **Verify.** Lint, types, tests. Run `wrangler dev`, click through every page in a browser, confirm each event leaves through `/hop` and lands in PostHog with the right properties, with no console or CSP errors, on desktop and phone sizes.
+- [ ] **Ship.** PR with review guide, fresh review, merge, deploy, run the migration, then check live events from the production domain.
+
+**Result (2026-11-23).** Built as planned, in PostHog project "Widgie" (762824, US cloud, timezone US Eastern) with the dashboard "Widgie distribution" as its home.
+
+- `Site/src/posthog.ts` holds the `/hop` proxy and the server's capture call; `Site/public/tally.js` loads the SDK through `/hop` and keeps the first touch in localStorage, so the form can credit the right post even when PostHog itself is blocked.
+- 37 Worker tests (14 new: attribution parsing, each server event, no email ever sent, PostHog down changes no answer, proxy routing and header handling).
+- Checked against `wrangler dev` with `?tally`: a visit tagged `reddit / longdistance`, widget taps, read depth, typing, a real signup, confirm and leave all landed in PostHog under one visitor id, and the funnel from visit to confirmed email credited reddit. A later untagged visit kept the reddit credit. Every page loaded PostHog and session replay with no CSP or script errors in desktop Chromium and phone-sized WebKit. Short links redirect with the right tags.
+- Found by the browser run, not the tests: a demo widget redraws itself on tap, so the tap tracker listens in the capture phase; and the dev server hands the Worker production URLs, so server events take their host from `SITE_URL`.
+- Dropped: a web analytics "conversion goal". The dashboard's funnels answer the same question per channel and per post.

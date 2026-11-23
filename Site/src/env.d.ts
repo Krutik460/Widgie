@@ -11,5 +11,7 @@ declare namespace Cloudflare {
         TURNSTILE_SECRET: string;
         RESEND_API_KEY: string;
         LINK_SECRET: string;
+        /// The PostHog project's public token. Empty turns the server's events off.
+        POSTHOG_KEY: string;
     }
 }

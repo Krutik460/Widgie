@@ -14,6 +14,7 @@ export default defineConfig(async () => {
                         LINK_SECRET: "test-link-secret",
                         TURNSTILE_SECRET: "test-turnstile",
                         RESEND_API_KEY: "re_test",
+                        POSTHOG_KEY: "phc_test",
                     },
                 },
             }),
