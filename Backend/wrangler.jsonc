@@ -1,7 +1,9 @@
 // The top level is production. Environments inherit no vars, secrets, or bindings, so each declares its own.
 // Secrets per environment: MODEL_API_KEY, and OPERATOR_TOKEN on dev only, until B2 removes it.
-// The model service is Bedrock Mantle on the user's AWS account. For OpenRouter instead, set MODEL_URL to
-// https://openrouter.ai/api/v1/chat/completions, MODEL to its slug, and PROVIDER to the provider to pin.
+// MODEL_URL is any OpenAI-compatible chat completions endpoint: OpenRouter here, or Bedrock Mantle
+// (https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions, with PROVIDER empty). PROVIDER pins one OpenRouter
+// provider: Together serves DeepSeek V4.1 Flash at full precision and does not train on requests. REASONING is
+// "off", "low", "medium", "high", or empty to send nothing.
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "widgie",
@@ -9,17 +11,19 @@
     "compatibility_date": "2026-08-15",
     "observability": { "enabled": true },
     "vars": {
-        "MODEL_URL": "https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions",
-        "MODEL": "moonshotai.kimi-k2.5",
-        "PROVIDER": ""
+        "MODEL_URL": "https://openrouter.ai/api/v1/chat/completions",
+        "MODEL": "deepseek/deepseek-v4.1-flash-1017",
+        "PROVIDER": "together",
+        "REASONING": "low"
     },
     "env": {
         "dev": {
             "name": "widgie-dev",
             "vars": {
-                "MODEL_URL": "https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions",
-                "MODEL": "moonshotai.kimi-k2.5",
-                "PROVIDER": ""
+                "MODEL_URL": "https://openrouter.ai/api/v1/chat/completions",
+                "MODEL": "deepseek/deepseek-v4.1-flash-1017",
+                "PROVIDER": "together",
+                "REASONING": "low"
             }
         }
     }

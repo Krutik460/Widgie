@@ -66,7 +66,13 @@ async function reply(request: Request, env: Env, deps: Dependencies): Promise<Re
         throw error;
     }
 
-    const settings = { url: env.MODEL_URL, apiKey: env.MODEL_API_KEY, model: env.MODEL, provider: env.PROVIDER };
+    const settings = {
+        url: env.MODEL_URL,
+        apiKey: env.MODEL_API_KEY,
+        model: env.MODEL,
+        provider: env.PROVIDER,
+        reasoning: env.REASONING,
+    };
     const called = Date.now();
     try {
         const result = await callModel(settings, prompt, turn, deps.fetch, deps.deadlineMs);

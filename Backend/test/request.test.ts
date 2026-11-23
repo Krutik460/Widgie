@@ -9,6 +9,7 @@ const openrouter = {
     apiKey: "k",
     model: "anthropic/claude-sonnet-5.5",
     provider: "amazon-bedrock",
+    reasoning: "",
 };
 const mantle = { ...openrouter, model: "moonshotai.kimi-k2.5", provider: "" };
 
@@ -86,6 +87,13 @@ describe("requestBody", () => {
         expect(body.model).toBe("moonshotai.kimi-k2.5");
         expect(body).not.toHaveProperty("provider");
         expect(body).not.toHaveProperty("usage");
+    });
+
+    it("turns thinking off, sets its effort, or leaves it to the model", () => {
+        const turn = userTurn(requests.create);
+        expect(requestBody({ ...openrouter, reasoning: "off" }, "S", turn).reasoning).toEqual({ enabled: false });
+        expect(requestBody({ ...openrouter, reasoning: "low" }, "S", turn).reasoning).toEqual({ effort: "low" });
+        expect(requestBody(openrouter, "S", turn)).not.toHaveProperty("reasoning");
     });
 
     it("sends a picture as a data URL before the words", () => {

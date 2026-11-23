@@ -115,7 +115,8 @@ describe("the model call", () => {
         expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-key");
         const sent = JSON.parse(String(init?.body));
         expect(sent.model).toBe(env.MODEL);
-        expect(sent).not.toHaveProperty("provider");
+        // Whatever wrangler.jsonc names; requestBody's own tests cover each shape.
+        expect(sent.provider).toEqual(env.PROVIDER ? { order: [env.PROVIDER], allow_fallbacks: false } : undefined);
         expect(sent.messages[0].content[0].text).toBe(prompt);
     });
 
