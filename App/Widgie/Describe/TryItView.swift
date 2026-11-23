@@ -222,7 +222,7 @@ struct TryItScreen: View {
         switch result {
         case .pending: "Working on it."
         case .accepted: "Done."
-        case .failed: "That didn't work."
+        case .failed: "That didn’t work."
         case .cancelled: "Stopped. Nothing changed."
         }
     }
