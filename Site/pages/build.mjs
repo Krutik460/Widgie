@@ -263,7 +263,7 @@ simple(
     "leave.html",
     "Leave the list",
     "Leave the list?",
-    `<p>This removes your email and anything you wrote from the Widgie list. You won't hear from us again.</p>
+    `<p>This removes your email from the Widgie list. You won't hear from us again.</p>
 <button class="key" id="leave" type="button">Remove me</button>
 <p id="left" hidden>Done. You're off the list.</p>
 <p id="leave-failed" hidden>That link didn't work. Reply to any Widgie email and we'll remove you by hand.</p>`,

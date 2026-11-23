@@ -19,7 +19,11 @@ if (arrivedFrom) sessionStorage.setItem("source", arrivedFrom);
 // ---------- Scenes ----------
 
 // Phones get their own arrangement of each scene; the breakpoint matches the stylesheet's.
-const phone = matchMedia("(max-width: 760px)").matches;
+// Rotating a phone or resizing a window across it reloads the page, since the scenes, the drawing loop and the drag
+// handlers are all built for one layout.
+const phoneQuery = matchMedia("(max-width: 760px)");
+const phone = phoneQuery.matches;
+phoneQuery.addEventListener("change", () => location.reload());
 for (const scene of document.querySelectorAll("[data-scene]")) {
     const layout = SCENES[scene.dataset.scene];
     scene.innerHTML = phone ? layout.mob() : layout.desk(scene.dataset.first === "1");

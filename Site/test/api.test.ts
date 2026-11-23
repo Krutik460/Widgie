@@ -22,7 +22,7 @@ interface Sent {
     headers: Record<string, string>;
 }
 
-function services(options: { human?: boolean; mailStatus?: number } = {}) {
+function services(options: { human?: boolean; mailStatus?: number; mailThrows?: boolean } = {}) {
     const sent: Sent[] = [];
     const fetcher = vi.fn<typeof fetch>(async (input, init) => {
         const url = String(input);
@@ -30,6 +30,7 @@ function services(options: { human?: boolean; mailStatus?: number } = {}) {
             return Response.json({ success: options.human ?? true });
         }
         if (url === "https://api.resend.com/emails") {
+            if (options.mailThrows) throw new TypeError("network connection lost");
             sent.push(JSON.parse(String(init?.body)));
             return new Response("{}", { status: options.mailStatus ?? 200 });
         }
@@ -72,6 +73,7 @@ async function row(email: string) {
         segment: string;
         idea: string | null;
         source: string | null;
+        sent_at: string;
         confirmed_at: string | null;
     }>();
 }
@@ -88,11 +90,10 @@ async function confirmed(s: Services, body: Record<string, unknown>) {
 describe("parseSignup", () => {
     const valid = { email: " Me@Example.com ", segment: "partners", turnstile: "t" };
 
-    it("cleans a valid body", () => {
+    it("cleans a valid body and ignores anything else, such as an old idea field", () => {
         expect(parseSignup({ ...valid, idea: "  dog fed  ", source: "TikTok" })).toEqual({
             email: "me@example.com",
             segment: "partners",
-            idea: "dog fed",
             source: "tiktok",
             turnstile: "t",
         });
@@ -108,7 +109,6 @@ describe("parseSignup", () => {
         [{ ...valid, email: "a@b" }, "that email doesn't look right"],
         [{ ...valid, segment: "aesthetic" }, "pick partners or growth"],
         [{ ...valid, segment: "home" }, "pick partners or growth"],
-        [{ ...valid, idea: "x".repeat(501) }, "keep the idea under 500 characters"],
         [{ ...valid, turnstile: "" }, "the check didn't load, reload the page"],
         [null, "send a JSON object"],
     ])("refuses %j", (body, line) => {
@@ -120,7 +120,7 @@ describe("POST /api/signup", () => {
     it("stores the row and sends one confirmation email", async () => {
         const s = services();
         const { email } = fresh();
-        const response = await signUp(s, { email, segment: "growth", idea: "hearts for Alex", source: "tiktok" });
+        const response = await signUp(s, { email, segment: "growth", idea: "not stored", source: "tiktok" });
 
         expect(await response.json()).toEqual({ ok: true });
         expect(s.sent).toHaveLength(1);
@@ -129,7 +129,7 @@ describe("POST /api/signup", () => {
         expect(s.sent[0]?.headers["List-Unsubscribe"]).toMatch(/^<https:\/\/widgie\.krutikpatel\.dev\/api\/leave\?/);
         expect(await row(email)).toMatchObject({
             segment: "growth",
-            idea: "hearts for Alex",
+            idea: null,
             source: "tiktok",
             confirmed_at: null,
         });
@@ -190,6 +190,27 @@ describe("POST /api/signup", () => {
         expect(note?.text).not.toContain("/confirm");
     });
 
+    it("takes the row back when sending throws, not only when Resend refuses", async () => {
+        const { email } = fresh();
+        expect((await signUp(services({ mailThrows: true }), { email, segment: "growth" })).status).toBe(500);
+        expect(await row(email)).toBeNull();
+    });
+
+    it("keeps the reminder window open when a reminder fails to send", async () => {
+        const s = services();
+        const { email } = fresh();
+        await signUp(s, { email, segment: "partners" });
+
+        const failing = services({ mailStatus: 500 });
+        failing.advance(RESEND_AFTER_MS + 1000);
+        expect((await signUp(failing, { email, segment: "partners" })).status).toBe(500);
+        expect((await row(email))?.sent_at).toBe("2026-11-23T12:00:00.000Z");
+
+        s.advance(RESEND_AFTER_MS + 2000);
+        await signUp(s, { email, segment: "partners" });
+        expect(s.sent).toHaveLength(2);
+    });
+
     it("rate-limits one address", async () => {
         const s = services();
         const { ip } = fresh();
@@ -228,7 +249,7 @@ describe("GET /confirm", () => {
         const { email } = fresh();
         await signUp(s, { email, segment: "partners" });
         const id = (await row(email))?.id ?? 0;
-        for (const t of ["0".repeat(64), await sign("test-link-secret", "leave", id), "zz"]) {
+        for (const t of ["0".repeat(64), await sign("test-link-secret", "leave", id, email), "zz"]) {
             const response = await handle(new Request(`${SITE}/confirm?id=${id}&t=${t}`), env, s.deps);
             expect(response.headers.get("Location")).toBe(`${SITE}/link-expired`);
         }
@@ -244,12 +265,43 @@ describe("POST /api/leave", () => {
         const oneClick = s.sent[0]?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
         const id = (await row(email))?.id ?? 0;
 
-        const forged = `${SITE}/api/leave?id=${id}&t=${await sign("test-link-secret", "confirm", id)}`;
+        const forged = `${SITE}/api/leave?id=${id}&t=${await sign("test-link-secret", "confirm", id, email)}`;
         expect((await handle(new Request(forged, { method: "POST" }), env, s.deps)).status).toBe(403);
         expect(await row(email)).not.toBeNull();
 
         expect((await handle(new Request(oneClick, { method: "POST" }), env, s.deps)).status).toBe(200);
         expect(await row(email)).toBeNull();
+    });
+});
+
+describe("signed links after a row is gone", () => {
+    it("never confirm or delete the next person who gets the same id", async () => {
+        const s = services();
+        const first = fresh();
+        await signUp(s, { email: first.email, segment: "partners" });
+        const oldConfirm = linkIn(s.sent.at(-1), "/confirm");
+        const oldLeave = s.sent.at(-1)?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
+        const firstId = (await row(first.email))?.id;
+        expect((await handle(new Request(oldLeave, { method: "POST" }), env, s.deps)).status).toBe(200);
+
+        const second = fresh();
+        await signUp(s, { email: second.email, segment: "growth" });
+        expect((await row(second.email))?.id).toBe(firstId);
+
+        const confirm = await handle(new Request(oldConfirm), env, s.deps);
+        expect(confirm.headers.get("Location")).toBe(`${SITE}/link-expired`);
+        expect((await row(second.email))?.confirmed_at).toBeNull();
+        expect((await handle(new Request(oldLeave, { method: "POST" }), env, s.deps)).status).toBe(403);
+        expect(await row(second.email)).not.toBeNull();
+    });
+
+    it("lets leave be pressed twice", async () => {
+        const s = services();
+        const { email } = fresh();
+        await signUp(s, { email, segment: "growth" });
+        const oneClick = s.sent[0]?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
+        expect((await handle(new Request(oneClick, { method: "POST" }), env, s.deps)).status).toBe(200);
+        expect((await handle(new Request(oneClick, { method: "POST" }), env, s.deps)).status).toBe(200);
     });
 });
 

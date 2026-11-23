@@ -40,6 +40,7 @@ Key decisions:
 - **One unit for everything in a scene.** Every widget, block edge, caret and note is sized in `--u`, one iPhone point. On desktop it is `min(0.0834vw, 1.34px)`, a 1200-point stage that tracks the viewport down to the breakpoint, so landscape phones and small tablets never push widgets off the right edge. On phones it is `(100vw - 24px) / 381`, clamped to 0.72-1.04px, so a 381-point scene fills a 320px phone and grows a little on big ones.
 - **Phones get their own arrangement, not a shrunk desktop.** Each scene has a `mob()` layout. `stack()` pairs small widgets side by side, gives medium widgets and carets a row, and centers a small widget with no partner.
 - **The first phone screen is the product moment.** On phones the hero is a flex column ordered headline, picture, lede, key. The home scene puts the caret and its easel right under "out." so the drawing happens in view; the header key keeps sign-up on the first screen.
+- **Rotating across the breakpoint reloads.** Scenes, the drawing loop and the drag handlers are built for one layout, so crossing 760px (a phone turned to landscape) reloads the page into the other one.
 - **Motion respects the visitor.** `prefers-reduced-motion` turns off every animation and transition. Without motion the home hero shows its cast greyed with one widget lit. Touch keeps scrolling and tapping; only mouse and pen can pick blocks up.
 - **No build step for behavior.** Plain ES modules; only the HTML is generated, so the shared head, header and footer cannot drift between pages.
 
@@ -60,7 +61,7 @@ flowchart TD
   INS -->|"new row"| CM["confirmMail via Resend; on failure delete the row, 500"]
   INS -->|"known email"| RE{"last mail over 10 minutes ago?"}
   RE -->|"no"| SAME
-  RE -->|"yes, unconfirmed"| CM2["confirmMail again"]
+  RE -->|"yes, unconfirmed"| CM2["confirmMail again; on failure sent_at moves back"]
   RE -->|"yes, confirmed"| AI["alreadyInMail: plain note, no link"]
   CM --> SAME["200 {ok: true} in every case"]
   CM2 --> SAME
@@ -73,8 +74,8 @@ Files: [site.ts](../../Site/src/site.ts), [email.ts](../../Site/src/email.ts), [
 Key decisions:
 
 - **The answer never reveals who is on the list.** New, pending and confirmed emails all get `{ok: true}`. A known address gets at most one email per 10 minutes, so the form cannot flood an inbox.
-- **A row exists only if its email went out.** If Resend fails, the row is deleted and the person can simply try again.
-- **Email only.** The idea field and the audience picker were dropped to cut friction. The API still accepts an optional `idea`, so the field can return without a backend change. A signup from the home page is stored as `any`.
+- **A row exists only if its email went out.** If Resend refuses or the request throws, the row is deleted and the person can simply try again. A failed reminder puts `sent_at` back, so the person is not locked out until the next window.
+- **Email only.** The idea field and the audience picker were dropped to cut friction, and the API ignores an `idea` too, so it stores nothing the privacy page does not list. The column stays for older rows. A signup from the home page is stored as `any`.
 - **No invites.** Pair codes, `/api/pair`, the `/p/<code>` join and share pages, and the invite copy are gone, because the app will have shared widgets built in. `0003_email_only` rebuilds the table without `pair_code` and `joined_via_link`; it ran on production while the table was empty, right before the matching deploy. Old `/p/` links redirect home.
 - **Logs never hold an email or an idea.** One JSON line per API request: route, status, milliseconds, and a one-line failure reason.
 
@@ -83,27 +84,30 @@ Key decisions:
 ```mermaid
 flowchart TD
   E["link in the email"] --> C["GET /confirm?id&t"]
-  C --> V{"HMAC-SHA256 over 'confirm:id' under LINK_SECRET"}
-  V -->|"bad or unknown row"| X["303 /link-expired"]
+  C --> V{"row with that id, and HMAC-SHA256 over 'confirm:id:email' under LINK_SECRET?"}
+  V -->|"no row, or bad signature"| X["303 /link-expired"]
   V -->|"good"| U["confirmed_at = COALESCE(confirmed_at, now)"]
   U --> OK["303 /confirmed: 'You're on the list.'"]
   L["'Remove me' link, or the mail client's unsubscribe button"] --> LP["/leave page posts, or List-Unsubscribe-Post one-click"]
-  LP --> LV{"signature over 'leave:id'?"}
-  LV -->|"no"| R403["403"]
+  LP --> LV{"signature over 'leave:id:email'?"}
+  LV -->|"bad"| R403["403"]
+  LV -->|"row already gone"| OK2["200, nothing to delete"]
   LV -->|"yes"| DEL["DELETE the row, 200"]
 ```
 
-Files: [site.ts](../../Site/src/site.ts) (`confirm`, `leave`, `signedId`), [links.ts](../../Site/src/links.ts), [email.ts](../../Site/src/email.ts), [build.mjs](../../Site/pages/build.mjs) (`confirmed.html`, `leave.html`, `link-expired.html`).
+Files: [site.ts](../../Site/src/site.ts) (`confirm`, `leave`, `signedRow`), [links.ts](../../Site/src/links.ts), [email.ts](../../Site/src/email.ts), [build.mjs](../../Site/pages/build.mjs) (`confirmed.html`, `leave.html`, `link-expired.html`).
 
 Key decisions:
 
-- **No stored tokens.** Links carry a signature over the row id, with the purpose in the message, so a leave link can never confirm and a confirm link can never delete. Verification is constant time through `crypto.subtle.verify`.
+- **No stored tokens.** Links carry a signature over the purpose, the row id and the row's email. The purpose means a leave link can never confirm and a confirm link can never delete. The email is there because SQLite hands a deleted row's id to the next signup: without it, an old link could confirm or delete a stranger (found in review, covered by a test). Verification is constant time through `crypto.subtle.verify`.
+- **Leaving twice is fine.** A valid-looking link whose row is gone answers 200, so unsubscribing after leaving does not show an error.
 - **Confirm is idempotent**, because mail scanners often open links before the person does.
 - **Every email carries one-click unsubscribe** (`List-Unsubscribe` and `List-Unsubscribe-Post`), and leaving deletes the row outright.
 
 ## Verification
 
-- 23 Worker tests (Vitest in workerd), Biome and `tsc` pass.
+- 26 Worker tests (Vitest in workerd), Biome and `tsc` pass.
+- A fresh Opus reviewer read the branch. Fixed from its report: reused row ids letting old links act on a new person's row (links now sign the email), the layout not following a rotation, a failed reminder locking the person out for 10 minutes, and the API storing an undisclosed `idea`. Not changed: the reminder path answers faster than a send (each probe needs a Turnstile solve), and confirm works on a plain GET, so mail scanners can confirm an address.
 - Checked in phone-sized WebKit (Playwright) at 320×548, 375×667 and 430×800, landscape 844×390, tablet 768×1024 and desktop 1024 and 1280: first screens, scene fit, key and field sizes, and the form.
 - End to end locally: signup through the real form, the logged confirmation email, confirm landing on `/confirmed`, and an old `/p/` link landing home.
 - Live after deploy: every page returns 200, `/p/<code>` redirects home, `/api/pair` is 404, and a signup with a fake token stops at the Turnstile check (403). A full live signup was not run, to avoid sending a real email.
