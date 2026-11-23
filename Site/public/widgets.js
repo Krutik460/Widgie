@@ -491,12 +491,14 @@ export const SCENES = {
             cast("hearts", 690, 176, 0.66, -6, "“A heart button<br>for Sam”") +
             cast("streak", 1000, 170, 0.66, 5, "“Did I meditate<br>today?”") +
             heroCaret(752, 404, 285),
+        // On a phone the drawing comes first, right under the headline, so the first screen shows the caret making a
+        // widget; the finished group lines up below it.
         mob: () =>
-            easel(236, 330, 0.8) +
-            cast("luna", 6, 320, 0.6, -5, "“Tell me when<br>Luna was fed”", true) +
-            cast("hearts", 14, 50, 0.6, -6, "“A heart button<br>for Sam”") +
-            cast("streak", 250, 56, 0.6, 5, "“Did I<br>meditate?”") +
-            heroCaret(40, 340, 250),
+            easel(214, 72, 0.72) +
+            cast("hearts", 10, 330, 0.5, -6, "“A heart button<br>for Sam”") +
+            cast("streak", 146, 336, 0.5, 4, "“Did I<br>meditate?”") +
+            cast("luna", 282, 330, 0.5, -5, "“Tell me when<br>Luna was fed”", true) +
+            heroCaret(58, 82, 200),
     },
     partnersDoor: {
         desk: () =>

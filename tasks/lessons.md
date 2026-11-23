@@ -43,3 +43,13 @@
 **Rule.** For brand-facing pages, decide the world's rules first and apply them everywhere: here the caret is wherever a cursor would be (the pointer, the end of every headline, the typing in the bubble), and the sky changes with the time of day as you scroll. Then pick a display face of its own and let type carry the scale.
 
 **Rule.** Give the visitor something to do that the brand would do: typing a widget and seeing it built beats reading about it, and what they type feeds the research.
+
+## 2026-11-23. "Good on mobile" starts with the first screen
+
+**What happened.** Asked to make the site really good for mobile, I fixed overflow, margins and spacing at 320 to 430px and called it done. The user pointed out that the first phone screen is only text: the hero's visual, the one moment that sells the product, starts below the fold.
+
+**Rule.** For any mobile pass, first look at exactly what the first screen shows at real phone heights (about 375x667 and 393x760 after browser chrome), before fixing anything else. If the product moment is not in it, recompose the phone layout around it. Fit and spacing come second.
+
+**Rule.** Check each page's first screen as its own deliverable, not just whether the page scrolls cleanly.
+
+**Rule.** Resize the components too, not just the layout. Buttons, fields and chips sized for a desktop (here 64px keys with 21px text) look clumsy on a phone. Give each one a phone size: about 50 to 54px tall and 17 to 18px text, still at least 44px to tap.
