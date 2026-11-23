@@ -2,7 +2,9 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import requests from "../../Engine/Evals/testdata/requests.json";
 import prompt from "../src/build-prompt.txt";
-import { handle, MAX_BODY } from "../src/index";
+import { toBase64 } from "../src/bytes";
+import { type Env, handle, MAX_BODY } from "../src/index";
+import { Signer } from "./helpers/appattest";
 
 const ANSWER = {
     model: "anthropic/claude-sonnet-5.5",
@@ -20,57 +22,159 @@ function upstream(status = 200, body: unknown = ANSWER) {
     return vi.fn<typeof fetch>(async () => new Response(JSON.stringify(body), { status }));
 }
 
-function post(body: BodyInit | null, headers: Record<string, string> = {}) {
+/// A request signed by a newly attested key, or by `signer`. A body that is not a string or bytes (a stream) is
+/// sent with headers signed over an empty body: it is refused before the signature is checked.
+async function post(body: BodyInit | null, headers: Record<string, string> = {}, signer?: Signer) {
+    const key = signer ?? (await Signer.attested());
+    const signed = typeof body === "string" || body instanceof Uint8Array ? body : "";
     return new Request("https://widgie.test/v1/reply", {
         method: "POST",
-        headers: { Authorization: "Bearer test-operator", "Content-Type": "application/json", ...headers },
+        headers: { "Content-Type": "application/json", ...(await key.headers(signed)), ...headers },
         body,
     });
 }
 
-async function send(request: Request, fetcher = upstream(), deadlineMs?: number) {
-    const response = await handle(request, env, { fetch: fetcher, deadlineMs });
+async function send(request: Request, fetcher = upstream(), deadlineMs?: number, environment: Env = env) {
+    const response = await handle(request, environment, { fetch: fetcher, deadlineMs });
     return { status: response.status, body: (await response.json()) as Record<string, unknown>, fetcher };
 }
 
-describe("the gate", () => {
-    it("refuses a request without the operator token and makes no upstream call", async () => {
-        for (const headers of [
-            { Authorization: "" },
-            { Authorization: "Bearer wrong" },
-            { Authorization: "test-operator" },
-        ]) {
-            const { status, fetcher } = await send(post(JSON.stringify(requests.create), headers));
-            expect(status).toBe(401);
+/// A namespace that throws if the route reaches a Durable Object.
+const untouchable = {
+    ...env,
+    ATTESTED_KEY: {
+        getByName: () => {
+            throw new Error("a Durable Object was touched");
+        },
+    } as unknown as Env["ATTESTED_KEY"],
+};
+
+const create = JSON.stringify(requests.create);
+
+/// A body stream that records whether anything read it. A high-water mark of 0, so only a read pulls.
+function unreadStream(text: string) {
+    let pulled = false;
+    const stream = new ReadableStream<Uint8Array>(
+        {
+            pull(controller) {
+                pulled = true;
+                controller.enqueue(new TextEncoder().encode(text));
+                controller.close();
+            },
+        },
+        { highWaterMark: 0 },
+    );
+    return { stream, pulled: () => pulled };
+}
+
+describe("the signature", () => {
+    it("is required before the body is read or a Durable Object touched", async () => {
+        const signer = await Signer.create();
+        const good = await signer.headers(create);
+        // The control: a signed request reads the same kind of stream.
+        const control = await Signer.attested();
+        const controlBody = unreadStream(create);
+        const signed = new Request("https://widgie.test/v1/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(await control.headers(create)) },
+            body: controlBody.stream,
+        });
+        expect((await send(signed)).status).toBe(200);
+        expect(controlBody.pulled()).toBe(true);
+
+        const cases: Record<string, string>[] = [
+            {},
+            { "X-Widgie-Key": good["X-Widgie-Key"] as string },
+            { "X-Widgie-Assertion": good["X-Widgie-Assertion"] as string },
+            { ...good, "X-Widgie-Key": "abc" },
+            { ...good, "X-Widgie-Key": `${toBase64(new Uint8Array(32)).slice(0, 42)}B=` },
+            { ...good, "X-Widgie-Assertion": "not base64" },
+            { ...good, "X-Widgie-Assertion": "A".repeat(2048) },
+        ];
+        for (const headers of cases) {
+            const body = unreadStream(create);
+            const request = new Request("https://widgie.test/v1/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...headers },
+                body: body.stream,
+            });
+            const { status, body: answer, fetcher } = await send(request, upstream(), undefined, untouchable);
+            expect([status, answer], JSON.stringify(headers)).toEqual([
+                401,
+                { error: "the request's signature is not valid", code: "bad-assertion" },
+            ]);
+            expect(body.pulled()).toBe(false);
             expect(fetcher).not.toHaveBeenCalled();
         }
     });
 
-    it("refuses before reading the body, so an oversized body without the token is a 401", async () => {
-        const { status } = await send(post("x".repeat(MAX_BODY + 1), { Authorization: "" }));
-        expect(status).toBe(401);
+    it("comes before the size check: an oversized unsigned body is a 401, not a 413", async () => {
+        const request = new Request("https://widgie.test/v1/reply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "x".repeat(MAX_BODY + 1),
+        });
+        expect((await send(request, upstream(), undefined, untouchable)).status).toBe(401);
     });
 
-    it("refuses everything when no operator token is set", async () => {
-        const response = await handle(
-            post(JSON.stringify(requests.create)),
-            { ...env, OPERATOR_TOKEN: undefined },
-            {
-                fetch: upstream(),
-            },
-        );
-        expect(response.status).toBe(401);
+    it("from a key that was never attested is unknown-key", async () => {
+        const signer = await Signer.create();
+        const { status, body, fetcher } = await send(await post(create, {}, signer));
+        expect([status, body]).toEqual([401, { error: "this key is not attested", code: "unknown-key" }]);
+        expect(fetcher).not.toHaveBeenCalled();
+    });
+
+    it("refuses a replayed request, another body, and another path, and calls no model", async () => {
+        const signer = await Signer.attested();
+        const headers = await signer.headers(create);
+        const sent = () =>
+            new Request("https://widgie.test/v1/reply", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...headers },
+                body: create,
+            });
+        expect((await send(sent())).status).toBe(200);
+        const replayed = await send(sent());
+        expect([replayed.status, replayed.body.code]).toEqual([401, "bad-assertion"]);
+        expect(replayed.fetcher).not.toHaveBeenCalled();
+
+        const other = await send(await post(JSON.stringify(requests.refine), await signer.headers(create), signer));
+        expect([other.status, other.body.code]).toEqual([401, "bad-assertion"]);
+        const elsewhere = await signer.headers(create, { path: "/v1/attest" });
+        const wrongPath = await send(await post(create, elsewhere, signer));
+        expect([wrongPath.status, wrongPath.body.code]).toEqual([401, "bad-assertion"]);
+        expect(other.fetcher).not.toHaveBeenCalled();
+        expect(wrongPath.fetcher).not.toHaveBeenCalled();
+    });
+
+    it("spends the day's quota (2 in tests), then answers daily-quota without calling the model", async () => {
+        const signer = await Signer.attested();
+        const fetcher = upstream();
+        expect((await send(await post(create, {}, signer), fetcher)).status).toBe(200);
+        expect((await send(await post(create, {}, signer), fetcher)).status).toBe(200);
+        const { status, body } = await send(await post(create, {}, signer), fetcher);
+        expect([status, body]).toEqual([429, { error: "today's limit of builds is used up", code: "daily-quota" }]);
+        expect(fetcher).toHaveBeenCalledTimes(2);
+    });
+
+    it("is checked before the request is validated, so a malformed request spends a call", async () => {
+        const signer = await Signer.attested();
+        const { status, fetcher } = await send(await post(JSON.stringify({ words: "" }), {}, signer));
+        expect(status).toBe(400);
+        expect(fetcher).not.toHaveBeenCalled();
+        expect((await send(await post(create, {}, signer))).status).toBe(200);
+        expect((await send(await post(create, {}, signer))).body.code).toBe("daily-quota");
     });
 });
 
 describe("the body", () => {
     it("must be JSON", async () => {
-        const { status } = await send(post("{}", { "Content-Type": "text/plain" }));
+        const { status } = await send(await post("{}", { "Content-Type": "text/plain" }));
         expect(status).toBe(415);
     });
 
     it("is refused over the limit by its declared length", async () => {
-        const { status, body } = await send(post("{}", { "Content-Length": String(MAX_BODY + 1) }));
+        const { status, body } = await send(await post("{}", { "Content-Length": String(MAX_BODY + 1) }));
         expect(status).toBe(413);
         expect(body.error).toBe(`the body is over ${MAX_BODY} bytes`);
     });
@@ -84,27 +188,27 @@ describe("the body", () => {
                 else controller.enqueue(chunk);
             },
         });
-        const { status, fetcher } = await send(post(stream));
+        const { status, fetcher } = await send(await post(stream));
         expect(status).toBe(413);
         expect(fetcher).not.toHaveBeenCalled();
     });
 
     it("refuses a body that is not UTF-8", async () => {
-        const { status } = await send(post(new Uint8Array([0x7b, 0x22, 0xff, 0x22, 0x7d])));
+        const { status } = await send(await post(new Uint8Array([0x7b, 0x22, 0xff, 0x22, 0x7d])));
         expect(status).toBe(400);
     });
 
     it("answers with one short line even when a key holds newlines", async () => {
-        const { body } = await send(post(JSON.stringify({ words: "a", [`x\n${"y".repeat(5000)}`]: 1 })));
+        const { body } = await send(await post(JSON.stringify({ words: "a", [`x\n${"y".repeat(5000)}`]: 1 })));
         expect(String(body.error).length).toBeLessThanOrEqual(300);
         expect(String(body.error)).not.toContain("\n");
     });
 
     it("answers a malformed request with the bridge's bad-request line", async () => {
-        expect((await send(post("not json"))).body.error).toBe(
+        expect((await send(await post("not json"))).body.error).toBe(
             "bad request: the body must be a ModelRequest JSON object",
         );
-        const { status, body, fetcher } = await send(post(JSON.stringify({ words: "a", colour: "blue" })));
+        const { status, body, fetcher } = await send(await post(JSON.stringify({ words: "a", colour: "blue" })));
         expect([status, body.error]).toEqual([400, "bad request: unknown request fields: colour"]);
         expect(fetcher).not.toHaveBeenCalled();
     });
@@ -115,13 +219,20 @@ describe("the log", () => {
         const log = vi.spyOn(console, "log").mockImplementation(() => {});
         const request = requests["refine-repair"];
         const picture = requests["create-image"];
-        await send(post(JSON.stringify(request)));
-        await send(post(JSON.stringify(picture)));
-        await send(post(JSON.stringify({ ...request, colour: "blue" })));
+        const signer = await Signer.attested();
+        const signed = await post(JSON.stringify(request), {}, signer);
+        const assertion = signed.headers.get("X-Widgie-Assertion") ?? "";
+        await send(signed);
+        await send(await post(JSON.stringify(picture)));
+        await send(await post(JSON.stringify({ ...request, colour: "blue" })));
+        await send(await post(create, {}, await Signer.create()));
         const lines = log.mock.calls.flat().join("\n");
         log.mockRestore();
         expect(lines).toContain('"route":"reply"');
-        for (const secret of [request.words, request.current, request.repair.line, picture.image.base64.slice(0, 40)]) {
+        expect(lines).toContain('"status":401,"ms"');
+        expect(lines).toContain('"code":"unknown-key"');
+        const secrets = [request.words, request.current, request.repair.line, picture.image.base64.slice(0, 40)];
+        for (const secret of [...secrets, signer.keyId, assertion.slice(0, 40)]) {
             expect(lines).not.toContain(secret);
         }
         expect(lines).not.toContain(ANSWER.choices[0]?.message.content);
@@ -130,7 +241,7 @@ describe("the log", () => {
     it("keeps a failure's reason to one short line", async () => {
         const log = vi.spyOn(console, "log").mockImplementation(() => {});
         const long = `quoted input\n${"x".repeat(5000)}`;
-        await send(post(JSON.stringify(requests.create)), upstream(400, { error: { code: 400, message: long } }));
+        await send(await post(JSON.stringify(requests.create)), upstream(400, { error: { code: 400, message: long } }));
         const line = JSON.parse(String(log.mock.calls[0]?.[0]));
         log.mockRestore();
         expect(line.reason.length).toBeLessThanOrEqual(300);
@@ -140,7 +251,7 @@ describe("the log", () => {
 
 describe("the model call", () => {
     it("sends the build prompt and the request, and answers the reply with its usage", async () => {
-        const { status, body, fetcher } = await send(post(JSON.stringify(requests["create-image"])));
+        const { status, body, fetcher } = await send(await post(JSON.stringify(requests["create-image"])));
         expect(status).toBe(200);
         expect(body).toMatchObject({
             reply: "```json\n{}\n```",
@@ -170,7 +281,7 @@ describe("the model call", () => {
             }),
         ];
         for (const fetcher of failures) {
-            const { status, body } = await send(post(JSON.stringify(requests.create)), fetcher);
+            const { status, body } = await send(await post(JSON.stringify(requests.create)), fetcher);
             expect([status, body]).toEqual([502, { error: "the model gave no answer" }]);
         }
     });
@@ -184,7 +295,7 @@ describe("the model call", () => {
             });
             return new Response(body, { status: 200 });
         });
-        const { status, body } = await send(post(JSON.stringify(requests.create)), slow, 50);
+        const { status, body } = await send(await post(JSON.stringify(requests.create)), slow, 50);
         expect([status, body]).toEqual([502, { error: "the model gave no answer" }]);
     });
 });

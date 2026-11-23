@@ -2,6 +2,8 @@
 // Engine/Evals/model.py: both read Engine/Evals/testdata/invalid-requests.json, so they refuse a request with the
 // same line.
 
+import { isBase64 } from "./bytes";
+
 export interface ModelRequest {
     words: string;
     image?: { mime: string; base64: string };
@@ -76,20 +78,6 @@ export function userTurn(request: unknown): UserTurn {
     const data = image.base64;
     if (typeof data !== "string" || !isBase64(data)) throw new BadRequest('"image" must hold "base64" image data');
     return { text, image: { mime: image.mime, base64: data } };
-}
-
-/// The set Python's strict `b64decode(validate=True)` accepts. `atob` is native: a regex over a picture's 170 KB
-/// runs in V8's regex interpreter on a fresh isolate and costs about 5 ms of the free plan's 10 ms of CPU.
-function isBase64(data: string): boolean {
-    if (data === "" || data.length % 4 !== 0) return false;
-    // atob skips ASCII whitespace; the strict decode refuses it.
-    if ([" ", "\t", "\n", "\f", "\r"].some((space) => data.includes(space))) return false;
-    try {
-        atob(data);
-        return true;
-    } catch {
-        return false;
-    }
 }
 
 /// Python's `str.strip()` set, so the Worker and the bridge agree on an empty field. JavaScript's `trim()` differs

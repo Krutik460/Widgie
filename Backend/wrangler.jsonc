@@ -1,9 +1,15 @@
 // The top level is production. Environments inherit no vars, secrets, or bindings, so each declares its own.
-// Secrets per environment: MODEL_API_KEY, and OPERATOR_TOKEN on dev only, until B2 removes it.
+// Secret per environment: MODEL_API_KEY.
 // MODEL_URL is any OpenAI-compatible chat completions endpoint: OpenRouter here, or Bedrock Mantle
 // (https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions, with PROVIDER empty). PROVIDER pins one OpenRouter
 // provider: Together serves DeepSeek V4.1 Flash at full precision and does not train on requests. REASONING is
 // "off", "low", "medium", "high", or empty to send nothing.
+// App Attest: APP_ID is `<team id>.<bundle id>`, whose SHA-256 every attestation and assertion carries. ATTEST_ENV is
+// the App Attest environment an attestation must name: "development" for Debug builds against dev, "production" for
+// Release builds. QUOTA_PER_DAY is model calls per key per UTC day, taken before each call and never refunded.
+// ATTESTED_KEY is one SQLite-backed Durable Object per App Attest key (public key, counter, quota, pending challenge).
+// The class was created SQLite-backed (migration v1) and can never change backend. ATTEST_LIMIT rate-limits the two
+// attest routes per client address; each environment has its own namespace_id so their counts are separate.
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "widgie",
@@ -14,8 +20,14 @@
         "MODEL_URL": "https://openrouter.ai/api/v1/chat/completions",
         "MODEL": "deepseek/deepseek-v4.1-flash-1017",
         "PROVIDER": "together",
-        "REASONING": "low"
+        "REASONING": "low",
+        "APP_ID": "Z23KXVBB26.dev.krutikpatel.widgie",
+        "ATTEST_ENV": "production",
+        "QUOTA_PER_DAY": "40"
     },
+    "durable_objects": { "bindings": [{ "name": "ATTESTED_KEY", "class_name": "AttestedKey" }] },
+    "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }],
+    "ratelimits": [{ "name": "ATTEST_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }],
     "env": {
         "dev": {
             "name": "widgie-dev",
@@ -23,8 +35,14 @@
                 "MODEL_URL": "https://openrouter.ai/api/v1/chat/completions",
                 "MODEL": "deepseek/deepseek-v4.1-flash-1017",
                 "PROVIDER": "together",
-                "REASONING": "low"
-            }
+                "REASONING": "low",
+                "APP_ID": "Z23KXVBB26.dev.krutikpatel.widgie",
+                "ATTEST_ENV": "development",
+                "QUOTA_PER_DAY": "40"
+            },
+            "durable_objects": { "bindings": [{ "name": "ATTESTED_KEY", "class_name": "AttestedKey" }] },
+            "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }],
+            "ratelimits": [{ "name": "ATTEST_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }]
         }
     }
 }
