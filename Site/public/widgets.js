@@ -418,10 +418,11 @@ const confettiBits = (cx, cy) =>
                 `<i class="bit" style="left: calc(${cx + x} * var(--u)); top: calc(${cy + y} * var(--u)); transform: rotate(${r}deg); background: ${c}"></i>`,
         )
         .join("");
-const tall = (height, inner) => `<div class="mob-scene" style="height: ${height}px">${inner}</div>`;
+const tall = (height, inner) => `<div class="mob-scene" style="height: calc(${height} * var(--u))">${inner}</div>`;
 
-/// A phone arrangement built from a list: small widgets pair up side by side, medium widgets and carets take a row.
-/// Entries are widget names, or ["caret", pose, extra].
+/// A phone arrangement built from a list: small widgets pair up side by side, medium widgets and carets take a row,
+/// and a small widget with no partner sits in the middle of its row. Entries are widget names, or ["caret", pose, extra].
+const isSmall = (entry) => typeof entry === "string" && !MEDIUM.has(entry);
 function stack(entries) {
     let html = "";
     let y = 0;
@@ -439,6 +440,9 @@ function stack(entries) {
             column = 0;
             html += block(entry, 0, y, tilt / 2, true);
             y += 222;
+        } else if (!column && !isSmall(entries[i + 1])) {
+            html += block(entry, 105, y, tilt);
+            y += 214;
         } else {
             html += block(entry, column ? 186 : 4, y + (column ? 22 : 0), tilt);
             if (column) y += 236;

@@ -348,6 +348,8 @@ function renderTurnstile() {
         window.turnstile.render(box, {
             sitekey: TURNSTILE_SITE_KEY,
             appearance: "interaction-only",
+            // The normal check is 300px wide; on a narrow phone form the compact one fits instead of spilling out.
+            size: box.parentElement.clientWidth < 300 ? "compact" : "normal",
             callback: (token) => {
                 box.dataset.token = token;
             },

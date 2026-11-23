@@ -21,8 +21,10 @@
     --display: "Bricolage", -apple-system, BlinkMacSystemFont, sans-serif;
     --text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
     --gx: clamp(16px, 5vw, 72px);
-    /* One iPhone point. Every widget, block edge and caret is sized from it, so a scene scales as one object. */
-    --unit: clamp(0.78px, 0.0834vw, 1.34px);
+    /* One iPhone point. Every widget, block edge and caret is sized from it, so a scene scales as one object. The
+       desktop stage is 1200 points wide, so it tracks the viewport down to the phone breakpoint and never spills off
+       a landscape phone or a small tablet. */
+    --unit: min(0.0834vw, 1.34px);
     --u: var(--unit);
 }
 
@@ -1236,7 +1238,7 @@ main > .field + .field + .field + .field {
 /* ---------- Hero ---------- */
 
 .hero {
-    height: clamp(860px, 72vw, 1100px);
+    height: min(72vw, 1100px);
 }
 .hero h1 {
     position: absolute;
@@ -1847,8 +1849,10 @@ main > .field + .field + .field + .field {
 /* ---------- Phones ---------- */
 
 @media (max-width: 760px) {
+    /* A phone scene is 381 points wide and fills the screen less a 12px margin each side, so it fits a 320px phone
+       and grows a little on the big ones. */
     :root {
-        --unit: 0.94px;
+        --unit: clamp(0.72px, calc((100vw - 24px) / 381), 1.04px);
     }
     main > .field + .field {
         margin-top: -28px;
@@ -1882,6 +1886,10 @@ main > .field + .field + .field + .field {
         height: auto;
         padding: 120px var(--gx) 70px;
     }
+    /* Later boards only clear their own rounded top, not the header. */
+    main > .field + .field {
+        padding-top: 84px;
+    }
     .field h1,
     .field h2,
     .field .lede,
@@ -1910,9 +1918,11 @@ main > .field + .field + .field + .field {
     .hero .pile {
         position: relative;
         inset: auto;
-        width: 358px;
-        height: 610px;
+        width: calc(381 * var(--unit));
+        height: calc(649 * var(--unit));
         margin: 64px auto 0;
+        left: 50%;
+        translate: -50% 0;
     }
     /* "out." takes its own line on a phone. */
     .hero h1 .brk {
@@ -1952,14 +1962,16 @@ main > .field + .field + .field + .field {
     }
     .scene {
         position: relative;
-        width: 358px;
-        margin: 0 auto;
+        left: 50%;
+        width: calc(381 * var(--unit));
+        translate: -50% 0;
     }
     .mob-scene {
         position: relative;
         margin-top: 56px;
     }
     .join {
+        min-height: 0;
         padding-bottom: 130px;
     }
     .join h2 {
@@ -1971,11 +1983,20 @@ main > .field + .field + .field + .field {
     .signup .row {
         flex-direction: column;
     }
+    /* 17px keeps the idea's example on one line and stays above the 16px that makes iOS zoom into a field. */
+    .signup input[type="email"],
+    .signup .say {
+        padding: 0 18px;
+        font-size: 17px;
+        text-overflow: ellipsis;
+    }
     .story h2 {
         font-size: 17vw;
     }
     .story.right h2,
-    .story.right .copy {
+    .story.right .copy,
+    .story.right .go {
+        right: auto;
         text-align: left;
     }
     .story .copy {
@@ -1984,7 +2005,8 @@ main > .field + .field + .field + .field {
     }
     .house .kicker,
     .two .kicker,
-    .story .kicker {
+    .story.left .kicker,
+    .story.right .kicker {
         position: relative;
         top: auto;
         left: auto;
@@ -2015,6 +2037,23 @@ main > .field + .field + .field + .field {
     }
     .house .lean-q {
         display: none;
+    }
+}
+/* The smallest phones: the wordmark and the header key need room to breathe side by side. */
+@media (max-width: 360px) {
+    .mark {
+        font-size: 24px;
+        gap: 8px;
+    }
+    .mark .app {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
+    .top .key {
+        gap: 9px;
+        padding: 0 12px;
+        font-size: 15px;
     }
 }
 @media (min-width: 761px) {
