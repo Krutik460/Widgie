@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Widgie</title>
+<link rel="stylesheet" href="widgets.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<!-- The wallpaper: a sky that sinks into dusk as you scroll, with one giant soft caret stroke behind the glass. -->
+<div class="wallpaper" aria-hidden="true">
+    <div class="glow g1"></div>
+    <svg class="giant" id="giant"></svg>
+</div>
+
+<header class="status">
+    <span class="time">9:41</span>
+    <a class="wordmark" href="#top" aria-label="Widgie">widgie<i></i></a>
+    <span class="glyphs" aria-hidden="true">
+        <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 0 0-4.8 0z"/><path d="M8 4.2c2 0 3.8.7 5.2 2l1.4-1.7A10 10 0 0 0 8 2 10 10 0 0 0 1.4 4.5l1.4 1.7A7.8 7.8 0 0 1 8 4.2z" opacity=".95"/></svg>
+        <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2.5" y="2.5" width="16" height="7" rx="2"/><rect x="24.6" y="4" width="1.8" height="4" rx=".9" opacity=".4"/></svg>
+    </span>
+</header>
+
+<main id="top">
+
+    <!-- Page one: the hero. -->
+    <section class="page hero" data-page="0">
+        <div class="grid">
+            <div class="tile l headline">
+                <div class="peek" id="peek" aria-hidden="true"></div>
+                <div class="face glass">
+                    <div class="eyebrow"><span class="bar"></span>Early access for iPhone</div>
+                    <h1>Say it. It&rsquo;s on your home screen, and theirs.</h1>
+                    <div class="people" aria-label="Shared with Sam, Jo and Priya">
+                        <span class="av" style="--c:#a9e9cd">S</span><span class="av" style="--c:#ffc2ce">J</span><span class="av" style="--c:#ffe594">P</span>
+                        <span class="note">On every phone in the house</span>
+                    </div>
+                    <p class="lede">Describe a widget in plain words. Widgie builds it and shares it with the people you live with, or love.</p>
+                </div>
+                <span class="label">Widgie</span>
+            </div>
+
+            <div class="tile m build" id="build">
+                <div class="face slot">
+                    <svg class="outline" aria-hidden="true"><defs><mask id="reveal"><path class="reveal-path"/></mask></defs><path class="dash-path" mask="url(#reveal)"/></svg>
+                    <div class="built"></div>
+                    <p class="said"><span><span class="typed"></span><i class="cursor"></i></span></p>
+                    <div class="drawer" aria-hidden="true"></div>
+                </div>
+                <span class="label" id="build-label">Building a widget</span>
+            </div>
+
+            <div class="tile s" data-widget="hearts">
+                <div class="face"></div>
+                <span class="label">A heart button for Jo</span>
+            </div>
+
+            <div class="tile s join">
+                <form class="face w signup" onsubmit="return joined(this)">
+                    <div class="w-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6"/></svg>Early access</div>
+                    <div class="w-big">Get in first.</div>
+                    <input type="email" required placeholder="you@email.com" aria-label="Email">
+                    <button type="submit">Join<i></i></button>
+                </form>
+                <span class="label">Join the list</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Page two: the two kinds of home. -->
+    <section class="page homes" id="homes" data-page="1">
+        <div class="grid">
+            <div class="tile bar-tile hh-head">
+                <div class="face glass">
+                    <h2>Under one roof</h2>
+                    <p>The dog, the bins, the feeds. Everyone sees the same answer.</p>
+                </div>
+            </div>
+            <div class="tile bar-tile us-head" id="us">
+                <div class="stand" id="stand" aria-hidden="true"></div>
+                <div class="face glass">
+                    <h2>Just you two</h2>
+                    <p>Small signals across a busy day.</p>
+                </div>
+            </div>
+
+            <div class="tile m baby-tile" data-widget="baby">
+                <div class="face"></div>
+                <span class="label">Baby feeds, red after 3 hours</span>
+            </div>
+            <div class="tile m count-tile" data-widget="countdown">
+                <div class="face"></div>
+                <span class="label">Countdown to when I see Alex</span>
+            </div>
+
+            <div class="tile s luna-tile" data-widget="luna">
+                <div class="face"></div>
+                <span class="label">Did anyone feed the dog?</span>
+            </div>
+            <div class="tile s bins-tile" data-widget="bins">
+                <div class="face"></div>
+                <span class="label">Whose turn for the bins</span>
+            </div>
+            <div class="tile s mood-tile" data-widget="mood">
+                <div class="face"></div>
+                <span class="label">Both our moods</span>
+            </div>
+            <div class="tile s safe-tile" data-widget="safe">
+                <div class="face"></div>
+                <span class="label">Tell me you got home</span>
+            </div>
+
+            <div class="tile m groc-tile" data-widget="groceries">
+                <div class="face"></div>
+                <span class="label">Shared grocery list</span>
+            </div>
+            <div class="tile m q-tile" data-widget="question">
+                <div class="face"></div>
+                <span class="label">A question for us every morning</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Page three: how it works, at dusk. -->
+    <section class="page dusk" id="how" data-page="2">
+        <div class="grid">
+            <div class="tile m how-text">
+                <div class="face glass">
+                    <div class="eyebrow"><span class="bar"></span>How it works</div>
+                    <ol class="steps">
+                        <li class="on">Say it like you&rsquo;d text it.</li>
+                        <li>Widgie draws it, then makes it work.</li>
+                        <li>Share it. Their phone updates too.</li>
+                    </ol>
+                </div>
+                <span class="label">Widgie</span>
+            </div>
+
+            <div class="tile m stack-tile">
+                <div class="face stack" id="stack">
+                    <div class="card c-say">
+                        <div class="w-label">You say</div>
+                        <p>&ldquo;Whose turn is it for the bins? Tap to pass it on.&rdquo;<i class="cursor"></i></p>
+                        <span class="send">Build it<i></i></span>
+                    </div>
+                    <div class="card c-draw">
+                        <div class="mini-slot"></div>
+                        <div class="mini-caret" id="mini-caret"></div>
+                        <div class="w-label">Widgie draws it</div>
+                    </div>
+                    <div class="card c-share">
+                        <div class="pair">
+                            <div class="mini"><b>Priya</b><span>your phone</span></div>
+                            <div class="mini"><b>Priya</b><span>Sam&rsquo;s phone</span></div>
+                        </div>
+                        <div class="w-label">Same widget, both phones</div>
+                    </div>
+                    <div class="pips" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+                </div>
+                <span class="label">Smart Stack</span>
+            </div>
+
+            <div class="tile xl join2" id="join">
+                <form class="face glass signup2" onsubmit="return joined(this)">
+                    <div class="copy">
+                        <h2>Be one of the first homes.</h2>
+                        <p>Early access opens on iPhone this winter. One email when it&rsquo;s ready, nothing else.</p>
+                    </div>
+                    <div class="row">
+                        <input type="email" required placeholder="you@email.com" aria-label="Email">
+                        <button type="submit">Join<i></i></button>
+                    </div>
+                    <div class="jumper" id="jumper" aria-hidden="true"></div>
+                </form>
+                <span class="label">Early access</span>
+            </div>
+
+            <a class="tile app i1" href="#"><span class="icon ic-privacy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3l7 3v5.5c0 4.5-3 8-7 9.5-4-1.5-7-5-7-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10" stroke-linecap="round"/></svg></span><span class="label">Privacy</span></a>
+            <a class="tile app i2" href="#"><span class="icon ic-hi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8.5v4" stroke-linecap="round"/></svg></span><span class="label">Say hi</span></a>
+            <a class="tile app i3" href="#homes"><span class="icon ic-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5V20H4z"/><path d="M10 20v-5h4v5"/></svg></span><span class="label">Homes</span></a>
+            <a class="tile app i4" href="#top"><span class="icon ic-top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg></span><span class="label">Back up</span></a>
+        </div>
+        <p class="fine">Made for iPhone. Widgie, 2026.</p>
+    </section>
+</main>
+
+<div class="pages" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+
+<nav class="dock glass" aria-label="Sections">
+    <a href="#homes"><span class="icon ic-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5V20H4z"/><path d="M10 20v-5h4v5"/></svg></span><span>Homes</span></a>
+    <a href="#us"><span class="icon ic-us"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 19s-5.6-3.4-7-6.9C.9 9.5 2.5 6.8 5.1 6.8c1.6 0 2.7.9 3.9 2.4 1.3-1.5 2.4-2.4 4-2.4 2.6 0 4.1 2.7 3.1 5.3C14.6 15.6 9 19 9 19z"/><path d="M17.2 4.5c.9-1 1.6-1.5 2.6-1.5 1.7 0 2.7 1.8 2 3.5-.8 2.1-4.6 4.4-4.6 4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Couples</span></a>
+    <a href="#how"><span class="icon ic-how"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-dasharray="3.2 2.6"><rect x="3.5" y="5" width="17" height="14" rx="4"/></svg></span><span>How</span></a>
+    <a href="#join"><span class="icon ic-join"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6"/></svg></span><span>Join</span></a>
+    <div class="sitter" id="sitter" aria-hidden="true"></div>
+</nav>
+
+<script src="caret.js"></script>
+<script src="widgets.js"></script>
+<script src="site.js"></script>
+</body>
+</html>

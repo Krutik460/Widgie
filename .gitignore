@@ -11,3 +11,5 @@ __pycache__/
 App/Widgie.xcodeproj/
 App/Widgie/Info.plist
 App/WidgieWidgets/Info.plist
+# Wrangler cache when run from the repo root.
+.wrangler/

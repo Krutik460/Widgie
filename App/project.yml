@@ -69,8 +69,8 @@ targets:
         # `Color(.widgieGround)` for each colorset in Widgie/Design/WidgieColors.xcassets, so a renamed or
         # missing token fails the build instead of drawing clear.
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
-        # The catalog holds only colors; the app has no icon yet.
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        # Widgie/AppIcon.xcassets: the Peek caret cropped close (B3), drawn by docs/design/app-icon/ (light, dark, tinted).
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       configs:
         Release:
           EXCLUDED_SOURCE_FILE_NAMES: Fixtures
