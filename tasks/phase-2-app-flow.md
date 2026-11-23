@@ -333,11 +333,11 @@ A draft must not appear in the home screen widget picker before the person saves
 
 **Review gate.** The user reviews before merge, because P5 changes what a person sees and does.
 
-- [ ] Post the lane screenshots and a 30 to 60 second screen recording of lanes 2, 4, and 8 (`xcrun simctl io <udid> recordVideo`). Stop and wait for the user's decision.
+- [x] Post the lane screenshots and a 30 to 60 second screen recording of lanes 2, 4, and 8 (`xcrun simctl io <udid> recordVideo`). Stop and wait for the user's decision. Posted with `lanes-2-4-8.mp4`; the user approved the merge on 2026-11-22 after a council review that ended at 9.2 from Claude Opus and Gemini 4 Neon.
 
 **Merge.**
 
-- [ ] `scripts/check` passes. The user approved the screenshots and the recording.
+- [x] `scripts/check` passes. The user approved the screenshots and the recording.
 
 ## Run the end-to-end check and record the results (P6)
 
