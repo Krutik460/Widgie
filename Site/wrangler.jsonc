@@ -3,6 +3,7 @@
 // Secrets: TURNSTILE_SECRET (the Turnstile widget's secret), RESEND_API_KEY (sends confirmation mail), LINK_SECRET (random
 // bytes that sign confirm and leave links, so no token is ever stored).
 // SIGNUP_LIMIT rate-limits POST /api/signup per client address.
+// POSTHOG_KEY is the Widgie PostHog project's public token (safe in client code too; public/tally.js carries the same one).
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "widgie-site",
@@ -15,12 +16,13 @@
         "directory": "./public",
         "binding": "ASSETS",
         "not_found_handling": "404-page",
-        "run_worker_first": ["/api/*", "/confirm"]
+        "run_worker_first": ["/api/*", "/confirm", "/hop/*"]
     },
     "vars": {
         "SITE_URL": "https://widgie.krutikpatel.dev",
         "EMAIL_FROM": "Widgie <hello@widgie.krutikpatel.dev>",
-        "REPLY_TO": "hello@widgie.krutikpatel.dev"
+        "REPLY_TO": "hello@widgie.krutikpatel.dev",
+        "POSTHOG_KEY": "phc_Aj3Mbof3qJ2N455cGitXopyyY9dY3B2hbnrTLjJvszKF"
     },
     "d1_databases": [
         {

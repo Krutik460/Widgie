@@ -2,3 +2,14 @@
 /us /partners#us 301
 # Invite links from before the list dropped invites.
 /p/* / 302
+# Short links for posts, crediting the post that carries them (docs/marketing/links.md):
+#   /go/<source>/<post>         the home page, e.g. /go/x/first-widget
+#   /partners/<source>/<post>   e.g. /partners/reddit/longdistance
+#   /growth/<source>/<post>     e.g. /growth/reddit/getdisciplined
+# The post part is optional. Product Hunt adds its own ?ref=producthunt, so its link needs nothing.
+/go/:source/:content /?utm_source=:source&utm_content=:content 302
+/go/:source /?utm_source=:source 302
+/partners/:source/:content /partners?utm_source=:source&utm_content=:content 302
+/partners/:source /partners?utm_source=:source 302
+/growth/:source/:content /growth?utm_source=:source&utm_content=:content 302
+/growth/:source /growth?utm_source=:source 302

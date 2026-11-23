@@ -293,15 +293,17 @@ smallPage({
 <ul>
 <li>Your email address, so we can confirm your spot and invite you when Widgie is ready.</li>
 <li>Which page you signed up from (partners or personal growth), if any.</li>
-<li>The site or channel that sent you, if the link said so.</li>
+<li>The site or post that first sent you here, and a random visitor id from our analytics, so we can tell which posts bring people.</li>
 </ul>
+<h2>How we measure the site</h2>
+<p>We use PostHog to see how people find and use this site: which pages they visit, what they tap, and whether they sign up. It keeps a first-party cookie with a random id, so a second visit counts as the same visitor, and it records sessions to show where the page confuses people. Everything you type is hidden from those recordings. Our analytics never receive your email address, and the requests go through our own domain.</p>
 <h2>What we don't do</h2>
 <ul>
-<li>No ad trackers and no cookies. Visit counts come from Cloudflare Web Analytics, which does not identify you.</li>
+<li>No ad trackers, and nothing is shared with advertisers.</li>
 <li>We never sell or share your email. It is used only for Widgie updates and your invite to the app.</li>
 </ul>
 <h2>Who handles it</h2>
-<p>The list lives in a Cloudflare database. Emails are sent through Resend. Bot checks use Cloudflare Turnstile.</p>
+<p>The list lives in a Cloudflare database. Emails are sent through Resend. Bot checks use Cloudflare Turnstile. Site analytics run on PostHog.</p>
 <h2>Leaving</h2>
 <p>Every email has a link to remove yourself, which deletes your row. You can also reply to any Widgie email and ask.</p>
 </article>`,
