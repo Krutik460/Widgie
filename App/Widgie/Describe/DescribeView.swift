@@ -221,9 +221,11 @@ struct PhotoButton: View {
                         .accessibilityLabel("Remove picture")
                     }
             } else {
+                // The picker's label closure is not main actor isolated, so it reads a copy of the state.
+                let loading = item != nil
                 PhotosPicker(selection: $item, matching: .images) {
                     Group {
-                        if item == nil {
+                        if !loading {
                             Image(systemName: "photo")
                                 .font(.system(size: 21, weight: .semibold))
                                 .foregroundStyle(Palette.text)
