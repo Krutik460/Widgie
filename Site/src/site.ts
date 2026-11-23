@@ -83,7 +83,7 @@ export function parseSignup(raw: unknown): SignupBody | string {
     const body = raw as Record<string, unknown>;
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     if (email.length > 254 || !EMAIL.test(email)) return "that email doesn't look right";
-    if (body.segment !== "home" && body.segment !== "us") return "pick home or us";
+    if (body.segment !== "partners" && body.segment !== "growth") return "pick partners or growth";
     const idea = typeof body.idea === "string" ? body.idea.trim() : "";
     if (idea.length > MAX_IDEA) return `keep the idea under ${MAX_IDEA} characters`;
     const source = typeof body.source === "string" ? body.source.trim().toLowerCase().slice(0, MAX_SOURCE) : "";

@@ -89,12 +89,12 @@ async function confirmed(s: Services, body: Record<string, unknown>) {
 }
 
 describe("parseSignup", () => {
-    const valid = { email: " Me@Example.com ", segment: "home", turnstile: "t" };
+    const valid = { email: " Me@Example.com ", segment: "partners", turnstile: "t" };
 
     it("cleans a valid body", () => {
         expect(parseSignup({ ...valid, idea: "  dog fed  ", source: "TikTok" })).toEqual({
             email: "me@example.com",
-            segment: "home",
+            segment: "partners",
             idea: "dog fed",
             source: "tiktok",
             pair: null,
@@ -105,7 +105,8 @@ describe("parseSignup", () => {
     it.each([
         [{ ...valid, email: "nope" }, "that email doesn't look right"],
         [{ ...valid, email: "a@b" }, "that email doesn't look right"],
-        [{ ...valid, segment: "aesthetic" }, "pick home or us"],
+        [{ ...valid, segment: "aesthetic" }, "pick partners or growth"],
+        [{ ...valid, segment: "home" }, "pick partners or growth"],
         [{ ...valid, idea: "x".repeat(501) }, "keep the idea under 500 characters"],
         [{ ...valid, pair: "../../etc" }, "that invite link is not valid"],
         [{ ...valid, turnstile: "" }, "the check didn't load, reload the page"],
@@ -119,7 +120,7 @@ describe("POST /api/signup", () => {
     it("stores the row and sends one confirmation email", async () => {
         const s = services();
         const { email } = fresh();
-        const response = await signUp(s, { email, segment: "us", idea: "hearts for Alex", source: "tiktok" });
+        const response = await signUp(s, { email, segment: "growth", idea: "hearts for Alex", source: "tiktok" });
 
         expect(await response.json()).toEqual({ ok: true });
         expect(s.sent).toHaveLength(1);
@@ -127,7 +128,7 @@ describe("POST /api/signup", () => {
         expect(s.sent[0]?.subject).toBe("Confirm your spot on the Widgie list");
         expect(s.sent[0]?.headers["List-Unsubscribe"]).toMatch(/^<https:\/\/widgie\.krutikpatel\.dev\/api\/leave\?/);
         expect(await row(email)).toMatchObject({
-            segment: "us",
+            segment: "growth",
             idea: "hearts for Alex",
             source: "tiktok",
             confirmed_at: null,
@@ -137,7 +138,7 @@ describe("POST /api/signup", () => {
     it("refuses when Turnstile says no, and stores nothing", async () => {
         const s = services({ human: false });
         const { email } = fresh();
-        const response = await signUp(s, { email, segment: "home" });
+        const response = await signUp(s, { email, segment: "partners" });
         expect(response.status).toBe(403);
         expect(s.sent).toHaveLength(0);
         expect(await row(email)).toBeNull();
@@ -146,24 +147,24 @@ describe("POST /api/signup", () => {
     it("takes the row back when the email cannot be sent, so a retry works", async () => {
         const failing = services({ mailStatus: 500 });
         const { email } = fresh();
-        expect((await signUp(failing, { email, segment: "home" })).status).toBe(500);
+        expect((await signUp(failing, { email, segment: "partners" })).status).toBe(500);
         expect(await row(email)).toBeNull();
 
         const working = services();
-        expect((await signUp(working, { email, segment: "home" })).status).toBe(200);
+        expect((await signUp(working, { email, segment: "partners" })).status).toBe(200);
         expect(working.sent).toHaveLength(1);
     });
 
     it("answers the same for a repeat, and sends a reminder only after the wait", async () => {
         const s = services();
         const { email } = fresh();
-        await signUp(s, { email, segment: "home" });
+        await signUp(s, { email, segment: "partners" });
 
-        expect(await (await signUp(s, { email, segment: "home" })).json()).toEqual({ ok: true });
+        expect(await (await signUp(s, { email, segment: "partners" })).json()).toEqual({ ok: true });
         expect(s.sent).toHaveLength(1);
 
         s.advance(RESEND_AFTER_MS + 1000);
-        await signUp(s, { email, segment: "home" });
+        await signUp(s, { email, segment: "partners" });
         expect(s.sent).toHaveLength(2);
         expect(s.sent[1]?.subject).toBe("Confirm your spot on the Widgie list");
     });
@@ -171,10 +172,10 @@ describe("POST /api/signup", () => {
     it("sends a confirmed person their share link instead of a second confirmation", async () => {
         const s = services();
         const { email } = fresh();
-        const code = await confirmed(s, { email, segment: "home" });
+        const code = await confirmed(s, { email, segment: "partners" });
 
         s.advance(RESEND_AFTER_MS + 1000);
-        await signUp(s, { email, segment: "home" });
+        await signUp(s, { email, segment: "partners" });
         expect(s.sent.at(-1)?.subject).toBe("Your Widgie link");
         expect(linkIn(s.sent.at(-1), "/p/")).toBe(`${SITE}/p/${code}?joined=1`);
     });
@@ -184,7 +185,7 @@ describe("POST /api/signup", () => {
         const { ip } = fresh();
         const statuses = [];
         for (let i = 0; i < 6; i++)
-            statuses.push((await signUp(s, { email: fresh().email, segment: "home" }, ip)).status);
+            statuses.push((await signUp(s, { email: fresh().email, segment: "partners" }, ip)).status);
         expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
     });
 
@@ -202,47 +203,48 @@ describe("pairs", () => {
     it("lets a partner join, taking the pair's segment and code", async () => {
         const s = services();
         const founder = fresh();
-        const code = await confirmed(s, { email: founder.email, segment: "home" });
+        const code = await confirmed(s, { email: founder.email, segment: "partners" });
 
         let info = await handle(new Request(`${SITE}/api/pair/${code}`), env, s.deps);
-        expect(await info.json()).toEqual({ segment: "home", members: 1 });
+        expect(await info.json()).toEqual({ segment: "partners", members: 1 });
 
         const partner = fresh();
-        const joined = await confirmed(s, { email: partner.email, segment: "us", pair: code });
+        const joined = await confirmed(s, { email: partner.email, segment: "growth", pair: code });
         expect(s.sent.at(-1)?.text).toContain("same group as the person who invited you");
         expect(joined).toBe(code);
-        expect(await row(partner.email)).toMatchObject({ segment: "home", pair_code: code, joined_via_link: 1 });
+        expect(await row(partner.email)).toMatchObject({ segment: "partners", pair_code: code, joined_via_link: 1 });
 
         info = await handle(new Request(`${SITE}/api/pair/${code}`), env, s.deps);
-        expect(await info.json()).toEqual({ segment: "home", members: 2 });
+        expect(await info.json()).toEqual({ segment: "partners", members: 2 });
     });
 
     it("does not count a member until they confirm", async () => {
         const s = services();
-        const code = await confirmed(s, { email: fresh().email, segment: "us" });
-        await signUp(s, { email: fresh().email, segment: "us", pair: code });
+        const code = await confirmed(s, { email: fresh().email, segment: "growth" });
+        await signUp(s, { email: fresh().email, segment: "growth", pair: code });
         const info = await handle(new Request(`${SITE}/api/pair/${code}`), env, s.deps);
-        expect(await info.json()).toEqual({ segment: "us", members: 1 });
+        expect(await info.json()).toEqual({ segment: "growth", members: 1 });
     });
 
     it("starts a new pair when the invite is unknown or the pair is full", async () => {
         const s = services();
         const stranger = fresh();
-        await signUp(s, { email: stranger.email, segment: "us", pair: "abcdefghjk" });
-        expect(await row(stranger.email)).toMatchObject({ segment: "us", joined_via_link: 0 });
+        await signUp(s, { email: stranger.email, segment: "growth", pair: "abcdefghjk" });
+        expect(await row(stranger.email)).toMatchObject({ segment: "growth", joined_via_link: 0 });
         expect((await row(stranger.email))?.pair_code).not.toBe("abcdefghjk");
 
-        const code = await confirmed(s, { email: fresh().email, segment: "home" });
-        for (let i = 1; i < MAX_PAIR; i++) await confirmed(s, { email: fresh().email, segment: "home", pair: code });
+        const code = await confirmed(s, { email: fresh().email, segment: "partners" });
+        for (let i = 1; i < MAX_PAIR; i++)
+            await confirmed(s, { email: fresh().email, segment: "partners", pair: code });
         const late = fresh();
-        await signUp(s, { email: late.email, segment: "home", pair: code });
+        await signUp(s, { email: late.email, segment: "partners", pair: code });
         expect((await row(late.email))?.pair_code).not.toBe(code);
     });
 
     it("answers 404 for a pair nobody confirmed", async () => {
         const s = services();
         const { email } = fresh();
-        await signUp(s, { email, segment: "home" });
+        await signUp(s, { email, segment: "partners" });
         const code = (await row(email))?.pair_code;
         expect((await handle(new Request(`${SITE}/api/pair/${code}`), env, s.deps)).status).toBe(404);
         expect((await handle(new Request(`${SITE}/api/pair/nope`), env, s.deps)).status).toBe(404);
@@ -253,7 +255,7 @@ describe("GET /confirm", () => {
     it("is idempotent", async () => {
         const s = services();
         const { email } = fresh();
-        await signUp(s, { email, segment: "home" });
+        await signUp(s, { email, segment: "partners" });
         const link = linkIn(s.sent[0], "/confirm");
         const first = await handle(new Request(link), env, s.deps);
         const stamp = (await row(email))?.confirmed_at;
@@ -266,7 +268,7 @@ describe("GET /confirm", () => {
     it("refuses a tampered link and a leave signature", async () => {
         const s = services();
         const { email } = fresh();
-        await signUp(s, { email, segment: "home" });
+        await signUp(s, { email, segment: "partners" });
         const id = (await row(email))?.id ?? 0;
         for (const t of ["0".repeat(64), await sign("test-link-secret", "leave", id), "zz"]) {
             const response = await handle(new Request(`${SITE}/confirm?id=${id}&t=${t}`), env, s.deps);
@@ -280,7 +282,7 @@ describe("POST /api/leave", () => {
     it("deletes the row with a valid link and refuses anything else", async () => {
         const s = services();
         const { email } = fresh();
-        await signUp(s, { email, segment: "us" });
+        await signUp(s, { email, segment: "growth" });
         const oneClick = s.sent[0]?.headers["List-Unsubscribe"]?.slice(1, -1) ?? "";
         const id = (await row(email))?.id ?? 0;
 

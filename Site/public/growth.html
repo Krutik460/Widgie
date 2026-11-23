@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Widgie for personal growth: track anything, your way</title>
+<meta name="description" content="Water, workouts, streaks, days alcohol-free, a savings goal. Say how you want to track it and Widgie builds the widget.">
+<meta name="theme-color" content="#9cc3f5">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Widgie for personal growth: track anything, your way">
+<meta property="og:description" content="Water, workouts, streaks, days alcohol-free, a savings goal. Say how you want to track it and Widgie builds the widget.">
+<meta property="og:url" content="https://widgie.krutikpatel.dev/growth">
+<meta property="og:image" content="https://widgie.krutikpatel.dev/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<script src="/caret.js" defer></script>
+<script type="module" src="/app.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" defer></script>
+</head>
+<body>
+<header class="top">
+<a class="mark" href="/" aria-label="Widgie home"><span class="app"><img src="/mark.svg" alt="" width="46" height="46"></span><span class="name">widgie</span></a>
+<nav><a href="/partners">For partners</a><a href="/growth">For personal growth</a><a class="key" href="#join">Get early access</a></nav>
+</header>
+<main>
+<section class="field mint hero">
+<h1 class="display"><span>Track</span><span class="l2">anything.</span></h1>
+<p class="lede">Water, workouts, days alcohol-free, a savings goal. Say how you want to track it, Widgie builds the widget, and today's progress is one glance away.</p>
+<div class="cta"><a class="key" href="#join">Get early access</a><small>For iPhone.<br>Free while it's early.</small></div>
+<div class="pile" data-scene="growthHero"></div>
+</section>
+<section class="field sky story left" id="habits">
+<p class="kicker">Every day</p>
+<h2 class="display"><span>Habits that</span><span>stick.</span></h2>
+<p class="copy">Streaks, grids and counters built around your definition of a habit. Tap the widget, not an app. No paywall on widgets.</p>
+
+<div class="scene" data-scene="habits"></div>
+</section>
+<section class="field lilac story right" id="goals">
+<p class="kicker">Over time</p>
+<h2 class="display"><span>Goals you</span><span>can see.</span></h2>
+<p class="copy">Days alcohol-free, a savings jar for Japan, a new word every morning. Progress where you look a hundred times a day.</p>
+
+<div class="scene" data-scene="goals"></div>
+</section>
+<section class="field grape join" id="join">
+<div class="join-col">
+<h2 class="display"><span>What would</span><span>yours say?</span></h2>
+<form class="signup" data-segment="growth" novalidate>
+
+<label class="sr" for="idea-growth">Your first widget, in your words (optional)</label>
+<input class="say" id="idea-growth" name="idea" maxlength="500" autocomplete="off" placeholder="Remind me to stretch every evening">
+<div class="row"><label class="sr" for="email-growth">Your email</label><input id="email-growth" name="email" type="email" autocomplete="email" placeholder="you@home.com" required><button class="key" type="submit">Get early access</button></div>
+<div class="turnstile"></div>
+<p class="error" role="alert"></p>
+<p class="fine">You'll get a link for a friend who keeps you going, and friends who join together get in first. Free while it's early: one short email a month and your invite. Leave any time.</p>
+</form>
+<div class="done" hidden><span class="caret" data-pose="jump" data-eyes="happy" data-moon="1"></span><h3>Check your inbox.</h3><p>Tap the link we sent to hold your spot. Then you'll get a link to bring your person along.</p></div>
+</div>
+<div class="scene" data-scene="joinGrowth"></div>
+<div class="foot"><span>Widgie, built in public by Krutik.</span><span><a href="/privacy">Privacy</a><a href="mailto:hello@widgie.krutikpatel.dev">Contact</a></span></div>
+</section>
+</main>
+</body>
+</html>

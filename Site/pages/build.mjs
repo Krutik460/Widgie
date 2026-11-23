@@ -39,42 +39,76 @@ ${turnstile ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.j
 }
 
 const HEADER = `<header class="top">
-<a class="mark" href="/" aria-label="Widgie home">widgie<i></i></a>
-<nav><a href="/home">For the house</a><a href="/us">For two</a><a class="key" href="#join">Get early access</a></nav>
+<a class="mark" href="/" aria-label="Widgie home"><span class="app"><img src="/mark.svg" alt="" width="46" height="46"></span><span class="name">widgie</span></a>
+<nav><a href="/partners">For partners</a><a href="/growth">For personal growth</a><a class="key" href="#join">Get early access</a></nav>
 </header>
 `;
 
-const cta = (first) => (first ? `<div class="cta"><a class="key" href="#join">Get early access</a></div>` : "");
-
 // ---------- Sections ----------
 
-const hero = () => `<section class="field sky hero">
-<h1 class="display"><span>Words <span class="anchor">ı<span class="dot-tile"><b>${HEART}</b></span></span>n.</span><span class="l2">Widgets <span class="anchor" id="out">out.<span class="caret" data-pose="lean" data-mirror="1" data-halo="#9cc3f5"></span></span></span></h1>
-<p class="lede">Tell Widgie what you need on your home screen. It builds the widget, then shares it with your house, or just the two of you.</p>
+/// The home page hero, with its heart-dotted i.
+const mainHero = () => `<section class="field sky hero">
+<h1 class="display"><span>Words <span class="anchor">ı<span class="dot-tile"><b>${HEART}</b></span></span>n.</span><span class="l2">Widgets <span class="brk">out.</span></span></h1>
+<p class="lede">Say what you want on your home screen, in plain words. Widgie builds a widget that works, for the two of you or for the person you're becoming.</p>
 <div class="cta"><a class="key" href="#join">Get early access</a><small>For iPhone.<br>Free while it's early.</small></div>
 <div class="pile" data-scene="hero"></div>
 </section>`;
 
-const house = (first) => `<section class="field coral house" id="house">
-<h2 class="display"><span>Did anyone</span><span>feed Luna<span class="anchor" id="q">?<span class="blk luna lean-q" data-widget="luna"></span></span></span></h2>
-<p class="copy">One widget for the whole house. <b>Anyone taps it, everyone's home screen knows.</b> No group chat required.</p>
-${cta(first)}
-<div class="scene" data-scene="house" data-first="${first ? 1 : 0}"></div>
+/// An audience page hero: two lines of headline, and the caret acting out the page beside them.
+const audienceHero = ({ color, first, last, lede, scene }) => `<section class="field ${color} hero">
+<h1 class="display"><span>${first}</span><span class="l2">${last}</span></h1>
+<p class="lede">${lede}</p>
+<div class="cta"><a class="key" href="#join">Get early access</a><small>For iPhone.<br>Free while it's early.</small></div>
+<div class="pile" data-scene="${scene}"></div>
 </section>`;
 
-const two = (first) => `<section class="field sun two" id="two">
-<h2 class="display"><span>Just</span><span>for two.</span></h2>
-<p class="copy">A heart button for Jo. Days until you see Alex. Both your moods, side by side. Small things, right where you look.</p>
-${cta(first)}
-<div class="scene" data-scene="two" data-first="${first ? 1 : 0}"></div>
+/// A story section: kicker, headline and copy on one side, its scene on the other, and an optional door to a page.
+const story = ({
+    id,
+    color,
+    side,
+    kicker,
+    lines,
+    copy,
+    scene,
+    door,
+}) => `<section class="field ${color} story ${side}" id="${id}">
+<p class="kicker">${kicker}</p>
+<h2 class="display">${lines.map((line) => `<span>${line}</span>`).join("")}</h2>
+<p class="copy">${copy}</p>
+${door ? `<a class="key go" href="${door.href}">${door.label}</a>` : ""}
+<div class="scene" data-scene="${scene}"></div>
 </section>`;
+
+/// The partners home section: Luna leans on the question mark.
+const home = () => `<section class="field coral house" id="home">
+<p class="kicker">Your home</p>
+<h2 class="display"><span>Did anyone</span><span>feed Luna<span class="anchor" id="q">?<span class="blk luna lean-q" data-widget="luna"></span></span></span></h2>
+<p class="copy">The chores and check-ins you share, on both your home screens. One of you taps, the other just knows. <b>No more "did you...?" texts.</b></p>
+<div class="scene" data-scene="home"></div>
+</section>`;
+
+/// The partners couple section.
+const couple = () => `<section class="field pink two" id="us">
+<p class="kicker">The two of you</p>
+<h2 class="display"><span>Just</span><span>for two.</span></h2>
+<p class="copy">And the little things between you. A heart when you're thinking of them, days until your trip, how you both feel today.</p>
+<div class="scene" data-scene="couple"></div>
+</section>`;
+
+const INVITES = {
+    partners: "You'll get a link for your partner, and couples who join together get in first.",
+    growth: "You'll get a link for a friend who keeps you going, and friends who join together get in first.",
+    "": "You'll get a link to bring someone along, and people who join together get in first.",
+};
 
 function signupForm({ segment, placeholder, pair = false }) {
+    const invite = `${INVITES[segment] ?? INVITES[""]} Free while it's early: one short email a month and your invite. Leave any time.`;
     const id = pair ? "pair" : segment || "any";
     const picker =
         segment || pair
             ? ""
-            : `<fieldset class="pick"><legend>It's for</legend><label><input type="radio" name="segment" value="home" checked><span>Our home</span></label><label><input type="radio" name="segment" value="us"><span>The two of us</span></label></fieldset>`;
+            : `<fieldset class="pick"><legend>It's for</legend><label><input type="radio" name="segment" value="partners" checked><span>The two of us</span></label><label><input type="radio" name="segment" value="growth"><span>My own goals</span></label></fieldset>`;
     return `<form class="signup"${segment ? ` data-segment="${segment}"` : ""}${pair ? " data-pair" : ""} novalidate>
 ${picker}
 <label class="sr" for="idea-${id}">Your first widget, in your words (optional)</label>
@@ -82,9 +116,9 @@ ${picker}
 <div class="row"><label class="sr" for="email-${id}">Your email</label><input id="email-${id}" name="email" type="email" autocomplete="email" placeholder="you@home.com" required><button class="key" type="submit">Get early access</button></div>
 <div class="turnstile"></div>
 <p class="error" role="alert"></p>
-<p class="fine">Say your first widget if you like. Free while it's early: one short email a month about what shipped, and your invite. Leave any time.</p>
+<p class="fine">${invite}</p>
 </form>
-<div class="done" hidden><span class="caret" data-pose="jump" data-eyes="happy" data-moon="1"></span><h3>Check your inbox.</h3><p>Tap the link we sent to hold your spot. Then you'll get a link to bring your people.</p></div>`;
+<div class="done" hidden><span class="caret" data-pose="jump" data-eyes="happy" data-moon="1"></span><h3>Check your inbox.</h3><p>Tap the link we sent to hold your spot. Then you'll get a link to bring your person along.</p></div>`;
 }
 
 const join = (page) => `<section class="field grape join" id="join">
@@ -92,42 +126,99 @@ const join = (page) => `<section class="field grape join" id="join">
 <h2 class="display"><span>What would</span><span>yours say?</span></h2>
 ${signupForm(page)}
 </div>
-<div class="scene" data-scene="join"></div>
-<div class="foot"><span>Widgie, built in public by Krutik. Made for the people you live with.</span><span><a href="/privacy">Privacy</a><a href="mailto:hello@widgie.krutikpatel.dev">Contact</a></span></div>
+<div class="scene" data-scene="${page.scene}"></div>
+<div class="foot"><span>Widgie, built in public by Krutik.</span><span><a href="/privacy">Privacy</a><a href="mailto:hello@widgie.krutikpatel.dev">Contact</a></span></div>
 </section>`;
 
-// ---------- Story pages ----------
+// ---------- Pages ----------
 
+// Two first audiences, each with its own page: partners (a couple sharing a home and a relationship) and personal
+// growth (people tracking their own habits and goals). The home page opens a door to each.
 const PAGES = [
     {
         file: "index.html",
         path: "/",
         title: "Widgie: words in, widgets out",
         description:
-            "Tell Widgie what you need on your home screen. It builds the widget, then shares it with your house, or just the two of you.",
-        sections: () => [hero(), house(false), two(false)],
-        segment: "",
-        placeholder: "Tell me when the plants need water",
+            "Say what you want on your home screen. Widgie builds a widget that works, for the two of you or for your own goals.",
+        sections: () => [
+            mainHero(),
+            story({
+                id: "partners",
+                color: "coral",
+                side: "left",
+                kicker: "For partners",
+                lines: ["The home you", "share, and", "each other."],
+                copy: "Who fed the dog, whose turn for the bins, a heart when you're thinking of them. On both your phones.",
+                scene: "partnersDoor",
+                door: { href: "/partners", label: "See it for partners" },
+            }),
+            story({
+                id: "growth",
+                color: "mint",
+                side: "right",
+                kicker: "For personal growth",
+                lines: ["Your habits,", "your way."],
+                copy: "Water, workouts, streaks, days alcohol-free, a savings goal. Tracked exactly how you want, one glance away.",
+                scene: "growthDoor",
+                door: { href: "/growth", label: "See it for growth" },
+            }),
+        ],
+        join: { segment: "", placeholder: "Tell me when the plants need water", scene: "joinAny" },
     },
     {
-        file: "home.html",
-        path: "/home",
-        title: "Widgie for the house: did anyone feed Luna?",
+        file: "partners.html",
+        path: "/partners",
+        title: "Widgie for partners: the home you share, and each other",
         description:
-            "One widget for the whole house. Anyone taps it, everyone's home screen knows who fed the dog and when. Join the early list with your household.",
-        sections: () => [house(true)],
-        segment: "home",
-        placeholder: "Tell us when the plants need water",
+            "Who fed the dog, whose turn for the bins, a heart when you're thinking of them. Widgets for the two of you, on both your phones.",
+        sections: () => [
+            audienceHero({
+                color: "sun",
+                first: "Made",
+                last: "for two.",
+                lede: "Who fed the dog, whose turn for the bins, a heart when you're thinking of them. Say it, Widgie builds the widget, and it's on both your phones.",
+                scene: "partnersHero",
+            }),
+            home(),
+            couple(),
+        ],
+        join: { segment: "partners", placeholder: "Tell us when the plants need water", scene: "joinPartners" },
     },
     {
-        file: "us.html",
-        path: "/us",
-        title: "Widgie for two: a widget only you share",
+        file: "growth.html",
+        path: "/growth",
+        title: "Widgie for personal growth: track anything, your way",
         description:
-            "A heart button for Jo. Days until you see Alex. Both your moods, side by side. Widgets only the two of you share.",
-        sections: () => [two(true)],
-        segment: "us",
-        placeholder: "A countdown to when I see Alex",
+            "Water, workouts, streaks, days alcohol-free, a savings goal. Say how you want to track it and Widgie builds the widget.",
+        sections: () => [
+            audienceHero({
+                color: "mint",
+                first: "Track",
+                last: "anything.",
+                lede: "Water, workouts, days alcohol-free, a savings goal. Say how you want to track it, Widgie builds the widget, and today's progress is one glance away.",
+                scene: "growthHero",
+            }),
+            story({
+                id: "habits",
+                color: "sky",
+                side: "left",
+                kicker: "Every day",
+                lines: ["Habits that", "stick."],
+                copy: "Streaks, grids and counters built around your definition of a habit. Tap the widget, not an app. No paywall on widgets.",
+                scene: "habits",
+            }),
+            story({
+                id: "goals",
+                color: "lilac",
+                side: "right",
+                kicker: "Over time",
+                lines: ["Goals you", "can see."],
+                copy: "Days alcohol-free, a savings jar for Japan, a new word every morning. Progress where you look a hundred times a day.",
+                scene: "goals",
+            }),
+        ],
+        join: { segment: "growth", placeholder: "Remind me to stretch every evening", scene: "joinGrowth" },
     },
 ];
 
@@ -137,7 +228,7 @@ for (const page of PAGES) {
         `${head({ title: page.title, description: page.description, path: page.path, turnstile: true })}<body>
 ${HEADER}<main>
 ${page.sections().join("\n")}
-${join(page)}
+${join(page.join)}
 </main>
 </body>
 </html>
@@ -175,8 +266,8 @@ smallPage({
 ${bigCaret()}
 <h1 data-hide-on-done>You're invited.</h1>
 <p class="invite-copy" data-hide-on-done></p>
-<p class="count" data-hide-on-done></p>
-<div class="card">${signupForm({ segment: "", placeholder: "Tell me when it's my turn", pair: true })}</div>
+<p class="tally" data-hide-on-done></p>
+<div class="card">${signupForm({ segment: "", placeholder: "Tell us when it's my turn", pair: true })}</div>
 </section>
 <section id="share" hidden>
 ${bigCaret()}
@@ -184,7 +275,7 @@ ${bigCaret()}
 <p class="share-copy"></p>
 <div class="share-box"><input aria-label="Your invite link" readonly><button class="key" id="copy" type="button">Copy</button></div>
 <button class="key" id="native-share" type="button" hidden>Share link</button>
-<p class="count"></p>
+<p class="tally"></p>
 </section>
 <section id="unknown" hidden>
 ${bigCaret()}

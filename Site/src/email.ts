@@ -1,6 +1,7 @@
 // The two emails the waitlist sends, through Resend. Plain HTML that renders in any client, plus a text part.
 
-export type Segment = "home" | "us";
+/// "partners" and "growth" are the audiences; "home" and "us" remain on rows made before they were merged and split.
+export type Segment = "partners" | "growth" | "home" | "us";
 
 export interface Mail {
     to: string;
@@ -39,7 +40,12 @@ export async function send(env: Cloudflare.Env, fetcher: typeof fetch, mail: Mai
     if (!response.ok) throw new MailFailure(`resend answered ${response.status}`);
 }
 
-const WHO: Record<Segment, string> = { home: "your home", us: "your person" };
+const WHO: Record<Segment, string> = {
+    partners: "your partner",
+    growth: "a friend who keeps you going",
+    home: "your home",
+    us: "your partner",
+};
 
 /// Where a person removes themselves: a page with a button (`page`) and the endpoint mail clients post to (`oneClick`).
 export interface Leave {

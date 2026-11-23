@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Widgie for partners: the home you share, and each other</title>
+<meta name="description" content="Who fed the dog, whose turn for the bins, a heart when you're thinking of them. Widgets for the two of you, on both your phones.">
+<meta name="theme-color" content="#9cc3f5">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Widgie for partners: the home you share, and each other">
+<meta property="og:description" content="Who fed the dog, whose turn for the bins, a heart when you're thinking of them. Widgets for the two of you, on both your phones.">
+<meta property="og:url" content="https://widgie.krutikpatel.dev/partners">
+<meta property="og:image" content="https://widgie.krutikpatel.dev/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<script src="/caret.js" defer></script>
+<script type="module" src="/app.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" defer></script>
+</head>
+<body>
+<header class="top">
+<a class="mark" href="/" aria-label="Widgie home"><span class="app"><img src="/mark.svg" alt="" width="46" height="46"></span><span class="name">widgie</span></a>
+<nav><a href="/partners">For partners</a><a href="/growth">For personal growth</a><a class="key" href="#join">Get early access</a></nav>
+</header>
+<main>
+<section class="field sun hero">
+<h1 class="display"><span>Made</span><span class="l2">for two.</span></h1>
+<p class="lede">Who fed the dog, whose turn for the bins, a heart when you're thinking of them. Say it, Widgie builds the widget, and it's on both your phones.</p>
+<div class="cta"><a class="key" href="#join">Get early access</a><small>For iPhone.<br>Free while it's early.</small></div>
+<div class="pile" data-scene="partnersHero"></div>
+</section>
+<section class="field coral house" id="home">
+<p class="kicker">Your home</p>
+<h2 class="display"><span>Did anyone</span><span>feed Luna<span class="anchor" id="q">?<span class="blk luna lean-q" data-widget="luna"></span></span></span></h2>
+<p class="copy">The chores and check-ins you share, on both your home screens. One of you taps, the other just knows. <b>No more "did you...?" texts.</b></p>
+<div class="scene" data-scene="home"></div>
+</section>
+<section class="field pink two" id="us">
+<p class="kicker">The two of you</p>
+<h2 class="display"><span>Just</span><span>for two.</span></h2>
+<p class="copy">And the little things between you. A heart when you're thinking of them, days until your trip, how you both feel today.</p>
+<div class="scene" data-scene="couple"></div>
+</section>
+<section class="field grape join" id="join">
+<div class="join-col">
+<h2 class="display"><span>What would</span><span>yours say?</span></h2>
+<form class="signup" data-segment="partners" novalidate>
+
+<label class="sr" for="idea-partners">Your first widget, in your words (optional)</label>
+<input class="say" id="idea-partners" name="idea" maxlength="500" autocomplete="off" placeholder="Tell us when the plants need water">
+<div class="row"><label class="sr" for="email-partners">Your email</label><input id="email-partners" name="email" type="email" autocomplete="email" placeholder="you@home.com" required><button class="key" type="submit">Get early access</button></div>
+<div class="turnstile"></div>
+<p class="error" role="alert"></p>
+<p class="fine">You'll get a link for your partner, and couples who join together get in first. Free while it's early: one short email a month and your invite. Leave any time.</p>
+</form>
+<div class="done" hidden><span class="caret" data-pose="jump" data-eyes="happy" data-moon="1"></span><h3>Check your inbox.</h3><p>Tap the link we sent to hold your spot. Then you'll get a link to bring your person along.</p></div>
+</div>
+<div class="scene" data-scene="joinPartners"></div>
+<div class="foot"><span>Widgie, built in public by Krutik.</span><span><a href="/privacy">Privacy</a><a href="mailto:hello@widgie.krutikpatel.dev">Contact</a></span></div>
+</section>
+</main>
+</body>
+</html>
