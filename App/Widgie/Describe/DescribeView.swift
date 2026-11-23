@@ -117,17 +117,15 @@ private struct DescribeScreen: View {
                         )
                         .padding(.leading, -24)
                         .padding(.top, -12)
-                        TextField(
-                            "Describe a widget", text: $session.words,
-                            prompt: Text("Describe a widget").foregroundStyle(Palette.secondary), axis: .vertical
-                        )
-                        .font(size: 34, weight: .bold, relativeTo: .largeTitle)
-                        .tracking(-1)
-                        .foregroundStyle(Palette.text)
-                        .focused($typing)
-                        .submitLabel(.go)
-                        .accessibilityLabel("Describe a widget")
-                        .padding(.top, 4)
+                        TextField("Describe a widget", text: $session.words, prompt: Text(""), axis: .vertical)
+                            .foregroundStyle(Palette.text)
+                            .focused($typing)
+                            .submitLabel(.go)
+                            .accessibilityLabel("Describe a widget")
+                            .wrappingPrompt("Describe a widget", shown: session.words.isEmpty)
+                            .font(size: 34, weight: .bold, relativeTo: .largeTitle)
+                            .tracking(-1)
+                            .padding(.top, 4)
                     }
                     FlowLayout(spacing: 10) {
                         ForEach(Self.examples, id: \.label) { example in
@@ -176,6 +174,20 @@ extension View {
             guard value.contains("\n") else { return }
             text.wrappedValue = value.replacingOccurrences(of: "\n", with: "")
             send()
+        }
+    }
+
+    /// Draws a field's prompt behind it while the field is empty. A text field's own prompt stays on one line, so
+    /// at large text sizes it was cut off; this one wraps. Apply the font after it, so the two match.
+    func wrappingPrompt(_ prompt: String, shown: Bool) -> some View {
+        ZStack(alignment: .topLeading) {
+            if shown {
+                Text(prompt)
+                    .foregroundStyle(Palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityHidden(true)
+            }
+            self
         }
     }
 }
