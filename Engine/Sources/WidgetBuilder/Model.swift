@@ -65,14 +65,8 @@ public struct BridgeModel: WidgetModel {
     }
 
     public let base: URL
-    /// Sent as `Authorization: Bearer <token>`. Only the Mac's `render-tool loop` sets it, to reach the dev Worker
-    /// while its operator gate stands (phase 2b, B1). B2 removes the gate and this property.
-    public let token: String?
 
-    public init(base: URL, token: String? = nil) {
-        self.base = base
-        self.token = token
-    }
+    public init(base: URL) { self.base = base }
 
     public func reply(to request: ModelRequest) async throws -> String {
         // Longer than bridge.py's 110 s model timeout, so a slow model comes back as the bridge's error line
@@ -80,7 +74,6 @@ public struct BridgeModel: WidgetModel {
         var post = URLRequest(url: base.appending(path: "v1/reply"), timeoutInterval: 120)
         post.httpMethod = "POST"
         post.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let token { post.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         post.httpBody = try JSONEncoder().encode(request)
         let (data, response) = try await URLSession.shared.data(for: post)
         let body = try? JSONDecoder().decode(Body.self, from: data)

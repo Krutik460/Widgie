@@ -117,8 +117,8 @@ struct WidgieFailed: View {
                     Text(failure.title)
                         .messageText()
                     #if DEBUG
-                        if failure == .unreachable {
-                            Text("Check that the bridge is running.")
+                        if failure == .unreachable, let endpoint = ModelService.endpoint {
+                            Text("Check \(endpoint).")
                                 .font(size: 13.5, weight: .medium, relativeTo: .footnote)
                                 .opacity(0.75)
                         }

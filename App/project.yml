@@ -10,8 +10,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     CODE_SIGN_STYLE: Automatic
-    # The team id for the device step goes here. Empty signs to run locally, which the simulator accepts.
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: Z23KXVBB26
     MARKETING_VERSION: "0.1"
     CURRENT_PROJECT_VERSION: "1"
     TARGETED_DEVICE_FAMILY: "1"
@@ -36,10 +35,8 @@ targets:
       - package: WidgetEngine
         products: [WidgetEngine, WidgetBuilder, WidgetHosting]
       - target: WidgieWidgets
-    entitlements:
-      path: Widgie/Widgie.entitlements
-      properties:
-        com.apple.security.application-groups: [group.dev.krutikpatel.widgie]
+    # Entitlements are two checked-in files, set per configuration below: XcodeGen's `entitlements:` writes one
+    # file, and App Attest's environment differs. Both keep the App Group.
     info:
       path: Widgie/Info.plist
       properties:
@@ -48,11 +45,13 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         EngineAppGroup: group.dev.krutikpatel.widgie
         EngineURLScheme: widgie
+        # The backend a phone builds through: the dev Worker in Debug, production in Release (ModelService.swift).
+        WidgieModelService: $(WIDGIE_MODEL_SERVICE)
         CFBundleURLTypes:
           - CFBundleURLName: dev.krutikpatel.widgie
             CFBundleURLSchemes: [widgie]
-    # Debug only: the dev bridge on the Mac and plain HTTP to it. A Release build names no model service, so it
-    # cannot build widgets, and keeps App Transport Security whole.
+    # Debug only: the dev bridge on the Mac and plain HTTP to it, which the simulator uses because it has no App
+    # Attest. A phone uses WidgieModelService over HTTPS, and a Release build keeps App Transport Security whole.
     postBuildScripts:
       - name: Debug model bridge
         basedOnDependencyAnalysis: false
@@ -76,7 +75,12 @@ targets:
         # Widgie/AppIcon.xcassets: the Peek caret cropped close (B3), drawn by docs/design/app-icon/ (light, dark, tinted).
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       configs:
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: Widgie/Widgie-Debug.entitlements
+          WIDGIE_MODEL_SERVICE: https://widgie-dev.krutikpatel-patel.workers.dev
         Release:
+          CODE_SIGN_ENTITLEMENTS: Widgie/Widgie-Release.entitlements
+          WIDGIE_MODEL_SERVICE: https://widgie.krutikpatel-patel.workers.dev
           EXCLUDED_SOURCE_FILE_NAMES: Fixtures
   # Unit tests of the app's view models, hosted in the app so UIKit is there. They use a scripted model and
   # temporary engines, never the bridge or the App Group store.

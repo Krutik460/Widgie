@@ -181,6 +181,18 @@ import WidgetEngine
         #expect(model.requests.count == Engine.maxBuildAttempts)
     }
 
+    @Test func theDailyLimitIsItsOwnFailureAndAnotherTooManyRequestsIsNot() async throws {
+        for (code, failure) in [("daily-quota", Failure.dailyLimit), ("rate-limited", .refused)] {
+            let refusing = RefusingModel(error: AttestedModel.Refused(status: 429, code: code, line: "no"))
+            let session = DescribeSession(model: refusing, preview: Preview(library: shared.engine))
+            session.words = "a tap counter"
+            session.send()
+            try await until({ session.settled }, "the turn never finished")
+            #expect(session.phase == .failed(failure, .turn))
+            #expect(session.latest?.result == .failed(failure))
+        }
+    }
+
     @Test func wordsWaitForAPhotoThatIsStillLoading() async throws {
         let session = DescribeSession(model: ScriptedModel([]), preview: Preview(library: shared.engine))
         session.words = "a tap counter"
@@ -278,4 +290,12 @@ private func tallyDocument(size: Int = 30) -> String {
     counterDocument()
         .replacing("widgetBackground: '#102030'", with: "widgetBackground: ctx.data.n > 2 ? '#B02020' : '#2050B0'")
         .replacing("size: 30", with: "size: \(size)")
+}
+
+private typealias Failure = DescribeSession.Failure
+
+/// A model service that refuses every request with one error.
+private struct RefusingModel: WidgetModel {
+    let error: any Error
+    func reply(to request: ModelRequest) async throws -> String { throw error }
 }
