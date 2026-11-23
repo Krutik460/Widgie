@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# The engine gate, then the app build. Exits non-zero at the first failure.
+# The engine gate, the backend gate, then the app build. Exits non-zero at the first failure.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 "$root/Engine/scripts/check"
+"$root/Backend/scripts/check"
 "$root/App/scripts/build"

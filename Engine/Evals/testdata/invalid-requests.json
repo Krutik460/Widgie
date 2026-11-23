@@ -1,0 +1,108 @@
+[
+  {
+    "request": [],
+    "error": "the request must be a JSON object"
+  },
+  {
+    "request": {},
+    "error": "\"words\" must be a non-empty string"
+  },
+  {
+    "request": {
+      "words": "  "
+    },
+    "error": "\"words\" must be a non-empty string"
+  },
+  {
+    "request": {
+      "words": "a",
+      "colour": "blue"
+    },
+    "error": "unknown request fields: colour"
+  },
+  {
+    "request": {
+      "words": "a",
+      "image": {
+        "mime": "image/gif",
+        "base64": "AAAA"
+      }
+    },
+    "error": "\"image\" must hold a \"mime\" of image/jpeg or image/png"
+  },
+  {
+    "request": {
+      "words": "a",
+      "image": {
+        "mime": "image/png",
+        "base64": "not base64!"
+      }
+    },
+    "error": "\"image\" must hold \"base64\" image data"
+  },
+  {
+    "request": {
+      "words": "a",
+      "image": {
+        "mime": "image/png",
+        "base64": ""
+      }
+    },
+    "error": "\"image\" must hold \"base64\" image data"
+  },
+  {
+    "request": {
+      "words": "a",
+      "repair": {
+        "document": "{}"
+      }
+    },
+    "error": "\"repair\" must hold \"document\" and \"line\" strings"
+  },
+  {
+    "request": {
+      "words": "a",
+      "current": ""
+    },
+    "error": "\"current\" must be the document being refined, as a non-empty string"
+  },
+  {
+    "request": {
+      "words": "a",
+      "current": {
+        "name": "Water"
+      }
+    },
+    "error": "\"current\" must be the document being refined, as a non-empty string"
+  },
+  {
+    "request": {
+      "words": 7
+    },
+    "error": "\"words\" must be a non-empty string"
+  },
+  {
+    "request": {
+      "words": "a",
+      "image": "AAAA"
+    },
+    "error": "\"image\" must hold a \"mime\" of image/jpeg or image/png"
+  },
+  {
+    "request": {
+      "words": "a",
+      "image": {
+        "mime": "image/png",
+        "base64": "AAA"
+      }
+    },
+    "error": "\"image\" must hold \"base64\" image data"
+  },
+  {
+    "request": {
+      "words": "a",
+      "repair": "fix it"
+    },
+    "error": "\"repair\" must hold \"document\" and \"line\" strings"
+  }
+]

@@ -38,21 +38,19 @@ class UserMessageTests(unittest.TestCase):
             self.assertIn(flag, command)
         self.assertNotIn("CLAUDECODE", env)
 
-    def test_a_malformed_request_is_refused(self):
-        for request in [
-            [],
-            {},
-            {"words": "  "},
-            {"words": "a", "colour": "blue"},
-            {"words": "a", "image": {"mime": "image/gif", "base64": "AAAA"}},
-            {"words": "a", "image": {"mime": "image/png", "base64": "not base64!"}},
-            {"words": "a", "image": {"mime": "image/png", "base64": ""}},
-            {"words": "a", "repair": {"document": "{}"}},
-            {"words": "a", "current": ""},
-            {"words": "a", "current": {"name": "Water"}},
-        ]:
-            with self.subTest(request=request), self.assertRaises(ValueError):
-                model.user_message(request)
+    def test_a_malformed_request_is_refused_with_its_line(self):
+        # The Worker in Backend/ reads the same file, so both services refuse a request with the same line.
+        for case in json.loads((TESTDATA / "invalid-requests.json").read_text()):
+            with self.subTest(request=case["request"]), self.assertRaises(ValueError) as caught:
+                model.user_message(case["request"])
+            self.assertEqual(str(caught.exception), case["error"])
+
+
+class PromptTests(unittest.TestCase):
+    def test_the_worker_sends_the_composed_build_prompt(self):
+        # Backend/scripts/prompt writes the file. Run it after changing anything in Engine/Reference.
+        worker = Path(__file__).resolve().parents[2] / "Backend" / "src" / "build-prompt.txt"
+        self.assertEqual(worker.read_text(), model.compose_prompt(), "run Backend/scripts/prompt")
 
 
 class CallTests(unittest.TestCase):
