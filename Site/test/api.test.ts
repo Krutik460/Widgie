@@ -500,6 +500,14 @@ describe("pages", () => {
         expect(response.status).toBe(404);
     });
 
+    it("no longer proxies /hop to PostHog: the browser uses PostHog's managed proxy instead", async () => {
+        const s = services();
+        const response = await handle(new Request(`${SITE}/hop/e/`, { method: "POST", body: "{}" }), env, s.deps);
+        // The static assets refuse it (405 for a POST); nothing is forwarded.
+        expect(response.status).toBeGreaterThanOrEqual(400);
+        expect(s.fetcher).not.toHaveBeenCalled();
+    });
+
     it("answers unknown API routes with JSON 404", async () => {
         const response = await handle(new Request(`${SITE}/api/nothing`), env, services().deps);
         expect(response.status).toBe(404);
