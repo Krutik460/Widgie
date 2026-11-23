@@ -466,7 +466,9 @@ Every request was typed into the app with AXe. Attempts and the total come from 
 
 ### Phase 3. AI block
 
-- [ ] Server scheduler that runs a block, writes the row, and sends a widget push
+- [ ] Server scheduler that runs a block, writes the row, and sends a widget push. Every automation is personal: it runs its own widget's prompt, so one person's word of the day can be medical terms for a nursing exam and another's Spanish cooking words (user, 2026-11-22). Nothing is shared or computed once for everyone
+- [ ] Send each run the widget's recent rows, so a narrow topic does not repeat a word within weeks
+- [ ] Eval cases for topic-specific daily content, such as "a word of the day from medical terms for my nursing exam", and a refine that changes the topic
 - [ ] Extension push handler and a timeline fallback for when a push is dropped
 - [ ] Check: word of the day changes overnight on a device with the app closed
 
@@ -490,7 +492,7 @@ Every request was typed into the app with AXe. Attempts and the total come from 
 
 Each has a default I will use unless told otherwise.
 
-1. **Sync route.** Default is our own backend, even though the app is iOS only. iCloud cannot refresh a friend's widget, and a server is needed to host the model anyway. The alternative is iCloud private sync with no sharing in v1.
+1. **Sync route.** Decided 2026-11-22: our own backend on Cloudflare, which also runs every AI activity (builds and automations). Original default: our own backend, even though the app is iOS only. iCloud cannot refresh a friend's widget, and a server is needed to host the model anyway. The alternative is iCloud private sync with no sharing in v1.
 2. **Name.** Widgy is an established widget maker on the App Store with about 26K ratings. "Widgie" sounds identical. Default is to treat Widgie as a codename and pick a distinct name before any store asset exists.
 3. **Age floor.** Default is 13 and up with the Declared Age Range API, private link sharing only, and no public gallery in v1. A public gallery adds moderation duties.
 4. **Minimum iOS.** Default is iOS 26, because widget push needs it. Supporting iOS 17 to 25 means those users get scheduled refresh only.
