@@ -148,7 +148,8 @@ def extract(reply: str) -> str:
     blocks: list[tuple[str, str]] = []
     index = 0
     while index < len(lines):
-        opening = re.fullmatch(r"```([A-Za-z0-9_-]*)[ \t]*", lines[index])
+        # Up to three spaces may come first, as Markdown allows: Kimi K2.5 starts its reply with one.
+        opening = re.fullmatch(r" {0,3}```([A-Za-z0-9_-]*)[ \t]*", lines[index])
         if not opening:
             index += 1
             continue

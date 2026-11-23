@@ -113,10 +113,12 @@ private let fence: [Unicode.Scalar] = ["`", "`", "`"]
 /// `WHITESPACE` in model.py.
 private let whitespace: Set<Unicode.Scalar> = [" ", "\t", "\n", "\r", "\u{0C}", "\u{0B}"]
 
-/// The info string of a line that `re.fullmatch(r"```([A-Za-z0-9_-]*)[ \t]*", line)` matches, else nil.
+/// The info string of a line that `re.fullmatch(r" {0,3}```([A-Za-z0-9_-]*)[ \t]*", line)` matches, else nil.
+/// Up to three spaces may come first, as Markdown allows: Kimi K2.5 starts its reply with one.
 private func openingFence(_ line: [Unicode.Scalar]) -> String? {
-    guard line.starts(with: fence) else { return nil }
-    let rest = line.dropFirst(fence.count)
+    let indent = line.prefix(4).prefix { $0 == " " }.count
+    guard indent < 4, line.dropFirst(indent).starts(with: fence) else { return nil }
+    let rest = line.dropFirst(indent + fence.count)
     let info = rest.prefix {
         ("a"..."z").contains($0) || ("A"..."Z").contains($0) || ("0"..."9").contains($0) || $0 == "_" || $0 == "-"
     }
