@@ -1,0 +1,13 @@
+{
+  "name": "Pet fed",
+  "line": "Who fed them, and how long ago",
+  "category": "home",
+  "order": 10,
+  "blanks": [
+    {
+      "key": "pet",
+      "label": "Your pet's name",
+      "placeholder": "Luna"
+    }
+  ]
+}
