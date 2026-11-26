@@ -34,7 +34,7 @@ src = (here / "prototype.src.html").read_text()
 out = (
     src.replace("/*FONT*/", font)
     .replace("/*SITE_CSS*/", tiles)
-    .replace("/*SITE_JS*/", module("caret.js") + "\n" + module("heroes.js") + "\n" + module("widgets.js", also=("MEDIUM", "SKETCH")))
+    .replace("/*SITE_JS*/", module("caret.js") + "\n" + module("heroes.js") + "\n" + module("widgets.js", also=("MEDIUM", "puppy", "MEDAL")))
 )
 (here / "prototype.html").write_text(out)
 print(f"wrote {here / 'prototype.html'} ({len(out) // 1024} KB)")
