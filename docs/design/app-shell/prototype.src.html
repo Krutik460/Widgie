@@ -3,10 +3,10 @@
 <style>
 @font-face{font-family:"Bricolage";src:url(data:font/woff2;base64,/*FONT*/) format("woff2-variations");font-weight:200 800;font-stretch:75% 100%}
 :root{
- --ink:#121a2e;--ink-2:rgba(18,26,46,.64);--ink-3:rgba(18,26,46,.56);
+ --ink:#121a2e;--ink-2:rgba(18,26,46,.74);--ink-3:rgba(18,26,46,.64);
  --sky-top:#b4d4fb;--sky:#9cc3f5;--sky-bottom:#8ab6f0;--sky-shade:#7aa6e2;
  --coral:#ff6b5c;--coral-shade:#e04a3d;--sun:#ffd23c;--sun-shade:#ecb514;--grape:#3b1f6e;--grape-shade:#2a1452;--moon:#e9f2ff;--blush:#ff7f8e;
- --surface:rgba(255,255,255,.88);--surface-text:#121a2e;--bubble:#fff;--bar:rgba(242,248,255,.84);
+ --surface:rgba(255,255,255,.88);--surface-text:#121a2e;--bubble:#fff;--bar:rgba(244,249,255,.9);
  --rest:0 1px 2px rgba(20,45,90,.06),0 4px 14px -4px rgba(20,45,90,.14);
  --lift:0 2px 6px rgba(20,45,90,.06),0 18px 36px -14px rgba(20,45,90,.38);
  --spring-ui:cubic-bezier(.22,1.06,.36,1);--spring-play:cubic-bezier(.32,1.38,.48,1);--soft:cubic-bezier(.22,.8,.26,1);
@@ -15,6 +15,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--text);color:var(--foreground,#121a2e);-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none}
+button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px solid #2f6fe4;outline-offset:3px}
 /*SITE_CSS*/
 /* ---------- the site's tiles, softened: no outline, no lip, a soft lifted shadow ---------- */
 .blk::before{display:none}
@@ -23,8 +24,13 @@ button,input{font:inherit;color:inherit;border:0;background:none;padding:0;curso
 .w-tap{border:0!important;box-shadow:0 4px 12px -2px rgba(0,0,0,.3)!important;transition:transform .28s var(--spring-play)!important}
 .w-tap:active{transform:scale(.88)!important}
 .w button,.w .pass,.w .who,.w .did,.w .in{box-shadow:none!important;border-width:0!important}
-.count .w{background:linear-gradient(160deg,#f06f4c,#dc3e66)}
+.count .w{background:linear-gradient(160deg,#d9573a,#c02f58)}
 .count .w-small,.count .w-label{color:#fff;opacity:1}
+.count .ticket{border:0;background:#fff;box-shadow:0 10px 20px -8px rgba(70,10,30,.45)}
+.count .ticket .cut::before,.count .ticket .cut::after{border:0;background:#cf4648}
+.savings .track,.chores .bar{border:0;background:rgba(18,26,46,.12)}
+.medal [stroke="#0b1430"]{stroke:none}
+.mood .w{background:#dceafd}
 /* ---------- stage ---------- */
 .stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:4px 0 8px}
 .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
@@ -32,26 +38,30 @@ button,input{font:inherit;color:inherit;border:0;background:none;padding:0;curso
 .controls button.on{background:var(--foreground,#123);color:var(--background,#fff)}
 .phone{--shade:var(--sky-shade);width:402px;height:874px;border-radius:58px;overflow:hidden;position:relative;color:var(--ink);font-family:var(--text);box-shadow:0 0 0 11px #0b0f1a,0 30px 60px rgba(0,0,0,.25);isolation:isolate}
 .sky{position:absolute;inset:0;background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky) 45%,var(--sky-bottom) 100%);z-index:-3}
-.sky.night{background:radial-gradient(90% 40% at 78% 4%,rgba(233,242,255,.16),transparent 70%),linear-gradient(180deg,#14284f 0%,#223f72 50%,#2b4e82 100%);opacity:0;transition:opacity .45s var(--soft)}
+.sky.night{background:radial-gradient(60% 26% at 68% 9%,rgba(233,242,255,.14),transparent 70%),linear-gradient(180deg,#14284f 0%,#223f72 50%,#2b4e82 100%);opacity:0;transition:opacity .45s var(--soft)}
 .phone.night .sky.night{opacity:1}
+.moon{position:absolute;right:118px;top:68px;width:22px;height:22px;border-radius:50%;background:#e9f2ff;box-shadow:0 0 40px rgba(233,242,255,.35);opacity:0;transition:opacity .45s;z-index:-2}
+.phone.night .moon{opacity:1}
 .clouds{position:absolute;inset:0 0 auto;height:260px;z-index:-2;pointer-events:none;transition:opacity .45s}
 .clouds svg{position:absolute;filter:blur(4px);opacity:.5;animation:drift linear infinite}
-.phone.night .clouds{opacity:.15}
+.phone.night .clouds{opacity:0}
 @keyframes drift{from{transform:translateX(-180px)}to{transform:translateX(600px)}}
 .stars{position:absolute;inset:0 0 60% 0;opacity:0;transition:opacity .45s;pointer-events:none;z-index:-2;-webkit-mask-image:linear-gradient(180deg,#000 50%,transparent);mask-image:linear-gradient(180deg,#000 50%,transparent)}
 .phone.night .stars{opacity:1}
 .stars i{position:absolute;width:2.5px;height:2.5px;border-radius:50%;background:#e9f2ff;animation:twinkle 3.4s ease-in-out infinite}
 @keyframes twinkle{50%{opacity:.2;transform:scale(.5)}}
-.topfade{position:absolute;inset:0 0 auto;height:66px;z-index:15;pointer-events:none;background:linear-gradient(180deg,var(--sky-top) 62%,rgba(180,212,251,0));transition:opacity .45s}
-.topfade.night{background:none;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent);opacity:0}
-.phone.night .topfade:not(.night){opacity:0}
-.phone.night .topfade.night{opacity:1}
+/* status bar and tab bar protection: tinted blur that fades out */
+.topfade,.bottomfade{position:absolute;left:0;right:0;pointer-events:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.topfade{top:0;height:66px;z-index:15;background:linear-gradient(180deg,rgba(180,212,251,.86) 48%,rgba(180,212,251,0));-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
+.bottomfade{bottom:0;height:120px;z-index:22;background:linear-gradient(0deg,rgba(138,182,240,.9) 30%,rgba(138,182,240,0));-webkit-mask-image:linear-gradient(0deg,#000 40%,transparent);mask-image:linear-gradient(0deg,#000 40%,transparent)}
+.night .topfade{background:linear-gradient(180deg,rgba(20,40,79,.84) 48%,rgba(20,40,79,0))}
+.night .bottomfade{background:linear-gradient(0deg,rgba(43,78,130,.9) 30%,rgba(43,78,130,0))}
 .status{position:absolute;top:0;left:0;right:0;height:54px;display:flex;justify-content:space-between;align-items:center;padding:10px 32px 0 50px;font:600 17px var(--text);letter-spacing:-.2px;z-index:20;color:var(--ink);transition:color .45s}
 .status svg{display:block}
-.homebar{position:absolute;bottom:8px;left:50%;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);opacity:.3;z-index:35}
+.homebar{position:absolute;bottom:8px;left:50%;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);opacity:.3;z-index:90}
 .night .homebar{background:#fff}
 .night .status,.night .page{color:#fff}
-.night{--ink-2:rgba(233,242,255,.74);--ink-3:rgba(233,242,255,.6);--surface:rgba(255,255,255,.11);--surface-text:#fff;--bubble:#eef4ff;--bar:rgba(18,34,66,.84);--rest:0 1px 2px rgba(0,6,20,.2),0 4px 14px -4px rgba(0,6,20,.4),inset 0 0 0 .5px rgba(255,255,255,.14);--lift:0 2px 6px rgba(0,6,20,.2),0 18px 36px -14px rgba(0,6,20,.7)}
+.night{--ink-2:rgba(233,242,255,.76);--ink-3:rgba(233,242,255,.64);--surface:rgba(255,255,255,.11);--surface-text:#fff;--bubble:#eef4ff;--bar:rgba(18,34,66,.9);--rest:0 1px 2px rgba(0,6,20,.2),0 4px 14px -4px rgba(0,6,20,.4),inset 0 0 0 .5px rgba(255,255,255,.14);--lift:0 2px 6px rgba(0,6,20,.2),0 18px 36px -14px rgba(0,6,20,.7)}
 .night .blk::after{box-shadow:0 2px 6px rgba(0,6,20,.3),0 18px 32px -12px rgba(0,6,20,.75),0 0 0 .5px rgba(255,255,255,.12)}
 .page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:62px var(--m) 140px;transition:opacity .22s ease-out,transform .28s var(--soft)}
 .page::-webkit-scrollbar{display:none}
@@ -60,12 +70,18 @@ button,input{font:inherit;color:inherit;border:0;background:none;padding:0;curso
 .page.hidden.to-right{transform:translateX(14px)}
 .display{font-family:var(--display);font-weight:800;font-stretch:82%;letter-spacing:-.025em;line-height:.98}
 .eyebrow{font:600 14px var(--text);color:var(--ink-2);letter-spacing:-.1px}
+.head{padding:6px 0 14px}
+.head h1{font-size:40px;margin-top:6px}
 svg.i{width:15px;height:15px;flex:none}
-/* ---------- Widgie ---------- */
-.widgie{position:absolute;transform-origin:50% 92%}
+/* ---------- Widgie: 160 as the hero, 128 everywhere else ---------- */
+.widgie{position:absolute;transform-origin:50% 90%}
 .widgie .caret{position:static;display:block;width:100%}
 .widgie.hop{animation:hop .72s}
+.widgie.hop.small{animation-name:hopsmall}
 @keyframes hop{0%{transform:none;animation-timing-function:cubic-bezier(.2,.85,.3,1)}12%{transform:scale(1.1,.88);animation-timing-function:cubic-bezier(.2,.8,.4,1)}40%{transform:translateY(-30px) scale(.94,1.08);animation-timing-function:cubic-bezier(.6,0,.85,.45)}62%{transform:translateY(0) scale(1.06,.93);animation-timing-function:cubic-bezier(.3,.7,.4,1)}80%{transform:scale(.98,1.02)}100%{transform:none}}
+@keyframes hopsmall{0%{transform:none;animation-timing-function:cubic-bezier(.2,.85,.3,1)}12%{transform:scale(1.06,.92)}40%{transform:translateY(-16px) scale(.96,1.05);animation-timing-function:cubic-bezier(.6,0,.85,.45)}62%{transform:translateY(0) scale(1.04,.95)}100%{transform:none}}
+.widgie.land{animation:land .36s var(--soft)}
+@keyframes land{0%{transform:scale(1.12,.86)}60%{transform:scale(.97,1.03)}100%{transform:none}}
 .widgie.sway{animation:sway 4s ease-in-out infinite}
 @keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2.2deg)}}
 .widgie.glance{animation:glance 1.4s var(--soft)}
@@ -74,29 +90,32 @@ svg.i{width:15px;height:15px;flex:none}
 .widgie.blink2 .eyes{animation:blink2 .6s}
 @keyframes blinkeyes{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
 @keyframes blink2{0%,40%,100%{transform:scaleY(1)}20%,60%{transform:scaleY(.08)}}
-/* face crops: upright Widgie, the head peeking up from the bottom edge */
 .avatar{position:relative;flex:none;width:36px;height:36px;border-radius:12px;background:linear-gradient(160deg,#d8e8fd,#b0cff7);overflow:hidden;box-shadow:var(--rest)}
 .avatar .widgie{width:104px;height:104px;left:-34px;top:-4px}
 .night .avatar{background:linear-gradient(160deg,#3a5d96,#284a7c)}
 .fadeswap{animation:fadeswap .32s var(--soft)}
-@keyframes fadeswap{0%{opacity:0;transform:scale(.92)}100%{opacity:1;transform:none}}
+@keyframes fadeswap{0%{opacity:0}100%{opacity:1}}
+.shadow{position:absolute;height:12px;border-radius:50%;background:radial-gradient(closest-side,rgba(18,26,46,.3),transparent);pointer-events:none}
+.night .shadow{background:radial-gradient(closest-side,rgba(0,6,20,.5),transparent)}
 /* ---------- speech ---------- */
 .bubble{position:absolute;background:var(--bubble);color:#121a2e;border-radius:20px;padding:11px 15px;font:600 15px/1.32 var(--text);letter-spacing:-.15px;box-shadow:var(--lift);transform-origin:100% 30%;transition:transform .4s var(--spring-play),opacity .2s}
 .bubble.right::after{content:"";position:absolute;right:-5px;top:16px;width:13px;height:13px;background:inherit;transform:rotate(45deg);border-radius:0 3px 0 0}
 .bubble.gone{transform:scale(.7);opacity:0}
 .bubble.pop{animation:bubblepop .45s var(--spring-play)}
+.bubble.swap{animation:swap .32s var(--soft)}
 @keyframes bubblepop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes swap{0%{opacity:.2}100%{opacity:1}}
+.caretbar{display:inline-block;width:2.5px;height:17px;border-radius:2px;background:#121a2e;margin-left:3px;vertical-align:-3px;animation:blink 1.06s steps(1) infinite}
 /* ---------- Widgets ---------- */
-.top{position:relative;height:198px}
+.top{position:relative;height:200px}
 .top .eyebrow{position:absolute;left:0;top:6px}
 .top h1{position:absolute;left:0;top:30px;font-size:40px}
 .top .sub{position:absolute;left:0;top:80px;font:500 15px var(--text);color:var(--ink-2)}
 .top .sub b{font-weight:650;color:var(--ink)}
 .night .top .sub b{color:#fff}
-.top .contact{position:absolute;right:30px;bottom:-6px;width:84px;height:12px;border-radius:50%;background:radial-gradient(closest-side,rgba(18,26,46,.32),transparent);z-index:3}
-.night .top .contact{background:radial-gradient(closest-side,rgba(0,6,20,.55),transparent)}
-#w-widgie{right:8px;top:62px;width:142px;z-index:4}
-#w-bubble{right:126px;top:118px;max-width:200px;z-index:4}
+.top .shadow{right:32px;bottom:-6px;width:86px;z-index:3}
+#w-widgie{right:2px;top:56px;width:156px;z-index:4}
+#w-bubble{left:0;top:120px;width:206px;z-index:4}
 .feed{display:flex;flex-direction:column;gap:22px;position:relative;z-index:1}
 .row{display:flex;gap:14px}
 .pin{display:flex;flex-direction:column;gap:9px}
@@ -104,49 +123,50 @@ svg.i{width:15px;height:15px;flex:none}
 .pin .blk.press{transform:scale(.965)}
 .cap{display:flex;align-items:center;gap:6px;padding:0 4px;min-height:20px}
 .cap .name{font:600 14px var(--text);letter-spacing:-.15px}
-.cap .home{margin-left:auto;height:20px;padding:0 7px;border-radius:7px;display:inline-flex;align-items:center;gap:4px;font:600 11px var(--text);color:var(--ink-2);background:rgba(18,26,46,.07)}
-.night .cap .home{background:rgba(255,255,255,.1)}
+.cap .home{margin-left:auto;height:20px;padding:0 7px;border-radius:7px;display:inline-flex;align-items:center;gap:4px;font:600 11px var(--text);color:rgba(18,26,46,.76);background:rgba(18,26,46,.09)}
+.night .cap .home{background:rgba(255,255,255,.12);color:rgba(233,242,255,.8)}
 .cap .home svg{width:10px;height:10px}
+.tag{margin-left:7px;font:700 11px var(--text);color:#fff;background:#b34038;padding:2px 6px;border-radius:6px}
 .rise{animation:rise .42s var(--spring-ui) both}
 @keyframes rise{0%{opacity:0;transform:translateY(18px) scale(.98)}100%{opacity:1;transform:none}}
-.fresh .blk{animation:settle .9s var(--spring-play) both}
+.arrive .blk{animation:settle .8s var(--spring-play) both}
 @keyframes settle{0%{transform:scale(.6);opacity:0}60%{opacity:1}100%{transform:none}}
-.fresh .cap .name::after{content:"New";margin-left:7px;font:700 11px var(--text);color:#fff;background:var(--coral);padding:2px 6px;border-radius:6px}
 /* ---------- tab bar ---------- */
-.tabbar{position:absolute;left:18px;right:18px;bottom:26px;height:68px;border-radius:26px;background:var(--bar);backdrop-filter:blur(16px) saturate(1.6);-webkit-backdrop-filter:blur(16px) saturate(1.6);box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.7);display:grid;grid-template-columns:1fr 1fr 1fr;padding:6px;z-index:30;transition:background .45s}
+.tabbar{position:absolute;left:18px;right:18px;bottom:26px;height:68px;border-radius:26px;background:var(--bar);backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px) saturate(1.1);box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.7);display:grid;grid-template-columns:1fr 1fr 1fr;padding:6px;z-index:30;transition:background .45s}
 .night .tabbar{box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.16)}
-.tab{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:600 12px var(--text);letter-spacing:-.1px;color:var(--ink-3);transition:color .2s}
+.tab{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:600 12px var(--text);letter-spacing:-.1px;color:var(--ink-3);transition:color .2s}
 .tab.on{color:var(--ink)}
 .night .tab.on{color:#fff}
-.tab > svg{width:24px;height:24px;transition:transform .32s var(--spring-play)}
-.tab:active > svg,.tab:active .makekey{transform:scale(.86)}
-.tabpill{position:absolute;top:6px;height:56px;border-radius:20px;background:rgba(255,255,255,.9);box-shadow:0 1px 3px rgba(20,45,90,.1);transition:left .32s var(--spring-ui),width .32s var(--spring-ui)}
+.tab .glyph{height:28px;display:grid;place-items:center}
+.tab .glyph > svg{width:24px;height:24px;transition:transform .32s var(--spring-play)}
+.tab:active .glyph > *{transform:scale(.86)}
+.tabpill{position:absolute;top:6px;height:56px;border-radius:20px;background:#fff;box-shadow:0 2px 8px rgba(20,45,90,.14);transition:left .32s var(--spring-ui),width .32s var(--spring-ui)}
 .night .tabpill{background:rgba(255,255,255,.14);box-shadow:none}
-.makekey{position:relative;width:44px;height:28px;border-radius:10px;background:linear-gradient(165deg,#ffe479,#ffc532);box-shadow:0 5px 12px -4px rgba(214,150,0,.6),inset 0 1px 0 rgba(255,255,255,.7);overflow:hidden;transition:transform .32s var(--spring-play)}
-.tab.on .makekey{transform:scale(1.04) translateY(-1px)}
+.makekey{position:relative;width:44px;height:26px;border-radius:10px;background:linear-gradient(165deg,#ffe479,#ffc532);box-shadow:0 3px 8px -4px rgba(214,150,0,.5),inset 0 1px 0 rgba(255,255,255,.7);overflow:hidden;transition:transform .32s var(--spring-play),box-shadow .2s}
+.tab.on .makekey{transform:scale(1.04);box-shadow:0 5px 12px -4px rgba(214,150,0,.6),inset 0 1px 0 rgba(255,255,255,.7)}
 .makekey .widgie{width:78px;height:78px;left:-17px;top:0}
-.badge{position:absolute;top:2px;left:calc(50% + 7px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--coral);color:#fff;font:700 11px var(--text);display:grid;place-items:center;box-shadow:0 3px 8px rgba(224,74,61,.5);transform:scale(0);transition:transform .45s var(--spring-play)}
+.badge{position:absolute;top:2px;left:calc(50% + 7px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#b34038;color:#fff;font:700 11px var(--text);display:grid;place-items:center;box-shadow:0 3px 8px rgba(179,64,56,.5);transform:scale(0);transition:transform .45s var(--spring-play)}
 .badge.show{transform:scale(1)}
 /* ---------- controls ---------- */
-.chip{height:40px;padding:0 14px;border-radius:13px;display:inline-flex;align-items:center;gap:6px;font:600 14px var(--text);letter-spacing:-.15px;color:var(--surface-text);background:var(--surface);box-shadow:var(--rest);transition:transform .3s var(--spring-play),background .2s,color .2s;white-space:nowrap}
+.chip{height:44px;padding:0 14px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 14px var(--text);letter-spacing:-.15px;color:var(--surface-text);background:var(--surface);box-shadow:var(--rest);transition:transform .3s var(--spring-play),background .2s,color .2s;white-space:nowrap}
 .chip:active{transform:scale(.94)}
-.key{height:52px;padding:0 22px;border:0;border-radius:15px;background:var(--ink);color:#fff;font:700 17px var(--display);font-stretch:92%;letter-spacing:-.01em;box-shadow:0 12px 24px -10px rgba(18,26,46,.65);display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease-out,box-shadow .12s}
-.key::after{content:"";width:3px;height:19px;border-radius:2px;background:#9cc3f5;animation:blink 1.06s steps(1) infinite}
+.key{height:52px;padding:0 22px;border:0;border-radius:15px;background:var(--ink);color:#fff;font:700 17px var(--display);font-stretch:92%;letter-spacing:-.01em;box-shadow:0 12px 24px -10px rgba(18,26,46,.65);display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease-out,box-shadow .12s,opacity .2s}
+.key::after{display:none!important}
 .key:hover{border:0;transform:none;box-shadow:0 12px 24px -10px rgba(18,26,46,.65)}
 .key:active{border:0;transform:scale(.97);box-shadow:0 6px 14px -6px rgba(18,26,46,.5)}
+.key:disabled{opacity:.5;pointer-events:none}
 .key.quiet{background:rgba(18,26,46,.07);color:var(--ink);box-shadow:none;font:600 15px var(--text);letter-spacing:-.15px}
-.key.quiet::after{display:none}
 .night .key:not(.quiet){background:#fff;color:#121a2e}
-.night .key:not(.quiet)::after{background:#121a2e}
 .night .key.quiet{background:rgba(255,255,255,.12);color:#fff}
 /* ---------- Make ---------- */
-#p-make{display:flex;flex-direction:column;padding-bottom:196px}
-.hello{margin-top:auto;display:flex;flex-direction:column}
-.make-hello{position:relative;height:236px}
-.make-hello .ground{position:absolute;left:236px;top:214px;width:110px;height:13px;border-radius:50%;background:radial-gradient(closest-side,rgba(18,26,46,.22),transparent)}
-.night .make-hello .ground{background:radial-gradient(closest-side,rgba(0,6,20,.45),transparent)}
-#m-widgie{left:218px;top:52px;width:170px}
-#m-bubble{left:0;top:64px;width:208px}
+#p-make{display:flex;flex-direction:column;padding-bottom:184px}
+.hello{flex:1;display:flex;flex-direction:column}
+.hello .head{flex:none}
+.make-hello{position:relative;height:250px;margin-top:auto}
+.make-hello .shadow{left:232px;top:224px;width:120px;height:14px}
+#m-widgie{left:200px;top:44px;width:200px}
+#m-widgie.lean{transform:rotate(-6deg);transition:transform .22s var(--soft)}
+#m-bubble{left:0;top:72px;width:206px}
 .ideas{display:flex;flex-direction:column;gap:10px}
 .ideas .eyebrow{margin:0 4px 2px}
 .idea{display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:18px;background:var(--surface);color:var(--surface-text);box-shadow:var(--rest);transition:transform .3s var(--spring-play);text-align:left;width:100%}
@@ -156,77 +176,78 @@ svg.i{width:15px;height:15px;flex:none}
 .idea .t{font:600 16px var(--text);letter-spacing:-.2px}
 .idea .s{font:500 13px var(--text);color:var(--ink-2);margin-top:1px}
 .idea .chev{margin-left:auto;color:var(--ink-3)}
-.composer{position:absolute;left:var(--m);right:var(--m);bottom:108px;z-index:25;min-height:60px;border-radius:20px;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--lift);display:flex;align-items:center;gap:8px;padding:8px;transition:opacity .22s ease-out,transform .32s var(--spring-ui)}
-.night .composer{background:rgba(20,38,72,.78)}
-.composer.hidden{opacity:0;transform:translateY(14px);pointer-events:none}
+.composer{position:absolute;left:var(--m);right:var(--m);bottom:108px;z-index:25;min-height:60px;border-radius:20px;background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--lift);display:flex;align-items:center;gap:8px;padding:8px;transition:opacity .22s ease-out,transform .28s var(--soft)}
+.night .composer{background:rgba(24,46,84,.86);box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.16)}
+.composer.hidden{opacity:0;transform:scale(.98);pointer-events:none}
 .composer .icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--ink);background:rgba(18,26,46,.06);flex:none}
 .night .composer .icon{background:rgba(255,255,255,.1);color:#fff}
-.composer input{flex:1;min-width:0;height:44px;font:500 17px var(--text);letter-spacing:-.2px;color:var(--ink);caret-color:var(--ink);cursor:text}
+.composer .field{position:relative;flex:1;min-width:0;height:44px;display:flex;align-items:center}
+.composer input{width:100%;height:44px;font:500 17px var(--text);letter-spacing:-.2px;color:var(--ink);caret-color:var(--ink);cursor:text}
 .night .composer input{color:#fff;caret-color:#fff}
 .composer input::placeholder{color:var(--ink-3)}
-.composer .send{width:44px;height:44px;border-radius:14px;background:rgba(18,26,46,.12);color:#fff;display:grid;place-items:center;flex:none;transition:background .2s,transform .3s var(--spring-play)}
-.composer .send.ready{background:var(--ink)}
+.composer .idlecaret{position:absolute;left:0;top:12px;width:2.5px;height:20px;border-radius:2px;background:var(--ink);animation:blink 1.06s steps(1) infinite;pointer-events:none}
+.night .composer .idlecaret{background:#fff}
+.composer:focus-within .idlecaret,.composer.typed .idlecaret{display:none}
+.composer input:not(:focus):placeholder-shown{padding-left:8px}
+.composer .send{width:44px;height:44px;border-radius:14px;background:rgba(18,26,46,.1);color:rgba(18,26,46,.35);display:grid;place-items:center;flex:none;transition:background .2s,color .2s,transform .3s var(--spring-play)}
+.composer .send.ready{background:var(--ink);color:#fff}
 .composer .send:active{transform:scale(.9)}
-.night .composer .send{background:rgba(255,255,255,.16)}
+.night .composer .send{background:rgba(255,255,255,.12);color:rgba(233,242,255,.4)}
 .night .composer .send.ready{background:#fff;color:#121a2e}
-.thread{display:flex;flex-direction:column;gap:14px;padding-top:8px}
+.thread{display:flex;flex-direction:column;gap:14px;padding-top:8px;transition:opacity .2s ease-out,transform .2s ease-out}
+.thread.leaving{opacity:0;transform:translateY(-8px)}
 .me{align-self:flex-end;max-width:262px;background:var(--ink);color:#fff;border-radius:20px 20px 6px 20px;padding:11px 15px;font:600 15.5px/1.32 var(--text);letter-spacing:-.15px;box-shadow:0 10px 20px -10px rgba(18,26,46,.6);animation:slidein .45s var(--spring-ui) both}
 .night .me{background:#fff;color:#121a2e}
 @keyframes slidein{0%{opacity:0;transform:translateY(18px) scale(.94)}100%{opacity:1;transform:none}}
 .them{display:flex;gap:9px;align-items:flex-end;animation:slidein .45s var(--spring-ui) both}
 .them .bubble{position:relative;max-width:262px;border-bottom-left-radius:6px;transform-origin:0 100%}
-.dots{display:inline-flex;gap:4px;margin-left:6px;vertical-align:middle}
-.dots i{width:6px;height:6px;border-radius:50%;background:#121a2e;animation:dot 1.1s ease-in-out infinite}
-.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
-@keyframes dot{0%,80%,100%{opacity:.25;transform:none}40%{opacity:1;transform:translateY(-3px)}}
-.studio{position:relative;align-self:center;margin:56px 0 4px}
-.studio svg.sk{position:absolute;inset:0;overflow:visible}
-.studio .edge{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:trace 2.6s var(--soft) forwards}
-.studio .part{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:4 5;opacity:.45;animation:solid .4s var(--soft) forwards}
+.studio{position:relative;align-self:center;margin:136px 0 4px}
+.studio svg.sk{position:absolute;inset:0;overflow:visible;transition:opacity .2s ease-out}
+.studio .edge{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:trace 1.85s cubic-bezier(.45,0,.35,1) forwards}
+.studio .part{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:4 5;opacity:.4;animation:solid .4s var(--soft) forwards}
 .night .studio .edge,.night .studio .part{stroke:#e9f2ff}
 @keyframes trace{to{stroke-dashoffset:0}}
-@keyframes solid{to{fill:currentColor;stroke-dasharray:none;opacity:.9}}
+@keyframes solid{to{fill:currentColor;stroke-dasharray:none;opacity:.22}}
 .studio .art{color:var(--ink)}
 .night .studio .art{color:#e9f2ff}
-.studio .pen{position:absolute;left:0;top:0;width:104px;z-index:3;offset-anchor:22% 94%;offset-rotate:0deg;animation:ride 2.6s var(--soft) forwards}
+.studio .pen{position:absolute;left:0;top:0;width:104px;z-index:3;offset-anchor:22% 90%;offset-rotate:0deg;animation:ride 1.85s cubic-bezier(.45,0,.35,1) forwards}
 @keyframes ride{from{offset-distance:0%}to{offset-distance:100%}}
-.studio .blk{position:absolute!important;left:0;top:0}
-.studio .perch{position:absolute;width:104px;z-index:3;transition:left .5s var(--spring-play),top .5s var(--spring-play)}
-.popin{animation:popin .7s var(--spring-play) both}
-@keyframes popin{0%{transform:scale(.86);opacity:0;filter:blur(6px)}100%{transform:none;opacity:1;filter:none}}
-.after{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:22px;animation:rise .42s .2s var(--spring-ui) both}
+.studio .blk{position:absolute!important;left:0;top:0;z-index:1}
+.studio .perch,.spot .perch{position:absolute;width:128px;z-index:3}
+.studio .shadow{width:70px;height:10px;z-index:2;opacity:0;transition:opacity .2s}
+.fadein{animation:fadein .22s ease-out both}
+@keyframes fadein{0%{opacity:0}100%{opacity:1}}
+.after{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:22px;animation:rise .42s var(--spring-ui) both}
 .refine{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .confetti{position:absolute;inset:0;pointer-events:none;z-index:60;overflow:hidden}
 .confetti i{position:absolute;width:7px;height:20px;border-radius:4px;animation:burst 1.1s cubic-bezier(.15,.75,.3,1) forwards}
 @keyframes burst{0%{transform:translate(0,0) rotate(0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(.6);opacity:0}}
 .flyer{position:absolute;z-index:70;pointer-events:none;transition:transform .48s cubic-bezier(.5,-.15,.6,1),opacity .48s}
+.squish{animation:squish .45s var(--spring-play)}
+@keyframes squish{0%{transform:none}30%{transform:scale(.95)}100%{transform:none}}
 /* ---------- Templates ---------- */
-.tpl-head{padding:6px 0 14px}
-.tpl-head h1{font-size:40px;margin-top:6px}
 .cats{display:flex;gap:6px;padding:2px 0 16px}
-.cat{height:40px;padding:0 11px;font-size:13.5px;border-radius:12px}
+.cat{flex:1 1 auto;padding:0 8px;font-size:13.5px;border-radius:12px}
 .cat svg{width:15px;height:15px}
 .cat.on{background:var(--ink);color:#fff;box-shadow:0 10px 18px -10px rgba(18,26,46,.7)}
 .night .cat.on{background:#fff;color:#121a2e}
-.banner{position:relative;height:166px;border-radius:28px;margin-bottom:26px;overflow:hidden;color:#fff;padding:20px 22px;box-shadow:var(--lift);transition:background .4s var(--soft)}
-.banner::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 85% 100%,rgba(255,255,255,.22),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.12),transparent 50%);pointer-events:none}
+.banner{position:relative;height:150px;border-radius:28px;margin-bottom:24px;overflow:hidden;color:#fff;padding:20px 22px;box-shadow:var(--lift);transition:background .4s var(--soft)}
+.banner::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 85% 100%,rgba(255,255,255,.18),transparent 60%);pointer-events:none}
 .banner h2{position:relative;font-size:40px}
-.banner p{position:relative;font:600 15px/1.32 var(--text);margin-top:8px;max-width:172px}
-.banner .count{position:absolute;left:22px;bottom:18px;font:650 13px var(--text);padding:5px 10px;border-radius:9px;background:rgba(18,26,46,.22)}
-.banner.dark .count{background:rgba(18,26,46,.12)}
-.banner .actors{position:absolute;right:4px;bottom:-6px;width:196px;height:166px}
+.banner p{position:relative;font:600 15px/1.32 var(--text);margin-top:8px;max-width:160px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.banner .actors{position:absolute;right:4px;bottom:-6px;width:196px;height:150px;transition:opacity .16s ease-out,transform .16s ease-out}
+.banner .actors.out{opacity:0;transform:translateY(8px)}
 .beat{animation:beat 1.3s ease-in-out infinite}
 @keyframes beat{0%,100%{transform:scale(1)}20%{transform:scale(1.18)}40%{transform:scale(1)}}
 .pile{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:28px}
-.pile .item{display:flex;flex-direction:column;gap:12px;text-align:left}
+.pile .item{display:flex;flex-direction:column;gap:12px;text-align:left;border-radius:26px}
 .pile .item.wide{grid-column:span 2}
-.pile .blk{position:relative;transform:rotate(var(--rot,0deg)) scale(.97);transition:transform .16s ease-out}
+.pile .blk{position:relative;transform:rotate(var(--rot,0deg)) scale(.97);transition:transform .16s ease-out;pointer-events:none}
 .pile .item:active .blk{transform:rotate(0deg) scale(.95)}
-.pile .blk [data-tap],.pile .blk button{pointer-events:none}
 .tmeta{display:flex;flex-direction:column;gap:2px;padding:0 4px}
 .tname{font:600 15px var(--text);letter-spacing:-.2px}
 .tsub{font:500 13px var(--text);color:var(--ink-2)}
-.pop-out{animation:popout .2s var(--soft) forwards}
+.pop-out{animation:popout .18s var(--soft) forwards}
 @keyframes popout{to{opacity:0;transform:translateY(10px) scale(.97)}}
 /* ---------- sheet ---------- */
 .scrim{position:absolute;inset:0;background:rgba(10,18,36,.32);opacity:0;pointer-events:none;transition:opacity .3s var(--soft);z-index:40}
@@ -234,26 +255,31 @@ svg.i{width:15px;height:15px;flex:none}
 .sheet{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,#eef5ff,#e2edfc);color:#121a2e;border-radius:36px 36px 0 0;z-index:50;transform:translateY(105%);transition:transform .42s var(--spring-ui);padding:10px 22px 40px;box-shadow:0 -12px 40px rgba(10,20,40,.22)}
 .night .sheet{background:linear-gradient(180deg,#2d4f85,#24426f);color:#fff}
 .sheet.show{transform:none}
+.sheet:focus{outline:none}
 .grab{width:38px;height:5px;border-radius:3px;background:currentColor;opacity:.22;margin:0 auto 16px}
-.close{position:absolute;right:20px;top:22px;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:rgba(18,26,46,.07)}
-.night .close{background:rgba(255,255,255,.12)}
-.sheet h3{font-size:34px;padding-right:44px}
-.sheet .line{font:500 15px/1.35 var(--text);color:rgba(18,26,46,.64);margin-top:6px}
-.night .sheet .line{color:rgba(233,242,255,.74)}
-.spot{position:relative;height:222px;display:flex;align-items:center;justify-content:center;margin:8px -22px 0}
-.spot::before{content:"";position:absolute;width:300px;height:210px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.75),transparent)}
+.close{position:absolute;right:14px;top:22px;width:44px;height:44px;display:grid;place-items:center}
+.close i{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:rgba(18,26,46,.07)}
+.night .close i{background:rgba(255,255,255,.12)}
+.sheet h3{font-size:34px;padding-right:48px}
+.sheet .line{font:500 15px/1.35 var(--text);color:rgba(18,26,46,.72);margin-top:6px}
+.night .sheet .line{color:rgba(233,242,255,.76)}
+.spot{position:relative;height:250px;display:flex;align-items:flex-end;justify-content:center;margin:8px -22px 0;padding-bottom:22px}
+.spot::before{content:"";position:absolute;left:50%;bottom:0;width:300px;height:210px;margin-left:-150px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.75),transparent)}
 .night .spot::before{background:radial-gradient(closest-side,rgba(156,195,245,.16),transparent)}
-.hint{text-align:center;font:500 13px var(--text);color:rgba(18,26,46,.64)}
-.night .hint{color:rgba(233,242,255,.74)}
-.namefield{margin-top:16px;border-radius:18px;background:#fff;box-shadow:var(--rest);padding:10px 16px 8px;display:block;cursor:text}
+.spot .stagebox{position:relative}
+.spot .bubble{position:absolute;white-space:nowrap;z-index:4}
+.hint{text-align:center;font:500 13px var(--text);color:rgba(18,26,46,.72)}
+.night .hint{color:rgba(233,242,255,.76)}
+.namefield{margin-top:14px;border-radius:18px;background:#fff;box-shadow:var(--rest);padding:10px 16px 8px;display:block;cursor:text}
 .night .namefield{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16)}
-.namefield span{font:600 12.5px var(--text);color:rgba(18,26,46,.64)}
-.night .namefield span{color:rgba(233,242,255,.74)}
-.namefield input{display:block;width:100%;font:600 17px var(--text);margin-top:2px;height:26px;cursor:text;caret-color:currentColor}
+.namefield span{font:600 12.5px var(--text);color:rgba(18,26,46,.72)}
+.night .namefield span{color:rgba(233,242,255,.76)}
+.namefield input{display:block;width:100%;font:600 17px var(--text);margin-top:2px;height:26px;cursor:text;caret-color:currentColor;outline:none!important}
 .sheet .keys{display:flex;gap:10px;margin-top:16px}
 #s-chat{flex:.85}
 #s-add{flex:1.15}
 .toast{position:absolute;left:50%;top:58px;transform:translate(-50%,-130px);background:#fff;color:#121a2e;border-radius:18px;box-shadow:var(--lift);padding:8px 16px 8px 8px;font:600 15px var(--text);letter-spacing:-.15px;display:flex;align-items:center;gap:10px;z-index:80;transition:transform .38s var(--spring-ui);white-space:nowrap}
+.night .toast{background:rgba(24,46,84,.96);color:#fff;box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.16)}
 .toast.show{transform:translate(-50%,0)}
 @keyframes blink{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -261,9 +287,9 @@ svg.i{width:15px;height:15px;flex:none}
 <div class="stage">
  <div class="controls"><button data-time="day" class="on">Day</button><button data-time="night">Night (dark mode)</button><button data-go="widgets">Widgets</button><button data-go="make">Make</button><button data-go="tpl">Templates</button></div>
  <div class="phone" id="phone" style="zoom:.8">
-  <div class="sky"></div><div class="sky night"></div><div class="stars" id="stars"></div>
+  <div class="sky"></div><div class="sky night"></div><div class="stars" id="stars"></div><div class="moon"></div>
   <div class="clouds" id="clouds"></div>
-  <div class="topfade"></div><div class="topfade night"></div>
+  <div class="topfade"></div><div class="bottomfade"></div>
   <div class="status"><span>9:41</span><span style="display:flex;gap:7px;align-items:center"><svg width="19" height="12" viewBox="0 0 19 12" fill="currentColor"><rect y="8" width="3.2" height="4" rx="1"/><rect x="5.2" y="5.5" width="3.2" height="6.5" rx="1"/><rect x="10.4" y="3" width="3.2" height="9" rx="1"/><rect x="15.6" width="3.2" height="12" rx="1"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 2.6c2.4 0 4.6.9 6.2 2.5l1.2-1.2A10.4 10.4 0 0 0 8.5.9 10.4 10.4 0 0 0 1.1 3.9l1.2 1.2A8.7 8.7 0 0 1 8.5 2.6zm0 3.4c1.5 0 2.8.6 3.8 1.5l1.2-1.2a7 7 0 0 0-10 0l1.2 1.2c1-.9 2.3-1.5 3.8-1.5zm0 3.4c.6 0 1.1.2 1.5.6L8.5 11.5 7 10c.4-.4.9-.6 1.5-.6z"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="currentColor" opacity=".4"/><rect x="2.5" y="2.5" width="19" height="8" rx="2.2" fill="currentColor"/><rect x="25" y="4.2" width="1.6" height="4.6" rx=".8" fill="currentColor" opacity=".4"/></svg></span></div>
 
   <section class="page" id="p-widgets">
@@ -273,36 +299,36 @@ svg.i{width:15px;height:15px;flex:none}
     <div class="sub" id="w-sub"></div>
     <div class="bubble right gone" id="w-bubble"></div>
     <div class="widgie sway" id="w-widgie"></div>
-    <div class="contact"></div>
+    <div class="shadow"></div>
    </div>
    <div class="feed" id="feed"></div>
   </section>
 
-  <section class="page hidden to-right" id="p-make"></section>
-  <form class="composer hidden" id="composer" autocomplete="off"><button type="button" class="icon" aria-label="Add a picture"><svg width="22" height="20" viewBox="0 0 26 22"><rect x="1.3" y="1.3" width="23.4" height="19.4" rx="5" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M5 17l6-6 4.5 4.5 2.8-2.8 3.7 3.7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><circle cx="17.5" cy="7.3" r="2.1" fill="currentColor"/></svg></button><input id="say" placeholder="Describe a widget" aria-label="Describe a widget"><button class="send" id="send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg></button></form>
+  <section class="page hidden to-right" id="p-make" inert></section>
+  <form class="composer hidden" id="composer" autocomplete="off" inert><button type="button" class="icon" aria-label="Add a picture of a look you like"><svg width="22" height="20" viewBox="0 0 26 22"><rect x="1.3" y="1.3" width="23.4" height="19.4" rx="5" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M5 17l6-6 4.5 4.5 2.8-2.8 3.7 3.7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><circle cx="17.5" cy="7.3" r="2.1" fill="currentColor"/></svg></button><div class="field"><span class="idlecaret"></span><input id="say" placeholder="Describe a widget" aria-label="Describe a widget"></div><button class="send" id="send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg></button></form>
 
-  <section class="page hidden to-right" id="p-tpl">
-   <div class="tpl-head"><div class="eyebrow">Ready in a tap, yours in a word</div><h1 class="display">Templates</h1></div>
-   <div class="cats" id="cats"></div>
-   <div class="banner" id="banner"><h2 class="display" id="b-title"></h2><p id="b-line"></p><span class="count" id="b-count"></span><div class="actors" id="actors"></div></div>
+  <section class="page hidden to-right" id="p-tpl" inert>
+   <div class="head"><div class="eyebrow">Ready in a tap, yours in a word</div><h1 class="display">Templates</h1></div>
+   <div class="cats" id="cats" role="tablist"></div>
+   <div class="banner" id="banner"><h2 class="display" id="b-title"></h2><p id="b-line"></p><div class="actors" id="actors"></div></div>
    <div class="pile" id="pile"></div>
   </section>
 
   <div class="scrim" id="scrim"></div>
-  <div class="sheet" id="sheet"><div class="grab"></div><button class="close" id="s-close" aria-label="Close"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></button><h3 class="display" id="s-title"></h3><div class="line" id="s-line"></div>
-   <div class="spot" id="s-stage"></div>
+  <div class="sheet" id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="s-title" inert><div class="grab"></div><button class="close" id="s-close" aria-label="Close"><i><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></i></button><h3 class="display" id="s-title"></h3><div class="line" id="s-line"></div>
+   <div class="spot" id="s-spot"></div>
    <div class="hint">It already works. Give it a tap.</div>
    <label class="namefield"><span id="s-label"></span><input id="s-name"></label>
    <div class="keys"><button class="key quiet" id="s-chat">Change in chat</button><button class="key" id="s-add">Add widget</button></div>
   </div>
-  <div class="toast" id="toast"><div class="avatar"><div class="widgie" id="t-widgie"></div></div><span id="t-text"></span></div>
+  <div class="toast" id="toast" role="status"><div class="avatar"><div class="widgie" id="t-widgie"></div></div><span id="t-text"></span></div>
   <div class="confetti" id="confetti"></div>
 
   <nav class="tabbar" id="tabbar">
    <div class="tabpill" id="pill"></div>
-   <button class="tab on" data-tab="widgets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><rect x="3" y="3" width="8" height="11" rx="2.6"/><rect x="13" y="3" width="8" height="6.5" rx="2.6"/><rect x="3" y="16" width="8" height="5" rx="2.4"/><rect x="13" y="11.5" width="8" height="9.5" rx="2.6"/></svg>Widgets<span class="badge" id="badge">1</span></button>
-   <button class="tab" data-tab="make"><div class="makekey"><div class="widgie" id="tab-widgie"></div></div>Make</button>
-   <button class="tab" data-tab="tpl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><defs><mask id="tplmask"><rect width="24" height="24" fill="#fff"/><rect x="8" y="3" width="13.5" height="17" rx="3.6" transform="rotate(7 14.75 11.5)" fill="#000"/></mask></defs><rect x="3.5" y="5" width="12" height="15" rx="3" transform="rotate(-8 9.5 12.5)" mask="url(#tplmask)"/><rect x="9" y="4" width="11.5" height="15" rx="3" transform="rotate(7 14.75 11.5)"/></svg>Templates</button>
+   <button class="tab on" data-tab="widgets"><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><rect x="3" y="3" width="8" height="11" rx="2.6"/><rect x="13" y="3" width="8" height="6.5" rx="2.6"/><rect x="3" y="16" width="8" height="5" rx="2.4"/><rect x="13" y="11.5" width="8" height="9.5" rx="2.6"/></svg></span>Widgets<span class="badge" id="badge">1</span></button>
+   <button class="tab" data-tab="make"><span class="glyph"><span class="makekey"><span class="widgie" id="tab-widgie"></span></span></span>Make</button>
+   <button class="tab" data-tab="tpl"><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><defs><mask id="tplmask"><rect width="24" height="24" fill="#fff"/><rect x="8" y="3" width="13.5" height="17" rx="3.6" transform="rotate(7 14.75 11.5)" fill="#000"/></mask></defs><rect x="3.5" y="5" width="12" height="15" rx="3" transform="rotate(-8 9.5 12.5)" mask="url(#tplmask)"/><rect x="9" y="4" width="11.5" height="15" rx="3" transform="rotate(7 14.75 11.5)"/></svg></span>Templates</button>
   </nav>
   <div class="homebar"></div>
  </div>
@@ -316,28 +342,36 @@ const $ = (s) => document.querySelector(s);
 const phone = $("#phone");
 const ZOOM = 0.8;
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const wait = (ms) => new Promise((r) => setTimeout(r, calm ? 0 : ms));
 let night = false, tab = "widgets";
 const ORDER = ["widgets", "make", "tpl"];
 
 // ---------- Widgie: the site's caret, wrapped so it can hop, sway and change pose ----------
-// `moon: "0"` keeps the ink Widgie at night, for the sun key and the yellow banner.
+// The pose is kept on the element, so a switch to night redraws every Widgie on screen. `moon: "0"` keeps the ink
+// Widgie at night, for the sun key and the yellow banner.
 function drawWidgie(el, pose = "idle", extra = {}) {
+  el._pose = [pose, extra];
   el.innerHTML = `<span class="caret" data-pose="${pose}"></span>`;
   const c = el.firstChild;
   Object.assign(c.dataset, extra);
   if (night && extra.moon !== "0") c.dataset.moon = "1";
   mountCaret(c);
 }
-function play(el, cls, ms) { el.classList.remove("hop", "sway", "glance", "blink2"); void el.offsetWidth; el.classList.add(cls); setTimeout(() => { el.classList.remove(cls); el.classList.add("sway"); }, ms); }
-const hop = (el) => play(el, "hop", 740);
-function say(el, words, stay = 0) {
+function play(el, cls, ms, keepSway = false) {
+  el.classList.remove("hop", "small", "glance", "blink2", "land");
+  if (!keepSway) el.classList.remove("sway");
+  void el.offsetWidth;
+  el.classList.add(...cls.split(" "));
+  clearTimeout(el._p);
+  el._p = setTimeout(() => { el.classList.remove(...cls.split(" ")); el.classList.add("sway"); }, ms);
+}
+const hop = (el, small = false) => play(el, small ? "hop small" : "hop", 740);
+function say(el, words, { swap = false } = {}) {
   el.textContent = words;
-  el.classList.remove("gone", "pop"); void el.offsetWidth; el.classList.add("pop");
-  clearTimeout(el._t);
-  if (stay) el._t = setTimeout(() => el.classList.add("gone"), stay);
+  el.classList.remove("gone", "pop", "swap"); void el.offsetWidth; el.classList.add(swap ? "swap" : "pop");
 }
 
-// sky: two soft clouds up high, and stars at night
+// sky: two soft clouds up high by day; stars and a moon at night
 const cloud = (w) => `<svg width="${w}" height="${w * .42}" viewBox="0 0 100 42"><g fill="#fff"><ellipse cx="30" cy="30" rx="26" ry="12"/><ellipse cx="52" cy="22" rx="22" ry="17"/><ellipse cx="72" cy="30" rx="22" ry="11"/></g></svg>`;
 $("#clouds").innerHTML = [[150, 56, 90, -30], [110, 150, 120, -80]].map(([w, top, dur, del]) => cloud(w).replace("<svg", `<svg style="top:${top}px;animation-duration:${dur}s;animation-delay:${del}s"`)).join("");
 $("#stars").innerHTML = Array.from({ length: 26 }, (_, i) => `<i style="left:${(i * 47) % 392 + 5}px;top:${(i * 61) % 320 + 48}px;animation-delay:-${(i % 9) * .38}s;opacity:${.5 + (i % 4) * .15}"></i>`).join("");
@@ -347,6 +381,20 @@ const SMALL = 174 / 170, WIDE = 362 / 364;
 function tile(w, rot = 0, k) {
   const wide = MEDIUM.has(w);
   return `<div class="blk ${wide ? "m" : ""}" data-widget="${w}" style="--u:${k ?? (wide ? WIDE : SMALL)}px;--rot:${rot}deg"></div>`;
+}
+// A name on a tile: the site's widgets draw their sample names. The tile keeps its own name across every redraw (the
+// observer renames after each render), and a new name replaces the one on screen now.
+function name(el, pictured, to) {
+  const shown = el._names ? el._names[1] : pictured;
+  el._names = [pictured, to];
+  const swap = (a, b) => {
+    if (!a || a === b) return;
+    const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.includes(a)) n.nodeValue = n.nodeValue.split(a).join(b);
+  };
+  if (!el._watch) { el._watch = new MutationObserver(() => swap(el._names[0], el._names[1])); el._watch.observe(el, { childList: true, subtree: true }); }
+  swap(shown, to);
+  swap(pictured, to);
 }
 function live(root, onTap) {
   for (const el of root.querySelectorAll("[data-widget]:not([data-live])")) {
@@ -358,13 +406,22 @@ function live(root, onTap) {
   }
 }
 const svg = (s, cls = "i") => s.replace("<svg", `<svg class="${cls}"`);
+const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.7 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8 6.2 20.1l1.5-6.4-4.9-4.3 6.5-.6z"/></svg>';
 
 // ---------- Widgets: wide ones fill a row, smalls pair up (the app's FeedRow rule) ----------
 const HOME = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.8 11h2.7v9.3h5V15h3v5.3h5V11h2.7z"/></svg>';
-const items = [["count", "Lisbon trip", 1], ["luna", "Luna", 1], ["hearts", "Hearts", 1], ["groc", "Groceries", 1], ["streak", "Meditate", 0], ["water", "Water", 1], ["savings", "Japan fund", 0], ["plant", "Monstera", 1], ["sober", "Alcohol-free", 0]].map(([w, name, placed]) => ({ w, name, placed, id: w }));
+let uid = 0;
+const items = [["count", "Lisbon trip", 1], ["luna", "Luna", 1], ["hearts", "Hearts", 1], ["groc", "Groceries", 1], ["streak", "Meditate", 0], ["water", "Water", 1], ["savings", "Japan fund", 0], ["plant", "Monstera", 1], ["sober", "Alcohol-free", 0]].map(([w, n, placed]) => ({ w, name: n, placed, id: "i" + uid++ }));
+// A new small widget always opens the feed, paired with the next small one; the rest follow the usual rule.
 function rows(list) {
-  const out = []; let wait = null;
-  for (const it of list) {
+  let rest = list.slice(), out = [];
+  if (rest[0]?.fresh && !MEDIUM.has(rest[0].w)) {
+    const j = rest.findIndex((it, k) => k > 0 && !MEDIUM.has(it.w));
+    out.push(j > 0 ? [rest[0], rest[j]] : [rest[0]]);
+    rest = rest.filter((_, k) => k !== 0 && k !== j);
+  }
+  let wait = null;
+  for (const it of rest) {
     if (MEDIUM.has(it.w)) {
       if (wait) { if (wait.passed === 1) { out.splice(wait.at, 0, [wait.it]); wait = null; } else wait.passed++; }
       out.push([it]);
@@ -374,102 +431,197 @@ function rows(list) {
   if (wait) out.splice(wait.at, 0, [wait.it]);
   return out;
 }
-const pin = (it) => `<div class="pin ${it.fresh ? "fresh" : ""}">${tile(it.w)}<div class="cap"><span class="name">${it.name}</span>${it.placed ? `<span class="home">${HOME}Home</span>` : ""}</div></div>`;
-const NOTES = { luna: "Luna's fed. Good girl.", hearts: "Heart sent. Sam will see it.", groc: "Crossed off, for both of you.", water: "One more glass. Nice.", streak: "Day 13. Keep it going!", plant: "Watered. Monstera says thanks.", savings: "$50 closer to Japan." };
-function subline() { $("#w-sub").innerHTML = `<b>${items.length} widgets</b>, ${items.filter((i) => i.placed).length} on your home screen`; }
-let feedDrawn = false;
-function renderFeed() {
-  const first = !feedDrawn; feedDrawn = true;
-  $("#feed").innerHTML = rows(items).map((r, i) => `<div class="row ${first ? "rise" : ""}" style="animation-delay:${i * .05}s">${r.map(pin).join("")}</div>`).join("");
-  live($("#feed"), (el) => {
-    const note = NOTES[el.dataset.widget];
-    if ($("#p-widgets").scrollTop > 140 || !note) return;
-    hop($("#w-widgie")); say($("#w-bubble"), note, 3200);
-  });
-  subline();
-  for (const it of items) it.fresh = false;
+function pinEl(it) {
+  const el = document.createElement("div");
+  el.className = "pin"; el.dataset.id = it.id;
+  el.innerHTML = `${tile(it.w)}<div class="cap"><span class="name">${it.name}</span>${it.fresh ? '<span class="tag">New</span>' : ""}${it.placed ? `<span class="home">${HOME}Home</span>` : ""}</div>`;
+  if (it.as) name(el.firstChild, it.as[0], it.as[1]);
+  return el;
 }
-function addToFeed(w, name) {
-  items.unshift({ w, name, placed: 0, id: w + Math.random(), fresh: true });
-  renderFeed();
+const NOTES = { luna: "Fed! I'll tell everyone.", hearts: "Heart sent. Sam will see it.", groc: "Crossed off, for both of you.", water: "One more glass. Nice.", streak: "Day 13. Keep it going!", plant: "Watered. Monstera says thanks.", savings: "$50 closer to Japan." };
+let greeting = "Morning! Luna's waiting on breakfast.";
+const greet = () => night ? "I'll keep an eye on them tonight." : greeting;
+function subline() { $("#w-sub").innerHTML = `<b>${items.length} widgets</b>, ${items.filter((i) => i.placed).length} on your home screen`; }
+// Builds the feed from pins it already has, so a widget keeps its state when the feed changes around it, and the
+// cards that move slide to their new place.
+const pins = new Map();
+function layoutFeed({ first = false } = {}) {
+  const feed = $("#feed");
+  const before = new Map([...pins].map(([id, el]) => [id, el.getBoundingClientRect()]));
+  for (const it of items) if (!pins.has(it.id)) pins.set(it.id, pinEl(it));
+  feed.replaceChildren(...rows(items).map((r, i) => {
+    const row = document.createElement("div");
+    row.className = "row" + (first ? " rise" : "");
+    row.style.animationDelay = i * .05 + "s";
+    row.append(...r.map((it) => pins.get(it.id)));
+    return row;
+  }));
+  live(feed, (el) => {
+    const w = el.dataset.widget, note = NOTES[w];
+    if (w === "luna") greeting = "Luna's had breakfast. Good start!";
+    if ($("#p-widgets").scrollTop > 140 || !note) return;
+    hop($("#w-widgie")); say($("#w-bubble"), note);
+    clearTimeout(layoutFeed._t);
+    layoutFeed._t = setTimeout(() => say($("#w-bubble"), greet(), { swap: true }), 2400);
+  });
+  if (!calm && !first) for (const [id, el] of pins) {
+    const a = before.get(id); if (!a) continue;
+    const b = el.getBoundingClientRect(), dy = (a.top - b.top) / ZOOM, dx = (a.left - b.left) / ZOOM;
+    if (dx || dy) el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.22,1.06,.36,1)" });
+  }
+  subline();
+}
+let arriving = null;
+function addToFeed(w, label, as) {
+  const it = { w, name: label, placed: 0, id: "i" + uid++, fresh: true, as };
+  items.unshift(it);
+  if (tab === "widgets") { layoutFeed(); land(it); } else arriving = it;
+}
+// The new card settles in where you can see it, and Widgie points it out.
+function land(it) {
+  $("#p-widgets").scrollTo({ top: 0, behavior: calm ? "auto" : "smooth" });
+  const el = pins.get(it.id);
+  el.classList.remove("arrive"); void el.offsetWidth; el.classList.add("arrive");
+  hop($("#w-widgie"));
+  say($("#w-bubble"), `Here's ${it.as ? it.as[1] : it.name}. Give it a tap.`);
+  clearTimeout(layoutFeed._t);
+  layoutFeed._t = setTimeout(() => say($("#w-bubble"), greet(), { swap: true }), 3200);
 }
 
 // ---------- Make: Widgie draws your widget with its tip ----------
-const IDEAS = [[svg(icon.paw), "#ffe7c2", "#9a5500", "When was the dog fed?", "Who fed them, and how long ago", "luna", "Luna", "Here's Luna's. Tap the check to try it."], [svg(icon.plane), "#ffd8d2", "#b83226", "Days until our trip", "A countdown with the date", "count", "Lisbon trip", "Counting down to Lisbon. Want another date?"], [svg(icon.heart), "#ffd6e0", "#b82552", "A heart button for Sam", "One tap sends a heart", "hearts", "Hearts", "One tap sends Sam a heart. Try it!"]];
+const IDEAS = [
+  { icon: svg(icon.paw), bg: "#ffe7c2", fg: "#9a5500", t: "When was the dog fed?", s: "Who fed them, and how long ago", w: "luna", name: "Biscuit", as: ["Luna", "Biscuit"], reply: "Here's Biscuit's. Tap the check to try it.", refine: [["Make it greener", { filter: "hue-rotate(70deg) saturate(1.1)" }, "Greener it is."], ["Red after 4 hours", { filter: "hue-rotate(-28deg) saturate(1.5)" }, "It'll go red after 4 hours."]] },
+  { icon: svg(icon.plane), bg: "#ffd8d2", fg: "#b83226", t: "Days until our trip", s: "A countdown with the date", w: "count", name: "Lisbon again", reply: "Counting down to Lisbon. Want another date?", refine: [["Make it purple", { filter: "hue-rotate(250deg)" }, "Purple, done."], ["Bigger number", { "--big": "1" }, "Bigger, done."]] },
+  { icon: svg(icon.heart), bg: "#ffd6e0", fg: "#b82552", t: "A heart button for Alex", s: "One tap sends a heart", w: "hearts", name: "Hearts for Alex", as: ["Sam", "Alex"], reply: "One tap sends Alex a heart. Try it!", refine: [["Make it blue", { filter: "hue-rotate(210deg)" }, "Blue, done."], ["Softer pink", { filter: "saturate(.6) brightness(1.15)" }, "Softer, done."]] },
+];
 function makeReset() {
-  $("#p-make").innerHTML = `<div class="hello"><div class="make-hello"><div class="ground"></div><div class="widgie sway" id="m-widgie"></div><div class="bubble right pop" id="m-bubble">Hi! What should we make? Say it your way.</div></div>
-   <div class="ideas"><div class="eyebrow">Or start from one of these</div>${IDEAS.map(([ic, bg, fg, t, s], i) => `<button class="idea rise" data-i="${i}" style="animation-delay:${.08 + i * .05}s"><span class="ic" style="background:${bg};color:${fg}">${ic}</span><span><div class="t">${t}</div><div class="s">${s}</div></span><svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></button>`).join("")}</div></div>`;
+  $("#p-make").innerHTML = `<div class="hello"><div class="head"><div class="eyebrow">Say it in your own words</div><h1 class="display">Make</h1></div><div class="make-hello"><div class="shadow"></div><div class="widgie sway" id="m-widgie"></div><div class="bubble right pop" id="m-bubble">Hi! What should we make today?</div></div>
+   <div class="ideas"><div class="eyebrow">Or start from one of these</div>${IDEAS.map((d, i) => `<button class="idea rise" data-i="${i}" style="animation-delay:${.08 + i * .05}s"><span class="ic" style="background:${d.bg};color:${d.fg}">${d.icon}</span><span><div class="t">${d.t}</div><div class="s">${d.s}</div></span><svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></button>`).join("")}</div></div>`;
   drawWidgie($("#m-widgie"), "lean", { mirror: "1" });
-  for (const el of document.querySelectorAll(".idea")) el.onclick = () => ask(IDEAS[el.dataset.i]);
+  for (const el of document.querySelectorAll(".idea")) el.onclick = () => ask(IDEAS[el.dataset.i], IDEAS[el.dataset.i].t);
 }
 function pick(words) {
   const t = words.toLowerCase();
   if (/trip|days|until|countdown|holiday/.test(t)) return IDEAS[1];
-  if (/heart|love|miss|partner/.test(t)) return IDEAS[2];
+  if (/heart|love|miss|partner/.test(t)) {
+    const who = (words.match(/\bfor ([A-Z][a-z]+)/) || [])[1];
+    return who ? { ...IDEAS[2], name: `Hearts for ${who}`, as: ["Sam", who], reply: `One tap sends ${who} a heart. Try it!` } : IDEAS[2];
+  }
   return IDEAS[0];
 }
-$("#say").addEventListener("input", () => $("#send").classList.toggle("ready", $("#say").value.trim() !== ""));
+const say_ = $("#say");
+say_.addEventListener("input", () => { const on = say_.value.trim() !== ""; $("#send").classList.toggle("ready", on); $("#composer").classList.toggle("typed", say_.value !== ""); });
+say_.addEventListener("focus", () => $("#m-widgie")?.classList.add("lean"));
+say_.addEventListener("blur", () => $("#m-widgie")?.classList.remove("lean"));
 $("#composer").addEventListener("submit", (e) => {
   e.preventDefault();
-  const words = $("#say").value.trim();
+  const words = say_.value.trim();
   if (!words) return;
-  $("#say").value = ""; $("#send").classList.remove("ready");
-  const idea = pick(words);
-  ask([...idea.slice(0, 3), words, ...idea.slice(4)]);
+  say_.value = ""; $("#send").classList.remove("ready"); $("#composer").classList.remove("typed");
+  if (draft && !building) return refine(words, null);
+  ask(pick(words), words);
 });
 // The outline Widgie traces: from the bottom of the left side, up and clockwise, so most of the ride is on top.
 function outline(w, h, r = 24) {
   return `M0 ${h - r} L0 ${r} A${r} ${r} 0 0 1 ${r} 0 L${w - r} 0 A${r} ${r} 0 0 1 ${w} ${r} L${w} ${h - r} A${r} ${r} 0 0 1 ${w - r} ${h} L${r} ${h} A${r} ${r} 0 0 1 0 ${h - r}`;
 }
-let building = false;
-function ask([, , , words, , w, name, reply]) {
-  if (building) return;
-  building = true;
-  const wide = MEDIUM.has(w), W = wide ? 362 : 174, H = 174;
-  const page = $("#p-make");
-  page.innerHTML = `<div class="thread"><div class="me">${words}</div></div>`;
-  const list = page.firstChild;
-  setTimeout(() => {
-    list.insertAdjacentHTML("beforeend", `<div class="them"><div class="avatar"><div class="widgie"></div></div><div class="bubble">Writing your widget<span class="dots"><i></i><i></i><i></i></span></div></div>`);
-    const row = list.lastChild, av = row.querySelector(".widgie"), bubble = row.querySelector(".bubble");
-    drawWidgie(av, "idle");
-    const d = outline(W, H);
-    const parts = [[18, 22, 64, 12, 6, .55], [18, 50, wide ? 118 : 96, 40, 10, .7], [18, H - 52, 34, 34, 17, 1.05], [W - 60, H - 60, 42, 42, 21, 1.6]];
-    list.insertAdjacentHTML("beforeend", `<div class="studio" style="width:${W}px;height:${H}px"><svg class="sk" viewBox="0 0 ${W} ${H}"><path class="edge" d="${d}" pathLength="1"/><g class="art">${parts.map(([x, y, pw, ph, rr, delay]) => `<rect class="part" x="${x}" y="${y}" width="${pw}" height="${ph}" rx="${rr}" style="animation-delay:${delay}s"/>`).join("")}</g></svg><div class="widgie pen" style="offset-path:path('${d}')"></div></div>`);
-    const studio = list.lastChild, pen = studio.querySelector(".pen");
-    drawWidgie(pen, "draw");
-    const reveal = () => {
-      studio.querySelector("svg").remove();
-      studio.insertAdjacentHTML("afterbegin", tile(w));
-      const blk = studio.firstChild;
-      blk.classList.add("popin");
-      live(studio);
-      // Off the pen's path and onto the widget's top edge, happy.
-      const perch = document.createElement("div");
-      perch.className = "widgie perch";
-      perch.style.left = -22 + "px"; perch.style.top = H - 98 + "px";
-      pen.replaceWith(perch);
-      drawWidgie(perch, "jump", { eyes: "happy" });
-      requestAnimationFrame(() => requestAnimationFrame(() => { perch.style.left = W - 84 + "px"; perch.style.top = -94 + "px"; }));
-      setTimeout(() => hop(perch), 420);
-      drawWidgie(av, "idle", { eyes: "happy" });
-      bubble.textContent = reply; bubble.classList.remove("pop"); void bubble.offsetWidth; bubble.classList.add("pop");
-      list.insertAdjacentHTML("beforeend", `<div class="after"><div class="refine"><button class="chip">Make it greener</button><button class="chip">Red after 4 hours</button></div><button class="key">Save it</button></div>`);
-      list.lastChild.querySelector(".key").onclick = () => saved(blk, perch, w, name);
-      page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
-    };
-    setTimeout(reveal, calm ? 300 : 2750);
-  }, 380);
+// Widgie's jump as an arc of keyframes: left and top along a parabola, so it leaves the pen's last point and lands
+// on the widget's top edge.
+function arc(el, from, to, height, ms) {
+  const frames = Array.from({ length: 13 }, (_, i) => { const t = i / 12; return { left: from.x + (to.x - from.x) * t + "px", top: from.y + (to.y - from.y) * t - 4 * height * t * (1 - t) + "px" }; });
+  el.style.left = to.x + "px"; el.style.top = to.y + "px";
+  return calm ? Promise.resolve() : el.animate(frames, { duration: ms, easing: "linear" }).finished;
 }
-function saved(blk, perch, w, name) {
-  burst(blk); hop(perch);
-  setTimeout(() => flyToTab(blk, () => {
-    $("#badge").classList.add("show"); hop($("#tab-widgie"));
-    addToFeed(w, name);
-    toast(`${name} is in your widgets.`);
-    building = false;
-    setTimeout(makeReset, 600);
-  }), calm ? 0 : 260);
+let building = false, draft = null;
+async function ask(idea, words) {
+  if (building) return;
+  building = true; draft = null;
+  const wide = MEDIUM.has(idea.w), W = wide ? 362 : 174, H = 174;
+  const page = $("#p-make");
+  page.innerHTML = `<div class="thread"><div class="me"></div></div>`;
+  const list = page.firstChild;
+  list.firstChild.textContent = words;
+  await wait(380);
+  list.insertAdjacentHTML("beforeend", `<div class="them"><div class="avatar"><div class="widgie"></div></div><div class="bubble">Writing your widget<span class="caretbar"></span></div></div>`);
+  const row = list.lastChild, av = row.querySelector(".widgie"), bubble = row.querySelector(".bubble");
+  drawWidgie(av, "idle");
+  const d = outline(W, H);
+  const parts = [[18, 22, 64, 12, 6, .45], [18, 50, wide ? 118 : 96, 40, 10, .62], [18, H - 52, 34, 34, 17, .95], [W - 60, H - 60, 42, 42, 21, 1.45]];
+  list.insertAdjacentHTML("beforeend", `<div class="studio" style="width:${W}px;height:${H}px"><svg class="sk" viewBox="0 0 ${W} ${H}"><path class="edge" d="${d}" pathLength="1"/><g class="art">${parts.map(([x, y, pw, ph, rr, delay]) => `<rect class="part" x="${x}" y="${y}" width="${pw}" height="${ph}" rx="${rr}" style="animation-delay:${delay}s"/>`).join("")}</g></svg><div class="widgie pen" style="offset-path:path('${d}')"></div><div class="shadow"></div></div>`);
+  const studio = list.lastChild, pen = studio.querySelector(".pen"), sk = studio.querySelector("svg"), shadow = studio.querySelector(".shadow");
+  drawWidgie(pen, "draw");
+  await wait(1880);
+  // The real tile fades in under the outline, then the outline fades away on top of it.
+  studio.insertAdjacentHTML("afterbegin", tile(idea.w));
+  const blk = studio.firstChild;
+  blk.classList.add("fadein");
+  if (idea.as) name(blk, ...idea.as);
+  live(studio);
+  sk.style.opacity = "0";
+  setTimeout(() => sk.remove(), 220);
+  // Off the pen's last point and onto the widget's top edge, in an arc, then a landing squash.
+  const perch = document.createElement("div");
+  perch.className = "widgie perch";
+  const from = { x: 0 - .5 * 128, y: H - 24 - .9 * 128 }, to = { x: W - 108, y: -.9 * 128 + 2 };
+  perch.style.left = from.x + "px"; perch.style.top = from.y + "px";
+  pen.replaceWith(perch);
+  drawWidgie(perch, "jump", { eyes: "happy" });
+  await wait(80);
+  await arc(perch, from, to, 64, 520);
+  shadow.style.left = W - 79 + "px"; shadow.style.top = "-5px"; shadow.style.opacity = "1";
+  play(perch, "land", 380);
+  await wait(50);
+  drawWidgie(av, "idle", { eyes: "happy" });
+  bubble.textContent = idea.reply; bubble.classList.remove("pop"); void bubble.offsetWidth; bubble.classList.add("pop");
+  await wait(150);
+  list.insertAdjacentHTML("beforeend", `<div class="after"><div class="refine">${idea.refine.map((r, i) => `<button class="chip" data-r="${i}">${r[0]}</button>`).join("")}</div><button class="key">Save widget</button></div>`);
+  const after = list.lastChild;
+  for (const b of after.querySelectorAll(".chip")) b.onclick = () => refine(idea.refine[b.dataset.r][0], idea.refine[b.dataset.r]);
+  after.querySelector(".key").onclick = (e) => { e.currentTarget.disabled = true; saved(); };
+  draft = { idea, blk, perch, list, shadow };
+  building = false;
+  page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
+}
+// A change to the draft: your words, Widgie's answer, and the same tile, changed in place.
+async function refine(words, change) {
+  if (!draft || building) return;
+  building = true;
+  const { idea, blk, perch, list } = draft;
+  const after = list.querySelector(".after");
+  const me = document.createElement("div"); me.className = "me"; me.textContent = words;
+  list.insertBefore(me, list.querySelector(".studio"));
+  const row = document.createElement("div"); row.className = "them";
+  row.innerHTML = `<div class="avatar"><div class="widgie"></div></div><div class="bubble">Changing it<span class="caretbar"></span></div>`;
+  list.insertBefore(row, list.querySelector(".studio"));
+  drawWidgie(row.querySelector(".widgie"), "idle");
+  play(perch, "glance", 900);
+  await wait(900);
+  const [, style, done] = change || [words, { filter: "hue-rotate(40deg)" }, "Done. How's that?"];
+  Object.assign(blk.style, style);
+  if (style["--big"]) blk.querySelector(".w-huge")?.style.setProperty("transform", "scale(1.18)");
+  blk.classList.remove("squish"); void blk.offsetWidth; blk.classList.add("squish");
+  hop(perch, true);
+  row.querySelector(".bubble").textContent = done;
+  drawWidgie(row.querySelector(".widgie"), "idle", { eyes: "happy" });
+  if (change) after.querySelector(`[data-r="${idea.refine.indexOf(change)}"]`)?.remove();
+  building = false;
+}
+async function saved() {
+  const { idea, blk, perch, list, shadow } = draft;
+  draft = null;
+  burst(blk);
+  // Widgie jumps down after the tile, and the thread clears as the tile lands in Widgets.
+  perch.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(-18px)", opacity: 1, offset: .35 }, { transform: "translateY(40px)", opacity: 0 }], { duration: calm ? 1 : 300, easing: "cubic-bezier(.4,0,.6,1)", fill: "forwards" });
+  shadow.style.opacity = "0";
+  await wait(160);
+  flyToTab(blk, () => {
+    $("#badge").classList.add("show"); hop($("#tab-widgie"), true);
+    addToFeed(idea.w, idea.name, idea.as);
+    if (tab !== "widgets") toast(`${idea.name} is in your widgets.`);
+  });
+  list.classList.add("leaving");
+  await wait(500);
+  makeReset();
 }
 
 // ---------- confetti, the flight into the tab bar, the toast ----------
@@ -486,7 +638,7 @@ function flyToTab(el, done) {
   if (calm) { el.style.opacity = ".4"; return done(); }
   const r = local(el.getBoundingClientRect()), t = local(document.querySelector('[data-tab="widgets"]').getBoundingClientRect());
   const copy = el.cloneNode(true);
-  copy.classList.remove("popin", "press"); copy.classList.add("flyer");
+  copy.classList.remove("fadein", "press", "squish"); copy.classList.add("flyer");
   Object.assign(copy.style, { position: "absolute", left: r.x + "px", top: r.y + "px", margin: 0, transform: "none" });
   phone.appendChild(copy);
   el.style.visibility = "hidden";
@@ -500,17 +652,21 @@ function toast(text) { $("#t-text").textContent = text; drawWidgie($("#t-widgie"
 
 // ---------- Templates: the landing page's widgets, by category ----------
 const CATS = {
-  two: { name: "For two", icon: icon.heart, bg: "linear-gradient(150deg,#f2587c,#d63a62)", line: "Little signals between the two of you.", actors: () => couple(), items: [["hearts", "Thinking of you", "A heart in one tap"], ["mood", "Our moods", "Swap faces all day"], ["count", "Trip countdown", "Days until the big one"], ["days", "Days together", "Since your first date"], ["quest", "Today's question", "One a day, both answer"]] },
-  home: { name: "Home", icon: HOME, bg: "linear-gradient(150deg,#f0644f,#d9452f)", line: "Who fed the dog, whose turn, what's left to buy.", actors: () => single("lean", { mirror: "1" }, `<div style="position:absolute;left:10px;bottom:14px;width:70px">${puppy(false)}</div>`), items: [["luna", "Pet fed", "Who fed them, and when"], ["bins", "Bins night", "Pass the turn along"], ["groc", "Shared groceries", "Cross it off for both"], ["plant", "Plant care", "Goes red when thirsty"], ["baby", "Baby feeds", "Red after three hours"], ["chores", "Chores scoreboard", "Winner picks the movie"]] },
+  two: { name: "For two", icon: icon.heart, bg: "linear-gradient(150deg,#d4436a,#b82c53)", line: "Little signals between the two of you.", actors: () => couple(), items: [["hearts", "Thinking of you", "A heart in one tap"], ["mood", "Our moods", "Swap faces all day"], ["count", "Trip countdown", "Days until the big one"], ["days", "Days together", "Since your first date"], ["quest", "Today's question", "One a day, both answer"]] },
+  home: { name: "Home", icon: HOME, bg: "linear-gradient(150deg,#dc5a40,#c23b26)", line: "Who fed the dog, and what's left to buy.", actors: () => single("lean", { mirror: "1" }, `<div style="position:absolute;left:44px;bottom:12px;width:66px">${puppy(false)}</div>`), items: [["luna", "Pet fed", "Who fed them, and when"], ["bins", "Bins night", "Pass the turn along"], ["groc", "Shared groceries", "Cross it off for both"], ["plant", "Plant care", "Goes red when thirsty"], ["baby", "Baby feeds", "Red after three hours"], ["chores", "Chores scoreboard", "Winner picks the movie"]] },
   habits: { name: "Habits", icon: icon.leaf, bg: "linear-gradient(150deg,#5a3c98,#38206a)", line: "Tap today's square. That's the whole log.", actors: () => single("lean", { arm: "flex", mirror: "1" }), items: [["grid", "Habit squares", "Two weeks at a glance"], ["streak", "Streak", "Don't break the chain"], ["water", "Water", "Glasses toward a goal"], ["pushups", "Pushups", "A ring that fills up"]] },
-  goals: { name: "Goals", icon: icon.spark, bg: "linear-gradient(150deg,#ffd95a,#f6b820)", dark: 1, line: "Watch the jar fill and the days add up.", actors: () => single("jump", { eyes: "happy", moon: "0" }, `<div style="position:absolute;left:18px;bottom:20px;width:44px">${MEDAL}</div>`), items: [["savings", "Savings jar", "Every $50 counts"], ["sober", "Days free", "A medal at 60"], ["word", "Word of the day", "A new one each morning"]] },
+  goals: { name: "Goals", icon: STAR, bg: "linear-gradient(150deg,#ffd95a,#f6b820)", dark: 1, line: "Watch the jar fill and the days add up.", actors: () => single("jump", { eyes: "happy", moon: "0" }, `<div style="position:absolute;left:22px;bottom:24px;width:44px;transform:rotate(-8deg)">${MEDAL}</div>`, 12), items: [["savings", "Savings jar", "Every $50 counts"], ["sober", "Days free", "A medal at 60"], ["word", "Word of the day", "A new one each morning"]] },
 };
 let cat = "two";
-const couple = () => `<div class="widgie sway" style="left:30px;top:36px;width:112px" data-a="lean" data-eyes="happy"></div><div class="widgie sway" style="left:82px;top:36px;width:112px;animation-delay:-2s" data-a="lean" data-mirror="1"></div><div class="beat" style="position:absolute;left:104px;top:14px;width:24px;height:24px;color:#fff">${icon.heart}</div>`;
-const single = (pose, extra, prop = "") => `<div class="widgie sway" style="left:56px;top:20px;width:140px" data-a="${pose}" ${Object.entries(extra).map(([k, v]) => `data-${k}="${v}"`).join(" ")}></div>${prop}`;
+const couple = () => `<div class="widgie sway" style="left:28px;top:26px;width:128px" data-a="lean" data-eyes="happy"></div><div class="widgie sway" style="left:78px;top:26px;width:128px;animation-delay:-2s" data-a="lean" data-mirror="1"></div><div class="beat" style="position:absolute;left:110px;top:8px;width:24px;height:24px;color:#fff">${icon.heart}</div>`;
+const single = (pose, extra, prop = "", top = 22) => `<div class="widgie sway" style="left:64px;top:${top}px;width:128px" data-a="${pose}" ${Object.entries(extra).map(([k, v]) => `data-${k}="${v}"`).join(" ")}></div>${prop}`;
 function renderCats() {
-  $("#cats").innerHTML = Object.entries(CATS).map(([k, c]) => `<button class="chip cat ${k === cat ? "on" : ""}" data-cat="${k}">${svg(c.icon)}${c.name}</button>`).join("");
+  $("#cats").innerHTML = Object.entries(CATS).map(([k, c]) => `<button class="chip cat ${k === cat ? "on" : ""}" role="tab" aria-selected="${k === cat}" data-cat="${k}">${svg(c.icon)}${c.name}</button>`).join("");
   for (const el of document.querySelectorAll(".cat")) el.onclick = () => { if (el.dataset.cat !== cat) { cat = el.dataset.cat; renderCats(); renderPile(true); } };
+}
+function castBanner(c) {
+  $("#actors").innerHTML = c.actors();
+  for (const w of document.querySelectorAll("#actors .widgie")) { const extra = {}; for (const k of ["eyes", "mirror", "arm", "moon"]) if (w.dataset[k]) extra[k] = w.dataset[k]; drawWidgie(w, w.dataset.a, extra); }
 }
 function renderPile(swap) {
   const c = CATS[cat];
@@ -518,57 +674,87 @@ function renderPile(swap) {
     const banner = $("#banner");
     banner.style.background = c.bg;
     banner.style.color = c.dark ? "#121a2e" : "#fff";
-    banner.classList.toggle("dark", !!c.dark);
     $("#b-title").textContent = c.name;
     $("#b-line").textContent = c.line;
-    $("#b-count").textContent = `${c.items.length} templates`;
-    $("#actors").innerHTML = c.actors();
-    for (const w of document.querySelectorAll("#actors .widgie")) { const extra = {}; for (const k of ["eyes", "mirror", "arm", "moon"]) if (w.dataset[k]) extra[k] = w.dataset[k]; drawWidgie(w, w.dataset.a, extra); }
+    castBanner(c);
+    $("#actors").classList.remove("out");
+    if (swap) for (const w of document.querySelectorAll("#actors .widgie")) hop(w, true);
     // Small tiles lean up to 2.5 degrees, wide ones 1, alternating, so the pile reads as handled but stays in the gutters.
-    $("#pile").innerHTML = c.items.map(([w, name, sub], i) => { const rot = (i % 2 ? 1 : -1) * (MEDIUM.has(w) ? 1 : [2.5, 2, 1.5][i % 3]); return `<button class="item ${MEDIUM.has(w) ? "wide" : ""} rise" style="animation-delay:${i * .05}s" data-i="${i}">${tile(w, rot)}<div class="tmeta"><div class="tname">${name}</div><div class="tsub">${sub}</div></div></button>`; }).join("");
+    $("#pile").innerHTML = c.items.map(([w, n, sub], i) => { const rot = (i % 2 ? 1 : -1) * (MEDIUM.has(w) ? 1 : [2.5, 2, 1.5][i % 3]); return `<button class="item ${MEDIUM.has(w) ? "wide" : ""} rise" style="animation-delay:${i * .05}s" data-i="${i}" aria-label="${n}: ${sub}">${tile(w, rot)}<div class="tmeta" aria-hidden="true"><div class="tname">${n}</div><div class="tsub">${sub}</div></div></button>`; }).join("");
     live($("#pile"));
-    for (const it of document.querySelectorAll("#pile .item")) it.onclick = () => openSheet(c.items[it.dataset.i]);
+    for (const b of document.querySelectorAll("#pile .blk button")) b.tabIndex = -1;
+    for (const it of document.querySelectorAll("#pile .item")) it.onclick = () => openSheet(c.items[it.dataset.i], it);
   };
   if (!swap) return fill();
+  $("#actors").classList.add("out");
   for (const it of document.querySelectorAll("#pile .item")) it.classList.add("pop-out");
-  setTimeout(fill, 180);
+  setTimeout(fill, 170);
 }
-const BLANKS = { luna: ["Your pet's name", "Luna"], hearts: ["Who gets the hearts?", "Sam"], count: ["Where are you going?", "Lisbon"], plant: ["Your plant", "Monstera"], savings: ["Saving for", "Japan"], bins: ["Who's in the rota?", "Sam"], baby: ["Who's on feeds with you?", "Sam"], mood: ["Your partner's name", "Sam"], streak: ["The habit", "Meditate"], chores: ["Who are you up against?", "Sam"], quest: ["Your partner's name", "Sam"] };
-let sheetItem = null, shownName = "";
-// The name in the live preview follows the field, by swapping the text it shows.
-function rename(root, from, to) {
-  if (!from || from === to) return;
-  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue.includes(from)) n.nodeValue = n.nodeValue.split(from).join(to);
-}
-function openSheet(item) {
-  sheetItem = item;
-  const [w, name, sub] = item;
-  $("#s-title").textContent = name;
+// Each template's blank: the label, the name its picture shows, and the name it starts with here.
+const BLANKS = { luna: ["Your pet's name", "Luna", "Mochi"], hearts: ["Who gets the hearts?", "Sam", "Alex"], count: ["Where are you going?", "Lisbon", "Kyoto"], plant: ["Your plant", "Monstera", "Fern"], savings: ["Saving for", "Japan", "a new bike"], bins: ["Who's in the rota?", "Sam", "Alex"], baby: ["Who's on feeds with you?", "Sam", "Alex"], mood: ["Your partner's name", "Sam", "Alex"], chores: ["Who are you up against?", "Sam", "Alex"] };
+let sheetItem = null, opener = null, spotWidgie = null;
+function openSheet(item, from) {
+  sheetItem = item; opener = from;
+  const [w, title, sub] = item;
+  $("#s-title").textContent = title;
   $("#s-line").textContent = sub + ".";
-  const [label, value] = BLANKS[w] || ["Call it", name];
+  const [label, pictured, start] = BLANKS[w] || ["Call it", title, title];
   $("#s-label").textContent = label;
-  $("#s-name").value = value; shownName = value;
-  $("#s-stage").innerHTML = tile(w, 0, MEDIUM.has(w) ? 350 / 364 : 1.16);
-  $("#s-stage").firstChild.style.position = "relative";
-  live($("#s-stage"));
+  $("#s-name").value = start;
+  const wide = MEDIUM.has(w), k = wide ? 330 / 364 : 1.08, W = (wide ? 364 : 170) * k, H = 170 * k;
+  $("#s-spot").innerHTML = `<div class="stagebox" style="width:${W}px;height:${H}px">${tile(w, 0, k)}<div class="shadow" style="left:${W - 86}px;top:-5px;width:70px;height:10px"></div><div class="widgie perch sway"></div><div class="bubble right gone"></div></div>`;
+  const box = $("#s-spot").firstChild, blk = box.firstChild;
+  blk.style.position = "relative";
+  live(box, () => hop(spotWidgie, true));
+  if (BLANKS[w]) name(blk, pictured, start);
+  spotWidgie = box.querySelector(".perch");
+  const b = box.querySelector(".bubble");
+  if (wide) {
+    spotWidgie.style.width = "84px"; spotWidgie.style.left = W - 84 + "px"; spotWidgie.style.top = -.9 * 84 + 2 + "px";
+    box.querySelector(".shadow").style.left = W - 66 + "px";
+    b.style.right = "78px"; b.style.top = "-62px";
+  } else {
+    spotWidgie.style.width = "120px"; spotWidgie.style.left = W - 8 + "px"; spotWidgie.style.top = H - .9 * 120 + "px";
+    Object.assign(box.querySelector(".shadow").style, { left: W + 34 + "px", top: H - 6 + "px" });
+    b.style.right = "-14px"; b.style.top = "-40px";
+  }
+  drawWidgie(spotWidgie, "lean", { mirror: "1" });
+  $("#sheet").inert = false;
+  for (const p of ["#p-widgets", "#p-make", "#p-tpl", "#tabbar", "#composer"]) $(p).inert = true;
   $("#scrim").classList.add("show");
   $("#sheet").classList.add("show");
+  setTimeout(() => $("#sheet").focus({ preventScroll: true }), calm ? 0 : 300);
 }
-$("#s-name").addEventListener("input", () => { const v = $("#s-name").value.trim() || (BLANKS[sheetItem[0]] || [, sheetItem[1]])[1]; rename($("#s-stage"), shownName, v); shownName = v; });
-function closeSheet() { $("#scrim").classList.remove("show"); $("#sheet").classList.remove("show"); $("#s-name").blur(); }
+let nameTimer;
+$("#s-name").addEventListener("input", () => {
+  const [w] = sheetItem; if (!BLANKS[w]) return;
+  const blk = $("#s-spot .blk"), v = $("#s-name").value.trim() || BLANKS[w][2];
+  name(blk, BLANKS[w][1], v);
+  clearTimeout(nameTimer);
+  nameTimer = setTimeout(() => { const bb = $("#s-spot .bubble"); say(bb, `${v} it is.`); hop(spotWidgie, true); setTimeout(() => bb.classList.add("gone"), 1800); }, 500);
+});
+function closeSheet() {
+  $("#scrim").classList.remove("show"); $("#sheet").classList.remove("show"); $("#s-name").blur();
+  $("#sheet").inert = true;
+  for (const p of ["#tabbar"]) $(p).inert = false;
+  go(tab, true);
+  opener?.focus({ preventScroll: true });
+}
 $("#scrim").onclick = closeSheet;
 $("#s-close").onclick = closeSheet;
-$("#s-chat").onclick = () => { closeSheet(); setTimeout(() => { go("make"); $("#say").value = `Change my ${sheetItem[1].toLowerCase()} widget: `; $("#send").classList.add("ready"); $("#say").focus(); }, 240); };
-$("#s-add").onclick = () => {
-  const blk = $("#s-stage").firstChild, [w, name] = sheetItem;
-  const label = BLANKS[w] ? shownName : name;
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#sheet").classList.contains("show")) closeSheet(); });
+$("#s-chat").onclick = () => { const t = sheetItem[1]; closeSheet(); setTimeout(() => { go("make"); say_.value = `Change my ${t.toLowerCase()} widget so `; $("#composer").classList.add("typed"); $("#send").classList.add("ready"); say_.focus(); }, 240); };
+$("#s-add").onclick = (e) => {
+  const key = e.currentTarget; key.disabled = true;
+  const blk = $("#s-spot .blk"), [w, title] = sheetItem;
+  const v = BLANKS[w] ? ($("#s-name").value.trim() || BLANKS[w][2]) : null;
+  const label = w === "luna" ? v : w === "hearts" ? `Hearts for ${v}` : title;
   burst(blk);
+  hop(spotWidgie);
   setTimeout(() => {
-    flyToTab(blk, () => { $("#badge").classList.add("show"); addToFeed(w, w === "luna" ? shownName : name); toast(`${name} is in your widgets.`); });
+    flyToTab(blk, () => { $("#badge").classList.add("show"); addToFeed(w, label, v ? [BLANKS[w][1], v] : undefined); toast(`${label} is in your widgets.`); key.disabled = false; });
     setTimeout(closeSheet, 160);
   }, calm ? 0 : 200);
-  void label;
 };
 
 // ---------- tabs: each page renders once and keeps its state; switching is a quick slide ----------
@@ -578,29 +764,36 @@ function placePill() {
   pill.style.left = t.offsetLeft + "px";
   pill.style.width = t.offsetWidth + "px";
 }
-function go(next) {
+function go(next, quiet = false) {
   const to = ORDER.indexOf(next);
-  if (next === "widgets") $("#badge").classList.remove("show");
-  if (next === "make" && tab !== "make") hop($("#tab-widgie"));
+  if (next === "make" && tab !== "make") hop($("#tab-widgie"), true);
+  const entering = next !== tab;
   tab = next;
   for (const k of ORDER) {
     const page = $(`#p-${k}`), i = ORDER.indexOf(k);
     page.classList.toggle("hidden", k !== next);
     page.classList.toggle("to-left", i < to);
     page.classList.toggle("to-right", i > to);
+    page.inert = k !== next;
   }
   $("#composer").classList.toggle("hidden", next !== "make");
-  for (const t of document.querySelectorAll(".tab")) t.classList.toggle("on", t.dataset.tab === next);
+  $("#composer").inert = next !== "make";
+  for (const t of document.querySelectorAll(".tab")) { t.classList.toggle("on", t.dataset.tab === next); t.setAttribute("aria-selected", t.dataset.tab === next); }
   placePill();
+  if (next === "widgets") {
+    $("#badge").classList.remove("show");
+    if (arriving && !quiet) { const it = arriving; arriving = null; $("#toast").classList.remove("show"); layoutFeed(); setTimeout(() => land(it), calm ? 0 : 120); }
+  }
+  void entering;
 }
 for (const t of document.querySelectorAll("[data-tab]")) t.onclick = () => go(t.dataset.tab);
 for (const b of document.querySelectorAll("[data-go]")) b.onclick = () => go(b.dataset.go);
 function redrawCast() {
-  for (const el of [$("#w-widgie"), $("#m-widgie")].filter(Boolean)) { el.classList.remove("fadeswap"); void el.offsetWidth; el.classList.add("fadeswap"); }
-  drawWidgie($("#w-widgie"), "lean", { mirror: "1" });
-  if ($("#m-widgie")) drawWidgie($("#m-widgie"), "lean", { mirror: "1" });
-  drawWidgie($("#tab-widgie"), "idle", { moon: "0" });
-  for (const a of document.querySelectorAll(".avatar .widgie")) drawWidgie(a, "idle", { eyes: "happy" });
+  for (const el of document.querySelectorAll(".widgie")) {
+    if (!el._pose) continue;
+    el.classList.remove("fadeswap"); void el.offsetWidth; el.classList.add("fadeswap");
+    drawWidgie(el, ...el._pose);
+  }
 }
 for (const b of document.querySelectorAll("[data-time]")) b.onclick = () => {
   night = b.dataset.time === "night";
@@ -608,31 +801,33 @@ for (const b of document.querySelectorAll("[data-time]")) b.onclick = () => {
   phone.classList.toggle("night", night);
   $("#w-hello").textContent = night ? "Good evening" : "Good morning";
   redrawCast();
-  say($("#w-bubble"), night ? "I'll keep an eye on them tonight." : "Morning! Luna's waiting on breakfast.");
-  renderPile(false);
+  say($("#w-bubble"), greet(), { swap: true });
 };
 
 // Widgie's idle life on Widgets: a double blink, a glance at your widgets, or a little hop, every 8 to 11 seconds.
+let beat = 0;
 function idle() {
   const w = $("#w-widgie");
-  if (tab === "widgets" && !calm) { const n = Math.floor(Date.now() / 1000) % 3; if (n === 0) play(w, "blink2", 640); else if (n === 1) play(w, "glance", 1420); else hop(w); }
-  setTimeout(idle, 8000 + (Date.now() % 3000));
+  if (tab === "widgets" && !calm) { const n = beat++ % 3; if (n === 0) play(w, "blink2", 640, true); else if (n === 1) play(w, "glance", 1420); else hop(w, true); }
+  setTimeout(idle, 8000 + (beat % 3) * 1500);
 }
 
-redrawCast();
-renderFeed();
+drawWidgie($("#w-widgie"), "lean", { mirror: "1" });
+drawWidgie($("#tab-widgie"), "idle", { moon: "0" });
+layoutFeed({ first: true });
 makeReset();
 renderCats();
 renderPile(false);
 go("widgets");
-setTimeout(() => say($("#w-bubble"), "Morning! Luna's waiting on breakfast."), 700);
+setTimeout(() => say($("#w-bubble"), greet()), 700);
 setTimeout(idle, 9000);
 window.proto = {
-  go, ask: (i) => ask(IDEAS[i]), openSheet: (i) => openSheet(CATS[cat].items[i]),
+  go, ask: (i) => ask(IDEAS[i], IDEAS[i].t), openSheet: (i) => openSheet(CATS[cat].items[i], null),
   setNight: (n) => document.querySelector(`[data-time="${n ? "night" : "day"}"]`).click(),
-  say: () => say($("#w-bubble"), night ? "I'll keep an eye on them tonight." : "Morning! Luna's waiting on breakfast."),
+  say: () => say($("#w-bubble"), greet()),
   cat: (k) => document.querySelector(`.cat[data-cat="${k}"]`).click(),
-  add: (w, n) => addToFeed(w, n),
+  add: (w, n, as) => addToFeed(w, n, as),
+  saveDraft: () => draft && saved(),
 };
 })();
 </script>
