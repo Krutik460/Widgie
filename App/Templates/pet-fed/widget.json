@@ -1,0 +1,64 @@
+{
+  "format": 1,
+  "name": "{{pet}} fed",
+  "tables": {
+    "feeds": {
+      "fields": {}
+    }
+  },
+  "queries": {
+    "last": {
+      "latest": "feeds",
+      "window": {
+        "days": 2
+      }
+    },
+    "today": {
+      "count": "feeds",
+      "window": "today"
+    }
+  },
+  "actions": {
+    "feed": {
+      "insert": "feeds"
+    },
+    "undo": {
+      "delete": "feeds"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "fed by Sam": {
+      "feeds": [
+        {
+          "minutesAgo": 95,
+          "by": "Sam"
+        },
+        {
+          "minutesAgo": 640
+        }
+      ]
+    },
+    "just fed": {
+      "feeds": [
+        {
+          "minutesAgo": 4
+        },
+        {
+          "minutesAgo": 430,
+          "by": "Sam"
+        }
+      ]
+    },
+    "overdue": {
+      "feeds": [
+        {
+          "minutesAgo": 790,
+          "by": "Sam"
+        }
+      ]
+    }
+  },
+  "look": "// The pet's name, filled in when the template is added.\nconst PET = {{pet}};\n// Turns red once the last feed is this many minutes old.\nconst DUE = 12 * 60;\nconst AMBER = '#FFB547';\nconst RED = '#FF5A5F';\n\nfunction ago(minutes) {\n  if (minutes < 1) return 'Just now';\n  if (minutes < 60) return minutes + ' min ago';\n  const hours = Math.floor(minutes / 60);\n  const rest = minutes % 60;\n  if (hours >= 10 || rest === 0) return hours + ' h ago';\n  return hours + ' h ' + rest + ' min ago';\n}\n\nfunction clock(at) {\n  return at.charAt(0) === '0' ? at.slice(1) : at;\n}\n\nfunction who(row) {\n  if (row.by.me) return 'You';\n  return row.by.name || 'Someone';\n}\n\nfunction render(ctx) {\n  const d = ctx.data;\n  const last = d.last;\n  const due = !last || last.minutesAgo >= DUE;\n  const tone = due ? RED : AMBER;\n\n  // The paw is cut out of the disc, so it shows in tinted and clear mode.\n  const feed = { type: 'button', action: 'feed', children: [\n    { type: 'symbol', name: 'pawprint.circle.fill', size: ctx.family === 'medium' ? 64 : 44, color: tone,\n      accent: true } ] };\n\n  const undo = last && last.by.me && last.minutesAgo < 60 && { type: 'button', action: 'undo', rowId: last.id,\n    children: [\n      { type: 'symbol', name: 'arrow.uturn.backward', size: 12, weight: 'bold', color: '#F6E7D0',\n        frame: { width: 30, height: 30 }, background: '#F6E7D022', clip: 'circle' } ] };\n\n  const headline = !last ? 'Not fed yet' : due ? 'Feed me!' : ago(last.minutesAgo);\n  const detail = !last\n    ? 'Tap the paw after a meal'\n    : due\n      ? who(last) + ' fed ' + ago(last.minutesAgo).replace(' ago', '') + ' ago'\n      : who(last) + ' at ' + clock(last.at);\n\n  const status = {\n    type: 'vstack', align: 'leading', spacing: 4,\n    frame: { maxWidth: 'infinity', alignment: 'leading' },\n    children: [\n      { type: 'hstack', spacing: 5, children: [\n        { type: 'symbol', name: 'dog.fill', size: 13, color: '#F6E7D0' },\n        { type: 'text', value: PET, size: 13, weight: 'semibold', color: '#F6E7D0CC' } ] },\n      { type: 'text', value: headline, size: ctx.family === 'medium' ? 28 : 22, weight: 'bold', design: 'rounded',\n        color: due ? RED : '#FFFFFF', lineLimit: 1, minScale: 0.5 },\n      { type: 'text', value: detail, size: 12, weight: 'medium', color: '#F6E7D0B3', lineLimit: 2, minScale: 0.7 },\n    ],\n  };\n\n  const count = { type: 'text', value: d.today === 1 ? '1 meal today' : d.today + ' meals today', size: 11,\n    weight: 'semibold', color: '#F6E7D099', lineLimit: 1, minScale: 0.6 };\n\n  if (ctx.family === 'medium') {\n    return {\n      type: 'hstack', spacing: 16, padding: 16,\n      frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n      widgetBackground: { gradient: 'linear', stops: ['#3B2A1E', '#24180F'], from: 'top', to: 'bottom' },\n      children: [\n        { type: 'vstack', align: 'leading', spacing: 8,\n          frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n          children: [status, { type: 'spacer', minLength: 0 }, count] },\n        { type: 'vstack', spacing: 6, children: [feed, undo] },\n      ],\n    };\n  }\n\n  return {\n    type: 'vstack', align: 'leading', spacing: 0, padding: 14,\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n    widgetBackground: { gradient: 'linear', stops: ['#3B2A1E', '#24180F'], from: 'top', to: 'bottom' },\n    children: [\n      status,\n      { type: 'spacer', minLength: 0 },\n      { type: 'hstack', align: 'bottom', children: [\n        undo || count,\n        { type: 'spacer', minLength: 0 },\n        feed ] },\n    ],\n  };\n}\n"
+}

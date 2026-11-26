@@ -28,6 +28,10 @@ targets:
       - path: ../Engine/Fixtures
         type: folder
         buildPhase: resources
+      # The ready-made widgets the Templates tab offers. Every build ships them.
+      - path: Templates
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: WidgetEngine
         products: [WidgetEngine, WidgetBuilder, WidgetHosting]
