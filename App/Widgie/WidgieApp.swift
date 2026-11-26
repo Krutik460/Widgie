@@ -14,8 +14,7 @@ struct WidgieApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LibraryView(library: library)
-                .onOpenURL { library.open($0) }
+            RootView(library: library)
         }
         // iOS kills a suspended app that holds the shared database lock, so writes stop in the background.
         .onChange(of: phase) { _, phase in

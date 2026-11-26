@@ -3,6 +3,7 @@ import Observation
 import WidgetBuilder
 import WidgetEngine
 import WidgetHosting
+import WidgetKit
 
 /// The app's view of the shared store: the widgets, their faces in both sizes, and the open form.
 @MainActor @Observable
@@ -14,6 +15,10 @@ final class Library {
     }
 
     private(set) var items: [Item] = []
+    /// The sizes each widget is placed in on the home screen. A widget missing here is not placed.
+    private(set) var placed: [WidgetID: Set<Family>] = [:]
+    /// The faces' sizes, set from the width of the screen showing them.
+    private(set) var sizes = FaceSizes(column: Family.medium.standardSize.width)
     var form: ShownForm?
     var message: String?
 
@@ -41,6 +46,23 @@ final class Library {
         Task { await reload() }
     }
 
+    /// Draws the faces for a column this wide, as the home screen would.
+    func fit(column width: CGFloat) {
+        let sizes = FaceSizes(column: width)
+        guard sizes != self.sizes else { return }
+        self.sizes = sizes
+        refresh()
+    }
+
+    /// The size a widget is shown in: the size it is placed in, medium if it is placed in both, and otherwise
+    /// every third widget wide, so the feed keeps a rhythm of one wide and a pair of smalls.
+    func family(of item: Item, at index: Int) -> Family {
+        let placed = placed[item.id] ?? []
+        if placed.contains(.medium) { return .medium }
+        if placed.contains(.small) { return .small }
+        return index % 3 == 0 ? .medium : .small
+    }
+
     /// A reload that finishes after a later one started is stale and is dropped, so it never brings back a
     /// widget the later one no longer found.
     func reload() async {
@@ -52,15 +74,38 @@ final class Library {
                 var faces: [Family: Face] = [:]
                 for family in Family.allCases {
                     faces[family] = await engine.faces(
-                        for: summary.id, family: family, size: family.standardSize, from: .now
+                        for: summary.id, family: family, size: sizes[family], from: .now
                     ).current
                 }
                 items.append(Item(summary: summary, faces: faces))
             }
-            if reload == reloads { self.items = items }
+            let placed = await Self.placements(latest: items.first?.id)
+            if reload == reloads {
+                self.items = items
+                self.placed = placed
+            }
         } catch {
             message = error.message
         }
+    }
+
+    /// Which widget each home screen widget shows, and in what size. A widget never configured shows the latest
+    /// creation, as `WidgetChoiceQuery.defaultResult` does.
+    private static func placements(latest: WidgetID?) async -> [WidgetID: Set<Family>] {
+        guard let infos = try? await WidgetCenter.shared.currentConfigurations() else { return [:] }
+        return placements(
+            infos.filter { $0.kind == CreationWidget.kind }.map {
+                ($0.widgetConfigurationIntent(of: PickWidget.self)?.widget?.id, Family($0.family))
+            }, latest: latest)
+    }
+
+    static func placements(_ shown: [(WidgetID?, Family)], latest: WidgetID?) -> [WidgetID: Set<Family>] {
+        var placed: [WidgetID: Set<Family>] = [:]
+        for (id, family) in shown {
+            guard let id = id ?? latest else { continue }
+            placed[id, default: []].insert(family)
+        }
+        return placed
     }
 
     /// A bundled fixture's source, or nil when this build bundles none.
@@ -112,6 +157,9 @@ final class Library {
         showForm(for: tap)
     }
 
+    /// A placed widget whose id names no widget left draws nothing, so it does not count.
+    var placedCount: Int { items.count { placed[$0.id] != nil } }
+
     private func attempt(_ write: () throws(EngineError) -> Void) {
         do {
             try write()
@@ -120,4 +168,21 @@ final class Library {
         }
         refresh()
     }
+}
+
+/// The faces' sizes in a column: a small is half the column less the gap between two, and a medium is the whole
+/// column at a small's height, as on the home screen.
+struct FaceSizes: Equatable {
+    static let gap: CGFloat = 14
+
+    let small: CGSize
+    let medium: CGSize
+
+    init(column width: CGFloat) {
+        let side = ((width - Self.gap) / 2).rounded(.down)
+        small = CGSize(width: side, height: side)
+        medium = CGSize(width: side * 2 + Self.gap, height: side)
+    }
+
+    subscript(family: Family) -> CGSize { family == .small ? small : medium }
 }

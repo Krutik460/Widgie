@@ -167,9 +167,12 @@ struct Provider: AppIntentTimelineProvider {
 }
 
 public struct CreationWidget: Widget {
+    /// The kind WidgetKit knows this widget by, which `WidgetCenter` reports for each placed copy.
+    public static let kind = "creation"
+
     public init() {}
     public var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: "creation", intent: PickWidget.self, provider: Provider()) { entry in
+        AppIntentConfiguration(kind: Self.kind, intent: PickWidget.self, provider: Provider()) { entry in
             WidgetFace(face: entry.face)
         }
         .contentMarginsDisabled()
@@ -211,7 +214,7 @@ extension ImageTint {
 }
 
 extension Family {
-    init(_ family: WidgetFamily) {
+    public init(_ family: WidgetFamily) {
         self = family == .systemMedium ? .medium : .small
     }
 }
