@@ -53,3 +53,11 @@
 **Rule.** Check each page's first screen as its own deliverable, not just whether the page scrolls cleanly.
 
 **Rule.** Resize the components too, not just the layout. Buttons, fields and chips sized for a desktop (here 64px keys with 21px text) look clumsy on a phone. Give each one a phone size: about 50 to 54px tall and 17 to 18px text, still at least 44px to tap.
+
+## 2026-11-26. Take a site's world into the app, not its chunky skin
+
+**What happened.** Asked for templates "like our landing page" and Widgie as the app's character, I brought the site's whole toy box into the app prototype, including the ink outlines and the hard offset shadows on every button, chip, field and tile. The user said that look "makes it look like college project", and liked everything else: Widgie as the hero, the templates, the motion, and night mode.
+
+**Rule.** "Like the landing page" means its content and character (the widgets, the caret acting things out, the sky), not every surface treatment. In the app, keep surfaces soft: no outlines, no hard offset shadows or lips. Use soft lifted shadows, glass on floating controls, and springy scale on press.
+
+**Rule.** When porting a look from one medium to another (a marketing page to an app), list which traits make it charming and which are just loud, and ask before carrying the loud ones over.
