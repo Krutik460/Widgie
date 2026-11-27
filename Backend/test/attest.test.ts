@@ -19,13 +19,11 @@ beforeAll(async () => {
     };
 });
 
-let addresses = 0;
-/// A new client address per request unless one is given, so the rate limit counts only where a test means it to.
 function post(path: string, body: BodyInit | object, headers: Record<string, string> = {}) {
     const encoded = typeof body === "string" || body instanceof ReadableStream ? body : JSON.stringify(body);
     return new Request(`https://widgie.test${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "CF-Connecting-IP": `192.0.2.${++addresses}`, ...headers },
+        headers: { "Content-Type": "application/json", ...headers },
         body: encoded,
     });
 }
@@ -183,17 +181,14 @@ describe("the attest routes' requests", () => {
         expect((await send(post("/v1/attest/challenge", stream), untouchable)).status).toBe(413);
     });
 
-    it("are rate-limited per client address, ten a minute, before the body is read", async () => {
+    it("have no rate limit for now: many requests from one address are all answered", async () => {
         const address = { "CF-Connecting-IP": "203.0.113.7" };
-        const statuses: number[] = [];
-        for (let i = 0; i < 11; i++) {
-            statuses.push((await send(post("/v1/attest/challenge", { keyId: "bad" }, address), untouchable)).status);
+        for (let i = 0; i < 20; i++) {
+            expect((await send(post("/v1/attest/challenge", { keyId: "bad" }, address), untouchable)).status).toBe(400);
         }
-        expect(statuses).toEqual([...Array(10).fill(400), 429]);
-        expect(await send(post("/v1/attest", "x".repeat(MAX_ATTEST_BODY + 1), address), untouchable)).toEqual({
-            status: 429,
-            body: { error: "too many requests, try again in a minute", code: "rate-limited" },
-        });
-        expect((await send(post("/v1/attest/challenge", { keyId: "bad" }), untouchable)).status).toBe(400);
+        const { keyId } = await newKey();
+        for (let i = 0; i < 20; i++) {
+            expect((await send(post("/v1/attest/challenge", { keyId }, address))).status).toBe(200);
+        }
     });
 });

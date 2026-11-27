@@ -5,12 +5,13 @@ import {
     type AttestationContext,
     aaguid,
     environmentOf,
+    LEAF_CLOCK_SKEW_MS,
     verifyAssertion,
     verifyAttestation,
 } from "../src/attestation";
-import { sha256, toHex } from "../src/bytes";
+import { concat, sha256, toHex } from "../src/bytes";
 import { CborError, decodeCbor } from "../src/cbor";
-import { parseCertificate, rawSignature } from "../src/der";
+import { DerError, parseCertificate, rawSignature } from "../src/der";
 import {
     APP_ID,
     type AttestationOptions,
@@ -23,6 +24,8 @@ import {
     derSignature,
     party,
     Signer,
+    seq,
+    tlv,
 } from "./helpers/appattest";
 
 const NOW = new Date("2026-11-23T12:00:00Z");
@@ -114,7 +117,10 @@ describe("verifyAttestation", () => {
                 leafValidity: { notBefore: new Date(NOW.getTime() - 3 * DAY), notAfter: new Date(NOW.getTime() - 1) },
             });
             await failed("chain", {
-                leafValidity: { notBefore: new Date(NOW.getTime() + 1000), notAfter: new Date(NOW.getTime() + DAY) },
+                leafValidity: {
+                    notBefore: new Date(NOW.getTime() + LEAF_CLOCK_SKEW_MS + 1000),
+                    notAfter: new Date(NOW.getTime() + DAY),
+                },
             });
             const expired = await certificate({
                 subject: trusted.intermediate,
@@ -124,6 +130,67 @@ describe("verifyAttestation", () => {
                 authority: true,
             });
             await failed("chain", { intermediateDer: expired });
+        });
+
+        it("allows a leaf issued up to five minutes ahead of the Worker's clock, and only the leaf", async () => {
+            expect(LEAF_CLOCK_SKEW_MS).toBe(5 * 60 * 1000);
+            const ahead = (ms: number) => ({
+                notBefore: new Date(NOW.getTime() + ms),
+                notAfter: new Date(NOW.getTime() + DAY),
+            });
+            expect(await verify({ leafValidity: ahead(LEAF_CLOCK_SKEW_MS - 1000) })).toMatchObject({ ok: true });
+            await failed("chain", { leafValidity: ahead(LEAF_CLOCK_SKEW_MS + 1000) });
+            const early = await certificate({
+                subject: trusted.intermediate,
+                issuer: trusted.root,
+                ...ahead(60 * 1000),
+                authority: true,
+            });
+            await failed("chain", { intermediateDer: early });
+        });
+
+        it("refuses a root outside its validity, though it signed the intermediate", async () => {
+            const root = (notBefore: Date, notAfter: Date) =>
+                certificate({ subject: trusted.root, issuer: trusted.root, notBefore, notAfter, authority: true });
+            const valid = await root(new Date(NOW.getTime() - 10 * DAY), new Date(NOW.getTime() + 10 * DAY));
+            expect(await verify({}, { root: valid })).toMatchObject({ ok: true });
+            const expired = await root(new Date(NOW.getTime() - 10 * DAY), new Date(NOW.getTime() - DAY));
+            expect(await verify({}, { root: expired })).toEqual({ ok: false, failed: "chain" });
+            const early = await root(new Date(NOW.getTime() + DAY), new Date(NOW.getTime() + 10 * DAY));
+            expect(await verify({}, { root: early })).toEqual({ ok: false, failed: "chain" });
+        });
+
+        it("refuses a leaf naming another issuer, though the intermediate's key signed it", async () => {
+            expect(await verify({ leafIssuer: { ...trusted.intermediate } })).toMatchObject({ ok: true });
+            await failed("chain", { leafIssuer: { ...trusted.intermediate, commonName: "Another CA" } });
+        });
+
+        it("refuses an intermediate naming another issuer, though the root's key signed it", async () => {
+            const intermediate = (commonName: string) =>
+                certificate({
+                    subject: trusted.intermediate,
+                    issuer: { ...trusted.root, commonName },
+                    notBefore: new Date(NOW.getTime() - DAY),
+                    notAfter: new Date(NOW.getTime() + DAY),
+                    authority: true,
+                });
+            const same = await intermediate(trusted.root.commonName);
+            expect(await verify({ intermediateDer: same })).toMatchObject({ ok: true });
+            await failed("chain", { intermediateDer: await intermediate("Another Root") });
+        });
+
+        it("refuses a certificate whose signed algorithm differs from its outer one", async () => {
+            const options = {
+                subject: trusted.intermediate,
+                issuer: trusted.root,
+                notBefore: new Date(NOW.getTime() - DAY),
+                notAfter: new Date(NOW.getTime() + DAY),
+                authority: true,
+            };
+            expect(await verify({ intermediateDer: await certificate(options) })).toMatchObject({ ok: true });
+            const mixed = await certificate({ ...options, tbsHash: "SHA-256" });
+            expect(() => parseCertificate(mixed)).toThrow(new DerError("signature algorithms differ"));
+            await failed("chain", { intermediateDer: mixed });
         });
 
         it("refuses a valid chain checked at a time after it expired", async () => {
@@ -149,9 +216,20 @@ describe("verifyAttestation", () => {
             failed("nonce", { nonce: async (authData) => sha256(authData, new Uint8Array(32)) }));
 
         it("refuses a leaf without the nonce extension", () => failed("nonce", { nonce: async () => null }));
+
+        it("refuses a nonce extension under another tag, or with a second element", async () => {
+            const tagged = (tag: number, nonce: Uint8Array) => tlv(tag, tlv(0x04, nonce));
+            expect(await verify({ nonceValue: (nonce) => seq(tagged(0xa1, nonce)) })).toMatchObject({ ok: true });
+            await failed("nonce", { nonceValue: (nonce) => seq(tagged(0xa2, nonce)) });
+            await failed("nonce", { nonceValue: (nonce) => seq(tagged(0xa1, nonce), tagged(0xa1, nonce)) });
+        });
     });
 
     describe("4. the key id", () => {
+        it("refuses a leaf key on another curve, even when the key id is its hash", async () => {
+            await failed("key-id", { leaf: await party("P-384", "leaf") });
+        });
+
         it("refuses a key id that is not the leaf key's hash", async () => {
             const made = await attestation({ now: NOW, chain: trusted });
             const other = crypto.getRandomValues(new Uint8Array(32));
@@ -203,6 +281,30 @@ describe("verifyAssertion", () => {
         expect(await check(await signer.assertion(hash, { appId: "other" }))).toBeNull();
         expect(await check(await signer.assertion(hash), (await Signer.create()).publicKey)).toBeNull();
         expect(await check(new Uint8Array([0xa0]))).toBeNull();
+    });
+
+    it("refuses authenticator data shorter than 37 bytes, though signed", async () => {
+        const signer = await Signer.create();
+        const hash = await clientDataHash("{}");
+        const verifyWith = (data: (bytes: Uint8Array) => Uint8Array) =>
+            signer
+                .assertion(hash, { authenticatorData: data })
+                .then((assertion) =>
+                    verifyAssertion({ publicKey: signer.publicKey, appId: APP_ID, clientDataHash: hash, assertion }),
+                );
+        expect(await verifyWith((bytes) => concat(bytes, new Uint8Array([9])))).not.toBeNull();
+        expect(await verifyWith((bytes) => bytes.subarray(0, 36))).toBeNull();
+    });
+
+    it("refuses a client data hash that is not 32 bytes, though signed over it", async () => {
+        const signer = await Signer.create();
+        const hash = await clientDataHash("{}");
+        for (const other of [concat(hash, new Uint8Array([0])), hash.subarray(0, 31)]) {
+            const assertion = await signer.assertion(other);
+            expect(
+                await verifyAssertion({ publicKey: signer.publicKey, appId: APP_ID, clientDataHash: other, assertion }),
+            ).toBeNull();
+        }
     });
 });
 

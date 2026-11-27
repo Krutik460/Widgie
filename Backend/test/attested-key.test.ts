@@ -1,7 +1,8 @@
 import { runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { type AttestedKey, CHALLENGE_LIFE_MS, quotaPerDay } from "../src/attested-key";
+import { type AssertionCheck, verifyAssertion } from "../src/attestation";
+import { type AttestedKey, CHALLENGE_LIFE_MS } from "../src/attested-key";
 import { clientDataHash, Signer } from "./helpers/appattest";
 
 const stubFor = (keyId: string) => env.ATTESTED_KEY.getByName(keyId);
@@ -24,9 +25,9 @@ async function contents(keyId: string) {
 
 const EMPTY = { tables: [], rows: [], alarm: null };
 
-async function reserve(signer: Signer, options: { counter?: number; body?: string } = {}) {
+async function advance(signer: Signer, options: { counter?: number; body?: string } = {}) {
     const hash = await clientDataHash(options.body ?? "{}");
-    return stubFor(signer.keyId).verifyAndReserve(hash, await signer.assertion(hash, options));
+    return stubFor(signer.keyId).verifyAndAdvance(hash, await signer.assertion(hash, options));
 }
 
 describe("an object for a key it does not hold", () => {
@@ -34,7 +35,7 @@ describe("an object for a key it does not hold", () => {
         const keyId = randomKeyId();
         const signer = await Signer.create();
         const hash = await clientDataHash("{}");
-        expect(await stubFor(keyId).verifyAndReserve(hash, await signer.assertion(hash))).toBe("unknown-key");
+        expect(await stubFor(keyId).verifyAndAdvance(hash, await signer.assertion(hash))).toBe("unknown-key");
         expect(await stubFor(keyId).takeChallenge("x".repeat(43))).toBe("bad-attestation");
         expect(await contents(keyId)).toEqual(EMPTY);
     });
@@ -91,7 +92,7 @@ describe("storing a key", () => {
         expect(await stubFor(signer.keyId).storeKey(signer.publicKey)).toBeNull();
         const { rows, alarm } = (await contents(signer.keyId)) as { rows: Record<string, unknown>[]; alarm: unknown };
         expect(rows).toHaveLength(1);
-        expect(rows[0]).toMatchObject({ counter: 0, quota_count: 0, challenge: null });
+        expect(rows[0]).toMatchObject({ counter: 0, challenge: null });
         expect(new Uint8Array(rows[0]?.public_key as ArrayBuffer)).toEqual(signer.publicKey);
         expect(alarm).toBeNull();
     });
@@ -109,96 +110,111 @@ describe("storing a key", () => {
         expect(await runDurableObjectAlarm(stubFor(signer.keyId))).toBe(true);
         expect(await contents(signer.keyId)).toEqual(EMPTY);
         expect(await stubFor(signer.keyId).storeKey(signer.publicKey)).toBeNull();
-        expect(await reserve(signer)).toBeNull();
+        expect(await advance(signer)).toBeNull();
     });
 
     it("survives an alarm that fires after attestation, with its counter", async () => {
         const signer = await Signer.attested();
-        expect(await reserve(signer, { counter: 5 })).toBeNull();
+        expect(await advance(signer, { counter: 5 })).toBeNull();
         expect(await runDurableObjectAlarm(stubFor(signer.keyId))).toBe(false);
         await runInDurableObject<AttestedKey, void>(stubFor(signer.keyId), (instance) => instance.alarm());
         const { rows } = (await contents(signer.keyId)) as { rows: Record<string, unknown>[] };
-        expect(rows[0]).toMatchObject({ counter: 5, quota_count: 1 });
-        expect(await reserve(signer, { counter: 5 })).toBe("bad-assertion");
+        expect(rows[0]).toMatchObject({ counter: 5 });
+        expect(await advance(signer, { counter: 5 })).toBe("bad-assertion");
     });
 });
 
-describe("verifyAndReserve", () => {
+describe("verifyAndAdvance", () => {
     it("passes a signed request and advances the counter", async () => {
         const signer = await Signer.attested();
-        expect(await reserve(signer, { counter: 3 })).toBeNull();
+        expect(await advance(signer, { counter: 3 })).toBeNull();
         const { rows } = (await contents(signer.keyId)) as { rows: Record<string, unknown>[] };
-        expect(rows[0]).toMatchObject({ counter: 3, quota_count: 1, quota_day: new Date().toISOString().slice(0, 10) });
+        expect(rows[0]).toMatchObject({ counter: 3 });
     });
 
     it("refuses a replayed or older counter", async () => {
         const signer = await Signer.attested();
-        expect(await reserve(signer, { counter: 2 })).toBeNull();
-        expect(await reserve(signer, { counter: 2 })).toBe("bad-assertion");
-        expect(await reserve(signer, { counter: 1 })).toBe("bad-assertion");
+        expect(await advance(signer, { counter: 2 })).toBeNull();
+        expect(await advance(signer, { counter: 2 })).toBe("bad-assertion");
+        expect(await advance(signer, { counter: 1 })).toBe("bad-assertion");
     });
 
     it("refuses an assertion for another body or path", async () => {
         const signer = await Signer.attested();
         const hash = await clientDataHash("{}");
         const stub = stubFor(signer.keyId);
-        expect(await stub.verifyAndReserve(hash, await signer.assertion(await clientDataHash("{ }")))).toBe(
+        expect(await stub.verifyAndAdvance(hash, await signer.assertion(await clientDataHash("{ }")))).toBe(
             "bad-assertion",
         );
         const otherPath = await signer.assertion(await clientDataHash("{}", { path: "/v1/attest" }));
-        expect(await stub.verifyAndReserve(hash, otherPath)).toBe("bad-assertion");
-        expect(await stub.verifyAndReserve(hash, new Uint8Array([1, 2, 3]))).toBe("bad-assertion");
+        expect(await stub.verifyAndAdvance(hash, otherPath)).toBe("bad-assertion");
+        expect(await stub.verifyAndAdvance(hash, new Uint8Array([1, 2, 3]))).toBe("bad-assertion");
     });
 
     it("lets exactly one of two concurrent requests with the same counter through", async () => {
         const signer = await Signer.attested();
         const hash = await clientDataHash("{}");
         const [a, b] = [await signer.assertion(hash, { counter: 1 }), await signer.assertion(hash, { counter: 1 })];
+        // Both requests finish their signature check before either reads the counter, which is the order that would
+        // let both through if the counter were read before the check's await.
+        let waiting = 0;
+        let release = () => {};
+        const bothChecked = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        await runInDurableObject(stubFor(signer.keyId), (instance) => {
+            (instance as unknown as { verify: (check: AssertionCheck) => Promise<number | null> }).verify = async (
+                check,
+            ) => {
+                const counter = await verifyAssertion(check);
+                if (++waiting === 2) release();
+                await bothChecked;
+                return counter;
+            };
+        });
         const results = await Promise.all([
-            stubFor(signer.keyId).verifyAndReserve(hash, a),
-            stubFor(signer.keyId).verifyAndReserve(hash, b),
+            stubFor(signer.keyId).verifyAndAdvance(hash, a),
+            stubFor(signer.keyId).verifyAndAdvance(hash, b),
         ]);
+        expect(waiting).toBe(2);
         expect(results.sort()).toEqual(["bad-assertion", null]);
     });
 
-    it("answers daily-quota on the call after the quota (2 in tests), without refunds", async () => {
+    it("has no daily limit: many calls in a row all pass", async () => {
         const signer = await Signer.attested();
-        expect(await reserve(signer)).toBeNull();
-        expect(await reserve(signer)).toBeNull();
-        expect(await reserve(signer)).toBe("daily-quota");
+        for (let i = 0; i < 50; i++) expect(await advance(signer)).toBeNull();
     });
 
-    it("starts a new quota on a new UTC day", async () => {
-        const signer = await Signer.attested();
+    it("works in an object made while the daily quota existed, which still has its columns", async () => {
+        const signer = await Signer.create();
         await runInDurableObject(stubFor(signer.keyId), (_, state) => {
-            state.storage.sql.exec("UPDATE attested_key SET quota_day = '2000-01-01', quota_count = 2");
+            state.storage.sql.exec(
+                `CREATE TABLE attested_key (id INTEGER PRIMARY KEY CHECK (id = 1), public_key BLOB,
+                 counter INTEGER NOT NULL DEFAULT 0, quota_day TEXT, quota_count INTEGER NOT NULL DEFAULT 0,
+                 challenge TEXT, challenge_expires INTEGER)`,
+            );
         });
-        expect(await reserve(signer)).toBeNull();
+        const issued = await stubFor(signer.keyId).issueChallenge();
+        if (!("challenge" in issued)) throw new Error("expected a challenge");
+        expect(await stubFor(signer.keyId).takeChallenge(issued.challenge)).toBeNull();
+        expect(await stubFor(signer.keyId).storeKey(signer.publicKey)).toBeNull();
+        expect(await advance(signer, { counter: 3 })).toBeNull();
+        expect(await advance(signer, { counter: 3 })).toBe("bad-assertion");
         const { rows } = (await contents(signer.keyId)) as { rows: Record<string, unknown>[] };
-        expect(rows[0]).toMatchObject({ quota_count: 1 });
+        expect(rows[0]).toMatchObject({ counter: 3, quota_count: 0, challenge: null });
     });
 
     it("changes nothing when it refuses", async () => {
         const signer = await Signer.attested();
-        expect(await reserve(signer, { counter: 4 })).toBeNull();
-        expect(await reserve(signer, { counter: 9 })).toBeNull();
+        expect(await advance(signer, { counter: 4 })).toBeNull();
+        expect(await advance(signer, { counter: 9 })).toBeNull();
         const before = await contents(signer.keyId);
-        expect(await reserve(signer, { counter: 4 })).toBe("bad-assertion");
-        expect(await reserve(signer, { counter: 10 })).toBe("daily-quota");
+        expect(await advance(signer, { counter: 4 })).toBe("bad-assertion");
+        expect(await advance(signer, { counter: 9 })).toBe("bad-assertion");
         const hash = await clientDataHash("{}");
         expect(
-            await stubFor(signer.keyId).verifyAndReserve(hash, await signer.assertion(await clientDataHash("x"))),
+            await stubFor(signer.keyId).verifyAndAdvance(hash, await signer.assertion(await clientDataHash("x"))),
         ).toBe("bad-assertion");
         expect(await contents(signer.keyId)).toEqual(before);
-    });
-});
-
-describe("quotaPerDay", () => {
-    it("defaults to 40 and refuses anything but a whole number", () => {
-        expect(quotaPerDay(undefined)).toBe(40);
-        expect(quotaPerDay("")).toBe(40);
-        expect(quotaPerDay("2")).toBe(2);
-        for (const bad of ["-1", "2.5", "two", " 2", "02"])
-            expect(() => quotaPerDay(bad), bad).toThrow("QUOTA_PER_DAY");
     });
 });

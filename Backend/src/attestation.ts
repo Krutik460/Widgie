@@ -38,6 +38,10 @@ export type AttestationCheck =
     | "environment"
     | "credential-id";
 
+/// How far ahead of this Worker's clock a leaf's notBefore may be. Apple issues the leaf the moment the phone
+/// attests, so a Worker clock a little behind Apple's would otherwise refuse a fresh attestation.
+export const LEAF_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
 export type AttestationResult = { ok: true; publicKey: Uint8Array } | { ok: false; failed: AttestationCheck };
 
 /// The AAGUID in authData: `appattestdevelop`, or `appattest` and seven zero bytes.
@@ -80,7 +84,7 @@ export async function verifyAttestation(
     const credential = attestedCredential(authData);
     if (!credential) return fail("format");
 
-    // 2. The chain: leaf, then intermediate, then the pinned root, each valid now.
+    // 2. The chain: leaf, then intermediate, then the pinned root, each valid now (the leaf allowing for clock skew).
     const leaf = await chainedLeaf(x5c[0] as Uint8Array, x5c[1] as Uint8Array, context);
     if (!leaf) return fail("chain");
 
@@ -183,10 +187,12 @@ async function chainedLeaf(
         return null;
     }
     const now = context.now.getTime();
-    const current = (certificate: Certificate) =>
-        certificate.notBefore.getTime() <= now && now <= certificate.notAfter.getTime();
+    const current = (certificate: Certificate, skew = 0) =>
+        certificate.notBefore.getTime() - skew <= now && now <= certificate.notAfter.getTime();
     if (
-        ![leaf, intermediate, root].every(current) ||
+        !current(leaf, LEAF_CLOCK_SKEW_MS) ||
+        !current(intermediate) ||
+        !current(root) ||
         !equal(leaf.issuer, intermediate.subject) ||
         !equal(intermediate.issuer, root.subject) ||
         !safely(() => isAuthority(intermediate))

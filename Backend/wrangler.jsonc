@@ -6,10 +6,9 @@
 // "off", "low", "medium", "high", or empty to send nothing.
 // App Attest: APP_ID is `<team id>.<bundle id>`, whose SHA-256 every attestation and assertion carries. ATTEST_ENV is
 // the App Attest environment an attestation must name: "development" for Debug builds against dev, "production" for
-// Release builds. QUOTA_PER_DAY is model calls per key per UTC day, taken before each call and never refunded.
-// ATTESTED_KEY is one SQLite-backed Durable Object per App Attest key (public key, counter, quota, pending challenge).
-// The class was created SQLite-backed (migration v1) and can never change backend. ATTEST_LIMIT rate-limits the two
-// attest routes per client address; each environment has its own namespace_id so their counts are separate.
+// Release builds. ATTESTED_KEY is one SQLite-backed Durable Object per App Attest key (public key, counter, pending
+// challenge). The class was created SQLite-backed (migration v1) and can never change backend. There are no usage
+// limits for now (no attest rate limit, no daily quota); they come back later.
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "widgie",
@@ -22,12 +21,10 @@
         "PROVIDER": "together",
         "REASONING": "low",
         "APP_ID": "Z23KXVBB26.dev.krutikpatel.widgie",
-        "ATTEST_ENV": "production",
-        "QUOTA_PER_DAY": "40"
+        "ATTEST_ENV": "production"
     },
     "durable_objects": { "bindings": [{ "name": "ATTESTED_KEY", "class_name": "AttestedKey" }] },
     "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }],
-    "ratelimits": [{ "name": "ATTEST_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }],
     "env": {
         "dev": {
             "name": "widgie-dev",
@@ -37,12 +34,10 @@
                 "PROVIDER": "together",
                 "REASONING": "low",
                 "APP_ID": "Z23KXVBB26.dev.krutikpatel.widgie",
-                "ATTEST_ENV": "development",
-                "QUOTA_PER_DAY": "40"
+                "ATTEST_ENV": "development"
             },
             "durable_objects": { "bindings": [{ "name": "ATTESTED_KEY", "class_name": "AttestedKey" }] },
-            "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }],
-            "ratelimits": [{ "name": "ATTEST_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }]
+            "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }]
         }
     }
 }

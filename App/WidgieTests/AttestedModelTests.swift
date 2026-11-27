@@ -86,6 +86,61 @@ import WidgetBuilder
         #expect(store.load("dev") == StoredKey(keyId: "key-1", attested: true))
     }
 
+    @Test func anyOtherAttestationErrorDiscardsTheKeyAndTheNextCallMakesANewOne() async throws {
+        let (model, store, attestor, _) = make()
+        attestor.failNextAttestation(with: DCError(.unknownSystemFailure))
+        await #expect(throws: DCError.self) { try await model.reply(to: request) }
+        #expect(store.load("dev") == nil)
+
+        #expect(try await model.reply(to: request) == "reply 1")
+        #expect(attestor.generated == 2)
+        #expect(store.load("dev") == StoredKey(keyId: "key-2", attested: true))
+    }
+
+    @Test func anAttestationTheServerDoesNotTakeDiscardsTheKey() async throws {
+        for (status, body) in [(401, #"{"error":"bad","code":"bad-attestation"}"#), (503, "")] {
+            let (model, store, attestor, service) = make()
+            service.answerAttestations(with: [(status, body)])
+            let error = await #expect(throws: AttestedModel.Refused.self) { try await model.reply(to: request) }
+            #expect(error?.status == status)
+            #expect(store.load("dev") == nil)
+
+            #expect(try await model.reply(to: request) == "reply 1")
+            #expect(attestor.generated == 2)
+            #expect(store.load("dev") == StoredKey(keyId: "key-2", attested: true))
+        }
+    }
+
+    @Test func aKeyAppAttestRefusesIsReplacedOnceWithinTheCall() async throws {
+        let (model, store, attestor, service) = make()
+        attestor.failNextAttestation(with: DCError(.invalidKey))
+        #expect(try await model.reply(to: request) == "reply 1")
+        #expect(attestor.generated == 2)
+        #expect(store.load("dev") == StoredKey(keyId: "key-2", attested: true))
+        #expect(service.paths == ["/v1/attest/challenge", "/v1/attest/challenge", "/v1/attest", "/v1/reply"])
+    }
+
+    @Test func aPendingKeyAppAttestNoLongerHoldsIsReplacedWithinTheCall() async throws {
+        let (model, store, attestor, _) = make()
+        attestor.failNextAttestation(with: DCError(.serverUnavailable))
+        await #expect(throws: AttestedModel.Unreachable.self) { try await model.reply(to: request) }
+        attestor.failNextAttestation(with: DCError(.invalidKey))
+        #expect(try await model.reply(to: request) == "reply 1")
+        #expect(attestor.generated == 2)
+        #expect(store.load("dev") == StoredKey(keyId: "key-2", attested: true))
+    }
+
+    @Test func aSecondRefusedKeyInOneCallFailsTheCallAndKeepsNoKey() async throws {
+        let (model, store, attestor, service) = make()
+        attestor.failNextAttestation(with: DCError(.invalidKey))
+        attestor.failNextAttestation(with: DCError(.invalidKey))
+        let error = await #expect(throws: AttestedModel.Refused.self) { try await model.reply(to: request) }
+        #expect(error?.code == "invalid-key")
+        #expect(attestor.generated == 2)
+        #expect(store.load("dev") == nil)
+        #expect(!service.paths.contains("/v1/reply"))
+    }
+
     @Test func twoCallsAtOnceAttestOnceAndReachTheServerOneAtATime() async throws {
         let (model, _, attestor, service) = make()
         async let first = model.reply(to: request)
@@ -120,7 +175,7 @@ private final class FakeAttestor: Attestor {
         var attested: [Data] = []
         var asserted: [Data] = []
         var nextAssertionError: (any Error)?
-        var nextAttestationError: (any Error)?
+        var attestationErrors: [any Error] = []
     }
 
     private let state = Mutex(State())
@@ -129,7 +184,8 @@ private final class FakeAttestor: Attestor {
     var asserted: [Data] { state.withLock { $0.asserted } }
 
     func failNextAssertion(with error: any Error) { state.withLock { $0.nextAssertionError = error } }
-    func failNextAttestation(with error: any Error) { state.withLock { $0.nextAttestationError = error } }
+    /// Queues an error for the next `attestKey` call that has none queued before it.
+    func failNextAttestation(with error: any Error) { state.withLock { $0.attestationErrors.append(error) } }
 
     func generateKey() async throws -> String {
         state.withLock { state in
@@ -140,10 +196,7 @@ private final class FakeAttestor: Attestor {
 
     func attestKey(_ keyId: String, clientDataHash: Data) async throws -> Data {
         try state.withLock { state in
-            if let error = state.nextAttestationError {
-                state.nextAttestationError = nil
-                throw error
-            }
+            if !state.attestationErrors.isEmpty { throw state.attestationErrors.removeFirst() }
             state.attested.append(clientDataHash)
             return Data("attestation of \(keyId)".utf8)
         }
@@ -161,14 +214,15 @@ private final class FakeAttestor: Attestor {
     }
 }
 
-/// The Worker's three routes. Challenges count up, an attestation is always taken, and each reply is
-/// "reply <n>" unless a scripted answer comes first.
+/// The Worker's three routes. Challenges count up, an attestation is taken unless a scripted answer comes first,
+/// and each reply is "reply <n>" unless a scripted answer comes first.
 private final class FakeService: Transport {
     private struct State {
         var requests: [URLRequest] = []
         var challenges = 0
         var replies = 0
         var scripted: [(Int, String)] = []
+        var attestations: [(Int, String)] = []
         var inFlight = 0
         var maxInFlight = 0
     }
@@ -182,6 +236,8 @@ private final class FakeService: Transport {
         state.withLock { $0.scripted = Array(repeating: answers, count: times).flatMap { $0 } }
     }
 
+    func answerAttestations(with answers: [(Int, String)]) { state.withLock { $0.attestations = answers } }
+
     func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let path = request.url?.path() ?? ""
         let (status, body): (Int, String) = state.withLock { state in
@@ -191,7 +247,7 @@ private final class FakeService: Transport {
                 state.challenges += 1
                 return (200, #"{"challenge":"challenge-\#(state.challenges)"}"#)
             case "/v1/attest":
-                return (204, "")
+                return state.attestations.isEmpty ? (204, "") : state.attestations.removeFirst()
             default:
                 if !state.scripted.isEmpty { return state.scripted.removeFirst() }
                 state.inFlight += 1

@@ -147,23 +147,23 @@ describe("the signature", () => {
         expect(wrongPath.fetcher).not.toHaveBeenCalled();
     });
 
-    it("spends the day's quota (2 in tests), then answers daily-quota without calling the model", async () => {
+    it("has no daily limit for now: one key's calls all reach the model", async () => {
         const signer = await Signer.attested();
         const fetcher = upstream();
-        expect((await send(await post(create, {}, signer), fetcher)).status).toBe(200);
-        expect((await send(await post(create, {}, signer), fetcher)).status).toBe(200);
-        const { status, body } = await send(await post(create, {}, signer), fetcher);
-        expect([status, body]).toEqual([429, { error: "today's limit of builds is used up", code: "daily-quota" }]);
-        expect(fetcher).toHaveBeenCalledTimes(2);
+        for (let i = 0; i < 5; i++) expect((await send(await post(create, {}, signer), fetcher)).status).toBe(200);
+        expect(fetcher).toHaveBeenCalledTimes(5);
     });
 
-    it("is checked before the request is validated, so a malformed request spends a call", async () => {
+    it("is checked before the request is validated, so a malformed request uses up its counter", async () => {
         const signer = await Signer.attested();
-        const { status, fetcher } = await send(await post(JSON.stringify({ words: "" }), {}, signer));
+        const malformed = JSON.stringify({ words: "" });
+        const headers = await signer.headers(malformed);
+        const sent = () => post(malformed, headers, signer);
+        const { status, fetcher } = await send(await sent());
         expect(status).toBe(400);
         expect(fetcher).not.toHaveBeenCalled();
+        expect((await send(await sent())).body.code).toBe("bad-assertion");
         expect((await send(await post(create, {}, signer))).status).toBe(200);
-        expect((await send(await post(create, {}, signer))).body.code).toBe("daily-quota");
     });
 });
 

@@ -11,10 +11,12 @@ private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "model")
 /// The wire protocol is "B2 wire protocol" in tasks/phase-2b-backend.md; the Worker in Backend/ checks the same bytes.
 ///
 /// One key per environment. The first call creates and attests it, and every call after signs with it. A key
-/// the phone no longer holds (`DCError.invalidKey`, after a restore) or the server no longer knows (`unknown-key`)
-/// is replaced once per call. A request the server calls `bad-assertion` fails without touching the key.
+/// the phone no longer holds (`DCError.invalidKey`, after a restore or on a pending key) or the server no longer
+/// knows (`unknown-key`) is replaced once per call. A request the server calls `bad-assertion` fails without
+/// touching the key. As Apple's guidance says, a key that failed attestation is kept only when Apple's service was
+/// unavailable; any other failure discards it, and the next attempt makes a new one.
 actor AttestedModel: WidgetModel {
-    /// The service answered with an error. `code` is the Worker's, such as `daily-quota`, when it sent one.
+    /// The service answered with an error. `code` is the Worker's, such as `bad-assertion`, when it sent one.
     struct Refused: Error, CustomStringConvertible {
         let status: Int
         let code: String?
@@ -71,7 +73,14 @@ actor AttestedModel: WidgetModel {
     private func signedReply(body: Data) async throws -> String {
         var replaced = false
         while true {
-            let keyId = try await attestedKey()
+            let keyId: String
+            do {
+                keyId = try await attestedKey()
+            } catch let error as Refused where error.code == Self.invalidKey && !replaced {
+                log.info("App Attest no longer holds the pending key; attesting a new one")
+                replaced = true
+                continue
+            }
             let assertion: Data
             do {
                 assertion = try await attestor.generateAssertion(keyId, clientDataHash: Self.clientDataHash(body: body))
@@ -117,8 +126,12 @@ actor AttestedModel: WidgetModel {
         return try await task.value
     }
 
+    /// The code `attest` throws when App Attest refuses the key itself, after discarding it.
+    private static let invalidKey = "invalid-key"
+
+    /// Attests the pending key, kept only when Apple's service was unavailable for it, or else a new one. From
+    /// `attestKey` on, any failure but `serverUnavailable` discards the key, so the next attempt makes a new one.
     private func attest() async throws -> String {
-        // A key made before a failed attestation is reused, so an unreachable Apple service costs no new key.
         let keyId: String
         if let pending = store.load(account) {
             keyId = pending.keyId
@@ -144,19 +157,29 @@ actor AttestedModel: WidgetModel {
             throw Unreachable(description: "Apple's attestation service is unavailable; the key is kept for later")
         } catch let error as DCError where error.code == .invalidKey {
             store.delete(account)
-            throw Refused(status: 0, code: "invalid-key", line: "the new key could not be attested")
+            throw Refused(status: 0, code: Self.invalidKey, line: "App Attest does not hold this key")
+        } catch {
+            store.delete(account)
+            throw error
         }
         record?("key-id", Data(keyId.utf8))
         record?("challenge", Data(challenge.utf8))
         record?("attestation", attestation)
 
-        let (data, response) = try await send(
-            post(
-                "v1/attest",
-                json: ["keyId": keyId, "challenge": challenge, "attestation": attestation.base64EncodedString()],
-                timeout: 30))
-        guard response.statusCode == 204 || response.statusCode == 409 else {
-            throw Self.refusal(data, status: response.statusCode)
+        do {
+            let (data, response) = try await send(
+                post(
+                    "v1/attest",
+                    json: ["keyId": keyId, "challenge": challenge, "attestation": attestation.base64EncodedString()],
+                    timeout: 30))
+            guard response.statusCode == 204 || response.statusCode == 409 else {
+                throw Self.refusal(data, status: response.statusCode)
+            }
+        } catch {
+            // The server did not take the attestation, such as `bad-attestation`, and Apple attested this key
+            // already, so it is not attested again.
+            store.delete(account)
+            throw error
         }
         store.save(StoredKey(keyId: keyId, attested: true), account)
         log.info("attested a new key")

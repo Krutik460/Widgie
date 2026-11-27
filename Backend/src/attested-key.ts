@@ -1,38 +1,32 @@
 // One App Attest key's state, in its own SQLite-backed Durable Object named by the key id: the public key, the
-// assertion counter, today's quota, and a pending challenge. Nothing is written in the constructor or on a
-// refusal, and the table is created only right before a write, so a random key id never leaves an object behind.
+// assertion counter, and a pending challenge. Nothing is written in the constructor or on a refusal, and the table
+// is created only right before a write, so a random key id never leaves an object behind.
 //
 // The Worker verifies an attestation itself, between `takeChallenge` and `storeKey`, so this object never needs the
 // pinned root or the clock the verifier is tested with. Each method's reads and writes run with no `await` between
 // them, so two requests can never both pass a check that the first one's write would fail.
+//
+// Objects created while the daily quota existed (removed 2026-11-27) still have its two columns. Nothing reads or
+// writes them, and both have defaults, so every statement here works on either table.
 
 import { DurableObject } from "cloudflare:workers";
-import { verifyAssertion } from "./attestation";
+import { type AssertionCheck, verifyAssertion } from "./attestation";
 import { toBase64Url } from "./bytes";
 
 export const CHALLENGE_LIFE_MS = 5 * 60 * 1000;
-export const DEFAULT_QUOTA_PER_DAY = 40;
-
-/// QUOTA_PER_DAY, or the default when it is unset or empty. Anything but a whole number is a broken setting.
-export function quotaPerDay(value: string | undefined): number {
-    if (value === undefined || value === "") return DEFAULT_QUOTA_PER_DAY;
-    const quota = Number(value);
-    if (!Number.isSafeInteger(quota) || quota < 0 || String(quota) !== value) {
-        throw new Error(`QUOTA_PER_DAY must be a whole number, not "${value}"`);
-    }
-    return quota;
-}
 
 interface Row extends Record<string, SqlStorageValue> {
     public_key: ArrayBuffer | null;
     counter: number;
-    quota_day: string | null;
-    quota_count: number;
     challenge: string | null;
     challenge_expires: number | null;
 }
 
 export class AttestedKey extends DurableObject<Cloudflare.Env> {
+    /// The assertion check. A field so a test can hold it open and prove that two requests waiting on it at once
+    /// cannot both pass with one counter.
+    protected verify: (check: AssertionCheck) => Promise<number | null> = verifyAssertion;
+
     /// A new one-use challenge for this key, replacing any pending one, with an alarm at its expiry.
     async issueChallenge(): Promise<{ challenge: string } | { code: "attested" }> {
         if (this.row()?.public_key) return { code: "attested" };
@@ -66,25 +60,25 @@ export class AttestedKey extends DurableObject<Cloudflare.Env> {
         if (this.row()?.public_key) return "attested";
         this.createTable();
         this.sql(
-            `INSERT INTO attested_key (id, public_key, counter, quota_day, quota_count, challenge, challenge_expires)
-             VALUES (1, ?, 0, NULL, 0, NULL, NULL)
-             ON CONFLICT (id) DO UPDATE SET public_key = excluded.public_key, counter = 0, quota_day = NULL,
-                 quota_count = 0, challenge = NULL, challenge_expires = NULL`,
+            `INSERT INTO attested_key (id, public_key, counter, challenge, challenge_expires)
+             VALUES (1, ?, 0, NULL, NULL)
+             ON CONFLICT (id) DO UPDATE SET public_key = excluded.public_key, counter = 0, challenge = NULL,
+                 challenge_expires = NULL`,
             publicKey,
         );
         await this.ctx.storage.deleteAlarm();
         return null;
     }
 
-    /// Checks an assertion over `clientDataHash` and, if its counter is newer than the stored one, stores the counter
-    /// and takes one call from today's quota (UTC). Null when reserved. A refusal changes nothing.
-    async verifyAndReserve(
+    /// Checks an assertion over `clientDataHash` and, if its counter is newer than the stored one, stores the
+    /// counter, so the same assertion never passes twice. Null when it passes. A refusal changes nothing.
+    async verifyAndAdvance(
         clientDataHash: Uint8Array,
         assertion: Uint8Array,
-    ): Promise<"unknown-key" | "bad-assertion" | "daily-quota" | null> {
+    ): Promise<"unknown-key" | "bad-assertion" | null> {
         const publicKey = this.row()?.public_key;
         if (!publicKey) return "unknown-key";
-        const counter = await verifyAssertion({
+        const counter = await this.verify({
             publicKey: new Uint8Array(publicKey),
             appId: this.env.APP_ID,
             clientDataHash,
@@ -92,18 +86,10 @@ export class AttestedKey extends DurableObject<Cloudflare.Env> {
         });
         if (counter === null) return "bad-assertion";
 
-        // No await from here to the write.
+        // No await from here to the write: the counter is read again, after the check's await.
         const row = this.row();
         if (!row || counter <= row.counter) return "bad-assertion";
-        const today = new Date().toISOString().slice(0, 10);
-        const used = row.quota_day === today ? row.quota_count : 0;
-        if (used >= quotaPerDay(this.env.QUOTA_PER_DAY)) return "daily-quota";
-        this.sql(
-            "UPDATE attested_key SET counter = ?, quota_day = ?, quota_count = ? WHERE id = 1",
-            counter,
-            today,
-            used + 1,
-        );
+        this.sql("UPDATE attested_key SET counter = ? WHERE id = 1", counter);
         return null;
     }
 
@@ -118,8 +104,7 @@ export class AttestedKey extends DurableObject<Cloudflare.Env> {
         const tables = this.sql("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'attested_key'");
         if (tables.toArray().length === 0) return undefined;
         return this.sql<Row>(
-            `SELECT public_key, counter, quota_day, quota_count, challenge, challenge_expires
-             FROM attested_key WHERE id = 1`,
+            "SELECT public_key, counter, challenge, challenge_expires FROM attested_key WHERE id = 1",
         ).toArray()[0];
     }
 
@@ -129,8 +114,6 @@ export class AttestedKey extends DurableObject<Cloudflare.Env> {
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 public_key BLOB,
                 counter INTEGER NOT NULL DEFAULT 0,
-                quota_day TEXT,
-                quota_count INTEGER NOT NULL DEFAULT 0,
                 challenge TEXT,
                 challenge_expires INTEGER
             )`,
