@@ -157,7 +157,7 @@ private struct PageSwitch: ViewModifier {
             }
             .animation(
                 shown
-                    ? .timingCurve(0.22, 0.8, 0.26, 1, duration: 0.28).delay(0.04)
+                    ? .arrival(duration: 0.28).delay(0.04)
                     : .linear(duration: 0).delay(Self.fadeOut)
             ) {
                 $0.offset(x: shown || reduceMotion ? 0 : side * 14)

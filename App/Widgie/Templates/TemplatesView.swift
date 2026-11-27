@@ -257,11 +257,10 @@ private struct Pile: View {
             let template = templates[index]
             PileCard(
                 template: template, card: gallery.card(id), size: gallery.sizes[template.family],
-                tilt: Self.tilt(at: index, family: template.family)
+                tilt: Self.tilt(at: index, family: template.family), delay: Double(index) * 0.05
             ) {
                 open(template)
             }
-            .rise(after: Double(index) * 0.05)
         }
     }
 
@@ -280,8 +279,11 @@ private struct PileCard: View {
     let card: TemplateGallery.Card
     let size: CGSize
     let tilt: Angle
+    /// How long after it appears the card rises in, after the one before it.
+    let delay: Double
     let open: () -> Void
 
+    @State private var risen = false
     @Environment(\.dynamicTypeSize) private var typeSize
 
     /// At the accessibility text sizes the words wrap across the column, under the face, instead of being cut off.
@@ -325,6 +327,8 @@ private struct PileCard: View {
         }
         .buttonStyle(PileCardStyle())
         .accessibilityHint("Try it")
+        .rise(risen, after: delay)
+        .onAppear { risen = true }
     }
 }
 
@@ -356,30 +360,4 @@ private struct PileCardStyle: ButtonStyle {
 
 extension EnvironmentValues {
     @Entry fileprivate var pilePressed = false
-}
-
-extension View {
-    /// Rises in from a little below after `delay` seconds when it appears; shown at once with Reduce Motion.
-    fileprivate func rise(after delay: Double) -> some View {
-        modifier(Rise(delay: delay))
-    }
-}
-
-private struct Rise: ViewModifier {
-    let delay: Double
-
-    @State private var risen = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        let shown = risen || reduceMotion
-        content
-            .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 18)
-            .scaleEffect(shown ? 1 : 0.98)
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.spring(duration: 0.42, bounce: 0.25).delay(delay)) { risen = true }
-            }
-    }
 }
