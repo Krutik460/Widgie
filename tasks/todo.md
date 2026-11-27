@@ -413,7 +413,7 @@ What was built.
     - [ ] Sonnet's water medium writes "Last glass at 20:41" on a phone set to a 12-hour clock (`home-water-sonnet-tapped.png`), and after the first glass the undo button appears and pushes "+ Glass" to the right.
     - [ ] Sonnet's small habit graph floats its flame above the number, off the grid (`habit-graph-sonnet.png`). Sonnet's sticky note in small shows a lone "0" beside the title (`todo-sticky-sonnet.png`).
   - [ ] App follow-ups from P6 that change what a person sees too much for P6 (they go through the P5 review gate):
-    - [ ] The app has no icon. The home screen, the widget gallery, and the widget's edit sheet show the blank grid placeholder (`home-image-lcd-habit-haiku.png`, `widget-edit.png`).
+    - [x] (Done in 4c553cf, the Peek caret icon for light, dark and tinted.) The app has no icon. The home screen, the widget gallery, and the widget's edit sheet show the blank grid placeholder (`home-image-lcd-habit-haiku.png`, `widget-edit.png`).
     - [ ] The widget's edit sheet titles the widget "Widget" and shows "Widget: Widget" when the configured widget no longer exists, as after a reinstall (`widget-edit.png`).
     - [ ] iOS autocorrect rewrote "a yellow sticky note" as "a yellow sticky notes" in the describe field on both runs (`todo-sticky-sonnet.png`). Decide whether the describe field keeps autocorrect, which helps people with typos, or drops it.
     - [ ] At large text sizes the describe and composer prompts wrap behind an empty field that stays one line tall, so a tap on the prompt's second line misses the field, and the box shrinks when the first letter is typed (`after-dt-describe.png`, `after-dt-tryit.png`). Give the empty field the prompt's height.
