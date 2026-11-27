@@ -31,12 +31,6 @@ import WidgetEngine
         return try template.source(filling: ["pet": name])
     }
 
-    private func send(_ words: String, in session: DescribeSession) async throws {
-        session.words = words
-        session.send()
-        try await until({ session.settled }, "the turn never finished")
-    }
-
     // MARK: Turns
 
     @Test func everyTurnStaysInTheThreadInOrderWithWidgiesNote() async throws {
@@ -84,7 +78,7 @@ import WidgetEngine
         await fresh.open()
         // Pet fed paints red until the first feed, which its sample has.
         let hue = try #require(fresh.preview.faces[.small]?.traits.hue)
-        #expect(hue < 30 || hue > 330, "not fed")
+        #expect(paintsRed(fresh.preview.faces[.small]), "not fed")
 
         let sampled = DescribeSession(
             .unsaved(try petFed()), model: ScriptedModel([]), preview: Preview(library: shared.engine))
@@ -162,15 +156,9 @@ import WidgetEngine
     }
 
     @Test func tryAgainRunsAFailedSaveAgain() async throws {
-        let library = try await shared.build(counterDocument())
-        let chat = chat(
-            .library(library),
-            answers: [[counter(background: "#1B3A8C"), unreachable, counter(background: "#1B3A8C", fields: noted)]],
-            close: {})
+        let (chat, library) = try await blueEdit(
+            then: [unreachable, counter(background: "#1B3A8C", fields: noted)], close: {})
         let session = chat.session
-        await session.open()
-        try await send("make it blue", in: session)
-        _ = try await shared.build(counterDocument(fields: noted), replacing: library)
 
         chat.save()
         try await until({ session.settled }, "the save never finished")
@@ -189,14 +177,7 @@ import WidgetEngine
         turn.retry()
         #expect(turn.phase == .failed(.gaveUp, .turn), "and the model is asked nothing more")
 
-        let library = try await shared.build(counterDocument())
-        let save = chat(
-            .library(library),
-            answers: [[counter(background: "#1B3A8C"), unbuildable, unbuildable, unbuildable]], close: {}
-        ).session
-        await save.open()
-        try await send("make it blue", in: save)
-        _ = try await shared.build(counterDocument(fields: noted), replacing: library)
+        let save = try await blueEdit(then: [unbuildable, unbuildable, unbuildable], close: {}).chat.session
         save.save()
         try await until({ save.settled }, "the save never finished")
         #expect(save.phase == .failed(.unsaved, .save), "a repair that gives up is a save that did not happen")
@@ -353,10 +334,7 @@ import WidgetEngine
         try await send("a tap counter", in: session)
         session.save()
         try await until({ session.settled }, "the save never finished")
-        guard case .saved(let id) = session.phase else {
-            Issue.record("expected the save to land, got \(session.phase)")
-            return
-        }
+        let id = try session.savedID()
 
         chat.saved(id)
         #expect(chat.session !== session)
@@ -380,10 +358,7 @@ import WidgetEngine
 
         held.release()
         try await until({ session.settled }, "the save never finished")
-        guard case .saved(let id) = session.phase else {
-            Issue.record("expected the save to land, got \(session.phase)")
-            return
-        }
+        let id = try session.savedID()
         #expect(try shared.engine.widgets().map(\.id) == [id])
         chat.saved(id)
         #expect(chat.session !== session && chat.session.blank)
@@ -438,10 +413,7 @@ import WidgetEngine
         try await until({ session.settled }, "the save never finished")
         chat.resume()
         #expect(chat.session === session, "the landed save keeps its session until its flight ends")
-        guard case .saved(let id) = session.phase else {
-            Issue.record("expected the save to land, got \(session.phase)")
-            return
-        }
+        let id = try session.savedID()
 
         chat.saved(id)
         await chat.session.open()
@@ -454,10 +426,7 @@ import WidgetEngine
         try await send("a tap counter", in: session)
         chat.save()
         try await until({ session.settled }, "the save never finished")
-        guard case .saved(let id) = session.phase else {
-            Issue.record("expected the save to land, got \(session.phase)")
-            return
-        }
+        let id = try session.savedID()
 
         chat.change(try petFed(), named: "Mochi fed")
         let template = chat.session
@@ -489,17 +458,25 @@ import WidgetEngine
             return (chat, { gate.waiting }, gate.release)
         case .repairing:
             let latch = Latch()
-            let library = try await shared.build(counterDocument())
             let repaired = ScriptedModel.Answer(reply: counter(background: "#1B3A8C", fields: noted).reply) {
                 await latch.wait()
             }
-            let chat = chat(
-                .library(library), answers: [[counter(background: "#1B3A8C"), repaired], []], close: close)
-            await chat.session.open()
-            try await send("make it blue", in: chat.session)
-            _ = try await shared.build(counterDocument(fields: noted), replacing: library)
+            let chat = try await blueEdit(then: [repaired], close: close).chat
             return (chat, { latch.waiting }, latch.open)
         }
+    }
+
+    /// A chat that changed a library counter to blue, after which the library's counter gained `noted`, so Save
+    /// needs a repair turn. The model answers the blue turn, then `answers`.
+    private func blueEdit(then answers: [ScriptedModel.Answer], close: (() -> Void)?) async throws -> (
+        chat: Chat, library: WidgetID
+    ) {
+        let library = try await shared.build(counterDocument())
+        let chat = chat(.library(library), answers: [[counter(background: "#1B3A8C")] + answers], close: close)
+        await chat.session.open()
+        try await send("make it blue", in: chat.session)
+        try await shared.addNote(to: library)
+        return (chat, library)
     }
 
     // MARK: Ideas
@@ -546,6 +523,3 @@ private struct Seeded: RandomNumberGenerator {
         return z ^ (z >> 31)
     }
 }
-
-/// A field the library counter gains while a change to it is being made, so saving the change needs a repair.
-private let noted = ["note": "text"]

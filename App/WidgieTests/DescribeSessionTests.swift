@@ -8,7 +8,7 @@ import WidgetEngine
 
 @testable import Widgie
 
-/// The describe flow against a scripted model, a temporary shared store, and the preview's scratch engine.
+/// A Make session against a scripted model, a temporary shared store, and the preview's scratch engine.
 /// Serialized, because suspending writes reaches every shared store in the process; the scheme in project.yml
 /// also runs the suites one at a time, so the other suites' stores never open inside a suspension window.
 @MainActor @Suite(.serialized) struct DescribeSessionTests {
@@ -16,11 +16,11 @@ import WidgetEngine
 
     @Test func aSaveTheSharedStoreRejectsRunsOneRepairTurnAndThenSaves() async throws {
         let library = try await shared.build(counterDocument())
-        let model = ScriptedModel([counter(background: "#1B3A8C", fields: ["note": "text"])])
+        let model = ScriptedModel([counter(background: "#1B3A8C", fields: noted)])
         let session = DescribeSession(.library(library), model: model, preview: Preview(library: shared.engine))
         await session.open()
         #expect(session.phase == .composing)
-        _ = try await shared.build(counterDocument(fields: ["note": "text"]), replacing: library)
+        try await shared.addNote(to: library)
 
         session.save()
         try await until({ session.settled }, "the save never finished")
@@ -56,10 +56,7 @@ import WidgetEngine
 
         session.save()
         try await until({ session.settled }, "the save never finished")
-        guard case .saved(let id) = session.phase else {
-            Issue.record("expected the save to land, got \(session.phase)")
-            return
-        }
+        let id = try session.savedID()
         #expect(try shared.engine.widgets().map(\.id) == [id])
     }
 
@@ -78,9 +75,7 @@ import WidgetEngine
         let session = DescribeSession(
             model: ScriptedModel([counter(), blue]), preview: Preview(library: shared.engine))
         cancel.session = session
-        session.words = "a tap counter"
-        session.send()
-        try await until({ session.settled }, "the first turn never finished")
+        try await send("a tap counter", in: session)
         let draft = try #require(session.draft)
         let first = try #require(try session.preview.engine.source(of: draft))
 
@@ -100,9 +95,7 @@ import WidgetEngine
         let session = DescribeSession(
             model: ScriptedModel([tally(), bigger]), preview: Preview(library: shared.engine))
         cancel.session = session
-        session.words = "a tap counter"
-        session.send()
-        try await until({ session.settled }, "the first turn never finished")
+        try await send("a tap counter", in: session)
         let draft = try #require(session.draft)
         let engine = session.preview.engine
         #expect(!paintsRed(session.preview.faces[.small]), "the sample's two rows")
@@ -124,9 +117,7 @@ import WidgetEngine
         let drafts = SharedStore()
         let session = DescribeSession(
             model: ScriptedModel([counter()]), preview: Preview(library: shared.engine, engine: drafts.engine))
-        session.words = "a tap counter"
-        session.send()
-        try await until({ session.settled }, "the turn never finished")
+        try await send("a tap counter", in: session)
 
         #expect(session.phase == .failed(.broken, .turn))
         #expect(session.latest?.result == .failed(.broken))
@@ -175,10 +166,7 @@ import WidgetEngine
 
         gate.release()
         try await until({ session.settled }, "the save never finished")
-        guard case .saved(let id) = session.phase else {
-            Issue.record("expected the save to land, got \(session.phase)")
-            return
-        }
+        let id = try session.savedID()
         #expect(try shared.engine.widgets().map(\.id) == [id])
     }
 
@@ -188,10 +176,7 @@ import WidgetEngine
         let session = try await draftedSession(gate: gate)
         session.save()
         try await until({ session.settled }, "the save never finished")
-        guard case .saved(let id) = session.phase else {
-            Issue.record("expected the save to land, got \(session.phase)")
-            return
-        }
+        let id = try session.savedID()
         #expect(try shared.engine.widgets().map(\.id) == [id])
     }
 
@@ -219,9 +204,7 @@ import WidgetEngine
         let session = DescribeSession(
             model: ScriptedModel([counter()]), preview: Preview(library: shared.engine),
             sharedWritesOpen: { await gate.open() })
-        session.words = "a tap counter"
-        session.send()
-        try await until({ session.settled }, "the turn never finished")
+        try await send("a tap counter", in: session)
         try #require(session.draft != nil)
         return session
     }
@@ -251,9 +234,4 @@ private func tally(size: Int = 30) -> ScriptedModel.Answer {
         .replacing("widgetBackground: '#102030'", with: "widgetBackground: ctx.data.n > 2 ? '#B02020' : '#2050B0'")
         .replacing("size: 30", with: "size: \(size)")
     return ScriptedModel.Answer(reply: "```json\n\(document)\n```")
-}
-
-private func paintsRed(_ face: Face?) -> Bool {
-    guard let hue = face?.traits.hue else { return false }
-    return hue < 30 || hue > 330
 }
