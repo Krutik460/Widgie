@@ -1,11 +1,46 @@
-// nextRun against what Foundation's `Calendar.nextDate(after:matching:matchingPolicy: .nextTime)` answers, the call
-// behind `Schedule.nextRun(after:)` in Automations.swift. Every expected instant here was printed by Foundation on
-// macOS, except the cases marked where the server keeps its own rule: two where Foundation skips a run, and a repeated
-// time asked from between its two instants, where Foundation takes the second and the server has already run. P3 adds
-// vectors exported from the Swift tests and aligns the engine.
+// nextRun against the vectors the engine exports (Engine/Vectors/schedule.json, written by
+// Engine/Tests/SpecTests/ScheduleTests.swift from `Schedule.nextRun(after:in:)`), so the phone and the server agree on
+// every run. Below them, the cases first printed from Foundation's `Calendar.nextDate(... .nextTime)`, which the engine
+// called until P3, except the three marked where the server's rule differs from Foundation and the engine now follows
+// the server: two where Foundation skips a run, and a repeated time asked from between its two instants, where
+// Foundation takes the second and the server has already run.
 
 import { describe, expect, it } from "vitest";
-import { type Cadence, canonicalZone, DAY, dayOf, HOUR, LEADS, leadMs, MINUTE, nextRun } from "../src/schedule";
+import vectors from "../../Engine/Vectors/schedule.json";
+import { cadenceOf } from "../src/automations";
+import {
+    type Cadence,
+    canonicalZone,
+    DAY,
+    dayOf,
+    HOUR,
+    LEADS,
+    leadMs,
+    MINUTE,
+    nextRun,
+    type Weekday,
+} from "../src/schedule";
+
+describe("the engine's vectors", () => {
+    it("are format 1 and cover two changes in three zones that change their clocks, in both hemispheres", () => {
+        expect(vectors.format).toBe(1);
+        const zones = new Set(vectors.cases.map((item) => item.zone));
+        for (const zone of ["America/New_York", "America/Santiago", "Australia/Lord_Howe"])
+            expect(zones).toContain(zone);
+    });
+
+    it.each(vectors.cases)("$name", (item) => {
+        const on = "on" in item ? (item.on as Weekday) : null;
+        const cadence = cadenceOf({ every: item.every as Cadence["every"], at: item.at, weekday: on });
+        let after = Date.parse(item.after);
+        const found: string[] = [];
+        for (const _ of item.runs) {
+            after = nextRun(cadence, item.zone, after);
+            found.push(new Date(after).toISOString().replace(".000Z", "Z"));
+        }
+        expect(found).toEqual(item.runs);
+    });
+});
 
 const at = (iso: string) => Date.parse(iso);
 const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");

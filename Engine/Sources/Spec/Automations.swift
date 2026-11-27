@@ -19,27 +19,114 @@ extension Spec {
 
         package let cadence: Cadence
 
-        /// The first run after `instant` in `zone`. Automations follow the phone's current time zone, so someone
-        /// who moves keeps getting the word at 06:00 local. A wall-clock time that a daylight saving change skips
-        /// runs at the next time that exists, and one it repeats runs once.
+        package init(cadence: Cadence) {
+            self.cadence = cadence
+        }
+
+        /// The first run strictly after `instant` in `zone`, by the rule of the server's scheduler
+        /// (`Backend/src/schedule.ts`), so the phone reloads when the server's row shows. Both check
+        /// `Engine/Vectors/schedule.json`. Automations follow the phone's current time zone, so someone who moves
+        /// keeps getting the word at 06:00 local.
+        ///
+        /// A daily or weekly time that a daylight saving change skips runs at the moment the clocks change (02:30
+        /// runs at 03:00), and one that happens twice runs once, at the first: a day whose first instant is at or
+        /// before `instant` has had its run. An hourly run is at every instant whose wall clock shows its minute,
+        /// so the repeated hour runs twice and a skipped hour not at all. Foundation's `.nextTime` matching differs
+        /// in three places (it skips a weekly time the clocks skip, skips a time inside a half-hour gap, and takes
+        /// a repeated time's second instant when asked from between the two), so this is not `Calendar.nextDate`.
         package func nextRun(after instant: Date, in zone: TimeZone) -> Date? {
-            var calendar = Calendar(identifier: .gregorian)
-            calendar.timeZone = zone
-            var match = DateComponents()
-            match.second = 0
+            let clock = ZoneClock(zone: zone)
+            let after = instant.timeIntervalSince1970
+            let run: Int?
             switch cadence {
             case .hourly(let minute):
-                match.minute = minute
+                run = clock.nextHourly(minute: minute, after: after)
             case .daily(let hour, let minute):
-                match.hour = hour
-                match.minute = minute
+                run = clock.nextDaily(on: nil, hour: hour, minute: minute, after: after)
             case .weekly(let weekday, let hour, let minute):
-                match.weekday = weekday.calendarNumber
-                match.hour = hour
-                match.minute = minute
+                run = clock.nextDaily(on: weekday, hour: hour, minute: minute, after: after)
             }
-            return calendar.nextDate(after: instant, matching: match, matchingPolicy: .nextTime)
+            return run.map { Date(timeIntervalSince1970: TimeInterval($0)) }
         }
+    }
+}
+
+/// Wall-clock arithmetic in one zone, in whole seconds since 1970, as `schedule.ts` does it in milliseconds.
+private struct ZoneClock {
+    let zone: TimeZone
+
+    private static let minute = 60
+    private static let hour = 3_600
+    private static let day = 86_400
+
+    /// The zone's offset from UTC at an instant, in seconds.
+    private func offset(_ seconds: Int) -> Int {
+        zone.secondsFromGMT(for: Date(timeIntervalSince1970: TimeInterval(seconds)))
+    }
+
+    /// The first instant after `after` that shows `hour:minute`, on `weekday` when one is given.
+    func nextDaily(on weekday: Weekday?, hour: Int, minute: Int, after: TimeInterval) -> Int? {
+        let start = Int(after.rounded(.down))
+        // A day earlier than the wall clock's, since a repeated hour can start on the day before.
+        let first = Self.floorDivide(start + offset(start), Self.day) - 1
+        for index in first...(first + 9) {
+            if let weekday, Day(index: index).weekday != weekday { continue }
+            // A day whose first instant is not after `after` has had its run, even when a repeated time's second
+            // is ahead.
+            let run = firstInstant(day: index, hour: hour, minute: minute)
+            if TimeInterval(run) > after { return run }
+        }
+        return nil
+    }
+
+    /// The first instant whose wall clock reads `hour:minute` on `day`: the earlier of two where the clocks go
+    /// back, or, where they skip it, the moment they change.
+    private func firstInstant(day: Int, hour: Int, minute: Int) -> Int {
+        let local = day * Self.day + hour * Self.hour + minute * Self.minute
+        let offsets = Set([offset(local - Self.day), offset(local), offset(local + Self.day)])
+        if let run = offsets.map({ local - $0 }).filter({ offset($0) == local - $0 }).min() { return run }
+
+        // Skipped: before the change the zone is behind this wall time, after it ahead. Find the change to the
+        // minute.
+        let ahead = offsets.max() ?? 0
+        var skipped = local - ahead
+        var changed = local - (offsets.min() ?? 0)
+        while changed - skipped > Self.minute {
+            let middle = skipped + (changed - skipped) / 2 / Self.minute * Self.minute
+            if offset(middle) == ahead { changed = middle } else { skipped = middle }
+        }
+        return changed
+    }
+
+    /// The first instant after `after` whose wall clock shows `minute` and second 0.
+    func nextHourly(minute: Int, after: TimeInterval) -> Int? {
+        var from = after
+        while from < after + TimeInterval(4 * Self.hour) {
+            // At most one change within two hours, so the candidate for each offset in effect covers the next
+            // hour.
+            let start = Int(from.rounded(.down))
+            let offsets = Set([offset(start), offset(start + 2 * Self.hour)])
+            let runs = offsets.map { nextUtcMinute(from: from, Self.modulo(minute - $0 / Self.minute, 60)) }
+            if let run = runs.filter({ Self.modulo(($0 + offset($0)) / Self.minute, 60) == minute }).min() {
+                return run
+            }
+            from += TimeInterval(Self.hour)
+        }
+        return nil
+    }
+
+    /// The first whole minute after `from` whose UTC minute is `utcMinute`.
+    private func nextUtcMinute(from: TimeInterval, _ utcMinute: Int) -> Int {
+        let run = Self.floorDivide(Int(from.rounded(.down)), Self.hour) * Self.hour + utcMinute * Self.minute
+        return TimeInterval(run) > from ? run : run + Self.hour
+    }
+
+    private static func floorDivide(_ a: Int, _ b: Int) -> Int {
+        (a - modulo(a, b)) / b
+    }
+
+    private static func modulo(_ a: Int, _ b: Int) -> Int {
+        ((a % b) + b) % b
     }
 }
 
