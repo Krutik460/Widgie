@@ -4,7 +4,7 @@
   "category": "for-two",
   "order": 10,
   "family": "small",
-  "hint": "Tap to send a heart.",
+  "hint": "Tap to send a heart. For now they stay on this phone.",
   "blanks": [
     {
       "key": "who",
