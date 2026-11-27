@@ -115,7 +115,7 @@ for (const [file, fixture] of fixtures) {
             const attested = await handle(
                 new Request("https://widgie.test/v1/attest", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "CF-Connecting-IP": `fixture-${file}` },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         keyId: fixture.keyId,
                         challenge: fixture.challenge,
@@ -141,13 +141,7 @@ for (const [file, fixture] of fixtures) {
                     fixtureEnv,
                     deps,
                 );
-            for (const request of fixture.requests) {
-                // The quota is 2 in tests; a capture may hold more requests than that.
-                await runInDurableObject(key, (_, state) => {
-                    state.storage.sql.exec("UPDATE attested_key SET quota_count = 0");
-                });
-                expect((await send(request)).status).toBe(200);
-            }
+            for (const request of fixture.requests) expect((await send(request)).status).toBe(200);
             const first = fixture.requests[0];
             if (first) expect(await (await send(first)).json()).toMatchObject({ code: "bad-assertion" });
         });

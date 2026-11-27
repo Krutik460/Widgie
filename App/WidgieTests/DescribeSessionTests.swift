@@ -181,15 +181,16 @@ import WidgetEngine
         #expect(model.requests.count == Engine.maxBuildAttempts)
     }
 
-    @Test func theDailyLimitIsItsOwnFailureAndAnotherTooManyRequestsIsNot() async throws {
-        for (code, failure) in [("daily-quota", Failure.dailyLimit), ("rate-limited", .refused)] {
-            let refusing = RefusingModel(error: AttestedModel.Refused(status: 429, code: code, line: "no"))
+    @Test func anyRefusalFromTheServiceIsARetryableRefusal() async throws {
+        for (status, code) in [(401, "bad-assertion"), (429, nil), (502, nil)] {
+            let refusing = RefusingModel(error: AttestedModel.Refused(status: status, code: code, line: "no"))
             let session = DescribeSession(model: refusing, preview: Preview(library: shared.engine))
             session.words = "a tap counter"
             session.send()
             try await until({ session.settled }, "the turn never finished")
-            #expect(session.phase == .failed(failure, .turn))
-            #expect(session.latest?.result == .failed(failure))
+            #expect(session.phase == .failed(.refused, .turn))
+            #expect(session.latest?.result == .failed(.refused))
+            #expect(Failure.refused.retryable)
         }
     }
 

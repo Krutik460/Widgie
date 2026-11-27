@@ -2,7 +2,8 @@
 // {reply, seconds, model, usage}, the same contract as Engine/Evals/bridge.py plus the optional usage. A key is
 // attested once per install through POST /v1/attest/challenge and POST /v1/attest. The wire protocol is in
 // tasks/phase-2b-backend.md under "B2 wire protocol". Errors are {error: "<one line>"}, plus a `code` for the App
-// Attest and quota refusals the app acts on.
+// Attest refusals the app acts on. There are no usage limits for now (removed 2026-11-27, they come back later): only
+// the body caps and the signature stand between a caller and the model.
 
 import { APPLE_ROOT } from "./apple-root";
 import { environmentOf, verifyAttestation } from "./attestation";
@@ -38,8 +39,6 @@ const REFUSALS = {
     "bad-assertion": [401, "the request's signature is not valid"],
     "bad-attestation": [401, "the attestation is not valid"],
     attested: [409, "this key is already attested"],
-    "daily-quota": [429, "today's limit of builds is used up"],
-    "rate-limited": [429, "too many requests, try again in a minute"],
 } as const satisfies Record<string, readonly [number, string]>;
 
 export default {
@@ -108,10 +107,9 @@ async function reply(request: Request, env: Env, deps: Dependencies): Promise<Re
         throw error;
     }
 
-    // Only the client data hash and the assertion go to the key's object, never the body. The quota is taken here,
-    // before the model call, and never given back: the model service bills a call the Worker stopped waiting for.
+    // Only the client data hash and the assertion go to the key's object, never the body.
     const clientData = `${request.method}\n/v1/reply\n${toHex(await sha256(bytes))}`;
-    const refused = await env.ATTESTED_KEY.getByName(keyId).verifyAndReserve(await sha256(clientData), assertion);
+    const refused = await env.ATTESTED_KEY.getByName(keyId).verifyAndAdvance(await sha256(clientData), assertion);
     if (refused) return out.refuse(refused);
 
     let turn: ReturnType<typeof userTurn>;
@@ -153,7 +151,7 @@ async function reply(request: Request, env: Env, deps: Dependencies): Promise<Re
 /// five minutes.
 async function challenge(request: Request, env: Env): Promise<Response> {
     const out = responder("challenge");
-    const body = await attestBody(request, env, out, ["keyId"]);
+    const body = await attestBody(request, out, ["keyId"]);
     if (body instanceof Response) return body;
     const keyId = body.keyId;
     if (typeof keyId !== "string" || !keyIdBytes(keyId)) return badRequest(out, '"keyId" must be an App Attest key id');
@@ -165,7 +163,7 @@ async function challenge(request: Request, env: Env): Promise<Response> {
 /// POST /v1/attest {keyId, challenge, attestation} answers 204 once the key is stored.
 async function attest(request: Request, env: Env, deps: Dependencies): Promise<Response> {
     const out = responder("attest");
-    const body = await attestBody(request, env, out, ["keyId", "challenge", "attestation"]);
+    const body = await attestBody(request, out, ["keyId", "challenge", "attestation"]);
     if (body instanceof Response) return body;
     const { keyId, challenge, attestation } = body;
     const keyIdBinary = typeof keyId === "string" ? keyIdBytes(keyId) : null;
@@ -191,15 +189,12 @@ async function attest(request: Request, env: Env, deps: Dependencies): Promise<R
     return out.empty(204);
 }
 
-/// The rate limit per client address, then the attest routes' JSON body with exactly `fields`, or the refusal.
+/// The attest routes' JSON body with exactly `fields`, or the refusal.
 async function attestBody(
     request: Request,
-    env: Env,
     out: Responder,
     fields: string[],
 ): Promise<Record<string, unknown> | Response> {
-    const { success } = await env.ATTEST_LIMIT.limit({ key: request.headers.get("CF-Connecting-IP") ?? "unknown" });
-    if (!success) return out.refuse("rate-limited");
     if (!isJson(request)) return out.json(415, { error: "send the body as application/json" });
     let bytes: Uint8Array;
     try {

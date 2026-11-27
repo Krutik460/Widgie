@@ -125,6 +125,8 @@ export interface CertificateOptions {
     authority?: boolean;
     extensions?: Uint8Array[];
     hash?: "SHA-256" | "SHA-384";
+    /// Names this algorithm inside the signed bytes instead of `hash`, which still signs and names the outer one.
+    tbsHash?: "SHA-256" | "SHA-384";
     /// Signs with this key instead of the issuer's, for a certificate the issuer never signed.
     signer?: CryptoKey;
 }
@@ -132,6 +134,7 @@ export interface CertificateOptions {
 export async function certificate(options: CertificateOptions): Promise<Uint8Array> {
     const hash = options.hash ?? (options.issuer.curve === "P-384" ? "SHA-384" : "SHA-256");
     const algorithm = seq(oid(OIDS[hash]));
+    const tbsAlgorithm = options.tbsHash ? seq(oid(OIDS[options.tbsHash])) : algorithm;
     const spki = seq(
         seq(oid(OIDS.ecPublicKey), oid(OIDS[options.subject.curve])),
         bits(await publicPoint(options.subject.keys)),
@@ -143,7 +146,7 @@ export async function certificate(options: CertificateOptions): Promise<Uint8Arr
     const tbs = seq(
         explicit(0, integer(new Uint8Array([2]))),
         integer(crypto.getRandomValues(new Uint8Array(8))),
-        algorithm,
+        tbsAlgorithm,
         name(options.issuer.commonName),
         seq(time(options.notBefore), time(options.notAfter)),
         name(options.subject.commonName),
@@ -156,9 +159,14 @@ export async function certificate(options: CertificateOptions): Promise<Uint8Arr
     return seq(tbs, algorithm, bits(derSignature(raw)));
 }
 
-/// The nonce extension: SEQUENCE { [1] EXPLICIT OCTET STRING nonce }.
-export function nonceExtension(nonce: Uint8Array): Uint8Array {
-    return seq(oid(OIDS.nonce), octets(seq(explicit(1, octets(nonce)))));
+/// The nonce extension's value as Apple writes it: SEQUENCE { [1] EXPLICIT OCTET STRING nonce }.
+export function nonceValue(nonce: Uint8Array): Uint8Array {
+    return seq(explicit(1, octets(nonce)));
+}
+
+/// The nonce extension, holding `value` (Apple's structure by default).
+export function nonceExtension(nonce: Uint8Array, value = nonceValue): Uint8Array {
+    return seq(oid(OIDS.nonce), octets(value(nonce)));
 }
 
 export const DAY = 24 * 60 * 60 * 1000;
@@ -206,8 +214,12 @@ export interface AttestationOptions {
     certificates?: (leaf: Uint8Array, intermediate: Uint8Array) => Uint8Array[];
     leafValidity?: { notBefore: Date; notAfter: Date };
     leafSigner?: CryptoKey;
+    /// Names this party as the leaf's issuer while the intermediate's key still signs it.
+    leafIssuer?: Party;
     intermediateDer?: Uint8Array;
     nonce?: (authData: Uint8Array, clientDataHash: Uint8Array) => Promise<Uint8Array | null>;
+    /// The nonce extension's value around the nonce.
+    nonceValue?: (nonce: Uint8Array) => Uint8Array;
     appId?: string;
     counter?: number;
     aaguid?: Uint8Array;
@@ -273,12 +285,12 @@ export async function attestation(options: AttestationOptions): Promise<Attestat
         : await sha256(authData, clientDataHash);
     const leafDer = await certificate({
         subject: leaf,
-        issuer: options.chain.intermediate,
+        issuer: options.leafIssuer ?? options.chain.intermediate,
         notBefore: options.leafValidity?.notBefore ?? new Date(options.now.getTime() - DAY),
         notAfter: options.leafValidity?.notAfter ?? new Date(options.now.getTime() + 2 * DAY),
-        extensions: nonce ? [nonceExtension(nonce)] : [],
+        extensions: nonce ? [nonceExtension(nonce, options.nonceValue)] : [],
         hash: "SHA-256",
-        signer: options.leafSigner,
+        signer: options.leafSigner ?? options.chain.intermediate.keys.privateKey,
     });
     const intermediateDer = options.intermediateDer ?? options.chain.intermediateDer;
     const x5c = options.certificates?.(leafDer, intermediateDer) ?? [leafDer, intermediateDer];
@@ -314,6 +326,8 @@ export interface AssertionOptions {
     appId?: string;
     /// The counter to sign; the next one by default.
     counter?: number;
+    /// Changes the authenticator data before it is signed.
+    authenticatorData?: (data: Uint8Array) => Uint8Array;
 }
 
 /// An App Attest key that signs requests as the app does.
@@ -353,7 +367,8 @@ export class Signer {
         this.counter = Math.max(this.counter, counter);
         const count = new Uint8Array(4);
         new DataView(count.buffer).setUint32(0, counter);
-        const authenticatorData = concat(await sha256(options.appId ?? APP_ID), new Uint8Array([0]), count);
+        let authenticatorData = concat(await sha256(options.appId ?? APP_ID), new Uint8Array([0]), count);
+        if (options.authenticatorData) authenticatorData = options.authenticatorData(authenticatorData);
         const nonce = await sha256(authenticatorData, clientDataHash);
         const raw = new Uint8Array(
             await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, this.privateKey, nonce),

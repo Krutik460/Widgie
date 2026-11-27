@@ -13,11 +13,7 @@ declare namespace Cloudflare {
         APP_ID: string;
         /// "development" or "production": the App Attest environment whose AAGUID an attestation must carry.
         ATTEST_ENV: string;
-        /// Model calls per key per UTC day, as a whole number. Unset or empty means 40.
-        QUOTA_PER_DAY?: string;
         /// One object per App Attest key, named by the key id.
         ATTESTED_KEY: DurableObjectNamespace<import("./attested-key").AttestedKey>;
-        /// Requests per client address on the attest routes.
-        ATTEST_LIMIT: RateLimit;
     }
 }
