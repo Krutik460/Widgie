@@ -628,7 +628,9 @@ private func insertions(
                 at = entry.daysAgo == 0 ? min(planned, max(latest, dayStart + sequence)) : planned
                 day = today.day.adding(-entry.daysAgo)
             }
-            changes += insertion(into: target, entry.values, day: day, at: at).map { Authored($0, by: entry.by) }
+            changes += insertion(into: target, entry.values(on: today.day), day: day, at: at).map {
+                Authored($0, by: entry.by)
+            }
             sequence += 1
         }
     }

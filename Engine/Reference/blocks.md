@@ -252,6 +252,18 @@ Two more keys show time and people:
 - `minutesAgo` places the row that many minutes before the drawing, up to 10080 (a week), instead of `daysAgo`. Give one or the other. Use it when the look shows `at` or `minutesAgo`.
 - `by` is who wrote the row: another member's name, like `"Sam"`, up to 30 characters, or `"me"`, which is the same as leaving it out. Use it when the look shows `by` or a query reads `where by`, so the samples show the widget shared.
 
+A `date` field's value in a sample is a date like `"2026-11-18"`, or `{ "daysFromToday": 12 }` for the day that many days after the day the sample is drawn, or before it when negative. Use the second form for a date the look counts toward or from, such as a trip or an anniversary, so the sample shows the same count on any day.
+
+```json
+{
+  "tables": { "trips": { "fields": { "place": "text", "date": "date" } } },
+  "samples": {
+    "soon": { "trips": [{ "place": "Lisbon", "date": { "daysFromToday": 12 } }] },
+    "years together": { "trips": [{ "place": "Our first date", "date": { "daysFromToday": -1204 } }] }
+  }
+}
+```
+
 The app makes the no-rows state and the stress state itself, named `empty` and `full`. Write neither as a sample, and give no sample those names.
 
 ```json
@@ -299,6 +311,7 @@ A shared widget's samples, with times and people:
 | `repeat` | 100 |
 | `daysAgo` | 400 |
 | `minutesAgo` in a sample | 10080 |
+| `daysFromToday` in a sample | 36525 either way |
 | a sample's `by` | 30 characters |
 | a text value | 300 characters as JavaScript counts them (an emoji counts as 2) |
 | field values `list` and `latest` queries return together (rows times their table's fields, a `latest` is one row) | 1000 |

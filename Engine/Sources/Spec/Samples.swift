@@ -25,6 +25,24 @@ extension Spec {
         package let count: Int
         /// In field id order. Every field belongs to `table`.
         package let values: [FieldValue]
+        /// Date values given as days from the day the sample is drawn, in field id order. Every field belongs to
+        /// `table`, and none is also in `values`.
+        package var datesFromToday: [DateFromToday] = []
+
+        /// Every value of the row, with each date from today resolved against `today`.
+        package func values(on today: Day) -> [FieldValue] {
+            (values + datesFromToday.map { $0.value(on: today) }).sorted { $0.field.id < $1.field.id }
+        }
+    }
+
+    /// A sample's date written as `{"daysFromToday": 12}`: the day that many days after the day the sample is
+    /// drawn, or before it when negative. A countdown's sample then shows the same count on any day, as rows
+    /// placed by `daysAgo` do.
+    package struct DateFromToday: Hashable, Sendable {
+        package let field: Field<Day>
+        package let days: Int
+
+        package func value(on today: Day) -> FieldValue { FieldValue(field, today.adding(days)) }
     }
 
     /// Names of the states the builder makes itself. A document sample cannot use them.
@@ -244,14 +262,35 @@ extension Spec.Sample {
         if row.has("daysAgo") && row.has("minutesAgo") {
             throw Diagnostic("give \"daysAgo\" or \"minutesAgo\", not both")
         }
-        return Spec.SampleRow(
+        let reserved = ["by", "daysAgo", "minutesAgo", "repeat"]
+        var dates: [Spec.DateFromToday] = []
+        for key in row.keys where !reserved.contains(key) {
+            guard case .date(let field)? = table.field(named: key), case .object = row[key] else { continue }
+            dates.append(try dateFromToday(row[key] ?? .null, field))
+        }
+        var sampleRow = Spec.SampleRow(
             table: table,
             daysAgo: try row.wholeNumber("daysAgo", in: Spec.Limits.daysAgo) ?? 0,
             minutesAgo: try row.wholeNumber("minutesAgo", in: Spec.Limits.minutesAgo),
             by: try author(row),
             staysToday: false,
             count: try row.wholeNumber("repeat", in: Spec.Limits.repeatCount) ?? 1,
-            values: try table.values(row, skipping: ["by", "daysAgo", "minutesAgo", "repeat"]))
+            values: try table.values(row, skipping: reserved + dates.map(\.field.id.raw)))
+        sampleRow.datesFromToday = dates
+        return sampleRow
+    }
+
+    private static func dateFromToday(_ value: JSONValue, _ field: Spec.Field<Day>) throws(Diagnostic)
+        -> Spec.DateFromToday
+    {
+        let rule =
+            "\"\(field.path)\" is a date field; give a date like \"2026-11-18\", or {\"daysFromToday\": 12} for a date that many days after the day the sample is drawn"
+        let object = try Reader(value, else: rule)
+        try object.requireOnly(["daysFromToday"]) { _ in rule }
+        guard let days = try object.wholeNumber("daysFromToday", in: Spec.Limits.daysFromToday) else {
+            throw Diagnostic(rule)
+        }
+        return Spec.DateFromToday(field: field, days: days)
     }
 
     /// `by` is "me" in any case, or left out, for the person, or another member's name: one
@@ -283,6 +322,9 @@ extension Spec.Sample {
             }
             if let by = row.by { members["by"] = .string(by) }
             for value in row.values { members[value.field.id.raw] = value.value.json }
+            for date in row.datesFromToday {
+                members[date.field.id.raw] = .object(["daysFromToday": .number(Double(date.days))])
+            }
             byTable[row.table.id.raw, default: []].append(.object(members))
         }
         return .object(byTable.mapValues { .array($0) })

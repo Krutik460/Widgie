@@ -78,6 +78,8 @@ extension Spec {
         static let daysAgo = 0...400
         /// A sample row placed by minutes instead of days reaches back at most a week.
         static let minutesAgo = 0...10_080
+        /// A sample's date given as days from today reaches a century either way.
+        static let daysFromToday = -36_525...36_525
         /// A member's name, as a sample's `by` writes it and the look receives it.
         static let memberNameLength = 30
         static let listLimit = 1...100
