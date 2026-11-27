@@ -8,7 +8,17 @@ struct NodeView: View {
     let host: FaceHost
 
     var body: some View {
-        content.modifier(Styled(style: node.style, path: node.path, host: host))
+        if case .button(let press, let label, _) = node.kind {
+            // The node's own frame, padding and layers go inside the button, so all of it takes the tap and is
+            // what VoiceOver outlines: a 13 point plus padded to 30 points is a 30 point target.
+            pressable(press, label: AnyView(styled(target: true))).accessibilityLabel(Text(verbatim: label))
+        } else {
+            styled(target: false)
+        }
+    }
+
+    private func styled(target: Bool) -> some View {
+        content.modifier(Styled(style: node.style, path: node.path, host: host, target: target))
     }
 
     @ViewBuilder private var content: some View {
@@ -29,12 +39,8 @@ struct NodeView: View {
             ShapeView(geometry: geometry, paint: paint).modifier(Probe(path: node.path, role: .leaf))
         case .image(let picture):
             PictureView(picture: picture, host: host).modifier(Probe(path: node.path, role: .leaf))
-        case .button(let press, let label, let children):
-            // The whole frame takes the tap and is what VoiceOver outlines, not only the pixels drawn in it, so a
-            // plus in a 30 point frame is a 30 point target.
-            pressable(press, label: AnyView(ZStack { Nodes(children, host) }.contentShape(Rectangle())))
-                .accessibilityLabel(Text(verbatim: label))
-                .modifier(Probe(path: node.path, role: .leaf))
+        case .button(_, _, let children):
+            ZStack { Nodes(children, host) }.modifier(Probe(path: node.path, role: .leaf))
         }
     }
 
@@ -66,11 +72,15 @@ private struct Styled: ViewModifier {
     let style: Style
     let path: String
     let host: FaceHost
+    /// A button's: its laid out frame takes taps, transparent parts included. Set before the effects and
+    /// transforms, so a scaled, rotated or offset button takes taps where it is drawn.
+    let target: Bool
 
     func body(content: Content) -> some View {
         content
             .modifier(Layout(style: style))
             .modifier(Layers(style: style, path: path, host: host))
+            .apply(target ? Rectangle() : nil) { $0.contentShape($1) }
             .modifier(Effects(style: style))
             .modifier(Transforms(style: style))
             .modifier(AccentGroup(accent: style.accent, host: host))

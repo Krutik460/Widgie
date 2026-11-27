@@ -387,8 +387,8 @@ extension Faces {
     }
 }
 
-/// `dueDate` reads "Due date".
-private func readable(_ id: String) -> String {
+/// An id as words: `dueDate` reads "Due date", `add10Pushups` "Add 10 pushups".
+func readable(_ id: String) -> String {
     var words = ""
     for character in id {
         if character.isUppercase || (character.isNumber && !(words.last?.isNumber ?? true)) { words.append(" ") }

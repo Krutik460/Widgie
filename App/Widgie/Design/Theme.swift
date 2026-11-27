@@ -63,10 +63,12 @@ extension View {
         modifier(ScaledFont(size: size, weight: weight, style: style))
     }
 
-    /// The display face for titles and big words, at the prototype's point size and tight tracking, scaled with
-    /// Dynamic Type like `style`.
-    func display(size: CGFloat, relativeTo style: Font.TextStyle = .largeTitle) -> some View {
-        modifier(DisplayFont(size: size, style: style))
+    /// The display face for titles and big words, at the prototype's point size, tight tracking and line height
+    /// (CSS `line-height`, 0.98 for the prototype's `.display`), scaled with Dynamic Type like `style`.
+    func display(
+        size: CGFloat, relativeTo style: Font.TextStyle = .largeTitle, lineHeight: CGFloat = 0.98
+    ) -> some View {
+        modifier(DisplayFont(size: size, style: style, lineHeight: lineHeight))
     }
 
     /// The soft lift under a control that rests on the ground: a close contact shadow and a wide faint one.
@@ -126,13 +128,21 @@ enum Typeface {
 
 private struct DisplayFont: ViewModifier {
     @ScaledMetric private var size: CGFloat
+    let lineHeight: CGFloat
 
-    init(size: CGFloat, style: Font.TextStyle) {
+    init(size: CGFloat, style: Font.TextStyle, lineHeight: CGFloat) {
         _size = ScaledMetric(wrappedValue: size, relativeTo: style)
+        self.lineHeight = lineHeight
     }
 
     func body(content: Content) -> some View {
+        // CSS centres the glyphs on a line of `lineHeight` times the size, where iOS gives them the font's own line
+        // of 1.2. Trimming half the difference from the top and the bottom puts the text, and everything laid out
+        // from its edges, where the prototype has it. Wrapped lines keep the font's spacing between them, since
+        // SwiftUI sets lines no closer than that.
+        let natural = UIFont(name: Typeface.display, size: size)?.lineHeight ?? size * lineHeight
         content.font(.custom(Typeface.display, fixedSize: size)).tracking(-0.025 * size)
+            .padding(.vertical, (lineHeight * size - natural) / 2)
     }
 }
 
