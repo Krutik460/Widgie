@@ -29,8 +29,9 @@ struct NodeView: View {
             ShapeView(geometry: geometry, paint: paint).modifier(Probe(path: node.path, role: .leaf))
         case .image(let picture):
             PictureView(picture: picture, host: host).modifier(Probe(path: node.path, role: .leaf))
-        case .button(let press, let children):
+        case .button(let press, let label, let children):
             pressable(press, label: AnyView(ZStack { Nodes(children, host) }))
+                .accessibilityLabel(Text(verbatim: label))
                 .modifier(Probe(path: node.path, role: .leaf))
         }
     }

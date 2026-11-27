@@ -170,7 +170,7 @@ private func catalog(_ drawing: Drawing) -> [String: (type: String, label: Strin
             nodes[node.path] = (geometry.name, "", nil)
         case .image:
             nodes[node.path] = ("image", "", nil)
-        case .button(let press, let children):
+        case .button(let press, _, let children):
             nodes[node.path] = ("button", press.tap.action, nil)
             children.forEach(visit)
         }

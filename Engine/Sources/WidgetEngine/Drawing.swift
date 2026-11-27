@@ -32,8 +32,9 @@ package enum Kind: Sendable {
     case symbol(Symbol)
     case shape(Geometry, ShapePaint)
     case image(Picture)
-    /// The renderer hands `children` to the host's closure for this press. That is all it knows.
-    case button(Press, children: [Node])
+    /// The renderer hands `children` to the host's closure for this press. That is all it knows, besides
+    /// `label`, what VoiceOver reads for it, never empty (`Vocabulary.spokenLabel`).
+    case button(Press, label: String, children: [Node])
 }
 
 /// What a button does. A widget cannot show a form, so the host turns `.form` into a link that opens the
@@ -130,6 +131,40 @@ package struct ColorAdjust: Sendable {
 }
 
 /// Common props, applied in the fixed order this struct lists them.
+extension Node {
+    /// The words this node and everything in it show, in tree order.
+    package var shownWords: [String] {
+        let own: [String] =
+            switch kind {
+            case .text(let run): [run.value]
+            case .vstack(_, _, let children), .hstack(_, _, let children), .zstack(_, let children),
+                .button(_, _, let children):
+                children.flatMap(\.shownWords)
+            case .spacer, .symbol, .shape, .image: []
+            }
+        return layers.flatMap(\.shownWords) + own
+    }
+
+    /// What VoiceOver reads for each button in this node, in tree order.
+    package var buttonLabels: [String] {
+        let own: [String] =
+            switch kind {
+            case .button(_, let label, _): [label]
+            case .vstack(_, _, let children), .hstack(_, _, let children), .zstack(_, let children):
+                children.flatMap(\.buttonLabels)
+            case .text, .spacer, .symbol, .shape, .image: []
+            }
+        return layers.flatMap(\.buttonLabels) + own
+    }
+
+    /// The nodes drawn behind and over this one. A mask holds no words and no buttons.
+    private var layers: [Node] {
+        [style.background, style.overlay].compactMap { layer in
+            if case .node(let node)? = layer { node } else { nil }
+        }
+    }
+}
+
 package struct Style: Sendable {
     package var aspectRatio: Double?
     package var padding: Insets?

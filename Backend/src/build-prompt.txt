@@ -621,7 +621,7 @@ The root node is centered in the widget and is offered the whole widget. It gets
 | `ellipse` | an ellipse that fills the space it is given | `fill`, `stroke`, `trimFrom`, `trimTo` |
 | `path` | any shape, from SVG path data | `d`, `viewBox`, `fill`, `stroke`, `trimFrom`, `trimTo` |
 | `image` | one of the widget's image assets | `asset`, `mode`, `crop`, `saturation`, `brightness`, `contrast`, `tint` |
-| `button` | makes its children tappable and looks exactly like them, layered as in a `zstack` | `action`, `rowId`, `day`, `children` |
+| `button` | makes its children tappable and looks exactly like them, layered as in a `zstack` | `action`, `rowId`, `day`, `label`, `children` |
 
 Stacks: `spacing` is the gap between children in points. A `vstack` aligns children `leading`, `center` (the default), or `trailing`. An `hstack` aligns them `top`, `center` (the default), `bottom`, or `firstBaseline`. A `zstack` takes any alignment name. A `spacer` takes the free space along its stack and pushes its siblings apart. Give it `minLength: 0` when space is tight, because by default it keeps a few points even when there is no room.
 
@@ -739,13 +739,14 @@ A `button` makes its children tappable. It has no look of its own, so draw the b
 - `rowId` says which row the tap is about. An action that changes or deletes a row (`toggle`, `set`, `delete`) needs it. An `insert` or `insertOn` takes none. A `form` takes it to edit that row and leaves it out to add a new one.
 - `rowId` must be the `id` of a row the look received in `ctx.data` from a query on that action's table. Write `row.id`, never a title or a made-up value.
 - `day` says which date an `insertOn` action adds its row on, such as `"2026-11-17"`. Only today and the 365 days before it can be tapped: a button for a later day, such as the rest of this week, draws but does nothing until its day comes. Take it from `ctx.today.date`, `ctx.today.week`, or a `daily` entry's `date`, so a tap on yesterday's bar logs yesterday: `{ type: 'button', action: 'logOn', day: entry.date, children: [...] }`. Every other action takes no `day`.
+- `label` is what VoiceOver says for the button, in a few words, such as `'Add a glass'` or `'Mark Luna fed'`. Give one to every button that shows no words, such as a plus, a check, a heart, or a square in a week strip, and say which one it is: `'Read, Monday, done'`. A button without a `label` reads the words its children show, so a button that shows "Know it" needs none.
 - A button cannot hold another button.
 - Keep a button for every action in both sizes. The small look and the medium look each need a button for every action in at least one state. Make each button at least 30 points across so a finger can hit it.
 
 ```js
 function bookRow(book) {
   return { type: 'hstack', spacing: 8, children: [
-    { type: 'button', action: 'finish', rowId: book.id, children: [
+    { type: 'button', action: 'finish', rowId: book.id, label: 'Finish ' + (book.title || 'Untitled'), children: [
       { type: 'symbol', name: book.done ? 'checkmark.circle.fill' : 'circle', size: 18, color: '#7AE582',
         frame: { width: 30, height: 30 } } ] },
     { type: 'text', value: book.title || 'Untitled', size: 13, color: '#FFFFFF', lineLimit: 1 },
@@ -763,7 +764,7 @@ function render(ctx) {
       { type: 'hstack', children: [
         { type: 'text', value: 'Up next', size: 15, weight: 'bold', color: '#FFFFFF' },
         { type: 'spacer' },
-        { type: 'button', action: 'addBook', children: [
+        { type: 'button', action: 'addBook', label: 'Add a book', children: [
           { type: 'symbol', name: 'plus.circle.fill', size: 22, color: '#7AE582', frame: { width: 30, height: 30 } } ] },
       ] },
       d.books.length === 0 && { type: 'text', value: 'No books yet. Tap + to add one.', size: 13, color: '#9FB3C8' },
@@ -923,7 +924,7 @@ function render(ctx) {
       ] },
       { type: 'spacer', minLength: 0 },
       { type: 'hstack', spacing: 8, frame: { width: medium ? 120 : null }, children: [
-        d.last && { type: 'button', action: 'undo', rowId: d.last.id, children: [
+        d.last && { type: 'button', action: 'undo', rowId: d.last.id, label: 'Undo', children: [
           { type: 'symbol', name: 'arrow.uturn.backward', size: 13, weight: 'bold', color: '#9FB3C8',
             frame: { width: 34, height: 34 }, background: '#FFFFFF14', clip: 'circle' } ] },
         { type: 'spacer', minLength: 0 },
@@ -941,12 +942,12 @@ function render(ctx) {
       { type: 'hstack', children: [
         { type: 'text', value: 'Up next', size: 13, weight: 'semibold', color: '#9FB3C8' },
         { type: 'spacer' },
-        { type: 'button', action: 'addBook', children: [
+        { type: 'button', action: 'addBook', label: 'Add a book', children: [
           { type: 'symbol', name: 'plus', size: 13, weight: 'bold', color: '#9FB3C8', frame: { width: 30, height: 30 } } ] },
       ] },
       d.books.length === 0 && { type: 'text', value: 'Add a book to start.', size: 13, color: '#FFFFFF99' },
       d.books.slice(0, 3).map(book => ({ type: 'hstack', spacing: 6, children: [
-        { type: 'button', action: 'finish', rowId: book.id, children: [
+        { type: 'button', action: 'finish', rowId: book.id, label: 'Finish ' + (book.title || 'Untitled'), children: [
           { type: 'symbol', name: 'circle', size: 16, color: '#7AE582', frame: { width: 30, height: 30 } } ] },
         { type: 'text', value: book.title || 'Untitled', size: 13, color: '#FFFFFF', lineLimit: 1 },
       ] })),

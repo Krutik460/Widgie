@@ -85,6 +85,10 @@ struct Mistake: Sendable, CustomTestStringConvertible {
             "an image tint that does not exist", returning: "{ type: 'image', asset: 'photo', tint: 'gray' }",
             #"image at root: "tint" must be one of fullColor, desaturated, accented, not the string "gray""#),
         Mistake(
+            "a label that is not words",
+            returning: "{ type: 'button', action: 'drink', label: 1, children: [{ type: 'symbol', name: 'plus' }] }",
+            #"button at root: "label" must be a string, not the number 1"#),
+        Mistake(
             "accent that is not a bool", returning: "{ type: 'text', value: 'Hi', accent: 'yes' }",
             #"text at root: "accent" must be true or false, not the string "yes""#),
         Mistake(

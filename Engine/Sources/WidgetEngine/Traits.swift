@@ -43,7 +43,7 @@ private struct Tally {
         if let overlay = node.style.overlay { add(overlay, area: area) }
         switch node.kind {
         case .vstack(_, _, let children), .hstack(_, _, let children), .zstack(_, let children),
-            .button(_, let children):
+            .button(_, _, let children):
             for child in children { add(child) }
         case .text(let run):
             if run.size >= 20, run.value.contains(where: \.isNumber) { showsNumber = true }

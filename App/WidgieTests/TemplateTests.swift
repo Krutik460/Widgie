@@ -139,6 +139,63 @@ import WidgetEngine
     }
 }
 
+/// What VoiceOver reads for each button a template draws, in every state the builder proves.
+@Suite struct TemplateLabelTests {
+    private func labels(_ template: Template) async throws -> [(state: String, family: Family, labels: [String])] {
+        let engine = Engine.scratch()
+        let id = try engine.stageProved(template.source())
+        let states = [DataState.empty] + (try engine.samples(of: id)).map(DataState.sample) + [.full]
+        var found: [(String, Family, [String])] = []
+        for state in states {
+            try engine.load(state, into: id)
+            for family in Family.allCases {
+                let face = await engine.faces(for: id, family: family, size: family.standardSize, from: .now).current
+                #expect(!face.isFallback, "\(template.id), \(state), \(family) draws its look")
+                found.append(("\(state)", family, face.buttonLabels))
+            }
+        }
+        return found
+    }
+
+    @Test func everyButtonOnEveryTemplateSaysWhatItIsAndNoTwoReadTheSame() async throws {
+        for template in Template.catalog() {
+            for (state, family, labels) in try await labels(template) {
+                #expect(labels.allSatisfy { !$0.isEmpty }, "\(template.id), \(state), \(family)")
+                // The full state gives every row the same long title, so only there may two rows read the same.
+                if state != "full" {
+                    #expect(Set(labels).count == labels.count, "\(template.id), \(state), \(family): \(labels)")
+                }
+            }
+        }
+    }
+
+    /// Keys that show only a mark read what they do, and squares read which habit and whether it is done.
+    @Test func keysWithoutWordsReadWhatTheyDo() async throws {
+        let expected: [(id: String, state: String, labels: [String])] = [
+            ("pet-fed", #"sample("just fed")"#, ["Undo", "Fed Luna"]),
+            ("thinking-of-you", #"sample("only mine")"#, ["Send Sam a heart"]),
+            ("baby-feeds", #"sample("just fed")"#, ["Fed on the left", "Fed on the right", "Fed a bottle", "Undo"]),
+            ("habit-squares", "empty", ["Gym, today", "Read, today", "No sugar, today"]),
+            (
+                "habit-squares", #"sample("all done today")"#,
+                ["Gym, today, done", "Read, today, done", "No sugar, today, done"]
+            ),
+            ("streak", #"sample("done today")"#, ["Meditate, today, done"]),
+            ("our-moods", "empty", ["Your mood, not set"]),
+            (
+                "shared-groceries", #"sample("all crossed off")"#,
+                ["Add to the list", "Bread, crossed off", "Remove Bread", "Tomatoes, crossed off", "Remove Tomatoes"]
+            ),
+            ("trip-countdown", "empty", ["Lisbon, set the date"]),
+        ]
+        for (id, state, labels) in expected {
+            let template = try #require(Template.catalog().first { $0.id == id })
+            let found = try await self.labels(template).first { $0.state == state && $0.family == .small }
+            #expect(found?.labels == labels, "\(id), \(state)")
+        }
+    }
+}
+
 /// What a template's face offers to tap in a given state: the action of every button it draws.
 @Suite struct TemplateBehaviourTests {
     private func buttons(_ id: String, family: Family = .small, rows: String) async throws -> [String] {
