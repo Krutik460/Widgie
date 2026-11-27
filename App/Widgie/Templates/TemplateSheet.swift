@@ -363,7 +363,7 @@ struct Bubble: View {
                                     .rotationEffect(.degrees(45))
                                     .offset(x: tailOffset.width, y: tailOffset.height)
                             }
-                            .bubbleShadow()
+                            .quietShadow()
                     }
                     .id(words)
                     .transition(

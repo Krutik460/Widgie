@@ -89,7 +89,7 @@ struct WidgieSays: View {
         .background {
             messageShape(tail: .leading)
                 .fill(Palette.bubble)
-                .bubbleShadow()
+                .quietShadow()
         }
         .animation(.easeInOut(duration: 0.25), value: words)
         .frame(maxWidth: 262, alignment: .leading)
