@@ -30,7 +30,7 @@ struct Caret: View {
     var alive = true
     /// Whether it stands on the ground with a shadow, as opposed to sitting in a line of text.
     var grounded = true
-    /// Points above the ground, and the vertical scale about the foot, for the jump on Saved.
+    /// Points above the ground, and the vertical scale about the foot, for `HoppingCaret`'s hop.
     var lift: CGFloat = 0
     var squash: CGFloat = 1
     /// Happy eyes and fuller cheeks in any pose, as the jump has.

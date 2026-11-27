@@ -28,7 +28,7 @@ final class Library {
 
     private let engine: Engine
     @ObservationIgnored private let redraws: Redraws
-    private var reloads = 0
+    @ObservationIgnored private var reloads = 0
 
     init(engine: Engine = Hosting.engine, clock: FaceClock = .system, center: NotificationCenter = .default) {
         self.engine = engine
@@ -36,18 +36,20 @@ final class Library {
         redraws.redraw = { [weak self] in self?.refresh() }
     }
 
-    /// The reference widgets bundled in debug builds: each folder and the name its widget gives itself.
-    let fixtures: [(folder: String, name: String)] = {
-        guard let root = Bundle.main.url(forResource: "Fixtures", withExtension: nil),
-            let folders = try? FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
-        else { return [] }
-        struct Named: Decodable { let name: String }
-        return folders.sorted().map { folder in
-            let json = root.appending(path: folder).appending(path: "widget.json")
-            let name = (try? JSONDecoder().decode(Named.self, from: Data(contentsOf: json)))?.name
-            return (folder, name ?? folder)
-        }
-    }()
+    #if DEBUG
+        /// The reference widgets bundled in debug builds: each folder and the name its widget gives itself.
+        let fixtures: [(folder: String, name: String)] = {
+            guard let root = Bundle.main.url(forResource: "Fixtures", withExtension: nil),
+                let folders = try? FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
+            else { return [] }
+            struct Named: Decodable { let name: String }
+            return folders.sorted().map { folder in
+                let json = root.appending(path: folder).appending(path: "widget.json")
+                let name = (try? JSONDecoder().decode(Named.self, from: Data(contentsOf: json)))?.name
+                return (folder, name ?? folder)
+            }
+        }()
+    #endif
 
     func refresh() {
         Task { await reload() }
@@ -130,28 +132,30 @@ final class Library {
         return placed
     }
 
-    /// A bundled fixture's source, or nil when this build bundles none.
-    static func fixture(_ folder: String) throws(Rejected) -> WidgetSource? {
-        guard let url = Bundle.main.url(forResource: folder, withExtension: nil, subdirectory: "Fixtures") else {
+    #if DEBUG
+        /// A bundled fixture's source, or nil when this build bundles none.
+        static func fixture(_ folder: String) throws(Rejected) -> WidgetSource? {
+            guard let url = Bundle.main.url(forResource: folder, withExtension: nil, subdirectory: "Fixtures") else {
+                return nil
+            }
+            return try WidgetSource(directory: url)
+        }
+
+        /// Builds a bundled fixture through `engine.build`, the path a model-written widget takes. Returns the new
+        /// widget's id.
+        func install(_ fixture: String) async -> WidgetID? {
+            do throws(Rejected) {
+                guard let source = try Self.fixture(fixture) else { return nil }
+                switch await add(source) {
+                case .success(let id): return id
+                case .failure(let unsaved): message = unsaved.line
+                }
+            } catch {
+                message = error.line
+            }
             return nil
         }
-        return try WidgetSource(directory: url)
-    }
-
-    /// Builds a bundled fixture through `engine.build`, the path a model-written widget takes. Returns the new
-    /// widget's id.
-    func install(_ fixture: String) async -> WidgetID? {
-        do throws(Rejected) {
-            guard let source = try Self.fixture(fixture) else { return nil }
-            switch await add(source) {
-            case .success(let id): return id
-            case .failure(let unsaved): message = unsaved.line
-            }
-        } catch {
-            message = error.line
-        }
-        return nil
-    }
+    #endif
 
     /// Builds `source` into the library through `engine.build`, the path every widget takes, and draws the feed
     /// with it. Returns the new widget's id.

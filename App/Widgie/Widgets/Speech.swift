@@ -12,8 +12,8 @@ enum Daypart: Equatable {
         }
     }
 
-    init(_ date: Date, calendar: Calendar = .current) {
-        self.init(hour: calendar.component(.hour, from: date))
+    init(_ date: Date) {
+        self.init(hour: Calendar.current.component(.hour, from: date))
     }
 
     var title: String {

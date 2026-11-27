@@ -31,6 +31,8 @@ final class Preview {
     /// Whether a draft is drawn from no rows, as a saved widget starts, rather than from its first sample.
     private let startsEmpty: Bool
     @ObservationIgnored private let redraws: Redraws
+    @ObservationIgnored private var drawings = 0
+    @ObservationIgnored private var shows = 0
 
     init(
         library: Engine = Hosting.engine, engine: Engine = .scratch(), startsEmpty: Bool = false,
@@ -143,9 +145,6 @@ final class Preview {
             message = error.message
         }
     }
-
-    private var drawings = 0
-    private var shows = 0
 
     private func redraw() async {
         guard let widget, let drawn = await draw(widget) else { return }

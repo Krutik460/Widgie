@@ -97,20 +97,18 @@ final class SkyCovers {
 extension View {
     /// Marks this view as hiding the app's own sky while it shows, as a full screen cover does, so the sky
     /// underneath stops animating. A cover keeps the presenting views alive and never tells them they disappeared.
-    func coversSky(_ covers: Bool = true) -> some View {
-        modifier(SkyCover(covers: covers))
+    func coversSky() -> some View {
+        modifier(SkyCover())
     }
 }
 
 private struct SkyCover: ViewModifier {
-    let covers: Bool
-
     @Environment(SkyCovers.self) private var skyCovers: SkyCovers?
 
     func body(content: Content) -> some View {
         content
-            .onAppear { if covers { skyCovers?.count += 1 } }
-            .onDisappear { if covers { skyCovers?.count -= 1 } }
+            .onAppear { skyCovers?.count += 1 }
+            .onDisappear { skyCovers?.count -= 1 }
     }
 }
 
