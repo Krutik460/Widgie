@@ -50,21 +50,14 @@ struct TemplateSheet: View {
             guard !Task.isCancelled else { return }
             await trial.fill()
         }
-        .sheet(item: Bindable(preview).form) { shown in
-            FormSheet(form: shown.form) { input in
-                preview.perform(shown.form.tap, input: input)
-                preview.form = nil
-            }
-        }
-        .alert(
-            "Something went wrong", isPresented: .constant(message != nil || preview.message != nil),
-            actions: {
-                Button("OK") {
-                    message = nil
-                    preview.message = nil
-                }
-            },
-            message: { Text(message ?? preview.message ?? "") })
+        .previewForms(preview)
+        .failureAlert(
+            Binding(
+                get: { message ?? preview.message },
+                set: {
+                    message = $0
+                    preview.message = $0
+                }))
     }
 
     /// The face's sizes in the sheet: a small face a little bigger than in the pile, and a wide one the width of

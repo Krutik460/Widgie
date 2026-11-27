@@ -130,20 +130,8 @@ struct WidgetsFeed: View {
                 library.form = nil
             }
         }
-        .confirmationDialog(
-            "Delete this widget?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
-            titleVisibility: .visible, presenting: deleting
-        ) { id in
-            Button("Delete", role: .destructive) { library.delete(id) }
-            Button("Keep it", role: .cancel) {}
-        } message: { id in
-            Text(WidgetDetail.deleteMessage(placed: library.placed[id] != nil))
-        }
-        .alert(
-            "Something went wrong", isPresented: .constant(shown == nil && library.message != nil),
-            actions: { Button("OK") { library.message = nil } },
-            message: { Text(library.message ?? "") }
-        )
+        .failureAlert(Bindable(library).message, when: shown == nil)
+        .confirmsDelete($deleting, in: library)
     }
 
     // MARK: Header
@@ -280,6 +268,11 @@ struct WidgetsFeed: View {
         arrivals.fresh == id && settled != id
     }
 
+    /// Opens Make's chat over the feed on the widget.
+    private func change(_ id: WidgetID) {
+        changing = Chat(.library(id), close: { changing = nil })
+    }
+
     private func item(_ id: WidgetID) -> Library.Item? {
         library.items.first { $0.id == id }
     }
@@ -324,12 +317,12 @@ struct WidgetsFeed: View {
                 activity.touched = .now
                 shown = Shown(id: id)
             } change: {
-                changing = Chat(.library(id), close: { changing = nil })
+                change(id)
             }
             .scaleEffect(waiting(id) ? 0.94 : 1)
             .opacity(waiting(id) ? 0 : 1)
             .contextMenu {
-                Button("Change it", systemImage: "pencil") { changing = Chat(.library(id), close: { changing = nil }) }
+                Button("Change it", systemImage: "pencil") { change(id) }
                 Button("Delete", systemImage: "trash", role: .destructive) { deleting = id }
             }
         }

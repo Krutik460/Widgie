@@ -8,6 +8,18 @@ struct ShownForm: Identifiable {
     let form: InputForm
 }
 
+extension View {
+    /// Shows the forms `preview`'s face opens, and performs the tap with what the person entered.
+    func previewForms(_ preview: Preview) -> some View {
+        sheet(item: Bindable(preview).form) { shown in
+            FormSheet(form: shown.form) { input in
+                preview.perform(shown.form.tap, input: input)
+                preview.form = nil
+            }
+        }
+    }
+}
+
 /// The input a form button asks for. Starts from the row's current values when the form edits a row.
 struct FormSheet: View {
     let form: InputForm
