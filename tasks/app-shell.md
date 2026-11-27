@@ -109,7 +109,7 @@ The Widgets tab and the tab bar as drawn in the prototype, on the current app's 
 - [x] Simulator screenshots side by side with the prototype, light and dark: the feed at the top and scrolled, the empty state, a new widget landing, the detail sheet, and the Make tab.
 - [x] Largest Dynamic Type size and Reduce Motion pass on the feed and the bar.
 - [x] `scripts/check` green and a review guide in `docs/pr/`.
-- [ ] A fresh review, then merge.
+- [x] A fresh review, then merge (PR 17, merged 2026-11-27).
 
 Decisions (2026-11-26, from the user):
 
