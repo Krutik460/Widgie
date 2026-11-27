@@ -18,8 +18,9 @@ extension Spec {
         package let minutesAgo: Int?
         /// The name of the member who wrote the row, or nil for the person.
         package let by: String?
-        /// Never placed before today began, however large `minutesAgo` is. Only `full` sets it, so its rows
-        /// stay on today on a 23-hour day and at any hour, while a document's `minutesAgo` means what it says.
+        /// Never placed before today began, however large `minutesAgo` is: the document's `"staysToday": true`,
+        /// and every today row of `full`, so they stay on today on a 23-hour day and at any hour. Without it a
+        /// document's `minutesAgo` means what it says, and a row can land on yesterday.
         package let staysToday: Bool
         /// The document's `repeat`: how many identical rows this entry stands for. At least 1.
         package let count: Int
@@ -262,18 +263,26 @@ extension Spec.Sample {
         if row.has("daysAgo") && row.has("minutesAgo") {
             throw Diagnostic("give \"daysAgo\" or \"minutesAgo\", not both")
         }
-        let reserved = ["by", "daysAgo", "minutesAgo", "repeat"]
+        let reserved = ["by", "daysAgo", "minutesAgo", "repeat", "staysToday"]
         var dates: [Spec.DateFromToday] = []
         for key in row.keys where !reserved.contains(key) {
             guard case .date(let field)? = table.field(named: key), case .object = row[key] else { continue }
             dates.append(try dateFromToday(row[key] ?? .null, field))
         }
+        let minutesAgo = try row.wholeNumber("minutesAgo", in: Spec.Limits.minutesAgo)
+        var staysToday = false
+        if let value = row["staysToday"] {
+            let rule =
+                "\"staysToday\": true goes with \"minutesAgo\", like {\"minutesAgo\": 600, \"staysToday\": true} for 10 hours ago or as today began if that is later"
+            guard value == .bool(true), minutesAgo != nil else { throw Diagnostic(rule) }
+            staysToday = true
+        }
         var sampleRow = Spec.SampleRow(
             table: table,
             daysAgo: try row.wholeNumber("daysAgo", in: Spec.Limits.daysAgo) ?? 0,
-            minutesAgo: try row.wholeNumber("minutesAgo", in: Spec.Limits.minutesAgo),
+            minutesAgo: minutesAgo,
             by: try author(row),
-            staysToday: false,
+            staysToday: staysToday,
             count: try row.wholeNumber("repeat", in: Spec.Limits.repeatCount) ?? 1,
             values: try table.values(row, skipping: reserved + dates.map(\.field.id.raw)))
         sampleRow.datesFromToday = dates
@@ -317,6 +326,7 @@ extension Spec.Sample {
             var members: [String: JSONValue] = ["repeat": .number(Double(row.count))]
             if let minutes = row.minutesAgo {
                 members["minutesAgo"] = .number(Double(minutes))
+                if row.staysToday { members["staysToday"] = .bool(true) }
             } else {
                 members["daysAgo"] = .number(Double(row.daysAgo))
             }
