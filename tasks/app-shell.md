@@ -178,8 +178,8 @@ The prototype's remaining 13 tiles, taken from the landing page (`Site/public/wi
 - [x] Home: Bins night (each pass hands the turn to the other), Plant care (red after a week), Dinner tonight (say you'll cook, or swap back), Baby feeds (L, R or the bottle, red after three hours, a dot per feed in the last day, undo for ten minutes), Chores scoreboard (this week's count each, the leader crowned).
 - [x] Habits: Streak (Meditate: the check marks today or takes it back), Pushups (+10 toward 300 this week).
 - [x] Goals: Savings jar (+$50 toward $2,000, with what a week takes to make it by June, undo for ten minutes), Days free (alcohol-free days since a date you set, and the next medal).
-- [x] Each one is checked with `render-tool proof` and rendered next to its reference tile, small and medium, light, dark, and tinted, and at the app's 170 and 354 by 170 sizes, before it is committed. Shared widgets work on one phone until phase 4 sync, so no line promises the other person's side.
-- [x] A sample can give a date as days from the day it is drawn (`{"daysFromToday": 12}`), so the countdown and the anniversaries show the tile's count on any day. `render-tool --size` draws a render at the app's sizes.
+- [x] Each one is checked with `render-tool proof` and rendered next to its reference tile, small and medium, light, dark, and tinted, and at the app's sizes (170 by 170, 354 by 170, and the sheet's 358 by 172), before it is committed. Shared widgets work on one phone until phase 4 sync, so no line promises the other person's side.
+- [x] A sample can give a date as days from the day it is drawn (`{"daysFromToday": 12}`), so the countdown and the anniversaries show the tile's count on any day.
 
 ### U5. Polish and the end-to-end check
 
