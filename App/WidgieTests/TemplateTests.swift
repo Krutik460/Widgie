@@ -204,6 +204,25 @@ import WidgetEngine
         #expect(try shared.engine.widgets().isEmpty, "practice never reaches the shared store")
     }
 
+    @Test func widgieTakesUpTheFieldThatChangedAndNotTheFirstOneFilledIn() async throws {
+        let template = try #require(Template.catalog().first { $0.id == "habit-squares" })
+        let trial = TemplateTrial(template: template, preview: Preview(library: shared.engine))
+        await trial.fill()
+        trial.values["first"] = "Swim"
+        await trial.fill()
+        #expect(trial.said == "Swim it is.")
+
+        trial.values["second"] = "Read"
+        await trial.fill()
+        #expect(trial.said == "Read it is.")
+
+        let reactions = trial.reactions
+        trial.values["second"] = " "
+        await trial.fill()
+        #expect(trial.reactions == reactions, "a cleared field says nothing")
+        #expect(trial.said == "Read it is.")
+    }
+
     @Test func theFaceEndsOnTheLatestNameHoweverTheBuildsOverlap() async throws {
         let trial = try petFed()
         trial.values["pet"] = "Bo"
