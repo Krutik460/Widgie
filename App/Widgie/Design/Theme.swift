@@ -66,6 +66,20 @@ enum Palette {
     static let squareOn = Color(.widgieSquareOn)
     static let squareOff = Color(.widgieSquareOff)
 
+    /// The square behind each idea's symbol on Make's empty page, and the symbol's ink on it.
+    static let ideaAmber = Color(.widgieIdeaAmber)
+    static let ideaAmberInk = Color(.widgieIdeaAmberInk)
+    static let ideaCoral = Color(.widgieIdeaCoral)
+    static let ideaCoralInk = Color(.widgieIdeaCoralInk)
+    static let ideaPink = Color(.widgieIdeaPink)
+    static let ideaPinkInk = Color(.widgieIdeaPinkInk)
+    static let ideaMint = Color(.widgieIdeaMint)
+    static let ideaMintInk = Color(.widgieIdeaMintInk)
+    static let ideaSky = Color(.widgieIdeaSky)
+    static let ideaSkyInk = Color(.widgieIdeaSkyInk)
+    static let ideaLilac = Color(.widgieIdeaLilac)
+    static let ideaLilacInk = Color(.widgieIdeaLilacInk)
+
     static let failureGround = Color(.widgieFailureGround)
     static let failureCaret = Color(.widgieFailureCaret)
     static let failureText = Color(.widgieFailureText)

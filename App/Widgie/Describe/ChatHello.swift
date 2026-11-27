@@ -150,23 +150,23 @@ private struct IdeaCard: View {
 extension Template.Suggestion.Tint {
     var background: Color {
         switch self {
-        case .amber: Color(.widgieIdeaAmber)
-        case .coral: Color(.widgieIdeaCoral)
-        case .pink: Color(.widgieIdeaPink)
-        case .mint: Color(.widgieIdeaMint)
-        case .sky: Color(.widgieIdeaSky)
-        case .lilac: Color(.widgieIdeaLilac)
+        case .amber: Palette.ideaAmber
+        case .coral: Palette.ideaCoral
+        case .pink: Palette.ideaPink
+        case .mint: Palette.ideaMint
+        case .sky: Palette.ideaSky
+        case .lilac: Palette.ideaLilac
         }
     }
 
     var foreground: Color {
         switch self {
-        case .amber: Color(.widgieIdeaAmberInk)
-        case .coral: Color(.widgieIdeaCoralInk)
-        case .pink: Color(.widgieIdeaPinkInk)
-        case .mint: Color(.widgieIdeaMintInk)
-        case .sky: Color(.widgieIdeaSkyInk)
-        case .lilac: Color(.widgieIdeaLilacInk)
+        case .amber: Palette.ideaAmberInk
+        case .coral: Palette.ideaCoralInk
+        case .pink: Palette.ideaPinkInk
+        case .mint: Palette.ideaMintInk
+        case .sky: Palette.ideaSkyInk
+        case .lilac: Palette.ideaLilacInk
         }
     }
 }
