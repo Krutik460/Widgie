@@ -67,6 +67,7 @@ struct RootView: View {
             gallery.fit(column: width - 2 * TemplatesView.margin)
         }
         .onChange(of: tabs.page) {
+            flights.settle()
             // Once the switch has applied, VoiceOver moves to the new page, as it does for a system tab bar.
             Task {
                 await Task.yield()

@@ -51,6 +51,12 @@ final class Flights {
         }
     }
 
+    /// Fades out the confetti in the air, as the page it rose from leaves. A tile in flight keeps going, since it
+    /// lands in the tab bar, which every page shares.
+    func settle() {
+        withAnimation(.linear(duration: 0.12)) { bursts.removeAll() }
+    }
+
     /// Flies `launch` into the Widgets glyph, and returns once it is there.
     func fly(_ launch: Launch) async {
         serial += 1
@@ -100,7 +106,7 @@ private struct FlightLayer: View {
         GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
                 ForEach(flights.bursts) { burst in
-                    Confetti(from: burst.from)
+                    Confetti(from: burst.from).transition(.opacity)
                 }
                 if let flight = flights.flight {
                     Flyer(flight: flight, width: proxy.size.width).id(flight.id)

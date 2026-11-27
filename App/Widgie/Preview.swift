@@ -46,17 +46,20 @@ final class Preview {
     }
 
     /// Shows a draft the scratch engine holds, loading its data afresh: no rows, or its first sample so it does not
-    /// look empty. Nothing on show changes until its faces are drawn, and then all of it changes at once. Returns
-    /// true once the draft is on show. Returns false, with nothing on show changed, when the data did not load
-    /// (logged), the task was cancelled, or a later `show` started before then; the draft's rows may already hold
-    /// the new data. A tap or a redraw of the face on show meanwhile makes it draw again, so it shows the newest rows.
-    func show(_ widget: WidgetID) async -> Bool {
+    /// look empty. With `keepingRows` it draws the rows the draft already has, taps included. Nothing on show
+    /// changes until its faces are drawn, and then all of it changes at once. Returns true once the draft is on
+    /// show. Returns false, with nothing on show changed, when the data did not load (logged), the task was
+    /// cancelled, or a later `show` started before then; the draft's rows may already hold the new data. A tap or a
+    /// redraw of the face on show meanwhile makes it draw again, so it shows the newest rows.
+    func show(_ widget: WidgetID, keepingRows: Bool = false) async -> Bool {
         shows += 1
         let showing = shows
         let name: String?
         do {
-            let sample = startsEmpty ? nil : try engine.samples(of: widget).first
-            try engine.load(sample.map(DataState.sample) ?? .empty, into: widget, at: redraws.clock.now())
+            if !keepingRows {
+                let sample = startsEmpty ? nil : try engine.samples(of: widget).first
+                try engine.load(sample.map(DataState.sample) ?? .empty, into: widget, at: redraws.clock.now())
+            }
             name = try engine.widgets().first { $0.id == widget }?.name
         } catch {
             log.error("show: \(error.message, privacy: .public)")
@@ -97,13 +100,14 @@ final class Preview {
     }
 
     /// Builds a widget that is not in the library, such as a filled template, into the scratch engine and shows
-    /// it, as a new draft or as a new revision of `replacing`. Returns the draft's id, or nil, with the reason
+    /// it, as a new draft or as a new revision of `replacing`. A new revision keeps the rows the draft has, so a
+    /// name typed into a template keeps the taps tried on it. Returns the draft's id, or nil, with the reason
     /// logged, when it does not build or go on show.
     func adopt(_ source: WidgetSource, replacing: WidgetID? = nil) async -> WidgetID? {
         do {
             switch try await engine.build(source, replacing: replacing) {
             case .saved(let draft):
-                return await show(draft) ? draft : nil
+                return await show(draft, keepingRows: replacing != nil) ? draft : nil
             case .rejected(let line):
                 log.error("adopt: the preview rejected it: \(line, privacy: .public)")
                 return nil
