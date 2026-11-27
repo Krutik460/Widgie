@@ -4,7 +4,7 @@
   "category": "home",
   "order": 50,
   "family": "small",
-  "hint": "Tap to say you'll cook.",
+  "hint": "Tap to say you'll cook. For now it stays on this phone.",
   "blanks": [
     {
       "key": "who",

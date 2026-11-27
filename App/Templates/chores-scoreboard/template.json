@@ -4,13 +4,13 @@
   "category": "home",
   "order": 70,
   "family": "medium",
-  "hint": "Tap when you did one.",
+  "hint": "Tap when you did one. For now the score stays on this phone.",
   "blanks": [
     {
       "key": "who",
       "label": "Who are you up against?",
       "placeholder": "Sam",
-      "maxLength": 20
+      "maxLength": 12
     }
   ]
 }

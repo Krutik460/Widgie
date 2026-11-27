@@ -1,16 +1,16 @@
 {
   "name": "Our moods",
-  "line": "A face for each of you",
+  "line": "A face each, on one phone for now",
   "category": "for-two",
   "order": 20,
   "family": "small",
-  "hint": "Tap your face to change it.",
+  "hint": "Tap your face to change it. For now it stays on this phone.",
   "blanks": [
     {
       "key": "partner",
       "label": "Your partner's name",
       "placeholder": "Sam",
-      "maxLength": 20
+      "maxLength": 15
     }
   ]
 }

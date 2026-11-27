@@ -4,13 +4,13 @@
   "category": "for-two",
   "order": 50,
   "family": "medium",
-  "hint": "Tap when you've answered.",
+  "hint": "Tap when you've answered. For now it stays on this phone.",
   "blanks": [
     {
       "key": "partner",
       "label": "Your partner's name",
       "placeholder": "Sam",
-      "maxLength": 20
+      "maxLength": 16
     }
   ]
 }

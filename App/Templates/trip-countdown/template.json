@@ -10,7 +10,7 @@
       "key": "place",
       "label": "Where are you going?",
       "placeholder": "Lisbon",
-      "maxLength": 24
+      "maxLength": 18
     }
   ]
 }
