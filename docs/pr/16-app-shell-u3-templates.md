@@ -43,12 +43,12 @@ Key decisions:
 ```mermaid
 flowchart TD
   OPEN["TemplateSheet at the measured height"] --> TRIAL["TemplateTrial(template:, sizes:)"]
-  TRIAL -->|"task"| ADOPT["Preview.adopt: the placeholders filled, built in scratch, first sample on show"]
+  TRIAL -->|"task"| ADOPT["TemplateTrial.fill: Preview.adopt with what the blanks hold, built in scratch, first sample on show"]
   ADOPT --> GREET["after 440 ms, Widgie says the template's hint and hops"]
   OPEN --> FACE["live face: a tap writes scratch rows"]
   FACE --> PRACTICE["first tap: 'Just practice. Yours starts fresh.'"]
   OPEN --> FIELD["a field per blank, placeholder as the prompt"]
-  FIELD -->|"400 ms after typing"| REFILL["TemplateTrial.refill: Preview.adopt(replacing:), '<name> it is.'"]
+  FIELD -->|"400 ms after typing"| REFILL["TemplateTrial.fill: Preview.adopt(replacing:), '<name> it is.'"]
 ```
 
 Files: [TemplateSheet.swift](../../App/Widgie/Templates/TemplateSheet.swift), [TemplateTrial.swift](../../App/Widgie/Templates/TemplateTrial.swift), [Preview.swift](../../App/Widgie/Preview.swift), [Theme.swift](../../App/Widgie/Design/Theme.swift), [Caret.swift](../../App/Widgie/Design/Caret.swift).
@@ -60,6 +60,9 @@ Key decisions:
 - **A preview tap is practice.** It writes to the trial's scratch engine only, and Widgie says so once.
 - **The field shows the placeholder as its prompt,** rather than a prefilled value as in the prototype, so typing a name needs no clearing. Empty means the placeholder.
 - **A typed name rebuilds the face** after a pause, so the face shows the name as it will be added.
+- **The face always ends on what the fields show.** `TemplateTrial.fill` runs one build at a time in a task of its own, so a debounce cancelled by the next keystroke never stops a build halfway. Values typed while a build runs, the first one included, are built as soon as it ends, so builds never land out of order.
+- **A blank is filled in one pass over the template's text.** A value that holds another blank's `{{key}}` stays as typed, so the result does not depend on the order of the blanks and no value can reach the look's code.
+- **Widgie's words never cover the face.** Beside a small face its bubble stays inside its own column; above a face it ends where the face starts, however many lines it takes.
 
 ## 3. Adding a template
 
@@ -78,6 +81,7 @@ Key decisions:
 
 - **Every template goes through `engine.build`,** the path every widget takes. An app test builds each one with its placeholders and with quotes, a backslash and an emoji.
 - **The added widget starts fresh:** the sample data stays in the pile and the sheet.
+- **The sheet stays while Add runs.** Swipe and the close button wait for it, because a finished add jumps to Widgets.
 - **The highlight is a brief swell and glow,** not the New tag, which U1b adds with Widgie's reaction.
 - **`Library.install` now builds through `Library.add`,** so the debug fixtures and templates share one path.
 
@@ -87,8 +91,11 @@ Key decisions:
 flowchart TD
   CHAT["Change in chat"] --> CHOICE["TemplateTrial.choice: source and filled name"]
   CHOICE --> ROOT["RootView: page = .make"]
-  ROOT -->|"Make has a draft or a build under way"| ASK["'Swap your draft for <name>?' Replace draft / Keep editing"]
-  ROOT -->|"Make is empty or saved"| START["DescribeSession(draft:)"]
+  ROOT -->|"replacement .discards: a draft or a build under way"| ASK["'Swap your draft for <name>?' Replace draft / Keep editing"]
+  ROOT -->|"replacement .free: Make is empty or saved"| START["DescribeSession(draft:)"]
+  ROOT -->|"replacement .waits: a save under way"| WAIT["the template waits"]
+  WAIT -->|"saved: Widgets refreshes"| START
+  WAIT -->|"failed with a draft"| ASK
   ASK -->|"Replace draft"| START
   START -->|"DescribeView task"| OPEN["DescribeSession.open: Preview.adopt, phase .composing"]
   OPEN --> TRY["Try it screen on the filled template; the first message refines it"]
@@ -100,6 +107,7 @@ Key decisions:
 
 - **The seam is the session's origin.** `DescribeSession` holds what it starts from (nothing, a library widget, or an unsaved draft) instead of an optional id, so a session can never both edit a library widget and start from a template. `editing` is derived from it. An unsaved draft opens like a refinement and Save adds it as a new widget.
 - **A replaced draft asks first,** as the design sign-off says, with Replace draft and Keep editing.
+- **A save under way is never thrown away.** It cannot be stopped and would land after a discard, so `DescribeSession.replacement` says `.waits` while it runs and the template takes Make's place once it lands, after Widgets refreshes. `DescribeView` refuses to close during a save for the same reason.
 - **Make is still today's describe flow.** U2 turns it into the chat.
 
 ## 5. The plan
