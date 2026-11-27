@@ -53,15 +53,16 @@ import Testing
         #expect(spec.assets.isEmpty)
     }
 
-    @Test func fillingTimeZoneKeepsAZoneAlreadyThere() throws {
-        let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))
-        let tokyo = try #require(TimeZone(identifier: "Asia/Tokyo"))
-        let filled = try Spec.parse(fixture("wotd")).fillingTimeZone(losAngeles)
-        #expect(filled.automations.first?.schedule.timeZone == losAngeles)
-        #expect(filled.fillingTimeZone(tokyo).automations.first?.schedule.timeZone == losAngeles)
-        let reparsed = try Spec.parse(filled.encoded())
-        #expect(reparsed == filled)
-        #expect(String(decoding: filled.encoded(), as: UTF8.self).contains(#""timeZone":"America/Los_Angeles""#))
+    /// Documents saved before automations followed the phone's time zone carry the zone they were built in. It
+    /// is read past and never written, so a revision's bytes do not depend on where the phone was.
+    @Test func aSavedTimeZoneIsReadPastAndNeverWritten() throws {
+        let zoned = String(decoding: try fixture("wotd"), as: UTF8.self).replacing(
+            #""every": "day","#, with: #""every": "day", "timeZone": "Mars/Base","#)
+        #expect(zoned.contains("timeZone"))
+        let spec = try parse(zoned)
+        #expect(spec == (try Spec.parse(fixture("wotd"))))
+        #expect(!String(decoding: spec.encoded(), as: UTF8.self).contains("timeZone"))
+        #expect(try Spec.parse(spec.encoded()) == spec)
     }
 
     @Test func fillingDigestsRecordsTheBytesBehindEachAsset() throws {
@@ -77,30 +78,47 @@ import Testing
     }
 
     @Test func dailyAutomationRunsAtItsWallClockTime() throws {
-        let spec = try Spec.parse(fixture("wotd")).fillingTimeZone(
-            try #require(TimeZone(identifier: "America/Los_Angeles")))
-        let schedule = try #require(spec.automations.first?.schedule)
-        #expect(schedule.nextRun(after: try instant("2026-11-18T13:00:00Z")) == (try instant("2026-11-18T14:00:00Z")))
-        #expect(schedule.nextRun(after: try instant("2026-11-18T14:00:00Z")) == (try instant("2026-11-19T14:00:00Z")))
-        #expect(schedule.nextRun(after: try instant("2026-03-08T12:00:00Z")) == (try instant("2026-03-08T13:00:00Z")))
+        let losAngeles = try #require(TimeZone(identifier: "America/Los_Angeles"))
+        let schedule = try #require(try Spec.parse(fixture("wotd")).automations.first?.schedule)
+        #expect(
+            schedule.nextRun(after: try instant("2026-11-18T13:00:00Z"), in: losAngeles)
+                == (try instant("2026-11-18T14:00:00Z")))
+        #expect(
+            schedule.nextRun(after: try instant("2026-11-18T14:00:00Z"), in: losAngeles)
+                == (try instant("2026-11-19T14:00:00Z")))
+        #expect(
+            schedule.nextRun(after: try instant("2026-03-08T12:00:00Z"), in: losAngeles)
+                == (try instant("2026-03-08T13:00:00Z")))
+    }
+
+    /// The zone is the phone's current one, so the same automation runs at 06:00 wherever the phone is.
+    @Test func anAutomationRunsAtItsWallClockTimeInWhicheverZoneItIsGiven() throws {
+        let schedule = try #require(try Spec.parse(fixture("wotd")).automations.first?.schedule)
+        let after = try instant("2026-11-18T00:00:00Z")
+        #expect(
+            schedule.nextRun(after: after, in: try #require(TimeZone(identifier: "America/New_York")))
+                == (try instant("2026-11-18T11:00:00Z")))
+        #expect(
+            schedule.nextRun(after: after, in: try #require(TimeZone(identifier: "America/Los_Angeles")))
+                == (try instant("2026-11-18T14:00:00Z")))
     }
 
     @Test func weeklyAndHourlyAutomationsRunOnTheirSchedule() throws {
         let spec = try parse(
             withTables(
-                #""automations": {"weekly": {"prompt": "p", "every": "week", "on": "monday", "at": "09:00", "writes": "items", "timeZone": "UTC"}, "hourly": {"prompt": "p", "every": "hour", "at": ":15", "writes": "items", "timeZone": "UTC"}}"#
+                #""automations": {"weekly": {"prompt": "p", "every": "week", "on": "monday", "at": "09:00", "writes": "items"}, "hourly": {"prompt": "p", "every": "hour", "at": ":15", "writes": "items"}}"#
             ))
+        let utc = try #require(TimeZone(identifier: "UTC"))
         let weekly = try #require(spec.automations.first { $0.id.raw == "weekly" }?.schedule)
         let hourly = try #require(spec.automations.first { $0.id.raw == "hourly" }?.schedule)
         #expect(weekly.cadence == .weekly(.monday, hour: 9, minute: 0))
-        #expect(weekly.nextRun(after: try instant("2026-11-18T10:00:00Z")) == (try instant("2026-11-23T09:00:00Z")))
-        #expect(hourly.nextRun(after: try instant("2026-11-18T10:20:00Z")) == (try instant("2026-11-18T11:15:00Z")))
+        #expect(
+            weekly.nextRun(after: try instant("2026-11-18T10:00:00Z"), in: utc) == (try instant("2026-11-23T09:00:00Z"))
+        )
+        #expect(
+            hourly.nextRun(after: try instant("2026-11-18T10:20:00Z"), in: utc) == (try instant("2026-11-18T11:15:00Z"))
+        )
         #expect(try Spec.parse(spec.encoded()) == spec)
-    }
-
-    @Test func scheduleWithoutATimeZoneHasNoNextRun() throws {
-        let schedule = try #require(try Spec.parse(fixture("wotd")).automations.first?.schedule)
-        #expect(schedule.nextRun(after: .now) == nil)
     }
 
     @Test func runtimeNamesResolveOnlyToWhatTheDocumentDeclares() throws {

@@ -66,9 +66,11 @@ public final class Engine: Sendable {
     /// entries, so day windows flip on time without spending refresh budget. When the look reads the clock
     /// (`ctx.now` or a row's `minutesAgo`), it is also drawn every 15 minutes for two hours, up to midnight,
     /// keeping only the entries whose picture changed, and the timeline reloads after those two hours, so
-    /// "fed 11 h ago" turns into "Feed me!" within 15 minutes of the 12th hour. `reloadAt` is the earliest of
-    /// that reload, the midnight after the next one, and five minutes after the next automation run, so a
-    /// dropped push is caught by the timeline.
+    /// "fed 11 h ago" turns into "Feed me!" within 15 minutes of the 12th hour. A row written ahead (an
+    /// automation writes the next word a period early) stays hidden until its `at`, so the next such row gets an
+    /// entry at its `at` too, and the timeline ends by the one after. `reloadAt` is the earliest of that reload,
+    /// the midnight after the next one, five minutes after the next automation run in the phone's current time
+    /// zone, so the pull after a run happens, and the second hidden row's `at`.
     ///
     /// All entries share one image budget. When a later face's images would pass it, the timeline ends before
     /// that face and reloads at its date, so the next call draws it with a fresh budget. Only a current face
@@ -81,8 +83,8 @@ public final class Engine: Sendable {
     /// that shows one picture now: the app's feed, a preview, the template pile. Never throws, as `faces`.
     ///
     /// Its one entry is the face, and `reloadAt` is when that face may next change, for the host to draw it
-    /// again then: 15 minutes on for a look that reads the clock, else the next midnight, and five minutes after
-    /// the next automation run when that comes first.
+    /// again then: 15 minutes on for a look that reads the clock, else the next midnight, or five minutes after
+    /// the next automation run or the `at` of the next row written ahead when either comes first.
     public func face(for widget: WidgetID?, family: Family, size: CGSize, at date: Date) async -> Faces {
         await faces(for: widget, family: family, size: size, from: date, timeline: false)
     }
@@ -145,40 +147,60 @@ public final class Engine: Sendable {
         } catch {
             first = (fallback(at: date, error), nil, false)
         }
-        let automation = stored.spec.automations.compactMap { $0.schedule.nextRun(after: date) }.min()
+        // Automations run in the phone's current time zone, the engine's calendar's, never the zone a document
+        // was built in.
+        let automation = stored.spec.automations.compactMap {
+            $0.schedule.nextRun(after: date, in: calendar.timeZone)
+        }.min()
         let automationReload = automation?.addingTimeInterval(5 * 60) ?? .distantFuture
+        // Rows written ahead show from their `at` on: the next one gets an entry of its own, and the one after
+        // ends the timeline, so each reveal lands at its time with no reload and no network.
+        let reveals: [Date]
+        do throws(StoreError) {
+            reveals = try store.reveals(of: stored.key, after: date)
+        } catch {
+            log.error("faces drew no reveals: \(error.message, privacy: .public)")
+            reveals = []
+        }
         guard timeline else {
             let clock = first.readsClock ? date.addingTimeInterval(Self.clockStep) : .distantFuture
-            return Faces(entries: [first.face], reloadAt: min(today.nextDayStart, clock, automationReload))
+            return Faces(
+                entries: [first.face],
+                reloadAt: min(today.nextDayStart, clock, automationReload, reveals.first ?? .distantFuture))
+        }
+        var clockReload = Date.distantFuture
+        // Each later instant, and whether its face is kept even when it draws what the one before drew.
+        var planned: [(instant: Date, kept: Bool)] = []
+        if first.readsClock {
+            for index in 1...Self.clockSteps {
+                let instant = date.addingTimeInterval(Self.clockStep * Double(index))
+                guard instant < today.nextDayStart else { break }
+                planned.append((instant, false))
+            }
+            clockReload = date.addingTimeInterval(Self.clockStep * Double(Self.clockSteps))
+        }
+        planned.append((today.nextDayStart, true))
+        let end = min(
+            midnight.nextDayStart, clockReload, automationReload, reveals.dropFirst().first ?? .distantFuture)
+        if let reveal = reveals.first, reveal <= end {
+            planned.removeAll { $0.instant == reveal }
+            planned.append((reveal, true))
+            planned.sort { $0.instant < $1.instant }
         }
         var entries = [first.face]
         // The first later instant whose images do not fit. The timeline ends there, and the one WidgetKit asks
         // for at that instant starts with a fresh image budget.
         var cut: Date?
-        var clockReload = Date.distantFuture
-        if first.readsClock {
-            var shown = first.tree
-            for index in 1...Self.clockSteps {
-                let instant = date.addingTimeInterval(Self.clockStep * Double(index))
-                guard instant < today.nextDayStart else { break }
-                guard let next = await later(at: instant) else {
-                    cut = instant
-                    break
-                }
-                if next.tree == nil || next.tree != shown { entries.append(next.face) }
-                shown = next.tree
+        var shown = first.tree
+        for (instant, kept) in planned {
+            guard let next = await later(at: instant) else {
+                cut = instant
+                break
             }
-            clockReload = date.addingTimeInterval(Self.clockStep * Double(Self.clockSteps))
+            if kept || next.tree == nil || next.tree != shown { entries.append(next.face) }
+            shown = next.tree
         }
-        if cut == nil {
-            if let midnightFace = await later(at: today.nextDayStart) {
-                entries.append(midnightFace.face)
-            } else {
-                cut = today.nextDayStart
-            }
-        }
-        let reloadAt = min(cut ?? .distantFuture, midnight.nextDayStart, clockReload, automationReload)
-        return Faces(entries: entries, reloadAt: reloadAt)
+        return Faces(entries: entries, reloadAt: min(cut ?? .distantFuture, end))
     }
 
     /// Applies a tapped action. Resolves the action by name in the revision the button was drawn from (the
@@ -261,6 +283,45 @@ public final class Engine: Sendable {
         guard let key = WidgetKey(parsing: widget.rawValue) else { return }
         let store = try self.store()
         try attempt { () throws(StoreError) in try store.delete(key) }
+    }
+
+    /// Merges a page of the account's changes from the server, in one transaction with the page's automation
+    /// replica (whose rows then count as the person's own) and the watermark, which never moves backwards. It
+    /// stops at the first change stamped more than 10 minutes ahead of `date`, so that change and the rest come
+    /// again in the next pull, and drops for good a cell over the limits a tap obeys; both are logged.
+    /// `onCommit` runs only when the page changed a row, a cell, or who counts as the person, so a replayed page
+    /// reloads nothing. Throws only when the store cannot be opened or written.
+    public func receive(_ page: RemotePage, at date: Date = .now) throws(EngineError) {
+        let store = try self.store()
+        let received = try attempt { () throws(StoreError) in try store.receive(page.page, now: date) }
+        if let first = received.held.first {
+            let ahead = Int((first.stamp.milliseconds - Int64(date.timeIntervalSince1970 * 1000)) / 1000)
+            log.error(
+                "pull stopped at a change stamped \(ahead, privacy: .public) s ahead of this clock; \(received.held.count, privacy: .public) changes wait for the next pull"
+            )
+        }
+        for refused in received.refused {
+            guard case .setCell(let row, _, let field, _) = refused.change else { continue }
+            log.error(
+                "pull refused a cell over the limits: field \(field, privacy: .public) of row \(row.raw, privacy: .public)"
+            )
+        }
+    }
+
+    /// The server id of the last change a page passed, or 0 before the first: the `after` of the next pull.
+    public func watermark() throws(EngineError) -> Int {
+        let store = try self.store()
+        return Int(try attempt { () throws(StoreError) in try store.watermark() })
+    }
+
+    /// Every automation of the account, as the body of `PUT /v1/automations` (docs/engine/WIRE.md): one entry
+    /// per automation of each live widget, as the revision it draws defines it, with the dataset it writes, plus
+    /// this engine's current time zone, which every automation runs in. The digest changes whenever the body
+    /// does: after a save, a refinement, a restore, a roll back, a delete, or a move to another time zone.
+    public func automationPayload() throws(EngineError) -> AutomationPayload {
+        let store = try self.store()
+        let payload = try attempt { () throws(StoreError) in try store.automationPayload(timeZone: calendar.timeZone) }
+        return AutomationPayload(json: payload.json, digest: payload.digest.hex)
     }
 
     /// Every engine in this process but the scratch ones stops writing, and reads still work, so iOS never

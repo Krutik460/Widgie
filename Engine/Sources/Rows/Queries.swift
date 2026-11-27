@@ -3,27 +3,29 @@ import GRDB
 import Spec
 
 // The read side. Every shape starts from one `Selection`: the live rows of the dataset (widget, table) is bound
-// to, narrowed by a day window and a `where`. A row's author is the replica that inserted it, and `me` is this
-// store's replica, so `where by` and `RowValue.by` need no lookup beyond the row. Every window ends today, so a row written ahead for a later day
-// shows on its day. A cell is read only when it claims its row's dataset and has its field's kind. The binding
-// is a scalar subquery SQLite runs once, so the partial index `row_live(dataset, day, at) WHERE deleted IS NULL`
-// serves the selection, the day windows, and the newest and oldest orders. A table with no binding selects
-// nothing.
+// to, narrowed by a day window and a `where`. A row's author is the replica that inserted it, and the person is
+// every replica in the local `mine` table (this store's own, and the account's automation replica a pull names),
+// so `where by` and `RowValue.by` need no lookup beyond the row and that small table. Every window ends today
+// and now: a row shows on its day and from its `at` on, so a row an automation wrote ahead stays hidden until its
+// time. A cell is read only when it claims its row's dataset and has its field's kind. The binding is a scalar
+// subquery SQLite runs once, so the partial index `row_live(dataset, day, at) WHERE deleted IS NULL` serves the
+// selection, the day windows, and the newest and oldest orders. A table with no binding selects nothing.
 
-/// Live rows of the dataset one table of one widget is bound to, as a WHERE clause over `row r`.
+/// Live rows of the dataset one table of one widget is bound to, as a WHERE clause over `row r`. Ends at
+/// `today`: a row of a later day, or whose `at` is after `today.instant`, is not selected yet.
 private struct Selection {
     let sql: String
     let arguments: StatementArguments
 
     init(
-        widget: WidgetKey, table: Spec.TableID, from first: Day? = nil, through last: Day,
-        matching filter: Spec.Filter? = nil, me: String
+        widget: WidgetKey, table: Spec.TableID, from first: Day? = nil, through today: Today,
+        matching filter: Spec.Filter? = nil
     ) {
         var sql = """
             r.dataset = (SELECT dataset FROM binding WHERE widget = ? AND tbl = ?) AND r.deleted IS NULL \
-            AND r.day <= ?
+            AND r.day <= ? AND r.at <= ?
             """
-        var arguments: StatementArguments = [widget.raw, table.raw, last.index]
+        var arguments: StatementArguments = [widget.raw, table.raw, today.day.index, milliseconds(today.instant)]
         if let first {
             sql += " AND r.day >= ?"
             arguments += [first.index]
@@ -40,11 +42,9 @@ private struct Selection {
         }
         switch filter?.by {
         case .me?:
-            sql += " AND r.replica = ?"
-            arguments += [me]
+            sql += " AND r.replica IN (SELECT replica FROM mine)"
         case .others?:
-            sql += " AND r.replica <> ?"
-            arguments += [me]
+            sql += " AND r.replica NOT IN (SELECT replica FROM mine)"
         case nil:
             break
         }
@@ -66,20 +66,20 @@ extension Spec.Window {
     }
 }
 
-func evaluate(_ shape: Spec.Shape, widget: WidgetKey, today: Today, me: String, _ db: Database) throws
+func evaluate(_ shape: Spec.Shape, widget: WidgetKey, today: Today, _ db: Database) throws
     -> QueryResult
 {
     switch shape {
     case .count(let table, let filter, let window):
         let rows = Selection(
-            widget: widget, table: table.id, from: window.first(today), through: today.day, matching: filter, me: me)
+            widget: widget, table: table.id, from: window.first(today), through: today, matching: filter)
         return .number(
             Double(
                 try Int.fetchOne(db, sql: "SELECT count(*) FROM row r WHERE \(rows.sql)", arguments: rows.arguments)
                     ?? 0))
     case .sum(let field, let filter, let window):
         let rows = Selection(
-            widget: widget, table: field.table, from: window.first(today), through: today.day, matching: filter, me: me)
+            widget: widget, table: field.table, from: window.first(today), through: today, matching: filter)
         let total = try Double.fetchOne(
             db,
             sql: """
@@ -89,14 +89,14 @@ func evaluate(_ shape: Spec.Shape, widget: WidgetKey, today: Today, me: String, 
         return .number(total ?? 0)
     case .latest(let table, let filter, let window):
         let rows = Selection(
-            widget: widget, table: table.id, from: window.first(today), through: today.day, matching: filter, me: me)
-        return .row(try list(table, rows, .newest, limit: 1, me: me, db).first)
+            widget: widget, table: table.id, from: window.first(today), through: today, matching: filter)
+        return .row(try list(table, rows, .newest, limit: 1, db).first)
     case .list(let table, let filter, let order, let limit, let window):
         let rows = Selection(
-            widget: widget, table: table.id, from: window.first(today), through: today.day, matching: filter, me: me)
-        return .rows(try list(table, rows, order, limit: limit, me: me, db))
+            widget: widget, table: table.id, from: window.first(today), through: today, matching: filter)
+        return .rows(try list(table, rows, order, limit: limit, db))
     case .streak(let measure, let filter, let goal):
-        let rows = Selection(widget: widget, table: measure.table, through: today.day, matching: filter, me: me)
+        let rows = Selection(widget: widget, table: measure.table, through: today, matching: filter)
         let totals = DayTotals(measure, rows)
         let days = try Int.fetchCursor(
             db, sql: "SELECT day FROM (\(totals.sql) GROUP BY r.day) WHERE measure >= ? ORDER BY day DESC",
@@ -113,7 +113,7 @@ func evaluate(_ shape: Spec.Shape, widget: WidgetKey, today: Today, me: String, 
         let first = today.day.adding(1 - count)
         let totals = DayTotals(
             measure,
-            Selection(widget: widget, table: measure.table, from: first, through: today.day, matching: filter, me: me))
+            Selection(widget: widget, table: measure.table, from: first, through: today, matching: filter))
         var found: [Int: Row] = [:]
         for row in try Row.fetchAll(db, sql: "\(totals.sql) GROUP BY r.day", arguments: totals.arguments) {
             found[row["day"]] = row
@@ -152,7 +152,7 @@ private struct DayTotals {
 
 /// Up to `limit` selected rows in `order`, with their values: one statement for the keys, one for their cells.
 private func list(
-    _ table: Spec.Table, _ rows: Selection, _ order: Spec.Order, limit: Int, me: String, _ db: Database
+    _ table: Spec.Table, _ rows: Selection, _ order: Spec.Order, limit: Int, _ db: Database
 ) throws -> [RowValue] {
     let newest = "r.day DESC, r.at DESC, r.key DESC"
     var join = ""
@@ -177,13 +177,13 @@ private func list(
     let keyed = try Row.fetchAll(
         db,
         sql: """
-            SELECT r.key, r.dataset, r.day, r.at, r.replica, m.name FROM row r \(join)
+            SELECT r.key, r.dataset, r.day, r.at, r.replica IN (SELECT replica FROM mine) AS mine, m.name FROM row r \(join)
             LEFT JOIN member m ON m.replica = r.replica WHERE \(rows.sql) ORDER BY \(sorting) LIMIT ?
             """,
         arguments: arguments + rows.arguments + [limit])
     let found: [(key: RowKey, day: Day, at: Int64, by: RowAuthor)] = keyed.compactMap { row in
         RowKey(parsing: row["key"]).map {
-            ($0, Day(index: row["day"]), row["at"] ?? 0, RowAuthor(me: row["replica"] == me, name: row["name"]))
+            ($0, Day(index: row["day"]), row["at"] ?? 0, RowAuthor(me: row["mine"], name: row["name"]))
         }
     }
     guard let dataset = keyed.first.flatMap({ DatasetKey(parsing: $0["dataset"]) }) else { return [] }

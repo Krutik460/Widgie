@@ -18,15 +18,13 @@ extension Spec {
         }
 
         package let cadence: Cadence
-        /// Nil only in a model reply. The builder fills it before saving, so a stored document always has one.
-        package let timeZone: TimeZone?
 
-        /// The first run after `instant`, or nil while the time zone is unknown. A wall-clock time that a
-        /// daylight saving change skips runs at the next time that exists.
-        package func nextRun(after instant: Date) -> Date? {
-            guard let timeZone else { return nil }
+        /// The first run after `instant` in `zone`. Automations follow the phone's current time zone, so someone
+        /// who moves keeps getting the word at 06:00 local. A wall-clock time that a daylight saving change skips
+        /// runs at the next time that exists, and one it repeats runs once.
+        package func nextRun(after instant: Date, in zone: TimeZone) -> Date? {
             var calendar = Calendar(identifier: .gregorian)
-            calendar.timeZone = timeZone
+            calendar.timeZone = zone
             var match = DateComponents()
             match.second = 0
             switch cadence {
@@ -55,6 +53,8 @@ extension Spec.Automation {
                 else:
                     "an automation must be an object like {\"prompt\": \"...\", \"every\": \"day\", \"at\": \"06:00\", \"writes\": \"words\"}, not \(json.described)"
             )
+            // Documents saved before automations followed the phone's time zone (2026-11-27) carry the zone
+            // they were built in as `timeZone`. It is read past and never written again.
             try automation.requireOnly(["at", "every", "on", "prompt", "timeZone", "writes"]) {
                 "unknown key \(Diagnostic.quote($0)) (keys: prompt, every, at, on, writes)"
             }
@@ -67,9 +67,7 @@ extension Spec.Automation {
             }
             let writes = try resolver.table(target, for: "writes")
             return Spec.Automation(
-                id: id, prompt: prompt,
-                schedule: Spec.Schedule(cadence: try cadence(automation), timeZone: try timeZone(automation)),
-                writes: writes)
+                id: id, prompt: prompt, schedule: Spec.Schedule(cadence: try cadence(automation)), writes: writes)
         } catch {
             throw error.within("automation \(Diagnostic.quote(id.raw))")
         }
@@ -121,30 +119,24 @@ extension Spec.Automation {
         return [hour, minute]
     }
 
-    private static func timeZone(_ automation: Reader) throws(Diagnostic) -> TimeZone? {
-        guard let value = automation["timeZone"] else { return nil }
-        guard case .string(let name) = value, let zone = TimeZone(identifier: name) else {
-            throw Diagnostic(
-                "\"timeZone\" must be a time zone name like \"America/Los_Angeles\", not \(value.described)")
-        }
-        return zone
-    }
-
     var json: JSONValue {
-        var members: [String: JSONValue] = ["prompt": .string(prompt), "writes": .string(writes.id.raw)]
-        switch schedule.cadence {
+        .object(schedule.cadence.members.merging(["prompt": .string(prompt), "writes": .string(writes.id.raw)]) { $1 })
+    }
+}
+
+extension Spec.Schedule.Cadence {
+    /// `every`, `at`, and `on` as the document writes them, for the document and for the automation payload.
+    package var members: [String: JSONValue] {
+        switch self {
         case .hourly(let minute):
-            members["every"] = .string("hour")
-            members["at"] = .string(String(format: ":%02d", minute))
+            ["every": .string("hour"), "at": .string(String(format: ":%02d", minute))]
         case .daily(let hour, let minute):
-            members["every"] = .string("day")
-            members["at"] = .string(String(format: "%02d:%02d", hour, minute))
+            ["every": .string("day"), "at": .string(String(format: "%02d:%02d", hour, minute))]
         case .weekly(let weekday, let hour, let minute):
-            members["every"] = .string("week")
-            members["on"] = .string(weekday.name)
-            members["at"] = .string(String(format: "%02d:%02d", hour, minute))
+            [
+                "every": .string("week"), "on": .string(weekday.name),
+                "at": .string(String(format: "%02d:%02d", hour, minute)),
+            ]
         }
-        if let zone = schedule.timeZone { members["timeZone"] = .string(zone.identifier) }
-        return .object(members)
     }
 }

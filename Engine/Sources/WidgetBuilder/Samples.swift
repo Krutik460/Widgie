@@ -26,7 +26,7 @@ extension Engine {
         let spec: Spec
         let images: [Spec.AssetID: Data]
         do throws(Diagnostic) {
-            spec = try Spec.parse(source.json).fillingTimeZone(calendar.timeZone)
+            spec = try Spec.parse(source.json)
             images = try ingest(source.images, spec: spec, keeping: nil, store: store)
         } catch {
             throw EngineError(message: error.line)
