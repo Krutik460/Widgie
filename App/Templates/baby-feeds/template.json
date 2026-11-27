@@ -1,0 +1,16 @@
+{
+  "name": "Baby feeds",
+  "line": "Red after three hours",
+  "category": "home",
+  "order": 60,
+  "family": "medium",
+  "hint": "Tap L, R or the bottle.",
+  "blanks": [
+    {
+      "key": "who",
+      "label": "Who's on feeds with you?",
+      "placeholder": "Sam",
+      "maxLength": 20
+    }
+  ]
+}

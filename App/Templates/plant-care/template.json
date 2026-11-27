@@ -1,0 +1,16 @@
+{
+  "name": "Plant care",
+  "line": "Goes red when thirsty",
+  "category": "home",
+  "order": 40,
+  "family": "small",
+  "hint": "Tap the check after watering.",
+  "blanks": [
+    {
+      "key": "plant",
+      "label": "Your plant",
+      "placeholder": "Monstera",
+      "maxLength": 24
+    }
+  ]
+}
