@@ -84,7 +84,8 @@ public enum InputValue: Sendable, Equatable {
 
 /// Timeline entries for one widget, precomputed so day windows flip on time without spending refresh budget:
 /// now and the next midnight, and, for a look that reads the clock, each quarter hour of the next two hours
-/// before that midnight whose picture changed.
+/// before that midnight whose picture changed. `Engine.face` returns the first entry alone, with `reloadAt` the
+/// moment that face may next change.
 public struct Faces: Sendable {
     /// Never empty, ascending dates.
     public let entries: [Face]

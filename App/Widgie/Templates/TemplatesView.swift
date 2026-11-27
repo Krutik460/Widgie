@@ -65,7 +65,6 @@ struct TemplatesView: View {
             $0.size.width
         } action: { width in
             self.width = width
-            gallery.fit(column: width - 2 * Self.margin)
         }
         .background {
             if let measuring {

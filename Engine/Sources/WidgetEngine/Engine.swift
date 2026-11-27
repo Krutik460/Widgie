@@ -79,8 +79,12 @@ public final class Engine: Sendable {
 
     /// The widget's face at `date` alone, without the later entries `faces` draws for a timeline, for a host
     /// that shows one picture now: the app's feed, a preview, the template pile. Never throws, as `faces`.
-    public func face(for widget: WidgetID?, family: Family, size: CGSize, at date: Date) async -> Face {
-        await faces(for: widget, family: family, size: size, from: date, timeline: false).current
+    ///
+    /// Its one entry is the face, and `reloadAt` is when that face may next change, for the host to draw it
+    /// again then: 15 minutes on for a look that reads the clock, else the next midnight, and five minutes after
+    /// the next automation run when that comes first.
+    public func face(for widget: WidgetID?, family: Family, size: CGSize, at date: Date) async -> Faces {
+        await faces(for: widget, family: family, size: size, from: date, timeline: false)
     }
 
     private func faces(for widget: WidgetID?, family: Family, size: CGSize, from date: Date, timeline: Bool)
@@ -141,7 +145,12 @@ public final class Engine: Sendable {
         } catch {
             first = (fallback(at: date, error), nil, false)
         }
-        guard timeline else { return Faces(entries: [first.face], reloadAt: today.nextDayStart) }
+        let automation = stored.spec.automations.compactMap { $0.schedule.nextRun(after: date) }.min()
+        let automationReload = automation?.addingTimeInterval(5 * 60) ?? .distantFuture
+        guard timeline else {
+            let clock = first.readsClock ? date.addingTimeInterval(Self.clockStep) : .distantFuture
+            return Faces(entries: [first.face], reloadAt: min(today.nextDayStart, clock, automationReload))
+        }
         var entries = [first.face]
         // The first later instant whose images do not fit. The timeline ends there, and the one WidgetKit asks
         // for at that instant starts with a fresh image budget.
@@ -168,10 +177,7 @@ public final class Engine: Sendable {
                 cut = today.nextDayStart
             }
         }
-        let automation = stored.spec.automations.compactMap { $0.schedule.nextRun(after: date) }.min()
-        let reloadAt = min(
-            cut ?? .distantFuture, midnight.nextDayStart, clockReload,
-            automation?.addingTimeInterval(5 * 60) ?? .distantFuture)
+        let reloadAt = min(cut ?? .distantFuture, midnight.nextDayStart, clockReload, automationReload)
         return Faces(entries: entries, reloadAt: reloadAt)
     }
 

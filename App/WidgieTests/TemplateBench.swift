@@ -21,7 +21,7 @@ import WidgetEngine
     init(_ id: String, family: Family? = nil, rows: String? = nil, at date: Date) throws {
         template = try #require(Template.catalog().first { $0.id == id }, "no template \(id)")
         self.family = family ?? template.family
-        widget = try engine.stage(template.source(), at: date)
+        widget = try engine.stageProved(template.source(), at: date)
         if let rows {
             let file = FileManager.default.temporaryDirectory.appending(path: "rows-\(UUID().uuidString).json")
             defer { try? FileManager.default.removeItem(at: file) }
@@ -31,57 +31,61 @@ import WidgetEngine
     }
 
     func face(at date: Date) async -> Face {
-        await engine.face(for: widget, family: family, size: family.standardSize, at: date)
+        await engine.face(for: widget, family: family, size: family.standardSize, at: date).current
     }
 
     /// The actions of the buttons the face offers, found the way the widget finds them: by drawing it with a
     /// host that sees every button.
     func actions(at date: Date) async -> [String] {
-        offered(await face(at: date)).map(\.action)
+        taps(on: await face(at: date), family).map(\.action)
     }
 
     /// Presses the face's button for `action` at `date`, with `input` for a button that opens a form.
     func tap(_ action: String, at date: Date, input: [String: InputValue] = [:]) async throws {
-        let tap = try #require(offered(await face(at: date)).first { $0.action == action }, "no \(action) button")
+        let tap = try #require(
+            taps(on: await face(at: date), family).first { $0.action == action }, "no \(action) button")
         try engine.perform(tap, input: input, at: date)
     }
 
     func picture(at date: Date) async -> Bitmap {
-        Bitmap(render(FaceView(await face(at: date), host: .still)))
+        Bitmap(render(FaceView(await face(at: date), host: .still), family))
     }
 
-    /// The words the face shows, read off its picture by text recognition, one line of text each.
-    func words(at date: Date) async throws -> [String] {
+    /// The words the face shows, read off its picture by text recognition, in one string. How recognition splits
+    /// them into lines varies, so a test looks for words in it rather than for whole lines.
+    func text(at date: Date) async throws -> String {
         var request = RecognizeTextRequest()
         request.usesLanguageCorrection = false
-        let observations = try await request.perform(on: render(FaceView(await face(at: date), host: .still)))
-        return observations.compactMap { $0.topCandidates(1).first?.string }
+        let observations = try await request.perform(on: render(FaceView(await face(at: date), host: .still), family))
+        return observations.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
     }
+}
 
-    private func offered(_ face: Face) -> [Tap] {
-        let seen = Mutex<[Tap]>([])
-        let host = FaceHost(
-            button: { tap, label in
-                seen.withLock { $0.append(tap) }
-                return label
-            },
-            form: { tap, label in
-                seen.withLock { $0.append(tap) }
-                return label
-            },
-            root: FaceHost.still.root)
-        _ = render(FaceView(face, host: host))
-        var unique: [Tap] = []
-        for tap in seen.withLock({ $0 }) where !unique.contains(tap) { unique.append(tap) }
-        return unique
-    }
+/// The taps of the buttons `face` offers, found the way the widget finds them: by drawing it with a host that
+/// sees every button.
+@MainActor func taps(on face: Face, _ family: Family) -> [Tap] {
+    let seen = Mutex<[Tap]>([])
+    let host = FaceHost(
+        button: { tap, label in
+            seen.withLock { $0.append(tap) }
+            return label
+        },
+        form: { tap, label in
+            seen.withLock { $0.append(tap) }
+            return label
+        },
+        root: FaceHost.still.root)
+    _ = render(FaceView(face, host: host), family)
+    var unique: [Tap] = []
+    for tap in seen.withLock({ $0 }) where !unique.contains(tap) { unique.append(tap) }
+    return unique
+}
 
-    private func render(_ view: some View) -> CGImage {
-        let renderer = ImageRenderer(content: view.environment(\.colorScheme, .light))
-        renderer.scale = 3
-        renderer.proposedSize = ProposedViewSize(family.standardSize)
-        return renderer.cgImage!
-    }
+@MainActor private func render(_ view: some View, _ family: Family) -> CGImage {
+    let renderer = ImageRenderer(content: view.environment(\.colorScheme, .light))
+    renderer.scale = 3
+    renderer.proposedSize = ProposedViewSize(family.standardSize)
+    return renderer.cgImage!
 }
 
 /// A moment in the test's calendar, the one the engine counts days in.

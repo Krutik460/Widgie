@@ -20,7 +20,7 @@ extension Engine {
     /// Only a scratch engine takes this, so an unproved widget never reaches the shared store, and saving a
     /// draft there builds it, which proves it. Throws for any other engine, a source that does not parse or
     /// whose images do not ingest, and a store failure.
-    public func stage(_ source: WidgetSource, at date: Date = .now) throws(EngineError) -> WidgetID {
+    public func stageProved(_ source: WidgetSource, at date: Date = .now) throws(EngineError) -> WidgetID {
         guard isScratch else { throw EngineError(message: "only a scratch engine stages a widget it has not proved") }
         let store = try self.store()
         let spec: Spec
