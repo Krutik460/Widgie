@@ -60,11 +60,11 @@ A council (Claude Opus, Gemini Neon, and GPT Sol as a non-blocking voice) review
 
 ### U1. Shell and the Widgets feed
 
-- [x] `RootView` holds a `TabView` with the three tabs. `WidgieApp` shows it instead of `LibraryView`. A selected-tab binding lets other screens switch tabs, for example "See it in Widgets" after a save.
-- [x] `WidgetsFeed` replaces `LibraryView`. The layout is B: wide widgets fill a row, smalls pair up. Each card shows a live face with a caption: name, a "placed" dot, and a relative time.
+- [x] `RootView` holds a `TabView` with Widgets and Make (Templates arrives with U3). `WidgieApp` shows it instead of `LibraryView`. The selected tab is `RootView` state; the feed's empty state and a save switch tabs through it. The Make tab hosts the describe flow without its close button, and a save refreshes the feed at once.
+- [x] `WidgetsFeed` replaces `LibraryView`. The layout is B: wide widgets fill a row, smalls pair up. Each card shows a live face with a caption: its name and a phone mark when it is on the home screen.
 - [x] "On your home screen" comes from `WidgetCenter.shared.currentConfigurations()`, mapping each `PickWidget` configuration to its widget id. It is refreshed when the app becomes active.
 - [x] The feed's empty state: the caret and one line, with "Make one" (switches to Make). "Browse templates" comes with U3.
-- [x] `WidgetDetail` sheet: live faces in both sizes, three steps for adding it to the home screen, Change it (opens the chat as a sheet with `DescribeSession(editing:)`), and Delete with a confirmation.
+- [x] `WidgetDetail` sheet: live faces in both sizes, three steps for adding it to the home screen, Change it (opens the describe flow as a full screen cover with `DescribeSession(editing:)`), and Delete with a confirmation, the same one the feed's long press asks.
 - [x] The debug fixture menu moves off the header into a long press on the title, still DEBUG only.
 - [x] **Check:** simulator screenshots of the feed, the empty state and the detail sheet, light and dark. The Dynamic Type and placed-dot checks move to U5's pass.
 

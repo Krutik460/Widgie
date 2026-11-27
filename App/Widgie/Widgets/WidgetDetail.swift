@@ -24,6 +24,7 @@ struct WidgetDetail: View {
                             .font(size: 30, weight: .heavy, relativeTo: .title)
                             .tracking(-1)
                             .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
                         Text(status)
                             .font(size: 15, weight: .medium, relativeTo: .subheadline)
                             .foregroundStyle(Palette.secondary)
@@ -73,7 +74,7 @@ struct WidgetDetail: View {
             }
             Button("Keep it", role: .cancel) {}
         } message: {
-            Text(placed.isEmpty ? "Its data goes with it." : "It also goes blank on your home screen.")
+            Text(Self.deleteMessage(placed: !placed.isEmpty))
         }
         .fullScreenCover(item: $session) { session in
             DescribeView(session: session) { _ in
@@ -141,6 +142,7 @@ struct WidgetDetail: View {
             Text("Add it to your home screen")
                 .font(size: 19, weight: .bold, relativeTo: .headline)
                 .tracking(-0.4)
+                .accessibilityAddTraits(.isHeader)
             step("hand.tap", "Touch and hold an empty spot on your home screen.")
             step("plus.square", "Tap Edit, then Add Widget.")
             step("magnifyingglass", "Find Widgie, pick a size, and tap Add Widget.")
@@ -160,6 +162,11 @@ struct WidgetDetail: View {
                 .font(size: 16, weight: .medium)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    /// What deleting takes with it. A home screen widget showing this one moves on to another or goes blank.
+    static func deleteMessage(placed: Bool) -> String {
+        placed ? "Its data goes with it, and your home screen stops showing it." : "Its data goes with it."
     }
 
     private func perform(_ tap: Tap) {

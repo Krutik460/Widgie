@@ -179,7 +179,7 @@ struct FaceSizes: Equatable {
     let medium: CGSize
 
     init(column width: CGFloat) {
-        let side = ((width - Self.gap) / 2).rounded(.down)
+        let side = max(0, ((width - Self.gap) / 2).rounded(.down))
         small = CGSize(width: side, height: side)
         medium = CGSize(width: side * 2 + Self.gap, height: side)
     }

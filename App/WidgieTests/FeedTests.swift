@@ -46,10 +46,18 @@ import WidgetEngine
     @Test func withNoWidgetsAnUnconfiguredHomeScreenWidgetCountsAsNothing() {
         #expect(Library.placements([(nil, .medium)], latest: nil).isEmpty)
     }
+}
 
+@Suite struct FaceSizesTests {
     @Test func aColumnSplitsIntoTwoSmallsAndAGapLikeTheHomeScreen() {
         let sizes = FaceSizes(column: 370)
         #expect(sizes.small == CGSize(width: 178, height: 178))
         #expect(sizes.medium == CGSize(width: 370, height: 178))
+    }
+
+    @Test func aColumnNarrowerThanTheGapDrawsNothingRatherThanANegativeSize() {
+        let sizes = FaceSizes(column: 0)
+        #expect(sizes.small == .zero)
+        #expect(sizes.medium.width == FaceSizes.gap)
     }
 }

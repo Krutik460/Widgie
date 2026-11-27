@@ -4,9 +4,11 @@ import WidgetBuilder
 import WidgetEngine
 
 /// The describe flow, one action per screen: describe, watch it build, try it, saved. A failure drains the
-/// screen to grey. `close` gets the saved widget, or nil when nothing was saved.
+/// screen to grey. `close` gets the saved widget, or nil when nothing was saved. As the Make tab's root (`inTab`),
+/// the first screen has no close button and waits for a tap before raising the keyboard.
 struct DescribeView: View {
     @Bindable var session: DescribeSession
+    var inTab = false
     let close: (WidgetID?) -> Void
 
     @State private var confirmDiscard = false
@@ -31,7 +33,7 @@ struct DescribeView: View {
         ZStack {
             switch screen {
             case .describe:
-                DescribeScreen(session: session, close: attemptClose).transition(.opacity)
+                DescribeScreen(session: session, close: describeClose).transition(.opacity)
             case .building:
                 BuildingScreen(session: session).transition(.opacity)
             case .tryIt:
@@ -77,6 +79,12 @@ struct DescribeView: View {
             message: { Text(session.preview.message ?? "") })
     }
 
+    /// The first screen's close button, which the Make tab does not have.
+    private var describeClose: (() -> Void)? {
+        if inTab { return nil }
+        return { attemptClose() }
+    }
+
     private var savedID: WidgetID? {
         if case .saved(let id) = session.phase { id } else { nil }
     }
@@ -95,7 +103,8 @@ struct DescribeView: View {
 /// One big field with the caret as its cursor, three example chips, a photo button, and Build it.
 private struct DescribeScreen: View {
     @Bindable var session: DescribeSession
-    let close: () -> Void
+    /// Nil in the Make tab, where there is nothing to close back to.
+    let close: (() -> Void)?
 
     @FocusState private var typing: Bool
 
@@ -107,8 +116,10 @@ private struct DescribeScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            CloseButton(action: close)
-                .padding(.leading, Column.margin - 13)
+            if let close {
+                CloseButton(action: close)
+                    .padding(.leading, Column.margin - 13)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(alignment: .top, spacing: -16) {
@@ -156,7 +167,7 @@ private struct DescribeScreen: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .onAppear { typing = true }
+        .onAppear { if close != nil { typing = true } }
         .returnSends($session.words, send)
     }
 

@@ -35,7 +35,7 @@ Key decisions:
 - **Size from placement.** A widget shows in the size it is placed in, medium if placed in both. Unplaced widgets alternate one wide and a pair of smalls, so the feed keeps a rhythm.
 - **Faces render at the column size**, not the standard size scaled up, so a small at 179 pt stays sharp.
 - **Placement is read on every reload**, and a stale reload is dropped with its placements, so a widget removed from the home screen never comes back as placed.
-- **The form and the alert step aside while the detail sheet is up**, because the sheet shows them itself; two sheets never compete.
+- **The form and the alert step aside while the detail sheet is up**, because the sheet shows them itself. A form link that arrives while a Change it cover is up waits until the cover closes, as it did in `LibraryView`.
 
 ## 2. Opening a widget: try it, change it, delete it
 
@@ -52,7 +52,8 @@ Files: [WidgetDetail.swift](../../App/Widgie/Widgets/WidgetDetail.swift), [Widge
 
 Key decisions:
 
-- **Change it reuses today's describe flow.** U2 replaces it with the chat drawn in the prototype; this PR changes no describe behaviour.
+- **Change it reuses today's describe flow.** U2 replaces it with the chat drawn in the prototype.
+- **Delete always asks first,** from the detail and from the feed's long press, with one message for both.
 - **A soft fade sits under the bottom button**, so faces scrolling under it never collide with it.
 
 ## 3. Making a widget from the Make tab
@@ -60,7 +61,9 @@ Key decisions:
 ```mermaid
 flowchart TD
   MAKE["Make tab"] --> DV["DescribeView(session: making)"]
-  DV -->|"saved"| NEW["new DescribeSession, Library.refresh, switch to Widgets"]
+  DV -->|"phase becomes .saved"| REF["Library.refresh: the feed has it at once"]
+  DV -->|"Done on Saved"| NEW["new DescribeSession, switch to Widgets"]
+  DV -->|"leave the tab after a save"| FRESH["new DescribeSession, so Make never reopens on Saved"]
   DV -->|"switch tabs mid-draft"| KEEP["the same session waits in the tab"]
 ```
 
@@ -68,7 +71,8 @@ Files: [RootView.swift](../../App/Widgie/RootView.swift).
 
 Key decisions:
 
-- **The session lives in `RootView`**, not in the tab's view, so the draft survives a tab switch. A save starts a fresh one and shows the new widget in Widgets.
+- **The session lives in `RootView`**, not in the tab's view, so the draft survives a tab switch. A save refreshes the feed as it lands, because in a tab you can leave without tapping Done.
+- **In the tab, the describe screen has no close button and does not raise the keyboard on its own**, since there is nothing to close back to and the keyboard would cover the tab bar on every visit. Try it keeps its X, which discards the draft after asking; U2's chat replaces it with Start over.
 
 ## 4. The design for the rest of the plan
 
