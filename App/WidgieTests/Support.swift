@@ -80,7 +80,15 @@ final class SharedStore: Sendable {
     func build(_ document: String, replacing: WidgetID? = nil) async throws -> WidgetID {
         try await engine.saved(WidgetSource(json: Data(document.utf8)), replacing: replacing)
     }
+
+    /// Gives the counter `library` the `noted` field, so a change to it made before this needs a repair to save.
+    func addNote(to library: WidgetID) async throws {
+        _ = try await build(counterDocument(fields: noted), replacing: library)
+    }
 }
+
+/// A field the library counter gains while a change to it is being made, so saving the change needs a repair.
+let noted = ["note": "text"]
 
 struct Unexpected: Error {}
 
@@ -122,6 +130,28 @@ extension DescribeSession {
         case .opening, .building, .saving: false
         }
     }
+
+    /// The widget a save that landed saved. Records an issue and throws when the save did not land.
+    func savedID() throws -> WidgetID {
+        guard case .saved(let id) = phase else {
+            Issue.record("expected the save to land, got \(phase)")
+            throw Unexpected()
+        }
+        return id
+    }
+}
+
+/// Sends `words` from the composer and waits for the turn to finish.
+@MainActor func send(_ words: String, in session: DescribeSession) async throws {
+    session.words = words
+    session.send()
+    try await until({ session.settled }, "the turn never finished")
+}
+
+/// Whether `face` paints red: a pet tracker not fed yet, or a tally holding more than its sample's rows.
+func paintsRed(_ face: Face?) -> Bool {
+    guard let hue = face?.traits.hue else { return false }
+    return hue < 30 || hue > 330
 }
 
 /// A wall clock that moves only when a test moves it, for the waits of `Redraws`.
