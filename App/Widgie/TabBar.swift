@@ -10,7 +10,7 @@ struct TabBar: View {
     let caught: Int
     let pick: (Tabs.Page) -> Void
     /// Where the Widgets glyph is, in the window, for a widget to fly to.
-    let target: (CGRect) -> Void
+    let locate: (CGRect) -> Void
 
     @Namespace private var highlight
     @State private var hops = 0
@@ -23,7 +23,7 @@ struct TabBar: View {
                     .onGeometryChange(for: CGRect.self) {
                         $0.frame(in: .global)
                     } action: {
-                        target($0)
+                        locate($0)
                     }
             }
             tab(.make, "Make", label: "Make") { chosen in
@@ -150,13 +150,10 @@ private struct TabGlyph: View {
 
     var body: some View {
         Canvas { context, size in
-            let unit = size.width / 24
+            let grid = IconGrid(size)
+            let unit = grid.unit
+            let box = grid.box
             let style = StrokeStyle(lineWidth: (chosen ? 2.4 : 2.1) * unit, lineJoin: .round)
-            func box(_ x: Double, _ y: Double, _ width: Double, _ height: Double, _ corner: Double) -> Path {
-                Path(
-                    roundedRect: CGRect(x: x * unit, y: y * unit, width: width * unit, height: height * unit),
-                    cornerRadius: corner * unit, style: .continuous)
-            }
             func turned(_ path: Path, _ degrees: Double, _ x: Double, _ y: Double) -> Path {
                 path.applying(
                     CGAffineTransform(translationX: x * unit, y: y * unit).rotated(by: degrees * .pi / 180)

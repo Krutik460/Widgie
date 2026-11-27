@@ -10,7 +10,8 @@ struct CountLine: View {
     @ScaledMetric(relativeTo: .subheadline) private var mark: CGFloat = 15
 
     var body: some View {
-        let count = Text(widgets == 1 ? "1 widget" : "\(widgets) widgets")
+        let total = widgets == 1 ? "1 widget" : "\(widgets) widgets"
+        let count = Text(total)
             .font(size: 14, weight: .semibold, relativeTo: .subheadline)
             .foregroundStyle(Palette.text)
         let home = HStack(spacing: 3) {
@@ -32,8 +33,7 @@ struct CountLine: View {
         .font(size: 14, weight: .medium, relativeTo: .subheadline)
         .foregroundStyle(Palette.secondary)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "\(widgets == 1 ? "1 widget" : "\(widgets) widgets"), \(placed) on your home screen")
+        .accessibilityLabel("\(total), \(placed) on your home screen")
     }
 }
 
@@ -41,17 +41,12 @@ struct CountLine: View {
 struct PhoneMark: View {
     var body: some View {
         Canvas { context, size in
-            let unit = size.width / 24
-            func box(_ x: Double, _ y: Double, _ width: Double, _ height: Double, _ corner: Double) -> Path {
-                Path(
-                    roundedRect: CGRect(x: x * unit, y: y * unit, width: width * unit, height: height * unit),
-                    cornerRadius: corner * unit, style: .continuous)
-            }
-            context.stroke(box(5, 2, 14, 20, 3.4), with: .foreground, lineWidth: 1.9 * unit)
-            context.fill(box(7.8, 5.5, 3.8, 3.8, 1), with: .foreground)
-            context.fill(box(12.4, 5.5, 3.8, 3.8, 1), with: .foreground)
+            let grid = IconGrid(size)
+            context.stroke(grid.box(5, 2, 14, 20, 3.4), with: .foreground, lineWidth: 1.9 * grid.unit)
+            context.fill(grid.box(7.8, 5.5, 3.8, 3.8, 1), with: .foreground)
+            context.fill(grid.box(12.4, 5.5, 3.8, 3.8, 1), with: .foreground)
             context.opacity = 0.55
-            context.fill(box(7.8, 10.3, 8.4, 3.2, 1), with: .foreground)
+            context.fill(grid.box(7.8, 10.3, 8.4, 3.2, 1), with: .foreground)
         }
         .accessibilityHidden(true)
     }
@@ -67,7 +62,7 @@ struct FeedCard: View {
     let family: Family
     let size: CGSize
     let placed: Bool
-    var fresh = false
+    let fresh: Bool
     let tap: @MainActor @Sendable (Tap) -> Void
     let form: @MainActor @Sendable (Tap) -> Void
     let open: () -> Void

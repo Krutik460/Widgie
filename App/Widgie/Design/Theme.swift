@@ -232,13 +232,12 @@ private struct KeyFont: ViewModifier {
 struct CursorBar: View {
     var color: Color
     var height: CGFloat = 22
-    var blinking = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.53)) { timeline in
-            let on = !blinking || reduceMotion || Int(timeline.date.timeIntervalSinceReferenceDate / 0.53) % 2 == 0
+            let on = reduceMotion || Int(timeline.date.timeIntervalSinceReferenceDate / 0.53) % 2 == 0
             RoundedRectangle(cornerRadius: 1.5)
                 .fill(color)
                 .frame(width: 3, height: height)
@@ -363,5 +362,21 @@ struct Squish: ViewModifier {
             .scaleEffect(pressed && !reduceMotion ? scale : 1)
             .opacity(isEnabled ? 1 : dimmed)
             .animation(.spring(duration: 0.3, bounce: 0.45), value: pressed)
+    }
+}
+
+/// An icon drawn on a 24 unit grid, scaled to fill a canvas `size` wide.
+struct IconGrid {
+    let unit: Double
+
+    init(_ size: CGSize) {
+        unit = size.width / 24
+    }
+
+    /// A rounded rectangle, its frame and corner in grid units.
+    func box(_ x: Double, _ y: Double, _ width: Double, _ height: Double, _ corner: Double) -> Path {
+        Path(
+            roundedRect: CGRect(x: x * unit, y: y * unit, width: width * unit, height: height * unit),
+            cornerRadius: corner * unit, style: .continuous)
     }
 }

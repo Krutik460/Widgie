@@ -51,6 +51,8 @@ struct WidgetsFeed: View {
     }
 
     private static let top = "top"
+    /// How far the feed scrolls before Widgie, on the first row, counts as out of view.
+    private static let widgieInView: CGFloat = 140
 
     var body: some View {
         ScrollViewReader { scroller in
@@ -111,11 +113,8 @@ struct WidgetsFeed: View {
             widgie.wake()
         }
         .task(id: active && !reduceMotion) { await idle() }
-        .onChange(of: perchPoint, initial: true) { _, new in
-            if active && arrivals.landing == landed { widgie.hop(to: new, reduceMotion: reduceMotion) }
-        }
-        .onChange(of: active) { _, active in
-            if active && arrivals.landing == landed { widgie.hop(to: perchPoint, reduceMotion: reduceMotion) }
+        .onChange(of: active ? perchPoint : nil, initial: true) { _, point in
+            if arrivals.landing == landed { widgie.hop(to: point, reduceMotion: reduceMotion) }
         }
         .sheet(item: $shown) { shown in
             WidgetDetail(library: library, id: shown.id)
@@ -206,7 +205,7 @@ struct WidgetsFeed: View {
         library.perform(tap, input: input)
         guard let name = library.items.first(where: { $0.id.rawValue == tap.widget })?.summary.name else { return }
         let line = Speech.tapped(name)
-        if activity.offset > 140 {
+        if activity.offset > Self.widgieInView {
             AccessibilityNotification.Announcement(line).post()
             return
         }
@@ -255,7 +254,7 @@ struct WidgetsFeed: View {
             try? await Task.sleep(for: .milliseconds(8000 + (beat % 3) * 1500))
             guard !Task.isCancelled else { return }
             let quiet =
-                Date.now.timeIntervalSince(activity.touched) > 4 && activity.offset < 140 && shown == nil
+                Date.now.timeIntervalSince(activity.touched) > 4 && activity.offset < Self.widgieInView && shown == nil
                 && changing == nil
             guard quiet, perch != nil else { continue }
             widgie.play([HeroAct.Kind.blink, .glance, .smallHop][beat % 3])
