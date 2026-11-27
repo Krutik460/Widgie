@@ -38,11 +38,7 @@ struct TemplateSheet: View {
         // At the accessibility text sizes the content is taller than the screen, so the sheet opens full height
         // and scrolls.
         .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.height(height)])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(36)
-        .presentationBackground {
-            LinearGradient(colors: [Palette.sheetTop, Palette.sheetBottom], startPoint: .top, endPoint: .bottom)
-        }
+        .sheetStyle()
         .task {
             await trial.fill()
             if !reduceMotion { try? await Task.sleep(for: .milliseconds(440)) }
@@ -307,11 +303,11 @@ struct TemplateSheet: View {
     }
 }
 
-/// Widgie's speech bubble, with its tail pointing down to Widgie below it or left to Widgie beside it. It pops
-/// in with each new line and is read out by VoiceOver. Empty until Widgie first speaks.
+/// Widgie's speech bubble, with its tail pointing down to Widgie below it or to Widgie beside it. It pops in with
+/// each new line and is read out by VoiceOver. Empty until Widgie first speaks.
 struct Bubble: View {
     enum Tail {
-        case down, left
+        case down, left, right
     }
 
     let words: String?
@@ -327,19 +323,19 @@ struct Bubble: View {
                     .tracking(-0.15)
                     .lineSpacing(2)
                     .multilineTextAlignment(tail == .down ? .center : .leading)
-                    .foregroundStyle(Color(red: 0x12 / 255, green: 0x1A / 255, blue: 0x2E / 255))
+                    .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 15)
                     .padding(.vertical, 11)
                     .background {
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .fill(Palette.bubble)
-                            .overlay(alignment: tail == .down ? .bottom : .topLeading) {
+                            .overlay(alignment: tailCorner) {
                                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                                     .fill(Palette.bubble)
                                     .frame(width: 13, height: 13)
                                     .rotationEffect(.degrees(45))
-                                    .offset(x: tail == .down ? 0 : -5, y: tail == .down ? 5 : 11)
+                                    .offset(x: tailOffset.width, y: tailOffset.height)
                             }
                             .shadow(color: Palette.restShadow.opacity(0.5), radius: 2, y: 2)
                             .shadow(color: Palette.restShadow, radius: 12, y: 10)
@@ -348,11 +344,35 @@ struct Bubble: View {
                     .transition(
                         reduceMotion
                             ? .opacity
-                            : .scale(scale: 0.6, anchor: tail == .down ? .bottom : .leading).combined(with: .opacity)
+                            : .scale(scale: 0.6, anchor: growsFrom).combined(with: .opacity)
                     )
                     .onAppear { AccessibilityNotification.Announcement(words).post() }
             }
         }
         .animation(reduceMotion ? .linear(duration: 0.15) : .spring(duration: 0.45, bounce: 0.45), value: words)
+    }
+
+    private var tailCorner: Alignment {
+        switch tail {
+        case .down: .bottom
+        case .left: .topLeading
+        case .right: .topTrailing
+        }
+    }
+
+    private var tailOffset: CGSize {
+        switch tail {
+        case .down: CGSize(width: 0, height: 5)
+        case .left: CGSize(width: -5, height: 11)
+        case .right: CGSize(width: 5, height: 11)
+        }
+    }
+
+    private var growsFrom: UnitPoint {
+        switch tail {
+        case .down: .bottom
+        case .left: .leading
+        case .right: .trailing
+        }
     }
 }

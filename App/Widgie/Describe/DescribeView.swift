@@ -47,7 +47,14 @@ struct DescribeView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ground(screen == .failure ? Palette.failureGround : Palette.ground)
+        // In the Make tab the shell's sky shows through.
+        .background {
+            if screen == .failure {
+                Palette.failureGround.ignoresSafeArea()
+            } else if !inTab {
+                Sky()
+            }
+        }
         .animation(reduceMotion ? .linear(duration: 0.2) : .easeInOut(duration: 0.5), value: screen)
         .foregroundStyle(Palette.text)
         .tint(Palette.caret)

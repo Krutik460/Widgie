@@ -97,6 +97,7 @@ import WidgetEngine
             for: nil, family: .small, size: Family.small.standardSize, from: morning)
         let chosen = await scratch.face(todo)
         #expect(await picture(latest.current).looksLike(await picture(chosen)))
+        #expect(chosen.hasButtons)
 
         try scratch.engine.delete(todo)
         #expect(try scratch.engine.widgets().map(\.name) == ["Water"])
@@ -354,6 +355,7 @@ import WidgetEngine
         let face = await scratch.face(id)
         #expect(picture(face).looksLike(picture(.placeholder)))
         #expect(buttons(face).isEmpty)
+        #expect(!face.hasButtons)
     }
 
     /// The image budget holds for the whole `faces` call, the same cap and the same line as the proof.

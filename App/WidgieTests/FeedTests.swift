@@ -32,6 +32,42 @@ import WidgetEngine
         #expect(FeedRow.rows([(a, .small), (b, .medium)]) == [.pair(a, nil), .wide(b)])
         #expect(FeedRow<WidgetID>.rows([]) == [])
     }
+
+    @Test func aFreshSmallTakesTheFirstRowsRightSideWithTheNextSmall() {
+        #expect(
+            FeedRow.rows([(a, .small), (b, .medium), (c, .small), (d, .small)], fresh: a) == [
+                .pair(c, a), .wide(b), .pair(d, nil),
+            ])
+    }
+
+    @Test func aFreshSmallWithNoOtherSmallStandsAloneAtTheTop() {
+        #expect(
+            FeedRow.rows([(a, .small), (b, .medium), (c, .medium)], fresh: a) == [.pair(a, nil), .wide(b), .wide(c)])
+    }
+
+    @Test func freshChangesNothingForAWideOrAWidgetBelowTheTop() {
+        let shown: [(id: WidgetID, family: Family)] = [(a, .medium), (b, .small), (c, .small)]
+        #expect(FeedRow.rows(shown, fresh: a) == FeedRow.rows(shown))
+        #expect(FeedRow.rows([(a, .small), (b, .small), (c, .medium)], fresh: b) == [.pair(a, b), .wide(c)])
+    }
+}
+
+@MainActor @Suite struct RhythmTests {
+    @Test func unplacedWidgetsKeepARhythmOfOneWideAndTwoSmalls() {
+        #expect(
+            (0..<6).map { Library.family(placed: [], age: $0) } == [.medium, .small, .small, .medium, .small, .small])
+    }
+
+    @Test func aNewWidgetNeverChangesTheSizeOfTheOnesBeforeIt() {
+        let before = (0..<4).map { Library.family(placed: [], age: $0) }
+        let after = (0..<5).map { Library.family(placed: [], age: $0) }
+        #expect(Array(after.prefix(4)) == before)
+    }
+
+    @Test func aPlacedWidgetShowsInTheSizeItIsPlacedIn() {
+        #expect(Library.family(placed: [.small], age: 0) == .small)
+        #expect(Library.family(placed: [.small, .medium], age: 1) == .medium)
+    }
 }
 
 @MainActor @Suite struct PlacementTests {

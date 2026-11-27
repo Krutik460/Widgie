@@ -2,52 +2,51 @@ import SwiftUI
 import WidgetBuilder
 import WidgetEngine
 
-/// The app's tabs: your widgets, the chat that makes a new one, and the templates.
+/// The app's tabs over the sky: your widgets, the chat that makes a new one, and the templates. Each page is built
+/// on its first visit and then stays alive, so it keeps its scroll and its work when you switch away.
 struct RootView: View {
     let library: Library
 
-    enum Page: Hashable {
+    enum Page: Int, CaseIterable, Hashable {
         case widgets, make, templates
     }
 
     @State private var page = Page.widgets
+    @State private var visited: Set<Page> = [.widgets]
+    @State private var scrolled: [Page: CGFloat] = [:]
+    @State private var arrivals = Arrivals()
+    /// The keyboard is up in Make, so the tab bar steps aside as the system's does.
+    @State private var typing = false
     /// The Make tab's session. It outlives a tab switch, so a draft is never lost by looking at your widgets.
     @State private var making = DescribeSession()
     @State private var gallery = TemplateGallery()
-    /// The widget a template just added, which the feed highlights.
-    @State private var arrived: WidgetID?
     /// A template to change in chat while Make holds work of its own: waiting for a save to land, or for the
     /// person's choice.
     @State private var chosen: (source: WidgetSource, name: String)?
     @State private var asking = false
 
     var body: some View {
-        TabView(selection: $page) {
-            Tab("Widgets", systemImage: "square.grid.2x2", value: .widgets) {
-                WidgetsFeed(library: library, arrived: arrived) {
-                    page = .make
-                } browse: {
-                    page = .templates
+        ZStack {
+            Sky(moon: Sky.moonShown(scrolled: scrolled[page] ?? 0))
+            ForEach(Page.allCases, id: \.self) { shown in
+                if visited.contains(shown) {
+                    content(shown).modifier(
+                        PageSwitch(shown: shown == page, side: shown.rawValue < page.rawValue ? -1 : 1))
                 }
             }
-            Tab("Make", systemImage: "plus.bubble", value: .make) {
-                DescribeView(session: making, inTab: true) { saved in
-                    making = DescribeSession()
-                    library.refresh()
-                    if saved != nil { page = .widgets }
-                }
-                .id(ObjectIdentifier(making))
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !(typing && page == .make) {
+                TabBar(page: page, unseen: arrivals.badge, pick: go)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, -8)
             }
-            Tab("Templates", systemImage: "square.on.square", value: .templates) {
-                TemplatesView(gallery: gallery, library: library) { id in
-                    arrived = id
-                    page = .widgets
-                } chat: { source, name in
-                    page = .make
-                    chosen = (source, name)
-                    handOver()
-                }
-            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            typing = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            typing = false
         }
         .tint(Palette.caret)
         .confirmationDialog(
@@ -65,7 +64,10 @@ struct RootView: View {
         }
         .onChange(of: making.phase) { _, phase in
             // A save shows in Widgets at once, even when you switch tabs instead of tapping Done.
-            if case .saved = phase { library.refresh() }
+            if case .saved(let id) = phase {
+                library.refresh()
+                if making.editing == nil { arrivals.arrive(id, onWidgets: page == .widgets) }
+            }
             handOver()
         }
         // Leaving Make after a save starts a fresh session, so Make never reopens on the Saved screen.
@@ -74,9 +76,57 @@ struct RootView: View {
         }
         // A form link from a home screen widget opens its form over your widgets.
         .onOpenURL { url in
-            page = .widgets
+            go(.widgets)
             library.open(url)
         }
+    }
+
+    @ViewBuilder private func content(_ shown: Page) -> some View {
+        switch shown {
+        case .widgets:
+            WidgetsFeed(
+                library: library, arrivals: arrivals, active: page == .widgets, scrolled: scroll(.widgets)
+            ) {
+                go(.make)
+            } browse: {
+                go(.templates)
+            } added: { id in
+                arrivals.arrive(id, onWidgets: true)
+            }
+        case .make:
+            DescribeView(session: making, inTab: true) { saved in
+                making = DescribeSession()
+                library.refresh()
+                if saved != nil { go(.widgets) }
+            }
+            .id(ObjectIdentifier(making))
+        case .templates:
+            TemplatesView(gallery: gallery, library: library, scrolled: scroll(.templates)) { id in
+                go(.widgets)
+                arrivals.arrive(id, onWidgets: true)
+            } chat: { source, name in
+                go(.make)
+                chosen = (source, name)
+                handOver()
+            }
+        }
+    }
+
+    /// Switches tabs. Opening Widgets clears its count, and what arrived meanwhile lands.
+    private func go(_ next: Page) {
+        visited.insert(next)
+        page = next
+        if next == .widgets { arrivals.openWidgets() }
+        // Once the 320 ms switch has run, VoiceOver reads the new page. Without it, VoiceOver kept the old page's
+        // safe area content, such as Make's Build it, while another tab showed.
+        Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            AccessibilityNotification.LayoutChanged().post()
+        }
+    }
+
+    private func scroll(_ shown: Page) -> Binding<CGFloat> {
+        Binding(get: { scrolled[shown] ?? 0 }, set: { scrolled[shown] = $0 })
     }
 
     /// Puts the chosen template into Make once that loses nothing, asks first while it would discard a draft,
@@ -97,5 +147,29 @@ struct RootView: View {
         asking = false
         making.cancel()
         making = DescribeSession(draft: source)
+    }
+}
+
+/// A tab's page coming and going: the outgoing one fades out in 120 ms, and the incoming one fades in and slides 14
+/// points from the side it lies on, after 40 ms. Only a fade with Reduce Motion.
+private struct PageSwitch: ViewModifier {
+    let shown: Bool
+    /// -1 for a page left of the chosen one, 1 for one to its right.
+    let side: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .animation(shown ? .easeOut(duration: 0.22).delay(0.04) : .linear(duration: 0.12)) {
+                $0.opacity(shown ? 1 : 0)
+            }
+            .animation(
+                shown ? .timingCurve(0.22, 0.8, 0.26, 1, duration: 0.28).delay(0.04) : .linear(duration: 0).delay(0.12)
+            ) {
+                $0.offset(x: shown || reduceMotion ? 0 : side * 14)
+            }
+            .allowsHitTesting(shown)
+            .accessibilityHidden(!shown)
     }
 }
