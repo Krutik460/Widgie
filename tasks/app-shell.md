@@ -89,7 +89,7 @@ The Widgets tab and the tab bar as drawn in the prototype, on the current app's 
 
 **The feed**
 
-- [x] Cards: soft lifted shadows (no outlines), a springy press, and captions in 15 pt semibold with the phone mark when placed. The newest widget wears a yellow New tag until the next one arrives.
+- [x] Cards: soft lifted shadows (no outlines), a springy squish on the tap that opens one, and captions in 15 pt semibold with the phone mark when placed. The newest widget wears a yellow New tag until the next one arrives.
 - [x] A new small widget joins the first row on the right, under Widgie, paired with the next small one (`FeedRow.rows` gains `fresh:`; tests extended).
 - [x] Arrival: the feed scrolls to the top, the new card settles in from 94 percent over 260 ms, and Widgie reacts on contact.
 - [x] Empty state on the sky: the big Widgie with its bubble "Tell me a widget." and Make one.
@@ -105,7 +105,7 @@ The Widgets tab and the tab bar as drawn in the prototype, on the current app's 
 
 **Checks**
 
-- [x] App tests: `FeedRow.rows` with `fresh`, the greeting and tap lines, the unseen count, and the moon's scroll rule.
+- [x] App tests: `FeedRow.rows` with `fresh` and `FeedRow.singles`, the size rhythm through `Library.shown`, `Perch` (which widget Widgie stands on, where, and which way it talks), the greeting and tap lines, the unseen count (a template added from Templates badges and lands only when Widgets opens), a failed first load, and the moon's scroll rule.
 - [x] Simulator screenshots side by side with the prototype, light and dark: the feed at the top and scrolled, the empty state, a new widget landing, the detail sheet, and the Make tab.
 - [x] Largest Dynamic Type size and Reduce Motion pass on the feed and the bar.
 - [x] `scripts/check` green and a review guide in `docs/pr/`.
@@ -122,9 +122,21 @@ Decisions made while building U1b (2026-11-27):
 - An unplaced widget's size is counted from the oldest widget, not the newest, so a new widget never changes the size of the ones already in the feed. Every third one is wide, as before.
 - A lone small at the top of the feed is a third perch: Widgie stands on it and talks toward the empty half of the row.
 - At the accessibility text sizes each small takes its own row, so its name can wrap, and Widgie stands near the edge so its bubble has the most room. The tab bar's labels stay their size, as the system tab bar's do, and a long press shows them large.
-- The New tag and the unseen count last while the app runs. A template's Add widget still switches to Widgets, as U3 built it, so it lands at once and badges nothing; a Make save badges until you open Widgets.
+- The New tag and the unseen count last while the app runs.
+- Add widget follows the prototype, superseding U3's switch to Widgets (the coordinator's call after the review, since the prototype is the spec): confetti bursts from the tile and the sheet's Widgie hops, then the tile flies on an arc into the Widgets glyph while the sheet closes, the glyph squishes, the count goes up, and "<name> is in your widgets." drops in with a happy Widgie. The person stays on Templates, and the widget lands when they open Widgets. With Reduce Motion there is no burst or flight: the tile dims as the sheet closes, and the toast fades in. A Make save badges the same way.
+- Deleting an older unplaced widget shifts the size rhythm, which counts from the oldest, so the unplaced widgets newer than it can change size. Only adding a widget is guaranteed to leave the others as they are.
 - The engine's `Face` gains `hasButtons`, so Widgie can say "Give it a tap." only when there is something to tap.
-- The feed shows nothing below the header until the library's first load, so the empty state never flashes at launch.
+- The feed shows nothing below the header until the library's first load, so the empty state never flashes at launch. A first load that fails still counts as loaded, so the feed shows the empty state or the alert instead of nothing.
+
+Decisions from the review (2026-11-27):
+
+- Scrolling rebuilds nothing: the pages pass up only whether they are scrolled past the moon, and the feed keeps its offset in a box `body` never reads. Widgie's state lives in `FeedWidgie`, read only by the views that draw Widgie, so an idle beat or a new line redraws only Widgie, and the clock redraws only the header and the bubble.
+- A card opens on a tap gesture, not a button around the face, because a button folds the face's own buttons into itself for VoiceOver (Undo became a custom action and unlabeled buttons vanished). A gesture that tracked the press stopped the feed scrolling (a SwiftUI long press), the context menu opening, or the tap (a UIKit recognizer), so the squish plays on the tap and a hold gets the context menu's own lift. The caption is the one VoiceOver element that opens the widget, with Change it as an action.
+- Widgie speaks only from the page that shows: the greeting at low priority, replies to a tap or an arrival at once.
+- At the accessibility text sizes each widget takes its own row newest first (`FeedRow.singles`), so Widgie stands on a new small and names the same widget it stands on.
+- Make leaves its composer out while its page is hidden: content in a scroll view's safe area inset escaped the page's `accessibilityHidden`, its own too, and VoiceOver reached Build it from the other tabs. After a switch the app posts a layout change once the switch has applied.
+- The sky stops animating under a full screen cover, which never tells the views beneath that they disappeared, and the feed's Widgie and the Make key's Widgie animate only while they show.
+- Tapping the status bar scrolls the visible page to the top with all three pages alive (checked on the simulator).
 
 ### U2. Make as a chat
 
@@ -146,7 +158,7 @@ Decisions made while building U1b (2026-11-27):
 - [x] Every template's face matches its prototype tile, by day and by night: hearts is `two-hearts`, pet fed is `home-luna` (the puppy), shared groceries is `home-groc`, habit squares is `habits-grid`, water is `habits-water` (the bottle), and word of the day is `goals-word`. The user asked for this after the first review: the layout matched the prototype, but the faces were still the old fixtures' designs. Each look is drawn in the prototype's units (a widget is 170 of them tall), so it keeps the tile's proportions at any size. Where a tile shows behaviour the fixture lacked, the template gained it: three habits instead of one, a Spanish word with Know it and Again and a learned count, and groceries that stay in the order they were added. To-do became Shared groceries: it shows its newest items in the order they were added, crossed or not, so crossing never moves a row, and a crossed item gets a faint mark that removes it. Habit squares fits any medium width: the name column takes what the squares leave, never under the prototype's 70 units, so at the app's medium, which is narrower than the prototype's, the squares shrink a little. Copy promises only what works today: no automation runs before phase 3 and nothing syncs before phase 4, so Word of the day says daily words are on their way, groceries says it is on one phone for now, and Widgie says sent hearts stay on this phone.
 - [x] The engine bundles Bricolage Grotesque, two static faces cut from the OFL variable font (`Engine/Sources/WidgetEngine/Fonts/`), and registers them for the whole process, so looks name them with `fontName` and the app can use them too.
 - [x] `TemplatesView`, as drawn in the prototype: the eyebrow and title, the category chips (For two, Home, Habits, Goals: no All and no Learning, as in the prototype, with word of the day in Goals), a banner per category where Widgie acts it out, and the pile: the feed's layout with each card tilted, one button with an inert sample face, drawn still so it holds no buttons of its own. Faces render from the first sample in the gallery's own scratch engine, at the column size, lazily, once per template.
-- [x] `TemplateSheet`, the native sheet fitted to its content: the live face (taps work on scratch data and Widgie calls them practice), Widgie's bubble starting with the template's hint, the blank fields (a typed name rebuilds the face, and Widgie takes up the field that changed), Add widget (builds into the library, then switches to Widgets with the new card highlighted), and Change in chat (opens Make with the filled template as the draft, so the first message is a refine; a draft already in Make asks first).
+- [x] `TemplateSheet`, the native sheet fitted to its content: the live face (taps work on scratch data and Widgie calls them practice), Widgie's bubble starting with the template's hint, the blank fields (a typed name rebuilds the face, and Widgie takes up the field that changed), Add widget (builds into the library, then, as U1b built it after the prototype, flies the tile into the Widgets tab with a toast while the person stays on Templates), and Change in chat (opens Make with the filled template as the draft, so the first message is a refine; a draft already in Make asks first).
 - [x] The feed's empty state gains Browse templates. The display face is `display(size:)`, the system font at heavy weight until U1b switches it to the engine's Bricolage.
 - [x] **Check:** every template builds through `engine.build` in an app test, with and without blank values, including a value with quotes and emoji, and with every blank at its longest. Each blank's value changes the face in both sizes, and every pile face draws its look, not a fallback. `render-tool --size` renders a face at the app's own sizes, such as 358x172 for the sheet's medium on a 402 point phone. On the simulator: browse, filter, try, add with a name, and change in chat. Screenshots in light and dark, and at the largest text size.
 
