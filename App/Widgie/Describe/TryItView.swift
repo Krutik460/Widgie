@@ -9,6 +9,7 @@ struct TryItScreen: View {
     let close: () -> Void
 
     @FocusState private var typing: Bool
+    @Environment(\.pageHidden) private var pageHidden
 
     private var preview: Preview { session.preview }
     private var composing: Bool { session.phase == .composing }
@@ -37,7 +38,9 @@ struct TryItScreen: View {
                 .padding(.bottom, 16)
             }
             .scrollDismissesKeyboard(.interactively)
-            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !pageHidden { composer }
+            }
         }
         .returnSends($session.words, send)
     }

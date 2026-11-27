@@ -58,7 +58,8 @@ struct PhoneMark: View {
 }
 
 /// A live face and its caption: the name, the New tag on the newest widget, and a mark when it is on the home
-/// screen. The face squishes a little with a spring while pressed.
+/// screen. A tap anywhere but on the face's own buttons opens the widget with a little squish of the face.
+/// VoiceOver reaches each of the face's buttons, and the caption is the one element that opens the widget.
 struct FeedCard: View {
     let item: Library.Item
     let family: Family
@@ -68,69 +69,71 @@ struct FeedCard: View {
     let tap: @MainActor @Sendable (Tap) -> Void
     let form: @MainActor @Sendable (Tap) -> Void
     let open: () -> Void
+    let change: () -> Void
 
+    /// Counts the taps that opened the widget, each of which squishes the face.
+    @State private var opens = 0
     @ScaledMetric(relativeTo: .subheadline) private var mark: CGFloat = 18
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Button(action: open) {
-                LiveFace(face: item.faces[family], size: size, tap: tap, form: form)
-            }
-            .buttonStyle(PressStyle())
-            HStack(spacing: 6) {
-                Text(item.summary.name)
-                    .font(size: 15, weight: .semibold, relativeTo: .subheadline)
-                    .tracking(-0.2)
-                    .lineLimit(typeSize.isAccessibilitySize ? 3 : 1)
-                if fresh {
-                    Text("New")
-                        .font(size: 12, weight: .bold, relativeTo: .caption)
-                        .foregroundStyle(Palette.ink)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Palette.sun))
-                        .fixedSize()
+            LiveFace(face: item.faces[family], size: size, tap: tap, form: form)
+                .keyframeAnimator(initialValue: 1.0, trigger: reduceMotion ? 0 : opens) { face, scale in
+                    face.scaleEffect(scale)
+                } keyframes: { _ in
+                    CubicKeyframe(0.965, duration: 0.08)
+                    SpringKeyframe(1, duration: 0.3, spring: .init(duration: 0.3, bounce: 0.45))
                 }
-                Spacer(minLength: 4)
-                if placed {
-                    PhoneMark()
-                        .frame(width: mark, height: mark)
-                        .foregroundStyle(Palette.secondary)
-                }
-            }
-            .frame(minHeight: 22)
-            .padding(.horizontal, 4)
-            .contentShape(Rectangle())
-            .onTapGesture(perform: open)
+            caption
         }
         .frame(width: size.width)
+        .contentShape(Rectangle())
+        // A tap gesture, not a button around the face, which would fold the face's own buttons into itself for
+        // VoiceOver. A gesture that tracked the press stopped the feed scrolling, the context menu opening, or the
+        // tap, so the squish plays on the tap, and a hold gets the context menu's own lift.
+        .onTapGesture {
+            opens += 1
+            open()
+        }
         .accessibilityElement(children: .contain)
+    }
+
+    private var caption: some View {
+        HStack(spacing: 6) {
+            Text(item.summary.name)
+                .font(size: 15, weight: .semibold, relativeTo: .subheadline)
+                .tracking(-0.2)
+                .lineLimit(typeSize.isAccessibilitySize ? 3 : 1)
+            if fresh {
+                Text("New")
+                    .font(size: 12, weight: .bold, relativeTo: .caption)
+                    .foregroundStyle(Palette.ink)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Palette.sun))
+                    .fixedSize()
+            }
+            Spacer(minLength: 4)
+            if placed {
+                PhoneMark()
+                    .frame(width: mark, height: mark)
+                    .foregroundStyle(Palette.secondary)
+            }
+        }
+        .frame(minHeight: 22)
+        .padding(.horizontal, 4)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default, open)
+        .accessibilityAction(named: "Change it", change)
     }
 
     private var label: String {
         let parts: [String?] = [item.summary.name, fresh ? "new" : nil, placed ? "on your home screen" : nil]
         return parts.compactMap(\.self).joined(separator: ", ")
-    }
-}
-
-/// Squishes a face to 96.5 percent with a spring while it is pressed. Still with Reduce Motion.
-private struct PressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        PressBody(configuration: configuration)
-    }
-}
-
-private struct PressBody: View {
-    let configuration: ButtonStyleConfiguration
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.965 : 1)
-            .animation(.spring(duration: 0.3, bounce: 0.45), value: configuration.isPressed)
     }
 }
 

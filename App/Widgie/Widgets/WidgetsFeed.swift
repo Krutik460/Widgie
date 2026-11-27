@@ -8,9 +8,10 @@ import WidgetEngine
 struct WidgetsFeed: View {
     let library: Library
     let arrivals: Arrivals
-    /// Whether Widgets is the chosen tab. Widgie's idle life runs only then.
+    /// Whether Widgets is the chosen tab. Widgie lives, idles and talks only then.
     let active: Bool
-    @Binding var scrolled: CGFloat
+    /// Whether the feed is scrolled past the moon, which then steps aside.
+    @Binding var pastMoon: Bool
     /// Switches to the Make tab.
     let make: () -> Void
     /// Switches to the Templates tab.
@@ -21,21 +22,14 @@ struct WidgetsFeed: View {
     @State private var shown: Shown?
     @State private var session: DescribeSession?
     @State private var deleting: WidgetID?
-    /// A line Widgie says for a moment in place of its greeting.
-    @State private var said: String?
-    @State private var saying: Task<Void, Never>?
-    /// Widgie keeps quiet until it has settled in, and while it hops between perches.
-    @State private var speaking = false
-    @State private var hops = 0
-    @State private var act = HeroAct()
-    /// Where Widgie last stood in view. It hops from there when the first row has changed.
-    @State private var perchedAt: CGPoint?
+    @State private var widgie = FeedWidgie()
+    @State private var activity = Activity()
     /// The last widget that finished landing. Until `arrivals.landing` matches it, the landing owns Widgie's hop.
     @State private var landed: WidgetID?
+    /// The card waiting to settle in. It waits hidden from the moment it arrives on a hidden page, so it never
+    /// shows before it lands.
     @State private var settling: WidgetID?
     @State private var risen = false
-    @State private var touched = Date.distantPast
-    @State private var bubbleHeight: CGFloat = 42
     @State private var column: CGFloat = 0
     /// The visible height of the scroll view and of the header, so the empty state fills the screen.
     @State private var viewport: CGFloat = 0
@@ -48,48 +42,58 @@ struct WidgetsFeed: View {
         let id: WidgetID
     }
 
+    /// How far the feed is scrolled and when the person last touched it. Taps, the landing and the idle loop read
+    /// these but `body` never does, so scrolling does not rebuild the feed.
+    private final class Activity {
+        var offset: CGFloat = 0
+        var touched = Date.distantPast
+    }
+
     static let margin: CGFloat = 20
     private static let top = "top"
 
     var body: some View {
         ScrollViewReader { scroller in
             ScrollView {
-                TimelineView(.everyMinute) { timeline in
-                    VStack(alignment: .leading, spacing: 0) {
-                        header(timeline.date)
-                            .id(Self.top)
-                            .onGeometryChange(for: CGFloat.self) {
-                                $0.size.height
-                            } action: {
-                                headerHeight = $0
-                            }
-                        // Nothing below the header until the first load, so the empty state never flashes at launch.
-                        if library.loaded && library.items.isEmpty {
-                            empty(timeline.date)
-                        } else if library.loaded {
-                            stage(timeline.date).zIndex(1)
-                            feed
+                VStack(alignment: .leading, spacing: 0) {
+                    TimelineView(.everyMinute) { header($0.date) }
+                        .id(Self.top)
+                        .onGeometryChange(for: CGFloat.self) {
+                            $0.size.height
+                        } action: {
+                            headerHeight = $0
                         }
+                    // Nothing below the header until the first load, so the empty state never flashes at launch.
+                    if library.loaded && library.items.isEmpty {
+                        empty
+                    } else if library.loaded {
+                        stage.zIndex(1)
+                        feed
                     }
-                    .padding(.horizontal, Self.margin)
-                    .padding(.bottom, 40)
                 }
+                .padding(.horizontal, Self.margin)
+                .padding(.bottom, 40)
             }
             .scrollEdgeEffectStyle(.soft, for: .all)
             .scrollIndicators(.hidden)
             .refreshable { await library.reload() }
             .onScrollGeometryChange(for: CGFloat.self) {
                 $0.contentOffset.y + $0.contentInsets.top
-            } action: { _, offset in
-                scrolled = offset
+            } action: { [activity] _, offset in
+                activity.offset = offset
+            }
+            .onScrollGeometryChange(for: Bool.self) {
+                !Sky.moonShown(scrolled: $0.contentOffset.y + $0.contentInsets.top)
+            } action: { _, past in
+                pastMoon = past
             }
             .onScrollGeometryChange(for: CGFloat.self) {
                 $0.containerSize.height
             } action: { _, height in
                 viewport = height
             }
-            .onScrollPhaseChange { _, phase in
-                if phase != .idle { touched = .now }
+            .onScrollPhaseChange { [activity] _, phase in
+                if phase != .idle { activity.touched = .now }
             }
             .onChange(of: arrivals.landing, initial: true) { _, landing in
                 guard let landing else { return }
@@ -106,14 +110,17 @@ struct WidgetsFeed: View {
         }
         .task {
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 0 : 700))
-            if hops == 0 { speaking = true }
+            widgie.wake()
         }
-        .task(id: active) { await idle() }
+        .task(id: active && !reduceMotion) { await idle() }
         .onChange(of: perchPoint, initial: true) { _, new in
-            if active && arrivals.landing == landed { hop(to: new) }
+            if active && arrivals.landing == landed { widgie.hop(to: new, reduceMotion: reduceMotion) }
         }
         .onChange(of: active) { _, active in
-            if active && arrivals.landing == landed { hop(to: perchPoint) }
+            if active && arrivals.landing == landed { widgie.hop(to: perchPoint, reduceMotion: reduceMotion) }
+        }
+        .onChange(of: arrivals.fresh) { _, fresh in
+            if !active, let fresh { settling = fresh }
         }
         .sheet(item: $shown) { shown in
             WidgetDetail(library: library, id: shown.id)
@@ -186,14 +193,9 @@ struct WidgetsFeed: View {
     // MARK: Widgie
 
     private var rows: [FeedRow<WidgetID>] {
-        let rows = FeedRow.rows(
-            library.items.enumerated().map { index, item in (item.id, library.family(of: item, at: index)) },
-            fresh: arrivals.fresh)
-        guard typeSize.isAccessibilitySize else { return rows }
-        // At the accessibility text sizes each small takes its own row, so its name has room to wrap.
-        return rows.flatMap { row -> [FeedRow<WidgetID>] in
-            if case .pair(let first, let second?) = row { [.pair(first, nil), .pair(second, nil)] } else { [row] }
-        }
+        // At the accessibility text sizes each widget takes its own row, so a small's name has room to wrap.
+        typeSize.isAccessibilitySize
+            ? FeedRow.singles(library.shown) : FeedRow.rows(library.shown, fresh: arrivals.fresh)
     }
 
     private var perch: Perch? { Perch(rows.first) }
@@ -207,87 +209,27 @@ struct WidgetsFeed: View {
             y: perch.room)
     }
 
-    private func stageHeight(_ perch: Perch) -> CGFloat { max(perch.room, lift + 20) }
-
-    /// How far the bubble's top sits above the first row: 82 points, or more for a bubble of many lines.
-    private var lift: CGFloat { max(82, bubbleHeight + 12) }
-
-    private func words(_ now: Date) -> String? {
-        guard speaking else { return nil }
-        return said ?? Speech.greeting(perch.flatMap { item($0.id) }?.summary.name, Daypart(now))
-    }
-
-    /// The room above the first row where Widgie stands, with its bubble beside it.
-    @ViewBuilder private func stage(_ now: Date) -> some View {
+    @ViewBuilder private var stage: some View {
         if let perch, let point = perchPoint {
-            let height = stageHeight(perch)
-            let side = perch.bubble
-            let sole = Caret.sole(.lean(side))
-            // An overlay, so Widgie, who stands taller than the room, never pushes the first row down.
-            Color.clear.frame(height: height)
-                .overlay(alignment: .topLeading) {
-                    Bubble(words: words(now), tail: side == .left ? .right : .left)
-                        .frame(
-                            maxWidth: perch.bubbleWidth(column: column, x: point.x, large: typeSize.isAccessibilitySize)
-                        )
-                        .onGeometryChange(for: CGFloat.self) {
-                            $0.size.height
-                        } action: { height in
-                            if height > 0 { bubbleHeight = max(42, height) }
-                        }
-                        .frame(width: side == .left ? point.x - 31 : nil, alignment: .trailing)
-                        .padding(.leading, side == .left ? 0 : point.x + 31)
-                        .padding(.top, height - lift)
-                }
-                .overlay(alignment: .bottomLeading) {
-                    FeedHero(leaning: side, act: act)
-                        .offset(x: point.x - sole.x * FeedHero.size, y: 2 - (sole.y - 1) * FeedHero.size)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    /// Widgie hops from where it last stood to `new`, and speaks again once it lands. Returns whether it hopped.
-    @discardableResult private func hop(to new: CGPoint?) -> Bool {
-        guard let new else { return false }
-        let old = perchedAt
-        perchedAt = new
-        guard let old, old != new, !reduceMotion else { return false }
-        act.play(.move(CGSize(width: old.x - new.x, height: old.y - new.y)))
-        hops += 1
-        let hop = hops
-        speaking = false
-        Task {
-            try? await Task.sleep(for: .milliseconds(560))
-            if hops == hop { speaking = true }
-        }
-        return true
-    }
-
-    /// Says `line` for a while, then goes back to the greeting.
-    private func say(_ line: String, for seconds: Double) {
-        saying?.cancel()
-        said = line
-        saying = Task {
-            try? await Task.sleep(for: .seconds(seconds))
-            guard !Task.isCancelled else { return }
-            said = nil
+            FeedStage(
+                widgie: widgie, perch: perch, point: point, column: column, name: item(perch.id)?.summary.name,
+                active: active)
         }
     }
 
     /// A tap on a face: the widget's own action, then Widgie hops and says so. Scrolled away from Widgie, the line
     /// is only read out.
     private func perform(_ tap: Tap, input: [String: InputValue] = [:]) {
-        touched = .now
+        activity.touched = .now
         library.perform(tap, input: input)
         guard let name = library.items.first(where: { $0.id.rawValue == tap.widget })?.summary.name else { return }
         let line = Speech.tapped(name)
-        if scrolled > 140 {
+        if activity.offset > 140 {
             AccessibilityNotification.Announcement(line).post()
             return
         }
-        act.play(.hop)
-        say(line, for: 2.4)
+        widgie.play(.hop)
+        widgie.say(line, for: 2.4)
     }
 
     /// The new card settles in where you can see it, under Widgie, and Widgie points it out as it touches down.
@@ -301,6 +243,7 @@ struct WidgetsFeed: View {
             settling = nil
             return
         }
+        let scrolled = activity.offset
         if scrolled > 4 {
             withAnimation(reduceMotion ? nil : .smooth(duration: 0.4)) { scroller.scrollTo(Self.top, anchor: .top) }
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 0 : min(480, 160 + Int(scrolled * 0.5))))
@@ -308,12 +251,13 @@ struct WidgetsFeed: View {
         withAnimation(reduceMotion ? .linear(duration: 0.15) : .timingCurve(0.22, 0.8, 0.26, 1, duration: 0.26)) {
             settling = nil
         }
-        let moved = hop(to: perchPoint)
+        let moved = widgie.hop(to: perchPoint, reduceMotion: reduceMotion)
         if !reduceMotion {
             try? await Task.sleep(for: .milliseconds(moved ? 560 : 200))
-            if !moved, perch?.id == id { act.play(.smallHop) }
+            if !moved, perch?.id == id { widgie.play(.smallHop) }
         }
-        say(Speech.landed(arrived.summary.name, buttons: arrived.faces.values.contains { $0.hasButtons }), for: 3.2)
+        widgie.say(
+            Speech.landed(arrived.summary.name, buttons: arrived.faces.values.contains { $0.hasButtons }), for: 3.2)
     }
 
     /// Now and then, while you are not busy with something, Widgie blinks twice, glances at your widgets, or
@@ -324,9 +268,11 @@ struct WidgetsFeed: View {
         while !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(8000 + (beat % 3) * 1500))
             guard !Task.isCancelled else { return }
-            let quiet = Date.now.timeIntervalSince(touched) > 4 && scrolled < 140 && shown == nil && session == nil
+            let quiet =
+                Date.now.timeIntervalSince(activity.touched) > 4 && activity.offset < 140 && shown == nil
+                && session == nil
             guard quiet, perch != nil else { continue }
-            act.play([HeroAct.Kind.blink, .glance, .smallHop][beat % 3])
+            widgie.play([HeroAct.Kind.blink, .glance, .smallHop][beat % 3])
             beat += 1
         }
     }
@@ -369,11 +315,13 @@ struct WidgetsFeed: View {
             ) {
                 perform($0)
             } form: {
-                touched = .now
+                activity.touched = .now
                 library.showForm(for: $0)
             } open: {
-                touched = .now
+                activity.touched = .now
                 shown = Shown(id: id)
+            } change: {
+                session = DescribeSession(editing: id)
             }
             .scaleEffect(settling == id ? 0.94 : 1)
             .opacity(settling == id ? 0 : 1)
@@ -381,25 +329,16 @@ struct WidgetsFeed: View {
                 Button("Change it", systemImage: "pencil") { session = DescribeSession(editing: id) }
                 Button("Delete", systemImage: "trash", role: .destructive) { deleting = id }
             }
-            .accessibilityAction(named: "Open") { shown = Shown(id: id) }
-            .accessibilityAction(named: "Change it") { session = DescribeSession(editing: id) }
         }
     }
 
     // MARK: Empty
 
     /// No widgets yet: the big Widgie asks for one.
-    private func empty(_ now: Date) -> some View {
+    private var empty: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer(minLength: 24)
-            HStack(alignment: .top, spacing: 0) {
-                Bubble(words: words(now), tail: .right)
-                    .frame(maxWidth: 212, alignment: .trailing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.top, 18)
-                HoppingCaret(pose: .lean(.left), size: 190, cue: act.serial)
-                    .padding(.trailing, -24)
-            }
+            EmptyHero(widgie: widgie, active: active)
             Text("Say what you want to see on your home screen, and I’ll make it. Or start from a template.")
                 .font(size: 17, weight: .medium)
                 .foregroundStyle(Palette.secondary)

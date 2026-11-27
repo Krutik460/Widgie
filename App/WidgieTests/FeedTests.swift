@@ -45,6 +45,13 @@ import WidgetEngine
             FeedRow.rows([(a, .small), (b, .medium), (c, .medium)], fresh: a) == [.pair(a, nil), .wide(b), .wide(c)])
     }
 
+    @Test func atTheAccessibilityTextSizesEachWidgetTakesARowNewestFirst() {
+        #expect(
+            FeedRow.singles([(a, .small), (b, .medium), (c, .small), (d, .small)]) == [
+                .pair(a, nil), .wide(b), .pair(c, nil), .pair(d, nil),
+            ])
+    }
+
     @Test func freshChangesNothingForAWideOrAWidgetBelowTheTop() {
         let shown: [(id: WidgetID, family: Family)] = [(a, .medium), (b, .small), (c, .small)]
         #expect(FeedRow.rows(shown, fresh: a) == FeedRow.rows(shown))
@@ -58,10 +65,26 @@ import WidgetEngine
             (0..<6).map { Library.family(placed: [], age: $0) } == [.medium, .small, .small, .medium, .small, .small])
     }
 
+    @Test func theOldestUnplacedWidgetIsWideAndTheNewestTakesTheNextBeat() {
+        let ids = ["d", "c", "b", "a"].map(WidgetID.init(rawValue:))
+        let shown = Library.shown(ids, placed: [:])
+        #expect(shown.map(\.id) == ids)
+        #expect(shown.map(\.family) == [.medium, .small, .small, .medium])
+    }
+
     @Test func aNewWidgetNeverChangesTheSizeOfTheOnesBeforeIt() {
-        let before = (0..<4).map { Library.family(placed: [], age: $0) }
-        let after = (0..<5).map { Library.family(placed: [], age: $0) }
-        #expect(Array(after.prefix(4)) == before)
+        let before = Library.shown(["c", "b", "a"].map(WidgetID.init(rawValue:)), placed: [:])
+        let after = Library.shown(["d", "c", "b", "a"].map(WidgetID.init(rawValue:)), placed: [:])
+        #expect(after.dropFirst().map(\.family) == before.map(\.family))
+        #expect(
+            FeedRow.rows(after).dropFirst() == FeedRow.rows(before)[...],
+            "the rows below the new wide widget stay as they were")
+    }
+
+    @Test func aPlacedWidgetKeepsItsSizeWhereverItSits() {
+        let placed: [WidgetID: Set<Family>] = [WidgetID(rawValue: "b"): [.medium]]
+        let shown = Library.shown(["c", "b", "a"].map(WidgetID.init(rawValue:)), placed: placed)
+        #expect(shown.map(\.family) == [.small, .medium, .medium])
     }
 
     @Test func aPlacedWidgetShowsInTheSizeItIsPlacedIn() {

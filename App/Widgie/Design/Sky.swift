@@ -6,11 +6,13 @@ import SwiftUI
 struct Sky: View {
     /// Whether the moon shows. It steps out of the way while the page scrolls under it.
     var moon = true
+    /// Whether it stops drifting and twinkling, as under a full screen cover with a sky of its own.
+    var still = false
 
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    static func moonShown(scrolled offset: CGFloat) -> Bool { offset <= 24 }
+    nonisolated static func moonShown(scrolled offset: CGFloat) -> Bool { offset <= 24 }
 
     var body: some View {
         GeometryReader { proxy in
@@ -21,7 +23,7 @@ struct Sky: View {
                         .init(color: Palette.skyMiddle, location: night ? 0.5 : 0.45),
                         .init(color: Palette.skyBottom, location: 1),
                     ], startPoint: .top, endPoint: .bottom)
-                TimelineView(.animation(minimumInterval: 1 / 20, paused: reduceMotion)) { timeline in
+                TimelineView(.animation(minimumInterval: 1 / 20, paused: reduceMotion || still)) { timeline in
                     let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                     Canvas { context, size in
                         if night {
@@ -83,6 +85,31 @@ struct Sky: View {
                 Path(ellipseIn: CGRect(x: x - side / 2, y: y - side / 2, width: side, height: side)),
                 with: .color(Palette.moon.opacity((rest + (0.2 - rest) * dim) * fade)))
         }
+    }
+}
+
+extension EnvironmentValues {
+    /// Tells the app's own sky that a full screen cover hides it, or no longer does.
+    @Entry var coverSky: (Bool) -> Void = { _ in }
+}
+
+extension View {
+    /// Marks this view as hiding the app's own sky while it shows, as a full screen cover does, so the sky
+    /// underneath stops animating. A cover keeps the presenting views alive and never tells them they disappeared.
+    func coversSky(_ covers: Bool = true) -> some View {
+        modifier(SkyCover(covers: covers))
+    }
+}
+
+private struct SkyCover: ViewModifier {
+    let covers: Bool
+
+    @Environment(\.coverSky) private var cover
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear { if covers { cover(true) } }
+            .onDisappear { if covers { cover(false) } }
     }
 }
 

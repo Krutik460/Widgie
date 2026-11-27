@@ -56,9 +56,13 @@ final class Library {
         refresh()
     }
 
-    /// The size a widget is shown in, by its position in `items`, newest first.
-    func family(of item: Item, at index: Int) -> Family {
-        Self.family(placed: placed[item.id] ?? [], age: items.count - 1 - index)
+    /// Each widget, newest first, and the size it is shown in.
+    var shown: [(id: WidgetID, family: Family)] { Self.shown(items.map(\.id), placed: placed) }
+
+    /// `ids` newest first, each with its size. Deleting an older unplaced widget shifts the rhythm, so the unplaced
+    /// ones newer than it can change size.
+    static func shown(_ ids: [WidgetID], placed: [WidgetID: Set<Family>]) -> [(id: WidgetID, family: Family)] {
+        ids.enumerated().map { index, id in (id, family(placed: placed[id] ?? [], age: ids.count - 1 - index)) }
     }
 
     /// The size it is placed in, medium if it is placed in both, and otherwise every third widget wide, so the feed
@@ -94,6 +98,8 @@ final class Library {
             }
         } catch {
             message = error.message
+            // The feed shows the empty state or what it had, rather than nothing at all.
+            if reload == reloads { loaded = true }
         }
     }
 

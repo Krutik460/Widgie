@@ -2,11 +2,15 @@ import SwiftUI
 
 /// The app's own tab bar, frosted glass floating over the sky: Widgets, Make in the middle as a key with Widgie in
 /// it, and Templates. A white highlight springs to the chosen tab. Widgets counts the widgets saved while you were
-/// elsewhere.
+/// elsewhere, and its glyph squishes as each one flies into it.
 struct TabBar: View {
     let page: RootView.Page
     let unseen: Int
+    /// Counts the widgets that flew into the Widgets glyph.
+    let caught: Int
     let pick: (RootView.Page) -> Void
+    /// Where the Widgets glyph is, in the window, for a widget to fly to.
+    let target: (CGRect) -> Void
 
     @Namespace private var highlight
     @State private var hops = 0
@@ -15,7 +19,12 @@ struct TabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             tab(.widgets, "Widgets", label: unseen > 0 ? "Widgets, \(unseen) new" : "Widgets") { chosen in
-                TabGlyph(kind: .widgets, chosen: chosen)
+                TabGlyph(kind: .widgets, chosen: chosen, caught: caught)
+                    .onGeometryChange(for: CGRect.self) {
+                        $0.frame(in: .global)
+                    } action: {
+                        target($0)
+                    }
             }
             tab(.make, "Make", label: "Make") { chosen in
                 MakeKey(chosen: chosen, hops: hops)
@@ -88,23 +97,29 @@ struct TabBar: View {
             Color.clear.frame(maxWidth: .infinity)
             HStack(spacing: 0) {
                 Color.clear.frame(width: 7, height: 1)
-                Text("\(unseen)")
-                    .font(.system(size: 11, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 5)
-                    .frame(minWidth: 18, minHeight: 18)
-                    .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Palette.badge))
-                    .shadow(color: Palette.badge.opacity(0.45), radius: 4, y: 3)
-                    .scaleEffect(unseen > 0 ? 1 : 0.001)
-                    .animation(reduceMotion ? nil : .spring(duration: 0.45, bounce: 0.45), value: unseen > 0)
+                // Only while there is a count: a badge scaled to nothing still reached VoiceOver as "0".
+                if unseen > 0 {
+                    count.transition(reduceMotion ? .opacity : .scale(scale: 0.001))
+                }
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity)
         }
         .padding(.top, 2)
+        .animation(reduceMotion ? nil : .spring(duration: 0.45, bounce: 0.45), value: unseen > 0)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    private var count: some View {
+        Text("\(unseen)")
+            .font(.system(size: 11, weight: .bold))
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .frame(minWidth: 18, minHeight: 18)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Palette.badge))
+            .shadow(color: Palette.badge.opacity(0.45), radius: 4, y: 3)
     }
 }
 
@@ -119,7 +134,8 @@ extension EnvironmentValues {
     @Entry fileprivate var tabPressed = false
 }
 
-/// A tab's outline glyph, drawn at 2.4 points when its tab is chosen and 2.1 otherwise.
+/// A tab's outline glyph, drawn at 2.4 points when its tab is chosen and 2.1 otherwise. It squishes to take in each
+/// widget caught.
 private struct TabGlyph: View {
     enum Kind {
         case widgets, templates
@@ -127,6 +143,7 @@ private struct TabGlyph: View {
 
     let kind: Kind
     let chosen: Bool
+    var caught = 0
 
     @Environment(\.tabPressed) private var pressed
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -164,6 +181,13 @@ private struct TabGlyph: View {
         .frame(width: 24, height: 24)
         .scaleEffect(pressed && !reduceMotion ? 0.86 : 1)
         .animation(.spring(duration: 0.32, bounce: 0.45), value: pressed)
+        .keyframeAnimator(initialValue: 1.0, trigger: reduceMotion ? 0 : caught) { glyph, scale in
+            glyph.scaleEffect(scale)
+        } keyframes: { _ in
+            CubicKeyframe(0.8, duration: 0.114)
+            CubicKeyframe(1.08, duration: 0.152)
+            CubicKeyframe(1, duration: 0.114)
+        }
     }
 }
 
@@ -189,7 +213,7 @@ private struct MakeKey: View {
             }
             HoppingCaret(
                 size: 46, color: chosen ? Palette.ink : Palette.caret, eye: chosen ? Palette.inkEye : Palette.caretEye,
-                grounded: false, height: 8, cue: hops
+                grounded: false, height: 8, alive: chosen, cue: hops
             )
             .offset(x: -3, y: 1)
         }

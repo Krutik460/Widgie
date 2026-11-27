@@ -26,6 +26,18 @@ import WidgetHosting
 }
 
 @MainActor @Suite struct LibraryTests {
+    @Test func aFirstLoadThatFailsStillCountsAsLoadedSoTheFeedShowsSomething() async throws {
+        let blocker = FileManager.default.temporaryDirectory.appending(path: "app-tests-\(UUID().uuidString)")
+        try Data().write(to: blocker)
+        defer { try? FileManager.default.removeItem(at: blocker) }
+        let library = Library(engine: Engine(directory: blocker.appending(path: "store")))
+
+        await library.reload()
+        #expect(library.message != nil, "the store could not be read")
+        #expect(library.loaded)
+        #expect(library.items.isEmpty)
+    }
+
     @Test func aReloadThatFinishesAfterALaterOneNeverBringsBackADeletedWidget() async throws {
         let shared = SharedStore()
         let id = try await shared.build(counterDocument())

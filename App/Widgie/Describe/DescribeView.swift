@@ -55,6 +55,7 @@ struct DescribeView: View {
                 Sky()
             }
         }
+        .coversSky(!inTab)
         .animation(reduceMotion ? .linear(duration: 0.2) : .easeInOut(duration: 0.5), value: screen)
         .foregroundStyle(Palette.text)
         .tint(Palette.caret)
@@ -114,6 +115,7 @@ private struct DescribeScreen: View {
     let close: (() -> Void)?
 
     @FocusState private var typing: Bool
+    @Environment(\.pageHidden) private var pageHidden
 
     private static let examples: [(label: String, words: String, color: ChipColor)] = [
         ("Water tracker", "a water tracker with a big blue drop", .mint),
@@ -162,20 +164,24 @@ private struct DescribeScreen: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                HStack(spacing: 12) {
-                    PhotoButton(picture: $session.picture, item: $session.pendingPhoto)
-                    Button("Build it", action: send)
-                        .buttonStyle(PrimaryButtonStyle())
-                        .disabled(!session.canSend)
-                }
-                .frame(width: Column.width)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                .frame(maxWidth: .infinity)
+                if !pageHidden { composer }
             }
         }
         .onAppear { if close != nil { typing = true } }
         .returnSends($session.words, send)
+    }
+
+    private var composer: some View {
+        HStack(spacing: 12) {
+            PhotoButton(picture: $session.picture, item: $session.pendingPhoto)
+            Button("Build it", action: send)
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(!session.canSend)
+        }
+        .frame(width: Column.width)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity)
     }
 
     private func send() {

@@ -7,9 +7,10 @@ import WidgetEngine
 struct TemplatesView: View {
     let gallery: TemplateGallery
     let library: Library
-    @Binding var scrolled: CGFloat
-    /// A template was added to the library as this widget.
-    let added: (WidgetID) -> Void
+    /// Whether the page is scrolled past the moon, which then steps aside.
+    @Binding var pastMoon: Bool
+    /// A template was added to the library as this widget, and its tile is leaving the sheet.
+    let added: (WidgetID, Launch) -> Void
     /// Change in chat: the filled template and its name.
     let chat: (WidgetSource, String) -> Void
 
@@ -53,10 +54,10 @@ struct TemplatesView: View {
         }
         .scrollEdgeEffectStyle(.soft, for: .all)
         .scrollIndicators(.hidden)
-        .onScrollGeometryChange(for: CGFloat.self) {
-            $0.contentOffset.y + $0.contentInsets.top
-        } action: { _, offset in
-            scrolled = offset
+        .onScrollGeometryChange(for: Bool.self) {
+            !Sky.moonShown(scrolled: $0.contentOffset.y + $0.contentInsets.top)
+        } action: { _, past in
+            pastMoon = past
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(Palette.text)
@@ -70,7 +71,7 @@ struct TemplatesView: View {
             if let measuring {
                 TemplateSheet.Content(
                     trial: measuring, library: library, message: .constant(nil), adding: .constant(false),
-                    added: { _ in }, chat: { _, _ in }
+                    added: { _, _ in }, chat: { _, _ in }
                 )
                 .frame(width: sheetWidth)
                 .fixedSize(horizontal: false, vertical: true)
@@ -85,9 +86,9 @@ struct TemplatesView: View {
             }
         }
         .sheet(item: $opened) { opened in
-            TemplateSheet(trial: opened.trial, library: library, height: opened.height) { id in
+            TemplateSheet(trial: opened.trial, library: library, height: opened.height) { id, launch in
                 self.opened = nil
-                added(id)
+                added(id, launch)
             } chat: { source, name in
                 self.opened = nil
                 chat(source, name)

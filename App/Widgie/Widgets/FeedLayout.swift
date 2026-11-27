@@ -24,6 +24,12 @@ enum FeedRow<ID: Hashable>: Equatable, Identifiable {
         return [.pair(rest.remove(at: partner).id, newest.id)] + flow(rest)
     }
 
+    /// One widget to a row, newest first, for the accessibility text sizes, where a small's name needs the row's
+    /// width to wrap.
+    static func singles(_ shown: [(id: ID, family: Family)]) -> [FeedRow] {
+        shown.map { $0.family == .medium ? .wide($0.id) : .pair($0.id, nil) }
+    }
+
     private static func flow(_ shown: [(id: ID, family: Family)]) -> [FeedRow] {
         var rows: [FeedRow] = []
         /// A small without a partner yet, the row it would have taken, and how many wides it has waited past.

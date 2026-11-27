@@ -73,11 +73,145 @@ struct HeroAct: Equatable {
     }
 }
 
+/// Widgie on the feed: what it acts out, what it says in place of its greeting, and whether it is speaking. The
+/// feed drives it, and only the views that draw Widgie read it, so an idle beat or a new line never rebuilds the
+/// feed.
+@MainActor @Observable
+final class FeedWidgie {
+    private(set) var act = HeroAct()
+    /// A line said for a moment in place of the greeting.
+    private(set) var said: String?
+    /// Quiet until it has settled in, and while it hops between perches.
+    private(set) var speaking = false
+    var bubbleHeight: CGFloat = 42
+
+    @ObservationIgnored private var saying: Task<Void, Never>?
+    @ObservationIgnored private var hops = 0
+    /// Where Widgie last stood in view. It hops from there when the first row has changed.
+    @ObservationIgnored private var perchedAt: CGPoint?
+
+    /// What the bubble shows: the line of the moment, else the greeting, and nothing while Widgie is quiet.
+    func words(greeting: String) -> String? {
+        speaking ? said ?? greeting : nil
+    }
+
+    func play(_ kind: HeroAct.Kind) {
+        act.play(kind)
+    }
+
+    /// Settled in: Widgie starts talking, unless a hop already holds its voice.
+    func wake() {
+        if hops == 0 { speaking = true }
+    }
+
+    /// Hops from where Widgie last stood to `new`, and speaks again once it lands. Returns whether it hopped.
+    @discardableResult func hop(to new: CGPoint?, reduceMotion: Bool) -> Bool {
+        guard let new else { return false }
+        let old = perchedAt
+        perchedAt = new
+        guard let old, old != new, !reduceMotion else { return false }
+        act.play(.move(CGSize(width: old.x - new.x, height: old.y - new.y)))
+        hops += 1
+        let hop = hops
+        speaking = false
+        Task {
+            try? await Task.sleep(for: .milliseconds(560))
+            if hops == hop { speaking = true }
+        }
+        return true
+    }
+
+    /// Says `line` for a while, then goes back to the greeting.
+    func say(_ line: String, for seconds: Double) {
+        saying?.cancel()
+        said = line
+        saying = Task {
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled else { return }
+            said = nil
+        }
+    }
+
+    /// How VoiceOver reads the bubble: nothing from a page that is not showing, the greeting after whatever it is
+    /// saying, and a reply at once.
+    func voice(active: Bool) -> Bubble.Voice {
+        !active ? .silent : said == nil ? .low : .normal
+    }
+}
+
+/// The room above the first row where Widgie stands, with its bubble beside it.
+struct FeedStage: View {
+    let widgie: FeedWidgie
+    let perch: Perch
+    let point: CGPoint
+    let column: CGFloat
+    /// The name of the widget Widgie stands on.
+    let name: String?
+    /// Whether Widgets is the chosen tab.
+    let active: Bool
+
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        // How far the bubble's top sits above the first row: 82 points, or more for a bubble of many lines.
+        let lift = max(82, widgie.bubbleHeight + 12)
+        let height = max(perch.room, lift + 20)
+        let side = perch.bubble
+        let sole = Caret.sole(.lean(side))
+        // An overlay, so Widgie, who stands taller than the room, never pushes the first row down.
+        Color.clear.frame(height: height)
+            .overlay(alignment: .topLeading) {
+                TimelineView(.everyMinute) { timeline in
+                    Bubble(
+                        words: widgie.words(greeting: Speech.greeting(name, Daypart(timeline.date))),
+                        tail: side == .left ? .right : .left, voice: widgie.voice(active: active))
+                }
+                .frame(maxWidth: perch.bubbleWidth(column: column, x: point.x, large: typeSize.isAccessibilitySize))
+                .onGeometryChange(for: CGFloat.self) {
+                    $0.size.height
+                } action: { height in
+                    if height > 0 { widgie.bubbleHeight = max(42, height) }
+                }
+                .frame(width: side == .left ? point.x - 31 : nil, alignment: .trailing)
+                .padding(.leading, side == .left ? 0 : point.x + 31)
+                .padding(.top, height - lift)
+            }
+            .overlay(alignment: .bottomLeading) {
+                FeedHero(leaning: side, act: widgie.act, alive: active)
+                    .offset(x: point.x - sole.x * FeedHero.size, y: 2 - (sole.y - 1) * FeedHero.size)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// The big Widgie of an empty feed, asking for a widget.
+struct EmptyHero: View {
+    let widgie: FeedWidgie
+    let active: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            TimelineView(.everyMinute) { timeline in
+                Bubble(
+                    words: widgie.words(greeting: Speech.greeting(nil, Daypart(timeline.date))), tail: .right,
+                    voice: widgie.voice(active: active))
+            }
+            .frame(maxWidth: 212, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.top, 18)
+            HoppingCaret(pose: .lean(.left), size: 190, alive: active, cue: widgie.act.serial)
+                .padding(.trailing, -24)
+        }
+    }
+}
+
 /// Widgie standing on a point with its foot planted 2 points into the face below, a small contact shadow under
 /// it, swaying and acting out each `act`. Still with Reduce Motion.
 struct FeedHero: View {
     let leaning: Caret.Side
     let act: HeroAct
+    /// Whether it blinks and fidgets between acts.
+    var alive = true
 
     static let size: CGFloat = 116
 
@@ -106,10 +240,13 @@ struct FeedHero: View {
                     .frame(width: 36, height: 5)
                     .offset(x: sole.x * size - 18, y: sole.y * size - 2)
                     .opacity(motion.shadow)
-                Caret(pose: pose, size: size, grounded: false, blinked: act.kind == .blink ? act.at : .distantPast)
-                    .scaleEffect(x: motion.stretch.width, y: motion.stretch.height, anchor: sole)
-                    .rotationEffect(.degrees(motion.turn), anchor: sole)
-                    .offset(x: motion.offset.width, y: motion.offset.height - motion.lift)
+                Caret(
+                    pose: pose, size: size, alive: alive, grounded: false,
+                    blinked: act.kind == .blink ? act.at : .distantPast
+                )
+                .scaleEffect(x: motion.stretch.width, y: motion.stretch.height, anchor: sole)
+                .rotationEffect(.degrees(motion.turn), anchor: sole)
+                .offset(x: motion.offset.width, y: motion.offset.height - motion.lift)
             }
             .frame(width: size, height: size, alignment: .topLeading)
         } keyframes: { _ in
