@@ -6,7 +6,7 @@
  --ink:#121a2e;--ink-2:rgba(18,26,46,.76);--ink-3:rgba(18,26,46,.72);
  --sky-top:#b4d4fb;--sky:#9cc3f5;--sky-bottom:#8ab6f0;--sky-shade:#7aa6e2;
  --coral:#ff6b5c;--coral-shade:#e04a3d;--sun:#ffd23c;--sun-shade:#ecb514;--grape:#3b1f6e;--grape-shade:#2a1452;--moon:#e9f2ff;--blush:#ff7f8e;
- --surface:rgba(255,255,255,.88);--surface-text:#121a2e;--bubble:#fff;--bar:rgba(244,249,255,.9);
+ --surface:rgba(255,255,255,.88);--surface-text:#121a2e;--bubble:#fff;--bar:rgba(220,235,253,.88);
  --rest:0 1px 2px rgba(20,45,90,.06),0 4px 14px -4px rgba(20,45,90,.14);
  --lift:0 2px 6px rgba(20,45,90,.06),0 18px 36px -14px rgba(20,45,90,.38);
  --quiet:0 1px 3px rgba(20,45,90,.06),0 6px 14px -6px rgba(20,45,90,.24);
@@ -16,7 +16,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--text);color:var(--foreground,#121a2e);-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none}
-button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px solid #2f6fe4;outline-offset:3px}
+button:focus-visible,input:focus-visible,.namefield:focus-within,[role=tab]:focus-visible{outline:2.5px solid #121a2e;outline-offset:3px}
+.night button:focus-visible,.night input:focus-visible,.night .namefield:focus-within,.night [role=tab]:focus-visible{outline-color:#ffd23c}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /*SITE_CSS*/
 /* ---------- the site's tiles, softened: no outline, no lip, a soft lifted shadow ---------- */
 .blk::before{display:none}
@@ -26,7 +28,7 @@ button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px sol
 .w-tap:active{transform:scale(.88)!important}
 .w button,.w .pass,.w .who,.w .did,.w .in{box-shadow:none!important;border-width:0!important}
 .count .w{background:linear-gradient(160deg,#bd4232,#b02a50)}
-.savings .w-label .aside{color:#ae293c}
+.savings .w-label .aside{color:#1f7a45}
 .count .w-small,.count .w-label{color:#fff;opacity:1}
 .count .ticket{border:0;background:#fff;box-shadow:0 10px 20px -8px rgba(70,10,30,.45);-webkit-mask:radial-gradient(circle 7px at 0 63%,transparent 6.5px,#000 7px) left/51% 100% no-repeat,radial-gradient(circle 7px at 100% 63%,transparent 6.5px,#000 7px) right/51% 100% no-repeat;mask:radial-gradient(circle 7px at 0 63%,transparent 6.5px,#000 7px) left/51% 100% no-repeat,radial-gradient(circle 7px at 100% 63%,transparent 6.5px,#000 7px) right/51% 100% no-repeat}
 .count .ticket .cut::before,.count .ticket .cut::after{display:none}
@@ -37,7 +39,8 @@ button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px sol
 .tinted .w{background:var(--bg)!important}
 .big .w-huge,.big .w-big{transform:scale(1.16);transform-origin:0 50%}
 .big .w p,.big .w ul{font-size:1.08em}
-.pet2 .puppy{filter:sepia(.25) hue-rotate(-18deg) saturate(.7) brightness(.82)}
+.pet2 .puppy path:nth-of-type(1),.pet2 .puppy path:nth-of-type(2){fill:#5e3820}
+.pet2 .puppy ellipse:nth-of-type(1){fill:#d48c52}
 /* light faces dim at night, so Widgie stays the brightest thing on screen */
 .night .groc .w{background:#1d3561;color:#eef4ff}
 .night .groc li i{border-color:rgba(255,255,255,.5)}
@@ -50,16 +53,18 @@ button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px sol
 .night .streak .w-label{color:#c4b0ff}
 .night .streak .w-tap{background:#7b5ee0}
 .night .chores .w{background:#3e2a1e;color:#ffebd8}
-.night .bins .w{background:#333c18;color:#eaf6a8}
-.night .mood .w{background:#1f3557;color:#e6f0ff}
-.night .count .ticket{background:#dce8fb}
+.night .bins .w{background:#263a1c;color:#eaf6a8}
+.night .mood .w{background:#293f6a;color:#e6f0ff}
+.night .mood svg circle[fill="#FFFFFF"]{fill:#d6e6ff}
+.night .count .w{background:linear-gradient(160deg,#983228,#8a1f40)}
+.night .count .ticket{background:#c5d6f0}
 .night .chores .bar{background:rgba(255,235,216,.16)}
 .night .chores .bar b,.night .chores .did{background:#ffbe85;color:#2b1a10}
 .night .bins .pass{background:#d8f36b;color:#1f260c}
 .night .streak .breathe i{background:#c4b0ff;opacity:.18}
 .night .streak .breathe svg{color:#c4b0ff}
 .night .groc li .crossed{opacity:.56}
-.night .savings .w-label .aside{color:#ff7a7f}
+.night .savings .w-label .aside{color:#7fd6a0}
 .night .savings .fuji path:first-of-type{fill:#5e78a8}
 #actors .medal [stroke="#0b1430"]{stroke:rgba(18,26,46,.55)}
 /* ---------- stage ---------- */
@@ -71,8 +76,9 @@ button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px sol
 .sky{position:absolute;inset:0;background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky) 45%,var(--sky-bottom) 100%);z-index:-3}
 .sky.night{background:linear-gradient(180deg,#14284f 0%,#223f72 50%,#2b4e82 100%);opacity:0;transition:opacity .45s var(--soft)}
 .phone.night .sky.night{opacity:1}
-.moon{position:absolute;right:16px;top:0;width:20px;height:20px;border-radius:50%;background:#e9f2ff;box-shadow:0 0 40px 6px rgba(233,242,255,.3);opacity:0;transition:opacity .45s;pointer-events:none}
-.night .moon{opacity:1}
+.moon{position:absolute;right:28px;top:66px;width:22px;height:22px;opacity:0;transition:opacity .45s;pointer-events:none;z-index:-2;filter:drop-shadow(0 0 14px rgba(233,242,255,.35))}
+.night .moon{opacity:.85}
+.night.thread .moon{opacity:.25}
 .clouds{position:absolute;inset:0 0 auto;height:260px;z-index:-2;pointer-events:none;transition:opacity .45s}
 .clouds svg{position:absolute;filter:blur(4px);opacity:.5;animation:drift linear infinite}
 .phone.night .clouds{opacity:0}
@@ -82,18 +88,19 @@ button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px sol
 .stars i{position:absolute;width:2.5px;height:2.5px;border-radius:50%;background:#e9f2ff;animation:twinkle 3.4s ease-in-out infinite}
 @keyframes twinkle{50%{opacity:.2;transform:scale(.5)}}
 .topfade,.bottomfade{position:absolute;left:0;right:0;pointer-events:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.topfade{top:0;height:66px;z-index:15;background:linear-gradient(180deg,rgba(180,212,251,.86) 48%,rgba(180,212,251,0));-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
-.bottomfade{bottom:0;height:120px;z-index:22;background:linear-gradient(0deg,rgba(138,182,240,.9) 30%,rgba(138,182,240,0));-webkit-mask-image:linear-gradient(0deg,#000 40%,transparent);mask-image:linear-gradient(0deg,#000 40%,transparent)}
+.topfade{top:0;height:58px;z-index:15;background:linear-gradient(180deg,rgba(180,212,251,.86) 48%,rgba(180,212,251,0));-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
+.bottomfade{bottom:0;height:96px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:22;background:linear-gradient(0deg,rgba(138,182,240,.9) 30%,rgba(138,182,240,0));-webkit-mask-image:linear-gradient(0deg,#000 40%,transparent);mask-image:linear-gradient(0deg,#000 40%,transparent)}
 .night .topfade{background:linear-gradient(180deg,rgba(20,40,79,.86) 48%,rgba(20,40,79,0))}
 .night .bottomfade{background:linear-gradient(0deg,rgba(43,78,130,.9) 30%,rgba(43,78,130,0))}
-.status{position:absolute;top:0;left:0;right:0;height:54px;display:flex;justify-content:space-between;align-items:center;padding:10px 32px 0 50px;font:600 17px var(--text);letter-spacing:-.2px;z-index:20;color:var(--ink);transition:color .45s}
+.status{position:absolute;top:0;left:0;right:0;height:54px;display:flex;justify-content:space-between;align-items:center;padding:10px 28px 0 34px;font:600 17px var(--text);letter-spacing:-.2px;z-index:20;color:var(--ink);transition:color .45s}
 .status svg{display:block}
 .homebar{position:absolute;bottom:8px;left:50%;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--ink);opacity:.3;z-index:90}
 .night .homebar{background:#fff}
 .night .status,.night .page{color:#fff}
 .night{--ink-2:rgba(233,242,255,.8);--ink-3:rgba(233,242,255,.74);--surface:rgba(255,255,255,.11);--surface-text:#fff;--bubble:#d6e2f5;--bar:rgba(18,34,66,.9);--rest:0 1px 2px rgba(0,6,20,.2),0 4px 14px -4px rgba(0,6,20,.4),inset 0 0 0 .5px rgba(255,255,255,.14);--lift:0 2px 6px rgba(0,6,20,.2),0 18px 36px -14px rgba(0,6,20,.7)}
-.night .blk::after{box-shadow:0 2px 6px rgba(0,6,20,.3),0 18px 32px -12px rgba(0,6,20,.75),0 0 0 .5px rgba(255,255,255,.12)}
-.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:62px var(--m) 140px;transition:opacity .22s ease-out,transform .28s var(--soft)}
+.night .blk::after{box-shadow:0 2px 6px rgba(0,6,20,.14),0 10px 24px -12px rgba(0,6,20,.4),0 0 0 .5px rgba(255,255,255,.1)}
+.page{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:62px var(--m) 140px;transition:opacity .22s ease-out .04s,transform .28s var(--soft) .04s}
+.page.hidden{transition:opacity .12s linear,transform 0s .12s}
 .page::-webkit-scrollbar{display:none}
 .page.hidden{opacity:0;pointer-events:none}
 .page.hidden.to-left{transform:translateX(-14px)}
@@ -120,8 +127,8 @@ svg.i{width:15px;height:15px;flex:none}
 .widgie.blink2 .eyes{animation:blink2 .6s}
 @keyframes blinkeyes{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
 @keyframes blink2{0%,40%,100%{transform:scaleY(1)}20%,60%{transform:scaleY(.08)}}
-.avatar{position:relative;flex:none;width:36px;height:36px;border-radius:12px;background:linear-gradient(160deg,#d8e8fd,#b0cff7);overflow:hidden;box-shadow:var(--rest)}
-.avatar .widgie{width:104px;height:104px;left:-34px;top:-4px}
+.avatar{position:relative;flex:none;width:36px;height:36px;border-radius:10px;background:linear-gradient(160deg,#d8e8fd,#b0cff7);overflow:hidden;box-shadow:var(--rest)}
+.avatar .widgie{width:92px;height:92px;left:-28px;top:-1px}
 .night .avatar{background:linear-gradient(160deg,#3a5d96,#284a7c)}
 .fadeswap{animation:fadeswap .32s var(--soft)}
 @keyframes fadeswap{0%{opacity:0}100%{opacity:1}}
@@ -146,7 +153,7 @@ svg.i{width:15px;height:15px;flex:none}
 .top{position:relative;height:200px}
 .top .eyebrow{position:absolute;left:0;top:6px}
 .top h1{position:absolute;left:0;top:30px;font-size:40px}
-.top .sub{position:absolute;left:0;top:80px;white-space:nowrap;font:500 14px var(--text);color:var(--ink-2)}
+.top .sub{position:absolute;left:0;top:80px;white-space:nowrap;transition:color .45s var(--soft);font:500 14px var(--text);color:var(--ink-2)}
 .top .sub b{font-weight:650;color:var(--ink)}
 .night .top .sub b{color:#fff}
 .top .shadow{width:70px;z-index:3}
@@ -158,69 +165,74 @@ svg.i{width:15px;height:15px;flex:none}
 .pin .blk{position:relative;flex:none;transition:transform .3s var(--spring-play)}
 .pin .blk.press{transform:scale(.965)}
 .cap{display:flex;align-items:center;gap:6px;padding:0 4px;min-height:22px}
-.cap .name{font:600 14px var(--text);letter-spacing:-.15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cap .name{font:600 15px var(--text);letter-spacing:-.2px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cap .tag,.cap .home{flex:none}
-.cap .home{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font:600 12px var(--text);color:var(--ink-3)}
 .cap .home svg{width:18px;height:18px}
 .cap .home{color:var(--ink-2)}
 .top .sub svg{width:15px;height:15px;vertical-align:-3px;margin:0 3px 0 0}
 .top .sub .dot{color:var(--ink-3);margin:0 5px}
-.tag{font:700 11px var(--text);color:#121a2e;background:var(--sun);padding:2px 6px;border-radius:6px}
+.tag{font:700 12px var(--text);color:#121a2e;background:var(--sun);padding:2px 7px;border-radius:6px}
+.cap .home{margin-left:auto;display:inline-flex;align-items:center;color:var(--ink-2)}
 .rise{animation:rise .42s var(--spring-ui) both}
 @keyframes rise{0%{opacity:0;transform:translateY(18px) scale(.98)}100%{opacity:1;transform:none}}
-.arrive .blk{animation:settle .8s .08s var(--spring-play) both}
-@keyframes settle{0%{transform:scale(.6);opacity:0}60%{opacity:1}100%{transform:none}}
+.arrive .blk{animation:settle .26s var(--soft) both}
+@keyframes settle{0%{transform:scale(.94);opacity:0}100%{transform:none;opacity:1}}
 /* ---------- tab bar ---------- */
 .tabbar{position:absolute;left:20px;right:20px;bottom:26px;height:68px;border-radius:26px;background:var(--bar);backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px) saturate(1.1);box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.7);display:grid;grid-template-columns:1fr 1fr 1fr;padding:6px;z-index:30;transition:background .45s}
 .night .tabbar{box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.16)}
-.tab{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:600 12px var(--text);letter-spacing:-.1px;color:var(--ink-3);transition:color .2s}
+.tab{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:600 12px var(--text);letter-spacing:-.1px;color:rgba(18,26,46,.6);transition:color .2s}
 .tab.on{color:var(--ink)}
+.night .tab{color:rgba(233,242,255,.66)}
+.tab.on .glyph > svg{stroke-width:2.4}
 .night .tab.on{color:#fff}
 .tab .glyph{height:28px;display:grid;place-items:center}
 .tab .glyph > svg{width:24px;height:24px;transition:transform .32s var(--spring-play)}
 .tab:active .glyph > *{transform:scale(.86)}
-.tabpill{position:absolute;top:6px;height:56px;border-radius:20px;background:#fff;box-shadow:0 1px 4px rgba(20,45,90,.1);transition:left .32s var(--spring-ui),width .32s var(--spring-ui)}
+.tabpill{position:absolute;top:6px;height:56px;border-radius:20px;background:#fff;box-shadow:0 2px 8px rgba(20,45,90,.12),0 0 0 .5px rgba(20,45,90,.06);transition:left .32s var(--spring-ui),width .32s var(--spring-ui)}
 .night .tabpill{background:rgba(255,255,255,.14);box-shadow:none}
 .makekey{position:relative;width:40px;height:26px;border-radius:10px;background:rgba(18,26,46,.07);overflow:hidden;transition:transform .32s var(--spring-play),box-shadow .2s,filter .2s}
 .tab.on .makekey{transform:scale(1.04);background:linear-gradient(165deg,#ffe479,#ffc532);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
 .night .makekey{background:rgba(255,255,255,.1)}
 .night .tab.on .makekey{background:linear-gradient(165deg,#ffe479,#ffc532)}
-.makekey .widgie{width:46px;height:46px;left:-3px;top:-2px}
+.makekey .widgie{width:46px;height:46px;left:-3px;top:1px}
 .badge{position:absolute;top:2px;left:calc(50% + 7px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--coral-shade);color:#fff;font:700 11px var(--text);display:grid;place-items:center;box-shadow:0 3px 8px rgba(224,74,61,.45);transform:scale(0);transition:transform .45s var(--spring-play)}
 .badge.show{transform:scale(1)}
 /* ---------- controls ---------- */
 .chip{height:44px;padding:0 14px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 14px var(--text);letter-spacing:-.15px;color:var(--surface-text);background:var(--surface);box-shadow:var(--rest);transition:transform .3s var(--spring-play),background .2s,color .2s;white-space:nowrap}
 .chip:active{transform:scale(.94)}
 .chip.working{opacity:.6;pointer-events:none}
-.after.busy .chip,.after.busy .key{pointer-events:none}
-.after.busy .key{opacity:.5}
 .key{height:52px;padding:0 22px;border:0;border-radius:15px;background:var(--ink);color:#fff;font:700 17px var(--display);font-stretch:92%;letter-spacing:-.01em;box-shadow:0 12px 24px -10px rgba(18,26,46,.65);display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s ease-out,box-shadow .12s,opacity .2s}
 .key::after{display:none!important}
 .key:hover{border:0;transform:none;box-shadow:0 12px 24px -10px rgba(18,26,46,.65)}
 .key:active{border:0;transform:scale(.97);box-shadow:0 6px 14px -6px rgba(18,26,46,.5)}
 .key:disabled{opacity:.5;pointer-events:none}
-.key.quiet{background:rgba(18,26,46,.07);color:var(--ink);box-shadow:none}
-.night .key:not(.quiet){background:#ffd23c;color:#121a2e;box-shadow:0 12px 24px -10px rgba(255,200,40,.35)}
+.key.quiet{background:#fff;color:var(--ink);box-shadow:var(--rest),inset 0 0 0 1px rgba(18,26,46,.1)}
+.night .key:not(.quiet){background:#ffd23c;color:#121a2e;box-shadow:0 2px 6px rgba(0,6,20,.25),0 12px 24px -10px rgba(0,6,20,.6),inset 0 1px 0 rgba(255,255,255,.45)}
 .night .key.quiet{background:rgba(255,255,255,.12);color:#fff}
 .mini{height:36px;padding:0 12px;border-radius:12px;display:inline-flex;align-items:center;gap:6px;font:600 14px var(--text);color:var(--ink);background:var(--surface);box-shadow:var(--rest);transition:transform .3s var(--spring-play)}
 .night .mini{color:#fff}
 .mini:active{transform:scale(.94)}
 .mini svg{width:14px;height:14px}
+.mini{position:relative}
+.mini::after{content:"";position:absolute;inset:-4px}
 .head .mini{position:absolute;right:0;bottom:16px}
-.make-bar{position:sticky;top:-62px;z-index:16;display:flex;align-items:center;justify-content:space-between;margin:-62px -20px 8px;padding:56px 20px 8px;background:rgba(177,210,250,.8);backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px) saturate(1.1)}
+.make-bar{position:sticky;top:-62px;z-index:16;display:flex;align-items:center;justify-content:space-between;margin:-62px -20px 8px;padding:60px 20px 10px;background:rgba(177,210,250,.8);backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px) saturate(1.1)}
 .make-bar::after{content:"";position:absolute;left:0;right:0;top:100%;height:28px;background:linear-gradient(rgba(177,210,250,.8),rgba(177,210,250,0));pointer-events:none}
 .night .make-bar{background:rgba(23,46,87,.8)}
 .night .make-bar::after{background:linear-gradient(rgba(23,46,87,.8),rgba(23,46,87,0))}
 .make-bar h2{font-size:28px}
 /* ---------- Make ---------- */
-#p-make{display:flex;flex-direction:column;padding-bottom:204px;scroll-padding-bottom:216px;scroll-padding-top:120px}
+#p-make{display:flex;flex-direction:column;padding-bottom:180px;scroll-padding-bottom:196px;scroll-padding-top:120px}
+#p-make.drafting{padding-bottom:226px;scroll-padding-bottom:240px}
 .hello{flex:1;display:flex;flex-direction:column;transition:opacity .22s ease-out}
 .hello.entering{opacity:0}
-.make-hello{position:relative;height:224px;margin:0 0 6px}
+.make-hello{position:relative;height:224px;margin:0}
+.hello.leaving{opacity:0;transform:translateY(-8px);transition:opacity .18s var(--soft),transform .18s var(--soft)}
+.hello .grow-top{flex:1;max-height:40px}
 .make-hello .shadow{left:240px;top:200px;width:100px;height:13px}
 #m-widgie{transition:rotate .22s var(--soft)}
 #m-widgie.lean{rotate:-6deg}
-#m-bubble{right:122px;top:30px;width:max-content;max-width:224px}
+#m-bubble{right:138px;top:38px;width:max-content;max-width:212px}
 .hello .grow{flex:1;min-height:12px}
 .ideas{display:flex;flex-direction:column;gap:10px}
 .ideas .eyebrow{margin:0 4px 2px}
@@ -235,44 +247,45 @@ svg.i{width:15px;height:15px;flex:none}
 .composer{position:absolute;left:20px;right:20px;bottom:108px;z-index:25;min-height:60px;border-radius:22px;background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:var(--lift);display:flex;align-items:center;gap:8px;padding:8px;transition:opacity .22s ease-out,transform .28s var(--soft)}
 .night .composer{background:rgba(16,30,58,.94);box-shadow:var(--lift),inset 0 0 0 .5px rgba(233,242,255,.22)}
 .composer.hidden{opacity:0;transform:scale(.98);pointer-events:none}
-.composer .icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--ink);background:rgba(18,26,46,.06);flex:none;transition:transform .3s var(--spring-play)}
-.composer .icon:active{transform:scale(.9)}
-.night .composer .icon{background:rgba(255,255,255,.1);color:#fff}
 .composer .field{position:relative;flex:1;min-width:0;height:44px;display:flex;align-items:center}
-.composer input{width:100%;height:44px;padding-left:18px;font:500 17px var(--text);letter-spacing:-.2px;color:var(--ink);caret-color:var(--ink);cursor:text}
+.composer input{width:100%;height:44px;padding-left:14px;font:500 17px var(--text);letter-spacing:-.2px;color:var(--ink);caret-color:var(--ink);cursor:text}
 .night .composer input{color:#fff;caret-color:#fff}
 .composer input::placeholder{color:var(--ink-3)}
-.composer .idlecaret{position:absolute;left:9px;top:12px;width:2.5px;height:20px;border-radius:2px;background:var(--ink);opacity:.4;animation:blink 1.06s steps(1) infinite;pointer-events:none}
+.composer .idlecaret{position:absolute;left:6px;top:12px;width:2.5px;height:20px;border-radius:2px;background:var(--ink);opacity:.4;animation:blink 1.06s steps(1) infinite;pointer-events:none}
 .night .composer .idlecaret{background:#fff}
 .composer:focus-within .idlecaret,.composer.typed .idlecaret,.composer.busy .idlecaret{display:none}
+.composer:focus-within input,.composer.typed input,.composer.busy input{padding-left:8px}
+.composer .send:disabled:not(.ready){cursor:default}
 .composer .send{width:44px;height:44px;border-radius:14px;background:rgba(18,26,46,.1);color:rgba(18,26,46,.35);display:grid;place-items:center;flex:none;transition:background .2s,color .2s,transform .3s var(--spring-play)}
 .composer .send.ready{background:var(--ink);color:#fff}
 .composer .send:active{transform:scale(.9)}
 .night .composer .send{background:rgba(255,255,255,.12);color:rgba(233,242,255,.4)}
 .night .composer .send.ready{background:#ffd23c;color:#121a2e}
-.thread{display:flex;flex-direction:column;gap:14px;transition:opacity .28s ease-out,transform .28s ease-out}
+.thread{display:flex;flex-direction:column;gap:14px;padding-top:20px;transition:opacity .28s ease-out,transform .28s ease-out}
 .thread.leaving{opacity:0;transform:translateY(-8px)}
 .me{align-self:flex-end;max-width:262px;background:var(--ink);color:#fff;border-radius:20px 20px 6px 20px;padding:11px 15px;font:600 15.5px/1.32 var(--text);letter-spacing:-.15px;box-shadow:0 10px 20px -10px rgba(18,26,46,.6);animation:slidein .45s var(--spring-ui) both}
-.night .me{background:#3262bd;color:#fff;box-shadow:0 10px 20px -10px rgba(0,6,20,.55)}
+.night .me{background:#2a4a86;color:#fff;box-shadow:0 10px 20px -10px rgba(0,6,20,.55),inset 0 0 0 .5px rgba(233,242,255,.14)}
 @keyframes slidein{0%{opacity:0;transform:translateY(18px) scale(.94)}100%{opacity:1;transform:none}}
 .them{align-self:flex-start;animation:slidein .45s var(--spring-ui) both}
 .them .bubble{position:relative;display:block;max-width:262px;border-bottom-left-radius:6px;transform-origin:0 100%}
 .studio{position:relative;align-self:center;margin:70px 0 4px}
-.studio.wide{margin-top:112px}
+.studio.wide{margin-top:120px}
 .studio .ghost{position:absolute;inset:0;overflow:visible;pointer-events:none}
 .studio .ghost path{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;opacity:.35}
 .night .studio .ghost path{stroke:#e9f2ff}
 .thread.narrow .them:has(+ .studio) .bubble{max-width:184px}
 .studio svg.sk{position:absolute;inset:0;overflow:visible;transition:opacity .2s ease-out}
-.studio .edge{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:trace 1.85s linear forwards}
+.studio .edge{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:trace 1.85s linear var(--delay,0s) forwards}
 .studio .part{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:4 5;opacity:0;animation:solid .38s var(--soft) both}
 .night .studio .edge,.night .studio .part{stroke:#e9f2ff}
 @keyframes trace{to{stroke-dashoffset:0}}
-@keyframes solid{0%{opacity:0;transform:scale(.94)}100%{fill:currentColor;stroke-dasharray:none;opacity:.22;transform:none}}
+@keyframes solid{0%{opacity:0;transform:scale(.94)}100%{fill:var(--part,currentColor);stroke-dasharray:none;opacity:.35;transform:none}}
 .studio .part{transform-box:fill-box;transform-origin:center}
 .studio .art{color:var(--ink)}
 .night .studio .art{color:#e9f2ff}
-.studio .pen{position:absolute;left:0;top:0;width:116px;z-index:3;offset-anchor:22% 99.3%;offset-rotate:0deg;animation:ride 1.85s linear forwards}
+.studio .pen{position:absolute;left:0;top:0;width:116px;z-index:3;offset-anchor:22% 99.3%;offset-rotate:0deg;animation:ride 1.85s linear var(--delay,0s) forwards}
+.studio .pen .caret{transition:transform .14s var(--soft)}
+.studio .pen.flip .caret{transform:scaleX(-1)}
 @keyframes ride{from{offset-distance:0%}to{offset-distance:100%}}
 .studio .blk{position:absolute!important;left:0;top:0;z-index:1}
 .studio .perch{position:absolute;width:116px;z-index:3}
@@ -280,10 +293,9 @@ svg.i{width:15px;height:15px;flex:none}
 .studio .shadow{width:64px;height:10px;z-index:2;opacity:0;transition:opacity .2s}
 .fadein{animation:fadein .22s ease-out both}
 @keyframes fadein{0%{opacity:0}100%{opacity:1}}
-.after{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:16px;animation:rise .42s var(--spring-ui) both;transition:opacity .18s var(--soft),transform .18s var(--soft)}
+.after{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:20px;animation:rise .42s var(--spring-ui) both;transition:opacity .18s var(--soft),transform .18s var(--soft)}
 .after.going{opacity:0;transform:translateY(6px);pointer-events:none}
-.after .key{min-width:220px}
-.refine{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.after .key{min-width:200px}
 .confetti{position:absolute;inset:0;pointer-events:none;z-index:60;overflow:hidden}
 .confetti i{position:absolute;width:4px;height:15px;border-radius:2px;animation:burst 1.15s forwards}
 @keyframes burst{0%{transform:translate(0,0) rotate(0);opacity:1;animation-timing-function:cubic-bezier(.1,.7,.3,1)}45%{transform:translate(calc(var(--dx) * .7),var(--dy)) rotate(calc(var(--r) * .5));opacity:1;animation-timing-function:cubic-bezier(.4,0,1,1)}70%{opacity:1}100%{transform:translate(var(--dx),calc(var(--dy) + 150px)) rotate(var(--r));opacity:0}}
@@ -291,19 +303,21 @@ svg.i{width:15px;height:15px;flex:none}
 .squish{animation:squish .45s var(--spring-play)}
 @keyframes squish{0%{transform:none}30%{transform:scale(.95)}100%{transform:none}}
 /* ---------- Templates ---------- */
-.cats{display:flex;gap:6px;padding:2px 0 16px}
-.cat{flex:1 1 auto;padding:0 8px;font-size:13.5px;border-radius:12px}
+.cats{display:flex;gap:7px;padding:2px 0 16px}
+.cat{flex:1 1 auto;padding:0 10px;font-size:13px;gap:5px;border-radius:12px}
 .cat svg{width:15px;height:15px}
 .cat.on{background:var(--ink);color:#fff;box-shadow:0 10px 18px -10px rgba(18,26,46,.7)}
-.night .cat.on{background:#fff;color:#121a2e}
-.banner{position:relative;height:136px;display:flex;align-items:center;border-radius:28px;margin-bottom:22px;overflow:hidden;color:#fff;padding:0 22px;box-shadow:var(--quiet);transition:background .4s var(--soft)}
+.night .cat.on{background:#d8e6fb;color:#121a2e}
+.banner{position:relative;height:136px;display:flex;align-items:center;border-radius:28px;margin-bottom:22px;overflow:hidden;color:#fff;padding:0 22px;box-shadow:var(--quiet);transition:background-color .32s var(--soft),color .32s var(--soft)}
 .banner.ink{color:#121a2e}
 #banner{--sq-on:#5a3c98;--sq-off:rgba(18,26,46,.14)}
 .night #banner{--sq-on:#c7b6ff;--sq-off:rgba(255,255,255,.24)}
-.banner::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 85% 100%,rgba(255,255,255,.14),transparent 60%);pointer-events:none}
-.banner h2{position:relative;font-size:27px;line-height:1.02;max-width:190px;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.banner::before{content:"";position:absolute;inset:0;background:linear-gradient(150deg,rgba(255,255,255,.14),rgba(0,0,0,.06)),radial-gradient(70% 90% at 85% 100%,rgba(255,255,255,.14),transparent 60%);pointer-events:none}
+.banner h2{position:relative;font-size:27px;line-height:1.02;max-width:168px;text-wrap:balance;transition:opacity .16s ease-out,transform .16s ease-out;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .banner .actors{position:absolute;right:6px;bottom:0;width:196px;height:136px;transition:opacity .16s ease-out,transform .16s ease-out}
-.banner .actors.out{opacity:0;transform:translateY(8px)}
+.banner .actors.out,.banner h2.out{opacity:0;transform:translateY(6px)}
+.banner .medal{filter:drop-shadow(0 4px 6px rgba(0,0,0,.25))}
+.sheet-open .beat{animation-play-state:paused}
 .banner .actors .shadow{background:radial-gradient(closest-side,rgba(0,0,0,.28),transparent)}
 .beat{animation:beat 1.3s ease-in-out infinite}
 @keyframes beat{0%,100%{transform:scale(1)}20%{transform:scale(1.18)}40%{transform:scale(1)}}
@@ -316,41 +330,45 @@ svg.i{width:15px;height:15px;flex:none}
 .pile .item.solo{grid-column:span 2;align-items:center}
 .pile .item.solo .tmeta{width:174px}
 .tmeta{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 4px;min-height:44px;width:100%}
-.tname{font:600 15px var(--text);letter-spacing:-.2px;display:flex;align-items:center;gap:5px}
+.tname{font:600 15px var(--text);letter-spacing:-.2px;display:flex;align-items:center;gap:8px}
+.tname .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tname .try{margin-left:auto;flex:none;font:650 13px var(--text);color:var(--ink-2);display:inline-flex;align-items:center;gap:4px}
+.tname .try svg{width:7px;height:11px;flex:none}
 .tname svg{width:7px;height:12px;color:var(--ink-3)}
-.tsub{display:flex;align-items:center;gap:8px}
-.tsub .try{margin-left:auto;flex:none;font:650 13.5px var(--text);color:var(--ink-2);display:inline-flex;align-items:center;gap:4px}
-.tsub .try svg{color:currentColor}
-.tsub{font:500 13px var(--text);color:var(--ink-2)}
-.pop-out{animation:popout .18s var(--soft) forwards}
+
+.tsub{font:500 13px/17px var(--text);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-out{animation:popout .16s var(--soft) forwards}
 @keyframes popout{to{opacity:0;transform:translateY(10px) scale(.97)}}
 /* ---------- sheet ---------- */
-.scrim{position:absolute;inset:0;background:rgba(10,18,36,.5);opacity:0;pointer-events:none;transition:opacity .3s var(--soft);z-index:40}
+.scrim{position:absolute;inset:0;background:rgba(14,38,86,.36);backdrop-filter:saturate(.9) blur(1.5px);-webkit-backdrop-filter:saturate(.9) blur(1.5px);opacity:0;pointer-events:none;transition:opacity .3s var(--soft);z-index:40}
 .night .scrim{background:rgba(4,10,24,.56)}
 .scrim.show{opacity:1;pointer-events:auto}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,#eef5ff,#e2edfc);color:#121a2e;border-radius:36px 36px 0 0;z-index:50;transform:translateY(105%);transition:transform .42s var(--spring-ui);padding:10px 22px 40px;box-shadow:0 -12px 40px rgba(10,20,40,.22)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,#eef5ff,#e2edfc);color:#121a2e;border-radius:36px 36px 0 0;z-index:50;transform:translateY(105%);transition:transform .34s cubic-bezier(.4,0,.2,1);padding:10px 22px 40px;max-height:calc(100% - 56px);overflow-y:auto;scrollbar-width:none;box-shadow:0 -12px 40px rgba(10,20,40,.22)}
 .night .sheet{background:linear-gradient(180deg,#1d3560,#16294b);color:#fff;box-shadow:0 -12px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(233,242,255,.16)}
-.sheet.show{transform:none}
+.sheet.show{transform:none;transition:transform .42s var(--spring-ui)}
+.sheet.dragging{transition:none}
+.sheet .keys{position:sticky;bottom:-40px;padding-bottom:4px;background:inherit}
 .sheet.leaving{transition-duration:.16s}
 .sheet:focus{outline:none}
-.grab{width:38px;height:5px;border-radius:3px;background:currentColor;opacity:.22;margin:0 auto 16px}
-.close{position:absolute;right:14px;top:22px;width:44px;height:44px;display:grid;place-items:center}
-.close i{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:rgba(18,26,46,.07)}
+.grab{width:38px;height:5px;border-radius:3px;background:currentColor;opacity:.22;margin:0 auto 16px;cursor:grab;touch-action:none;position:relative}
+.grab::after{content:"";position:absolute;inset:-14px -60px}
+.close{position:absolute;right:14px;top:26px;width:44px;height:44px;display:grid;place-items:center}
+.close i{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:rgba(18,26,46,.07);transition:transform .22s var(--spring-play)}
+.close:active i{transform:scale(.88)}
 .night .close i{background:rgba(255,255,255,.12)}
 .sheet h3{font-size:34px;padding-right:48px}
 .sheet .line{font:500 15px/1.35 var(--text);color:rgba(18,26,46,.72);margin-top:6px}
 .night .sheet .line{color:rgba(233,242,255,.76)}
-.spot{position:relative;height:214px;display:flex;align-items:flex-end;justify-content:center;margin:20px -22px 0;padding-bottom:22px}
+.spot{position:relative;height:206px;display:flex;align-items:flex-end;justify-content:center;margin:12px -22px 0;padding-bottom:18px}
 .spot::before{content:"";position:absolute;left:50%;bottom:0;width:300px;height:210px;margin-left:-150px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.45),transparent)}
 .night .spot::before{background:radial-gradient(closest-side,rgba(156,195,245,.16),transparent)}
-.spot.wide{height:288px}
+.spot.wide{height:272px}
 .spot .w-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .spot .w-small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .spot .stagebox{position:relative}
 .spot .bubble.down{white-space:normal;width:max-content;max-width:150px;text-align:center}
 .spot .bubble{box-shadow:0 2px 6px rgba(20,45,90,.08),0 12px 24px -10px rgba(20,45,90,.28),0 0 0 1px rgba(18,26,46,.07)}
 .spot .bubble{position:absolute;z-index:4}
-.hint[hidden]{display:none}
 .hint{text-align:center;font:500 13px var(--text);color:rgba(18,26,46,.72)}
 .night .hint{color:rgba(233,242,255,.76)}
 .namefield{position:relative;margin-top:10px;border-radius:18px;background:#fff;box-shadow:var(--rest),inset 0 0 0 1px rgba(18,26,46,.14);padding:10px 44px 8px 16px;display:block;cursor:text}
@@ -365,27 +383,69 @@ svg.i{width:15px;height:15px;flex:none}
 #s-chat{flex:1}
 #s-add{flex:1.15}
 .sheet .key{padding:0 14px;font-size:16.5px}
-.toast{position:absolute;left:50%;top:58px;transform:translate(-50%,-130px);background:#fff;color:#121a2e;border-radius:18px;box-shadow:var(--lift);padding:8px 16px 8px 8px;font:600 15px var(--text);letter-spacing:-.15px;display:flex;align-items:center;gap:10px;z-index:80;transition:transform .38s var(--spring-ui);white-space:nowrap}
+.toast{position:absolute;left:50%;top:54px;min-width:248px;max-width:362px;transform:translate(-50%,-130px);background:#fff;color:#121a2e;border-radius:18px;box-shadow:var(--lift);padding:8px 16px 8px 8px;font:600 15px var(--text);letter-spacing:-.15px;display:flex;align-items:center;gap:10px;z-index:80;transition:transform .38s var(--spring-ui);white-space:nowrap}
 .night .toast{background:rgba(24,46,84,.96);color:#fff;box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.16)}
 .toast.show{transform:translate(-50%,0)}
+/* ---------- final pass ---------- */
+.inkface .w-label,.inkface .w-big,.inkface .w-small,.inkface .w-huge{color:#121a2e!important}
+.hearts .w-small{white-space:nowrap;max-width:86%;overflow:hidden;text-overflow:ellipsis}
+.w-label .aside{opacity:.76}
+.savings .w-label .aside{opacity:1}
+.count .ticket .meta + .meta{display:none}
+.count .ticket .meta span,.count .w-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.count .ticket .meta span:last-child{flex:none}
+.groc li button{position:relative}
+.groc li button::after{content:"";position:absolute;inset:-4.5px 0}
+.grid .days button{outline:none!important;box-shadow:inset 0 0 0 1.6px rgba(223,245,232,.72);position:relative}
+.grid .days button.on{box-shadow:inset 0 0 0 1.6px #dff5e8}
+.grid .days button::after{content:"";position:absolute;inset:-4.5px -4px}
+.dinner .faces b{border-width:1.5px;border-color:rgba(18,26,46,.32)}
+.night .dinner .w{background:#183b34;color:#d6f7ea}
+.night .dinner .faces b{background:#24544a;border-color:rgba(214,247,234,.5);color:#fff}
+.night .dinner .faces b.out{background:transparent;border-color:rgba(214,247,234,.35)}
+.night .dinner .in{background:#8ee4c0;color:#102923}
+.night .days .w{background:linear-gradient(160deg,#b8562e,#9c3826)}
+/* the change chips ride above the composer */
+.quick{position:absolute;left:0;right:0;bottom:calc(100% + 8px);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;margin:0 -2px;opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity .2s var(--soft),transform .2s var(--soft)}
+.quick::-webkit-scrollbar{display:none}
+.quick.show{opacity:1;transform:none;pointer-events:auto}
+.quick .chip{flex:none;height:34px;padding:0 12px;border-radius:11px;font-size:13.5px}
+.quick.busy .chip{pointer-events:none;opacity:.6}
+/* a gentle question before a draft is replaced */
+.confirm{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 14px;border-radius:18px;background:var(--surface);box-shadow:var(--rest);font:600 14.5px var(--text);color:var(--surface-text);animation:rise .3s var(--spring-ui) both}
+.confirm span{flex:1 1 100%}
+.confirm .mini.danger{background:var(--ink);color:#fff}
+.night .confirm .mini.danger{background:#ffd23c;color:#121a2e}
+.thread.confirming{opacity:1}
+/* day and night cross-fade on every surface */
+.w,.bubble,.me,.chip,.idea,.composer,.namefield,.make-bar,.tabpill,.key,.sheet,.cat,.toast{transition-property:background-color,color,box-shadow,transform,opacity;transition-duration:.45s,.45s,.45s,.3s,.2s;transition-timing-function:var(--soft)}
+.composer.hidden.to-left{transform:translateX(-14px)}
+.composer.hidden.to-right{transform:translateX(14px)}
+.spot .bubble.down::after{left:var(--tx,26px)}
+.pile .item{cursor:pointer}
+.pile .item:focus-visible{outline:2.5px solid #121a2e;outline-offset:4px}
+.night .pile .item:focus-visible{outline-color:#ffd23c}
+.night .key:not(.quiet):focus-visible,.night .composer .send.ready:focus-visible,.night .cat.on:focus-visible{outline-color:#d6e2f5}
+.night .grid .w-label .aside{color:#8dd6af;opacity:1}
+.fillme{transition:fill .3s var(--soft)}
+.night.typing #p-make .after .key{background:rgba(255,255,255,.12);color:#fff;box-shadow:none;transition-duration:.15s}
 @keyframes blink{50%{opacity:0}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style></head><body>
 <div class="stage">
  <div class="controls"><button data-time="day" class="on">Day</button><button data-time="night">Night (dark mode)</button><button data-go="widgets">Widgets</button><button data-go="make">Make</button><button data-go="tpl">Templates</button></div>
  <div class="phone" id="phone" style="zoom:.8">
-  <div class="sky"></div><div class="sky night"></div><div class="stars" id="stars"></div>
+  <div class="sky"></div><div class="sky night"></div><div class="stars" id="stars"></div><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 2.5a9.5 9.5 0 1 0 6 16.8A8 8 0 0 1 15.5 2.5z" fill="#e9f2ff"/></svg>
   <div class="clouds" id="clouds"></div>
   <div class="topfade"></div><div class="bottomfade"></div>
   <div class="status"><span>9:41</span><span style="display:flex;gap:7px;align-items:center"><svg width="19" height="12" viewBox="0 0 19 12" fill="currentColor"><rect y="8" width="3.2" height="4" rx="1"/><rect x="5.2" y="5.5" width="3.2" height="6.5" rx="1"/><rect x="10.4" y="3" width="3.2" height="9" rx="1"/><rect x="15.6" width="3.2" height="12" rx="1"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><path d="M8.5 2.6c2.4 0 4.6.9 6.2 2.5l1.2-1.2A10.4 10.4 0 0 0 8.5.9 10.4 10.4 0 0 0 1.1 3.9l1.2 1.2A8.7 8.7 0 0 1 8.5 2.6zm0 3.4c1.5 0 2.8.6 3.8 1.5l1.2-1.2a7 7 0 0 0-10 0l1.2 1.2c1-.9 2.3-1.5 3.8-1.5zm0 3.4c.6 0 1.1.2 1.5.6L8.5 11.5 7 10c.4-.4.9-.6 1.5-.6z"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="currentColor" opacity=".4"/><rect x="2.5" y="2.5" width="19" height="8" rx="2.2" fill="currentColor"/><rect x="25" y="4.2" width="1.6" height="4.6" rx=".8" fill="currentColor" opacity=".4"/></svg></span></div>
 
   <section class="page" id="p-widgets">
    <div class="top">
-    <div class="moon"></div>
-    <div class="eyebrow">Thursday, November 26</div>
+        <div class="eyebrow">Thursday, November 26</div>
     <h1 class="display" id="w-hello">Good morning</h1>
     <div class="sub" id="w-sub"></div>
-    <div class="bubble right gone" id="w-bubble"></div>
+    <div class="bubble right gone" id="w-bubble" role="status" aria-live="polite"></div>
     <div class="widgie sway" id="w-widgie"></div>
     <div class="shadow"></div>
    </div>
@@ -393,30 +453,30 @@ svg.i{width:15px;height:15px;flex:none}
   </section>
 
   <section class="page hidden to-right" id="p-make" inert></section>
-  <form class="composer hidden" id="composer" autocomplete="off" inert><button type="button" class="icon" aria-label="Add a picture of a look you like"><svg width="22" height="20" viewBox="0 0 26 22"><rect x="1.3" y="1.3" width="23.4" height="19.4" rx="5" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M5 17l6-6 4.5 4.5 2.8-2.8 3.7 3.7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/><circle cx="17.5" cy="7.3" r="2.1" fill="currentColor"/></svg></button><div class="field"><span class="idlecaret"></span><input id="say" placeholder="Describe a widget" aria-label="Describe a widget"></div><button class="send" id="send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg></button></form>
+  <form class="composer hidden" id="composer" autocomplete="off" inert><div class="quick" id="quick" role="group" aria-label="Suggested changes"></div><div class="field"><span class="idlecaret"></span><input id="say" placeholder="Describe a widget" aria-label="Describe a widget"></div><button class="send" id="send" aria-label="Send" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 11l6-6 6 6"/></svg></button></form>
 
   <section class="page hidden to-right" id="p-tpl" inert>
    <div class="head"><div class="eyebrow">Ready in a tap, yours in a word</div><h1 class="display">Templates</h1></div>
-   <div class="cats" id="cats" role="tablist"></div>
+   <div class="cats" id="cats" role="tablist" aria-label="Template categories"></div>
    <div class="banner" id="banner"><h2 class="display" id="b-line"></h2><div class="actors" id="actors"></div></div>
-   <div class="pile" id="pile"></div>
+   <div class="pile" id="pile" role="tabpanel"></div>
   </section>
 
   <div class="scrim" id="scrim"></div>
-  <div class="sheet" id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="s-title" inert><div class="grab"></div><button class="close" id="s-close" aria-label="Close"><i><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></i></button><h3 class="display" id="s-title"></h3><div class="line" id="s-line"></div>
+  <div class="sheet" id="sheet" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="s-title" inert><div class="grab" id="s-grab" aria-hidden="true"></div><button class="close" id="s-close" aria-label="Close"><i><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M2 2l10 10M12 2 2 12"/></svg></i></button><h3 class="display" id="s-title"></h3><div class="line" id="s-line"></div>
    <div class="spot" id="s-spot"></div>
-   <div class="hint" id="s-hint"></div>
    <label class="namefield" id="s-field"><span id="s-label"></span><input id="s-name"><svg class="pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></label>
    <div class="keys"><button class="key quiet" id="s-chat">Change in chat</button><button class="key" id="s-add">Add widget</button></div>
   </div>
   <div class="toast" id="toast" role="status"><div class="avatar"><div class="widgie" id="t-widgie"></div></div><span id="t-text"></span></div>
   <div class="confetti" id="confetti"></div>
+  <div class="sr" id="live" role="status" aria-live="polite"></div>
 
-  <nav class="tabbar" id="tabbar">
-   <div class="tabpill" id="pill"></div>
-   <button class="tab on" data-tab="widgets"><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><rect x="3" y="3" width="8" height="11" rx="2.6"/><rect x="13" y="3" width="8" height="6.5" rx="2.6"/><rect x="3" y="16" width="8" height="5" rx="2.4"/><rect x="13" y="11.5" width="8" height="9.5" rx="2.6"/></svg></span>Widgets<span class="badge" id="badge">1</span></button>
-   <button class="tab" data-tab="make"><span class="glyph"><span class="makekey"><span class="widgie" id="tab-widgie"></span></span></span>Make</button>
-   <button class="tab" data-tab="tpl"><span class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><defs><mask id="tplmask"><rect width="24" height="24" fill="#fff"/><rect x="8" y="3" width="13.5" height="17" rx="3.6" transform="rotate(7 14.75 11.5)" fill="#000"/></mask></defs><rect x="3.5" y="5" width="12" height="15" rx="3" transform="rotate(-8 9.5 12.5)" mask="url(#tplmask)"/><rect x="9" y="4" width="11.5" height="15" rx="3" transform="rotate(7 14.75 11.5)"/></svg></span>Templates</button>
+  <nav class="tabbar" id="tabbar" aria-label="Main">
+   <div class="tabpill" id="pill" aria-hidden="true"></div>
+   <button class="tab on" data-tab="widgets"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><rect x="3" y="3" width="8" height="11" rx="2.6"/><rect x="13" y="3" width="8" height="6.5" rx="2.6"/><rect x="3" y="16" width="8" height="5" rx="2.4"/><rect x="13" y="11.5" width="8" height="9.5" rx="2.6"/></svg></span>Widgets<span class="badge" id="badge">1</span></button>
+   <button class="tab" data-tab="make"><span class="glyph" aria-hidden="true"><span class="makekey"><span class="widgie" id="tab-widgie"></span></span></span>Make</button>
+   <button class="tab" data-tab="tpl"><span class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><defs><mask id="tplmask"><rect width="24" height="24" fill="#fff"/><rect x="8" y="3" width="13.5" height="17" rx="3.6" transform="rotate(7 14.75 11.5)" fill="#000"/></mask></defs><rect x="3.5" y="5" width="12" height="15" rx="3" transform="rotate(-8 9.5 12.5)" mask="url(#tplmask)"/><rect x="9" y="4" width="11.5" height="15" rx="3" transform="rotate(7 14.75 11.5)"/></svg></span>Templates</button>
   </nav>
   <div class="homebar"></div>
  </div>
@@ -427,12 +487,16 @@ svg.i{width:15px;height:15px;flex:none}
 <script>
 (() => {
 const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
 const phone = $("#phone");
 const ZOOM = 0.8;
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const wait = (ms) => new Promise((r) => setTimeout(r, calm ? 0 : ms));
+const SPRING = "cubic-bezier(.22,1.06,.36,1)", SOFT = "cubic-bezier(.3,.7,.4,1)";
 let night = false, tab = "widgets";
 const ORDER = ["widgets", "make", "tpl"];
+// One polite voice for assistive tech, for words that are not already in a live bubble.
+function announce(text) { const l = $("#live"); l.textContent = ""; requestAnimationFrame(() => (l.textContent = text)); }
 
 // ---------- Widgie: the site's caret, wrapped so it can hop and change pose ----------
 // The pose is kept on the element, so a switch to night redraws every Widgie on screen. `moon: "0"` keeps the ink
@@ -454,7 +518,7 @@ function play(el, cls, ms) {
   clearTimeout(el._p);
   el._p = setTimeout(() => el.classList.remove(...list), ms);
 }
-const hop = (el, small = false) => play(el, small ? "hop small" : "hop", 740);
+const hop = (el, small = false) => el && play(el, small ? "hop small" : "hop", 740);
 // Where each pose's foot is across its square, and where its round cap ends below (the caret draws in a 0 4 100 100
 // box), so a Widgie of any size and pose stands exactly on a point.
 const FOOT = { idle: [.5, .985], jump: [.5, .977], lean: [.42, .989], draw: [.22, .993] };
@@ -462,12 +526,15 @@ function stand(el, size, pose, mirror, x, y) {
   const [fx, fy] = FOOT[pose], f = mirror ? 1 - fx : fx;
   Object.assign(el.style, { width: size + "px", left: x - f * size + "px", top: y - fy * size + "px", right: "auto", bottom: "auto" });
 }
+// A bubble that changes its words grows or shrinks to them instead of snapping.
 function say(el, words, { swap = false } = {}) {
+  const was = !el.classList.contains("gone") ? el.offsetWidth : 0;
   el.textContent = words;
   el.classList.remove("gone", "pop", "swap"); void el.offsetWidth; el.classList.add(swap ? "swap" : "pop");
+  if (swap && was && !calm) { const now = el.offsetWidth; if (Math.abs(now - was) > 2) el.animate([{ width: was + "px" }, { width: now + "px" }], { duration: 240, easing: SOFT }); }
 }
 
-// sky: two soft clouds up high by day; stars at night, and the moon over the Widgets header
+// sky: two soft clouds up high by day; stars and a crescent moon at night
 const cloud = (w) => `<svg width="${w}" height="${w * .42}" viewBox="0 0 100 42"><g fill="#fff"><ellipse cx="30" cy="30" rx="26" ry="12"/><ellipse cx="52" cy="22" rx="22" ry="17"/><ellipse cx="72" cy="30" rx="22" ry="11"/></g></svg>`;
 $("#clouds").innerHTML = [[150, 56, 90, -30], [110, 150, 120, -80]].map(([w, top, dur, del]) => cloud(w).replace("<svg", `<svg style="top:${top}px;animation-duration:${dur}s;animation-delay:${del}s"`)).join("");
 $("#stars").innerHTML = Array.from({ length: 26 }, (_, i) => `<i style="left:${(i * 47) % 392 + 5}px;top:${(i * 61) % 320 + 48}px;animation-delay:-${(i % 9) * .38}s;opacity:${.5 + (i % 4) * .15}"></i>`).join("");
@@ -504,31 +571,64 @@ function words(el, pairs) {
   }
   retext(el);
 }
+// A look on a tile: its fill (with dark words on a light fill), a bigger number, or a second pet's coat.
 function dress(el, look) {
   if (!look) return;
   if (look.bg) { el.classList.add("tinted"); el.style.setProperty("--bg", look.bg); }
+  el.classList.toggle("inkface", !!look.ink);
   if (look.big) el.classList.add("big");
-  if (look.pet2) el.classList.add("pet2");
+  el.classList.toggle("pet2", !!look.pet2);
 }
+// A widget that works: it redraws on each tap, and the control you used keeps the focus through the redraw (and
+// through the clock redraws), so a keyboard never drops to the page.
+let focusTile = null;
+document.addEventListener("pointerdown", (e) => { if (focusTile && !focusTile.contains(e.target)) { focusTile._fi = null; focusTile = null; } }, true);
 function live(root, onTap) {
   for (const el of root.querySelectorAll("[data-widget]:not([data-live])")) {
     el.dataset.live = "1";
+    const taps = () => [...el.querySelectorAll("[data-tap]")];
+    el.addEventListener("click", (e) => { const t = e.target.closest("[data-tap]"); el._tap = t ? [taps().indexOf(t), t.dataset.tap] : null; }, true);
+    el.addEventListener("focusin", (e) => { const b = e.target.closest("[data-tap]"); el._fi = b ? taps().indexOf(b) : null; focusTile = el; });
+    el.addEventListener("focusout", (e) => { if (e.relatedTarget && !el.contains(e.relatedTarget)) el._fi = null; });
+    new MutationObserver(() => { const a = document.activeElement; if (el._fi != null && (!a || a === document.body || !a.isConnected)) taps()[el._fi]?.focus({ preventScroll: true }); }).observe(el, { childList: true });
     mountWidget(el);
     el.addEventListener("pointerdown", () => el.classList.add("press"));
     for (const e of ["pointerup", "pointerleave", "pointercancel"]) el.addEventListener(e, () => el.classList.remove("press"));
-    if (onTap) el.addEventListener("click", (e) => { if (e.target.closest("[data-tap]")) onTap(el); });
+    el.addEventListener("click", () => { const t = el._tap; el._tap = null; if (t && onTap) onTap(el, t[0], t[1]); });
   }
 }
 const svg = (s, cls = "i") => s.replace("<svg", `<svg class="${cls}"`);
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.7 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8 6.2 20.1l1.5-6.4-4.9-4.3 6.5-.6z"/></svg>';
 const HOUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.8 11h2.7v9.3h5V15h3v5.3h5V11h2.7z"/></svg>';
-const PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3.4"/><rect x="8.5" y="6" width="7" height="6" rx="1.4" fill="currentColor" stroke="none"/></svg>';
+// A phone with two little widgets on its screen: "on your Home Screen".
+const PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="5" y="2" width="14" height="20" rx="3.4"/><rect x="7.8" y="5.5" width="3.8" height="3.8" rx="1" fill="currentColor" stroke="none"/><rect x="12.4" y="5.5" width="3.8" height="3.8" rx="1" fill="currentColor" stroke="none"/><rect x="7.8" y="10.3" width="8.4" height="3.2" rx="1" fill="currentColor" stroke="none" opacity=".55"/></svg>';
 const CHEV = '<svg viewBox="0 0 7 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l5 5-5 5"/></svg>';
-const SQUARES = '<svg viewBox="0 0 44 44"><g>' + [0, 1, 2].map((r) => [0, 1, 2].map((c) => `<rect x="${c * 15}" y="${r * 15}" width="12" height="12" rx="3.5" fill="${(r * 3 + c) % 4 === 1 ? "var(--sq-off)" : "var(--sq-on)"}"/>`).join("")).join("") + "</g></svg>";
-// The empty state a new pet widget starts in, until its first feed.
+// Three habits by two weeks, one square still to fill: Widgie fills it when the Habits banner comes on.
+const SQUARES = '<svg viewBox="0 0 44 44"><g>' + [0, 1, 2].map((r) => [0, 1, 2].map((c) => { const k = r * 3 + c, off = k % 4 === 1; return `<rect ${k === 5 ? 'class="fillme"' : ""} x="${c * 15}" y="${r * 15}" width="12" height="12" rx="3.5" fill="${off ? "var(--sq-off)" : "var(--sq-on)"}"/>`; }).join("")).join("") + "</g></svg>";
+// A new widget starts with nothing in it yet: a pet not fed, hearts not sent. The pile and the sheet keep the
+// landing page's lived-in sample, so you can see what it becomes.
 const UNFED = [[/\d+h \d+m/, "Not fed", 1], [/fed by \w+/, "tap after a meal", 1]];
-const AIRPORTS = { kyoto: "KIX", osaka: "KIX", tokyo: "HND", paris: "CDG", london: "LHR", rome: "FCO", lisbon: "LIS", "new york": "JFK", berlin: "BER", madrid: "MAD", bali: "DPS" };
-const code = (place) => AIRPORTS[place.toLowerCase()] || place.replace(/[^a-z]/gi, "").slice(0, 3).toUpperCase();
+const HEARTS_NEW = [[/^5$/, "0"], [/^from .+ today$/, "No hearts yet", 1], [/^you sent 3$/, "", 1], [/^you sent (\d+)$/, (_, n) => `you sent ${n - 3}`]];
+const FRESH = { luna: UNFED, hearts: HEARTS_NEW };
+// The countdown's words for a place: its name, its airport, and a different origin when you fly from SFO itself.
+const route = (place) => { const c = code(place); return [...(c === "SFO" ? [["SFO", "JFK"]] : []), ["Lisbon", place], ["LIS", c]]; };
+const AIRPORTS = { kyoto: "KIX", osaka: "KIX", tokyo: "HND", paris: "CDG", london: "LHR", rome: "FCO", lisbon: "LIS", "new york": "JFK", berlin: "BER", madrid: "MAD", barcelona: "BCN", bali: "DPS", "san francisco": "SFO", "los angeles": "LAX", "san diego": "SAN", seattle: "SEA", chicago: "ORD", boston: "BOS", miami: "MIA", austin: "AUS", denver: "DEN", honolulu: "HNL", hawaii: "HNL", "mexico city": "MEX", cancun: "CUN", toronto: "YYZ", vancouver: "YVR", "hong kong": "HKG", seoul: "ICN", bangkok: "BKK", singapore: "SIN", sydney: "SYD", dubai: "DXB", istanbul: "IST", athens: "ATH", amsterdam: "AMS", dublin: "DUB", prague: "PRG", vienna: "VIE", "cape town": "CPT", "buenos aires": "EZE", "rio de janeiro": "GIG", lima: "LIM", mumbai: "BOM", delhi: "DEL" };
+function code(place) {
+  const p = place.toLowerCase().trim(), hit = Object.keys(AIRPORTS).find((k) => p === k || p.startsWith(k + " "));
+  if (hit) return AIRPORTS[hit];
+  const w = p.split(/\s+/).filter(Boolean);
+  return (w.length > 1 ? w.map((x) => x[0]).join("") : w[0] || "").replace(/[^a-z]/gi, "").slice(0, 3).toUpperCase();
+}
+// Names keep the spelling you typed; an all-lowercase name gets its capitals.
+const cap = (s) => (s === s.toLowerCase() ? s.replace(/(^|[\s-])(\p{L})/gu, (_, a, c) => a + c.toUpperCase()) : s);
+const STOP = new Set(["the", "a", "an", "my", "our", "your", "dog", "cat", "pet", "puppy", "kitten", "it", "him", "her", "them", "is", "be", "please", "to", "as", "now", "trip"]);
+function cleanName(raw, most = 3) {
+  if (!raw) return null;
+  const w = raw.replace(/[?!.,"“”]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  while (w.length && STOP.has(w[0].toLowerCase())) w.shift();
+  const s = w.slice(0, most).join(" ");
+  return s && /^\p{L}/u.test(s) ? cap(s) : null;
+}
 
 // ---------- Widgets: wide ones fill a row, smalls pair up (the app's FeedRow rule) ----------
 let uid = 0;
@@ -541,15 +641,15 @@ function rows(list) {
     out.push(j > 0 ? [rest[j], rest[0]] : [rest[0]]);
     rest = rest.filter((_, k) => k !== 0 && k !== j);
   }
-  let wait = null;
+  let hold = null;
   for (const it of rest) {
     if (MEDIUM.has(it.w)) {
-      if (wait) { if (wait.passed === 1) { out.splice(wait.at, 0, [wait.it]); wait = null; } else wait.passed++; }
+      if (hold) { if (hold.passed === 1) { out.splice(hold.at, 0, [hold.it]); hold = null; } else hold.passed++; }
       out.push([it]);
-    } else if (wait) { out.push([wait.it, it]); wait = null; }
-    else wait = { it, at: out.length, passed: 0 };
+    } else if (hold) { out.push([hold.it, it]); hold = null; }
+    else hold = { it, at: out.length, passed: 0 };
   }
-  if (wait) out.splice(wait.at, 0, [wait.it]);
+  if (hold) out.splice(hold.at, 0, [hold.it]);
   return out;
 }
 function pinEl(it) {
@@ -562,25 +662,58 @@ function pinEl(it) {
   el.firstChild._item = it;
   return el;
 }
-// What Widgie says when you use a widget, in the widget's own words.
-const NOTES = { luna: (n) => `${n}'s fed. I'll tell everyone.`, hearts: (n, it) => `Heart sent. ${it.who || "Sam"} will see it.`, groc: () => "Crossed off, for both of you.", water: () => "One more glass. Nice.", streak: () => "Another day. Keep it going!", plant: (n) => `Watered. ${n} says thanks.`, savings: () => "$50 closer. Nice.", bins: () => "Passed on. Your turn's done.", baby: () => "Feed logged. Rest a bit.", mood: () => "Mood shared.", quest: () => "Answered. New one tomorrow.", chores: () => "Point to you!", grid: () => "Today's square is in.", pushups: () => "Ten more. Strong.", word: () => "One more word learned." };
+// What Widgie says when you use a widget, read from what the tap actually did.
+const tapped = (el, i) => el.querySelectorAll("[data-tap]")[i];
+const NOTES = {
+  luna: (it) => `${it.name}'s fed. I'll tell everyone.`,
+  hearts: (it) => `Heart sent. ${it.who || "Sam"} will see it.`,
+  groc: (it, el, i) => { const b = tapped(el, i), n = b?.textContent.trim() || "That"; return b?.classList.contains("crossed") ? `${n} checked off.` : `${n} back on the list.`; },
+  water: (it, el) => (/^0\//.test(el.querySelector(".w-big")?.textContent || "") ? "Back to zero. Fresh start." : "One more glass. Nice."),
+  streak: (it, el) => (el.querySelector(".w.done") ? "Another day. Keep it going!" : "Unmarked for today."),
+  plant: (it) => `Watered. ${it.name} says thanks.`,
+  savings: () => "$50 closer. Nice.",
+  bins: (it, el) => (/your turn/.test(el.textContent) ? "Your turn tonight." : "Passed on. Your turn's done."),
+  baby: () => "Feed logged. Rest a bit.",
+  mood: () => "Mood shared.",
+  quest: (it, el) => (/You answered/.test(el.textContent) ? "Answered. New one tomorrow." : "Answer taken back."),
+  chores: () => "Point to you!",
+  grid: (it, el, i) => (tapped(el, i)?.classList.contains("on") ? "Today's square is in." : "Square cleared."),
+  pushups: () => "Ten more. Strong.",
+  word: (it, el, i, v) => (v === "again" ? "It'll come round again." : "One more word learned."),
+  dinner: (it, el) => (/Swap back/.test(el.textContent) ? "You're cooking tonight." : "Swapped back."),
+};
 let lunaFed = false;
+// The greeting is about the widget Widgie stands on.
 function greet() {
   if (night) return "I'll keep an eye on them tonight.";
-  const hungry = items.find((it) => it.w === "luna" && it.words && !it.fedOnce);
-  if (hungry) return `${hungry.words[0][1]} hasn't been fed yet.`;
-  return lunaFed ? "Luna's had breakfast. Good start!" : "Morning! Sam fed Luna 2h ago.";
+  const row = rows(items)[0] || [], it = row[row.length - 1];
+  if (!it) return "Tell me a widget.";
+  if (it.w === "luna") return it.fedOnce || (it.name === "Luna" && lunaFed) ? `${it.name}'s had breakfast. Good start!` : it.words ? `${it.name} hasn't been fed yet.` : `Morning! Sam fed ${it.name} 2h ago.`;
+  if (it.w === "count") return `12 days until ${it.name.replace(/ trip$/, "")}!`;
+  if (it.w === "hearts") return it.who ? `Send ${it.who} a heart?` : "Sam sent you 5 hearts today.";
+  return `Morning! ${it.name} is ready.`;
 }
 function subline() { $("#w-sub").innerHTML = `<b>${items.length} widgets</b><span class="dot">·</span>${PHONE}${items.filter((i) => i.placed).length} on Home Screen`; }
+let backTimer;
+function onFeedTap(el, i, v) {
+  const it = el._item, note = NOTES[it.w];
+  if (it.w === "luna") { it.fedOnce = true; if (it.name === "Luna") lunaFed = true; }
+  if (!note) return;
+  const line = note(it, el, i, v);
+  if ($("#p-widgets").scrollTop > 140) return announce(line);
+  hop($("#w-widgie")); say($("#w-bubble"), line);
+  clearTimeout(backTimer);
+  backTimer = setTimeout(() => say($("#w-bubble"), greet(), { swap: true }), 2400);
+}
 // Builds the feed from pins it already has, so a widget keeps its state when the feed changes around it, and the
 // cards that move slide to their new place.
 const pins = new Map();
-let backTimer;
-function layoutFeed({ first = false, arriving = null } = {}) {
+function layoutFeed({ first = false, arriving = [] } = {}) {
   const feed = $("#feed");
   const before = new Map([...pins].map(([id, el]) => [id, el.getBoundingClientRect()]));
   for (const it of items) if (!pins.has(it.id)) pins.set(it.id, pinEl(it));
-  if (arriving) pins.get(arriving.id).classList.add("arrive");
+  const fresh = new Set(arriving.map((a) => a.id));
+  for (const id of fresh) { const p = pins.get(id); p.classList.add("arrive"); setTimeout(() => p.classList.remove("arrive"), 600); }
   feed.replaceChildren(...rows(items).map((r, i) => {
     const row = document.createElement("div");
     row.className = "row" + (first ? " rise" : "");
@@ -588,102 +721,154 @@ function layoutFeed({ first = false, arriving = null } = {}) {
     row.append(...r.map((it) => pins.get(it.id)));
     return row;
   }));
-  live(feed, (el) => {
-    const it = el._item, note = NOTES[it.w];
-    if (it.w === "luna" && it.name === "Luna") lunaFed = true;
-    if (it.w === "luna") it.fedOnce = true;
-    if ($("#p-widgets").scrollTop > 140 || !note) return;
-    hop($("#w-widgie")); say($("#w-bubble"), note(it.words ? it.words[0][1] : it.name, it));
-    clearTimeout(backTimer);
-    backTimer = setTimeout(() => say($("#w-bubble"), greet(), { swap: true }), 2400);
-  });
-  if (!calm && !first) for (const [id, el] of pins) {
-    const a = before.get(id); if (!a || (arriving && id === arriving.id)) continue;
-    const b = el.getBoundingClientRect(), dy = (a.top - b.top) / ZOOM, dx = (a.left - b.left) / ZOOM;
-    if (dx || dy) el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.22,1.06,.36,1)" });
-  }
+  live(feed, onFeedTap);
   subline();
-  placeHero();
+  const moved = placeHero(!first);
+  if (!calm && !first) for (const [id, el] of pins) {
+    const a = before.get(id); if (!a || fresh.has(id)) continue;
+    const b = el.getBoundingClientRect(), dy = (a.top - b.top) / ZOOM, dx = (a.left - b.left) / ZOOM;
+    if (dx || dy) el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: "none" }], { duration: 420, easing: SPRING });
+  }
+  return moved;
 }
-// Widgie stands on the first row: on the right card of a pair, or on the left of a wide card, clear of its art,
-// with the bubble on whichever side is open.
-let heroSide = null;
-function placeHero() {
+// Widgie stands on the first row's right card (or on a wide card, clear of the subline), and talks to its left.
+// When the first row changes, Widgie hops from the old spot to the new one instead of jumping there.
+let heroAt = null;
+function placeHero(animate) {
   const first = rows(items)[0] || [], wide = first.length === 1 && MEDIUM.has(first[0].w);
-  const w = $("#w-widgie"), b = $("#w-bubble"), sh = $(".top .shadow"), x = wide ? 150 : 275, y = wide ? 222 : 200, size = 116;
+  const w = $("#w-widgie"), b = $("#w-bubble"), sh = $(".top .shadow"), x = wide ? 214 : 275, y = wide ? 222 : 200, size = 116;
   $(".top").style.height = y + "px";
-  if (heroSide !== wide) { heroSide = wide; drawWidgie(w, "lean", wide ? {} : { mirror: "1" }); }
-  stand(w, size, "lean", !wide, x, y + 2);
+  if (!w._pose) drawWidgie(w, "lean", { mirror: "1" });
+  const old = heroAt && { left: parseFloat(w.style.left), top: parseFloat(w.style.top) };
+  stand(w, size, "lean", true, x, y + 2);
+  const dx = old ? old.left - parseFloat(w.style.left) : 0, dy = old ? old.top - parseFloat(w.style.top) : 0;
+  heroAt = { x, y };
   sh.classList.add("onface");
   Object.assign(sh.style, { left: x - 18 + "px", top: y + "px", width: "", height: "" });
-  b.classList.toggle("right", !wide); b.classList.toggle("left", wide);
-  Object.assign(b.style, wide ? { left: "188px", right: "auto", width: "max-content", maxWidth: "174px", top: y - 104 + "px" } : { left: "auto", right: "118px", width: "max-content", maxWidth: "236px", top: "112px" });
+  b.classList.add("right"); b.classList.remove("left");
+  Object.assign(b.style, { left: "auto", right: 362 - (x - 31) + "px", width: "max-content", maxWidth: (wide ? 176 : 236) + "px", top: y - 82 + "px" });
+  const moved = !!(dx || dy);
+  if (moved && animate && !calm) {
+    b.classList.add("gone");
+    w.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: `translate(${dx * .5}px,${dy * .5 - 40}px)`, offset: .45 }, { transform: "scale(1.08,.9)", offset: .84 }, { transform: "none" }], { duration: 560, easing: SOFT });
+    sh.animate([{ opacity: 1 }, { opacity: 0, offset: .21 }, { opacity: 0, offset: .79 }, { opacity: 1 }], { duration: 560 });
+  }
+  return moved && animate && !calm;
 }
-let pending = null;
+let pending = [], unseen = 0;
+function badge() {
+  const b = $("#badge"), t = $('[data-tab="widgets"]');
+  b.textContent = unseen; b.classList.toggle("show", unseen > 0); b.setAttribute("aria-hidden", "true");
+  t.setAttribute("aria-label", unseen ? `Widgets, ${unseen} new` : "Widgets");
+}
 function addToFeed(it) {
+  for (const o of items) if (o.fresh) { o.fresh = false; pins.get(o.id)?.querySelector(".tag")?.remove(); }
   Object.assign(it, { placed: 0, id: "i" + uid++, fresh: true });
   items.unshift(it);
-  if (tab === "widgets") land(it); else pending = it;
+  if (tab === "widgets") land([it]);
+  else { pending.unshift(it); unseen++; badge(); }
 }
-// The new card settles in where you can see it, under Widgie, and Widgie points it out.
-function land(it) {
-  $("#p-widgets").scrollTo({ top: 0, behavior: calm ? "auto" : "smooth" });
-  layoutFeed({ arriving: it });
-  hop($("#w-widgie"));
-  say($("#w-bubble"), `Here's ${it.words ? it.words[0][1] : it.name}. Give it a tap.`);
+// The new card settles in where you can see it, under Widgie, and Widgie points it out as it touches down.
+async function land(arrivals) {
+  const p = $("#p-widgets"), from = p.scrollTop;
+  if (from > 4) { p.scrollTo({ top: 0, behavior: calm ? "auto" : "smooth" }); await wait(Math.min(480, 160 + from * .5)); }
+  const moved = layoutFeed({ arriving: arrivals });
+  const it = arrivals[0], b = $("#w-bubble");
+  const line = WIDGETS[it.w].tap ? `Here's ${it.name}. Give it a tap.` : `Here's ${it.name}, ready to go.`;
+  if (moved) await wait(560); else { await wait(200); hop($("#w-widgie"), true); }
+  say(b, line);
   clearTimeout(backTimer);
-  backTimer = setTimeout(() => say($("#w-bubble"), greet(), { swap: true }), 3200);
+  backTimer = setTimeout(() => say(b, greet(), { swap: true }), 3200);
 }
 
 // ---------- Make: Widgie draws your widget with its tip ----------
+const LOOKS = { green: "linear-gradient(160deg,#245b3c,#163a27)", blue: "linear-gradient(160deg,#23407a,#152a55)", red: "linear-gradient(160deg,#a8322a,#6e1c16)", purple: "linear-gradient(160deg,#6b3fc4,#4a2a96)", pink: "linear-gradient(160deg,#c04a78,#8e2f55)", orange: "linear-gradient(160deg,#b8521c,#8a3a10)", yellow: "linear-gradient(160deg,#e7bd41,#ac851c)" };
+const COLORS = Object.fromEntries(Object.entries(LOOKS).map(([k, bg]) => [k, { bg, ink: k === "yellow" ? 1 : 0 }]));
 const IDEAS = [
-  { icon: svg(icon.paw), bg: "#ffe7c2", fg: "#9a5500", nbg: "rgba(255,190,80,.22)", nfg: "#ffd27d", t: "When was the dog fed?", s: "Who fed them, and how long ago", w: "luna", name: "Biscuit", words: [["Luna", "Biscuit"], ...UNFED], reply: "Here's a feeding tracker. I called the dog Biscuit for now. Tell me the real name.", refine: [["Make it greener", { bg: "linear-gradient(160deg,#245b3c,#163a27)" }, "Greener it is."], ["Make it red", { bg: "linear-gradient(160deg,#a8322a,#6e1c16)" }, "Red, done."]] },
-  { icon: svg(icon.plane), bg: "#ffd8d2", fg: "#b83226", nbg: "rgba(255,110,95,.22)", nfg: "#ff9b90", t: "Days until our trip", s: "A countdown with the date", w: "count", name: "Kyoto trip", words: [["Lisbon", "Kyoto"], ["LIS", "KIX"]], reply: "Here's your countdown. Kyoto is a stand-in. Where are you going?", refine: [["Make it purple", { bg: "linear-gradient(160deg,#6b3fc4,#4a2a96)" }, "Purple, done."], ["Bigger number", { big: 1 }, "Bigger, done."]] },
-  { icon: svg(icon.heart), bg: "#ffd6e0", fg: "#b82552", nbg: "rgba(255,115,155,.22)", nfg: "#ff9ab8", t: "A heart button for Alex", s: "One tap sends a heart", w: "hearts", name: "Hearts for Alex", who: "Alex", words: [["Sam", "Alex"]], reply: "One tap sends Alex a heart. Try it!", refine: [["Make it blue", { bg: "linear-gradient(160deg,#23407a,#152a55)" }, "Blue, done."], ["Softer pink", { bg: "linear-gradient(160deg,#a8566f,#7d3a52)" }, "Softer, done."]] },
+  { icon: svg(icon.paw), bg: "#ffe7c2", fg: "#9a5500", nbg: "#3b3c54", nfg: "#ffd27d", t: "When was the dog fed?", s: "Who fed them, and how long ago", w: "luna", name: "Biscuit", words: [["Luna", "Biscuit"], ...UNFED], reply: "Here's your tracker. Biscuit is a stand-in. What's your dog called?", refine: [["Make it greener", { bg: LOOKS.green }, "Greener it is."], ["Make it red", { bg: LOOKS.red }, "Red, done."]] },
+  { icon: svg(icon.plane), bg: "#ffd8d2", fg: "#b83226", nbg: "#423352", nfg: "#ff9b90", t: "Days until our trip", s: "A countdown with the date", w: "count", name: "Kyoto trip", words: [["Lisbon", "Kyoto"], ["LIS", "KIX"]], reply: "Here's your countdown. Kyoto is a stand-in. Where are you going?", refine: [["Make it purple", { bg: LOOKS.purple }, "Purple, done."], ["Bigger number", { big: 1 }, "Bigger, done."]] },
+  { icon: svg(icon.heart), bg: "#ffd6e0", fg: "#b82552", nbg: "#453254", nfg: "#ff9ab8", t: "A heart button for Alex", s: "One tap sends a heart", w: "hearts", name: "Hearts for Alex", who: "Alex", words: [["Sam", "Alex"], ...HEARTS_NEW], reply: "One tap sends Alex a heart. Try it!", refine: [["Make it blue", { bg: LOOKS.blue }, "Blue, done."], ["Softer pink", { bg: "linear-gradient(160deg,#a8566f,#7d3a52)" }, "Softer, done."]] },
 ];
 const GENERIC = [["Bigger text", { big: 1 }, "Bigger, done."], ["Change the colors", { bg: "linear-gradient(160deg,#2c5e8f,#1c3f63)" }, "New colors. How's that?"]];
+// The drawn parts fill in with the tile's own color, so the drawing becomes the tile instead of a loading skeleton.
+const PART = { luna: "#2a1d14", count: "#b02a50", hearts: "#c23a64" };
 const kind = (chip) => (chip[1].big ? "size" : "color");
 const say_ = $("#say");
+// A second pet in the feed gets its own coat.
+const petLook = (w) => (w === "luna" && items.some((i) => i.w === "luna") ? { pet2: 1 } : {});
+let building = false, draft = null, saving = false;
 function composerMode() {
+  const typed = say_.value.trim() !== "";
   $("#composer").classList.toggle("busy", !!(draft || building || saving));
-  $("#send").disabled = building || saving;
+  $("#composer").classList.toggle("typed", say_.value !== "");
+  $("#send").disabled = building || saving || !typed;
+  $("#send").classList.toggle("ready", typed && !building && !saving);
   const n = $("#p-make [data-new]"); if (n) n.disabled = building || saving;
-  say_.placeholder = draft ? "Ask for a change" : "Describe a widget";
+  const label = draft ? "Ask for a change" : "Describe a widget";
+  say_.placeholder = label; say_.setAttribute("aria-label", label);
+  $("#p-make").classList.toggle("drafting", !!draft);
+  phone.classList.toggle("typing", typed && !!draft);
+  const save = $("#p-make .after .key"); if (save && !saving) save.disabled = building;
+  renderQuick();
 }
-function makeReset() {
+// The change chips ride above the composer while there is a draft, and pause while a change lands.
+function renderQuick() {
+  const q = $("#quick");
+  q.classList.toggle("show", !!draft && !saving);
+  q.classList.toggle("busy", building);
+  if (!draft) { q.innerHTML = ""; q._key = ""; return; }
+  const key = draft.chips.slice(0, 2).map((c) => c[0]).join("|");
+  if (q._key === key) return;
+  q._key = key;
+  q.innerHTML = draft.chips.slice(0, 2).map((r, i) => `<button type="button" class="chip" data-r="${i}">${r[0]}</button>`).join("");
+}
+$("#quick").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (!b || !draft || building) return; const ch = draft.chips[b.dataset.r]; refine(ch[0], ch, b); });
+function makeReset(enter = false) {
   draft = null;
-  $("#p-make").innerHTML = `<div class="hello entering"><div class="head"><div class="eyebrow">Say it in your own words</div><h1 class="display">Make</h1></div><div class="grow"></div><div class="make-hello"><div class="shadow"></div><div class="widgie sway" id="m-widgie"></div><div class="bubble right pop" id="m-bubble">Hi! What should we make today?</div></div>
-   <div class="ideas"><div class="eyebrow">Or start from one of these</div>${IDEAS.map((d, i) => `<button class="idea rise" data-i="${i}" style="animation-delay:${.08 + i * .05}s"><span class="ic" style="--ib:${d.bg};--if:${d.fg};--nb:${d.nbg};--nf:${d.nfg}">${d.icon}</span><span><div class="t">${d.t}</div><div class="s">${d.s}</div></span><svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></button>`).join("")}</div></div>`;
+  $("#p-make").innerHTML = `<div class="hello entering"><div class="head"><div class="eyebrow">Say it in your own words</div><h1 class="display">Make</h1></div><div class="grow-top"></div><div class="make-hello"><div class="shadow"></div><div class="widgie sway" id="m-widgie"></div><div class="bubble right pop" id="m-bubble">Hi! What should we make today?</div></div><div class="grow"></div>
+   <div class="ideas"><div class="eyebrow">Or start from one of these</div>${IDEAS.map((d, i) => `<button type="button" class="idea rise" data-i="${i}" style="animation-delay:${.08 + i * .05}s"><span class="ic" style="--ib:${d.bg};--if:${d.fg};--nb:${d.nbg};--nf:${d.nfg}">${d.icon}</span><span><div class="t">${d.t}</div><div class="s">${d.s}</div></span><svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></button>`).join("")}</div></div>`;
+  $("#p-make").scrollTop = 0;
   requestAnimationFrame(() => $("#p-make .hello")?.classList.remove("entering"));
   drawWidgie($("#m-widgie"), "lean", { mirror: "1" });
   stand($("#m-widgie"), 192, "lean", true, 290, 206);
   if (document.activeElement === say_) $("#m-widgie").classList.add("lean");
-  for (const el of document.querySelectorAll(".idea")) el.onclick = () => ask(IDEAS[el.dataset.i], IDEAS[el.dataset.i].t);
+  if (enter && !calm) setTimeout(() => $("#m-widgie") && play($("#m-widgie"), "land", 360), 120);
+  for (const el of $$(".idea")) el.onclick = () => ask(IDEAS[el.dataset.i], IDEAS[el.dataset.i].t, el);
   composerMode();
 }
+// What a typed first message asks for. The prototype makes three widgets; it keeps the words you used in them.
 function pick(text) {
   const t = text.toLowerCase();
-  if (/trip|days|until|countdown|holiday/.test(t)) {
-    const place = (text.match(/\bto ([A-Z][a-z]+)/) || [])[1];
-    return place ? { ...IDEAS[1], name: `${place} trip`, words: [["Lisbon", place], ["LIS", code(place)]], reply: `${place}'s countdown is ready.` } : IDEAS[1];
+  if (/trip|days? (?:until|till|to)|until|countdown|holiday|vacation|travel|flight/.test(t)) {
+    const m = [...text.matchAll(/\b(?:to|in)\s+([^,?.!]+)/giu)].map((x) => cleanName(x[1], 4)).filter(Boolean).pop();
+    return m ? { ...IDEAS[1], name: `${m} trip`, words: route(m), reply: `${m}'s countdown is ready.` } : IDEAS[1];
   }
-  if (/heart|love|miss|partner/.test(t)) {
-    const who = (text.match(/\bfor ([A-Z][a-z]+)/) || [])[1];
-    return who ? { ...IDEAS[2], name: `Hearts for ${who}`, who, words: [["Sam", who]], reply: `One tap sends ${who} a heart. Try it!` } : IDEAS[2];
+  if (/heart|love|miss|partner|girlfriend|boyfriend|wife|husband/.test(t)) {
+    const who = cleanName((text.match(/\b(?:for|to)\s+([^,?.!]+)/iu) || [])[1]);
+    return who ? { ...IDEAS[2], name: `Hearts for ${who}`, who, words: [["Sam", who], ...HEARTS_NEW], reply: `One tap sends ${who} a heart. Try it!` } : IDEAS[2];
   }
-  return IDEAS[0];
+  if (/\b(dog|cat|pet|puppy|kitten|fed|feed|feeding|walk|walked)\b/.test(t)) {
+    const name = cleanName((text.match(/\b(?:was|is|did|has)\s+(\p{L}[\p{L}'-]*)\s+(?:been\s+)?(?:fed|eat|eaten|walked)/iu) || text.match(/\b(?:dog|cat|pet|puppy|kitten)\s+(?:called|named)\s+(\p{L}[\p{L}'-]*)/iu) || text.match(/\bfeed(?:ing)?\s+(\p{L}[\p{L}'-]*)/iu) || [])[1], 1);
+    return name ? { ...IDEAS[0], name, words: [["Luna", name], ...UNFED], reply: `Here's ${name}'s tracker. Tap the check after a meal.` } : IDEAS[0];
+  }
+  return null;
 }
-document.querySelector(".composer .icon").addEventListener("click", () => toast("Pick a picture of a look you like."));
-say_.addEventListener("input", () => { const on = say_.value.trim() !== ""; $("#send").classList.toggle("ready", on); $("#composer").classList.toggle("typed", say_.value !== ""); });
+say_.addEventListener("input", composerMode);
 say_.addEventListener("focus", () => $("#m-widgie")?.classList.add("lean"));
 say_.addEventListener("blur", () => $("#m-widgie")?.classList.remove("lean"));
 $("#composer").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = say_.value.trim();
   if (!text || building || saving) return;
-  say_.value = ""; $("#send").classList.remove("ready"); $("#composer").classList.remove("typed");
-  if (draft && !building) return refine(text, null);
-  ask(pick(text), text);
+  say_.value = ""; composerMode();
+  if (draft) return refine(text, null);
+  const idea = pick(text);
+  if (idea) return ask(idea, text);
+  // Something this preview can't draw: Widgie says so and points at what it can, before anything is drawn.
+  const line = "In this preview I make these three. Pick one?";
+  const mb = $("#m-bubble"); if (mb) { say(mb, line, { swap: true }); hop($("#m-widgie"), true); }
+  if (!calm) $$(".idea").forEach((el, i) => el.animate([{ transform: "none" }, { transform: "translateY(-6px)", offset: .4 }, { transform: "none" }], { duration: 420, delay: 120 + i * 60, easing: SOFT }));
+  announce(line);
 });
 // The outline Widgie traces: it starts and ends where Widgie will stand, near the top right corner, and goes clockwise.
 function outline(w, h, x = w - 60, r = 24) {
@@ -697,30 +882,94 @@ function sketchParts(w, W, H) {
   if (w === "count") return [[18, 22, 70, 12, 6, .7], [18, 46, 92, 60, 12, .6], [W - 172, 18, 150, 116, 12, .12]];
   return [[18, 22, 64, 12, 6, .7], [18, 50, MEDIUM.has(w) ? 118 : 96, 40, 10, .62], [18, H - 52, 34, 34, 17, .48], [W - 60, H - 60, 42, 42, 21, .2]];
 }
-let building = false, draft = null, saving = false;
-function bindBar(page) { page.querySelector("[data-new]").onclick = () => { if (building || saving) return; const t = page.querySelector(".thread"); t.classList.add("leaving"); setTimeout(makeReset, calm ? 0 : 260); }; }
-async function ask(idea, text) {
+// A gentle question under the draft before it is replaced, with the draft still in view. Nothing is cleared until
+// you say so.
+function confirmReplace(label, onReplace) {
+  const page = $("#p-make"), list = page.querySelector(".thread");
+  if (!list) return onReplace();
+  page.querySelector(".confirm")?.remove();
+  const c = document.createElement("div");
+  c.className = "confirm"; c.setAttribute("role", "group"); c.setAttribute("aria-label", label);
+  c.innerHTML = `<span></span><button type="button" class="mini" data-keep>Keep editing</button><button type="button" class="mini danger" data-replace>Replace draft</button>`;
+  c.querySelector("span").textContent = label;
+  list.append(c);
+  keepInView(list.querySelector(".studio") || c, c);
+  c.querySelector("[data-keep]").onclick = () => { c.remove(); (page.querySelector("[data-new]") || say_).focus({ preventScroll: true }); };
+  c.querySelector("[data-replace]").onclick = () => { c.remove(); say_.value = ""; onReplace(); };
+  c.querySelector("[data-keep]").focus({ preventScroll: true });
+  announce(label);
+}
+function bindBar(page) {
+  page.querySelector("[data-new]").onclick = () => {
+    if (building || saving) return;
+    const reset = () => { draft = null; composerMode(); page.querySelector(".thread")?.classList.add("leaving"); setTimeout(() => makeReset(true), calm ? 0 : 260); };
+    if (draft || say_.value.trim()) confirmReplace("Start over? This widget isn't saved yet.", reset); else reset();
+  };
+}
+function bindSave(after) { after.querySelector(".key").onclick = (e) => { if (building || saving || !draft) return; e.currentTarget.disabled = true; saved(); }; }
+// Scrolls only as far as needed to show `top` (a reply) and `bottom` (the widget), and never hides the widget.
+function keepInView(top, bottom) {
+  const page = $("#p-make");
+  const lo = ($("#p-make .make-bar")?.getBoundingClientRect().bottom ?? page.getBoundingClientRect().top) + 8 * ZOOM;
+  const hi = $("#composer").getBoundingClientRect().top - (draft ? 56 : 12) * ZOOM;
+  const t = top.getBoundingClientRect().top, b = bottom.getBoundingClientRect().bottom;
+  let dy = 0;
+  if (t < lo) dy = t - lo;
+  if (b - dy > hi) dy = b - hi;
+  if (Math.abs(dy) > 1) page.scrollBy({ top: dy / ZOOM, behavior: calm ? "auto" : "smooth" });
+}
+async function ask(idea, text, from) {
   if (building || saving) return;
   building = true; draft = null; composerMode();
+  const page = $("#p-make"), hello = page.querySelector(".hello"), hero = hello && !calm ? $("#m-widgie") : null;
+  // The hello steps back first; the hero leaves it as a flyer that walks to where the pen starts.
+  const heroBox = hero && local(hero.getBoundingClientRect()), fromBox = from && !calm ? local(from.getBoundingClientRect()) : null;
+  let flyer = null;
+  if (hero) {
+    flyer = document.createElement("div");
+    flyer.className = "widgie walker";
+    Object.assign(flyer.style, { position: "absolute", left: heroBox.x + "px", top: heroBox.y + "px", width: heroBox.w + "px", zIndex: 30, pointerEvents: "none" });
+    drawWidgie(flyer, ...hero._pose);
+    phone.appendChild(flyer);
+    hero.style.visibility = "hidden";
+    hello.classList.add("leaving");
+    await wait(180);
+  }
   const wide = MEDIUM.has(idea.w), W = wide ? 362 : 174, H = 174;
-  const page = $("#p-make");
-  page.innerHTML = `${threadBar()}<div class="thread"><div class="me"></div></div>`;
+  page.innerHTML = `${threadBar()}<div class="thread ${wide ? "" : "narrow"}"><div class="me"></div></div>`;
+  page.scrollTop = 0;
   bindBar(page);
-  const list = page.querySelector(".thread");
-  list.firstChild.textContent = text;
-  list.classList.toggle("narrow", !wide);
+  const list = page.querySelector(".thread"), me = list.firstChild;
+  me.textContent = text;
+  // The idea you tapped becomes your message.
+  if (fromBox) {
+    const r = local(me.getBoundingClientRect());
+    me.style.animation = "none"; me.style.transformOrigin = "0 0";
+    me.animate([{ transform: `translate(${fromBox.x - r.x}px,${fromBox.y - r.y}px) scale(${fromBox.w / r.w},${fromBox.h / r.h})`, opacity: .4 }, { transform: "none", opacity: 1 }], { duration: 420, easing: SPRING });
+  }
   await wait(150);
   list.insertAdjacentHTML("beforeend", `<div class="them"><div class="bubble">Writing your widget<span class="caretbar"></span></div></div>`);
   const bubble = list.lastChild.querySelector(".bubble");
-  const foot = perchAt(wide, W), d = outline(W, H, foot.x);
-  const parts = sketchParts(idea.w, W, H).map((q) => (q[5] = q[5] * 1.85, q));
-  list.insertAdjacentHTML("beforeend", `<div class="studio ${wide ? "wide" : ""}" style="width:${W}px;height:${H}px"><svg class="sk" viewBox="0 0 ${W} ${H}"><path class="edge" d="${d}" pathLength="1"/><g class="art">${parts.map(([x, y, pw, ph, rr, delay]) => `<rect class="part" x="${x}" y="${y}" width="${pw}" height="${ph}" rx="${rr}" style="animation-delay:${delay}s"/>`).join("")}</g></svg><div class="widgie pen" style="offset-path:path('${d}')"></div><div class="shadow"></div></div>`);
+  const foot = perchAt(wide, W), d = outline(W, H, foot.x), lead = flyer ? .42 : 0;
+  const parts = sketchParts(idea.w, W, H).map((q) => (q[5] = q[5] * 1.85 + lead, q));
+  list.insertAdjacentHTML("beforeend", `<div class="studio ${wide ? "wide" : ""}" style="width:${W}px;height:${H}px;--delay:${lead}s;--part:${PART[idea.w] || "currentColor"}"><svg class="sk" viewBox="0 0 ${W} ${H}"><path class="edge" d="${d}" pathLength="1"/><g class="art">${parts.map(([x, y, pw, ph, rr, delay]) => `<rect class="part" x="${x}" y="${y}" width="${pw}" height="${ph}" rx="${rr}" style="animation-delay:${delay}s"/>`).join("")}</g></svg><div class="widgie pen" style="offset-path:path('${d}')"></div><div class="shadow"></div></div>`);
   const studio = list.lastChild, pen = studio.querySelector(".pen"), sk = studio.querySelector("svg"), shadow = studio.querySelector(".shadow");
   drawWidgie(pen, "draw");
+  // On a wide tile the pen leans the other way on the right half, so it never leaves the screen; it turns round
+  // at the middle of the bottom edge, where it is already moving sideways.
   if (wide && !calm) {
-    const lean = (m) => { drawWidgie(pen, "draw", m ? { mirror: "1" } : {}); pen.style.offsetAnchor = m ? "78% 99.3%" : "22% 99.3%"; };
-    lean(true);
-    setTimeout(() => lean(false), .46 * 1850);
+    pen.classList.add("flip"); pen.style.offsetAnchor = "78% 99.3%"; pen.style.transition = "offset-anchor .14s " + SOFT;
+    setTimeout(() => { pen.classList.remove("flip"); pen.style.offsetAnchor = "22% 99.3%"; }, (lead + .38 * 1.85) * 1000);
+  }
+  if (flyer) {
+    pen.style.visibility = "hidden";
+    const st = local(studio.getBoundingClientRect()), ax = wide ? .78 : .22;
+    const tx = st.x + foot.x - ax * 116, ty = st.y - .993 * 116, k = heroBox.w / 116;
+    drawWidgie(flyer, "draw", wide ? { mirror: "1" } : {});
+    Object.assign(flyer.style, { left: tx + "px", top: ty + "px", width: "116px", transformOrigin: "0 0" });
+    const dx = heroBox.x - tx, dy = heroBox.y - ty;
+    await flyer.animate([{ transform: `translate(${dx}px,${dy}px) scale(${k})` }, { transform: `translate(${dx * .5}px,${dy * .5 - 40}px) scale(${(k + 1) / 2})`, offset: .5 }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }).finished;
+    flyer.remove(); pen.style.visibility = "";
   }
   await wait(1850);
   // The real tile fades in under the outline; the outline fades away on top once the tile is solid.
@@ -728,107 +977,108 @@ async function ask(idea, text) {
   const blk = studio.firstChild;
   blk.classList.add("fadein");
   if (idea.words) words(blk, idea.words);
-  live(studio);
+  const look = { ...petLook(idea.w) };
+  dress(blk, look);
+  const perch = document.createElement("div");
+  live(studio, () => hop(perch, true));
   setTimeout(() => { sk.style.opacity = "0"; setTimeout(() => sk.remove(), 220); }, calm ? 0 : 140);
   // The pen ends where Widgie stands: the same size and the same foot, so it only changes pose and hops in place.
-  const size = 116, perch = document.createElement("div");
+  const size = 116, mir = !wide;
   perch.className = "widgie perch sway";
   stand(perch, size, "jump", false, foot.x, foot.y);
   pen.replaceWith(perch);
   drawWidgie(perch, "jump", { eyes: "happy" });
   hop(perch);
   await wait(440);
-  // Touchdown: the shadow lands with the foot, and Save is there to tap while Widgie settles.
   shadow.classList.add("onface");
   Object.assign(shadow.style, { left: foot.x - 18 + "px", top: "0px", opacity: "1" });
-  const chips = (idea.refine || GENERIC).slice();
-  draft = { idea, blk, perch, list, shadow, look: {}, chips, outline: d };
-  list.insertAdjacentHTML("beforeend", `<div class="after"><div class="refine">${chips.map((r, i) => `<button class="chip" data-r="${i}">${r[0]}</button>`).join("")}</div><button class="key">Save widget</button></div>`);
-  const after = list.lastChild;
-  bindChips(after);
-  after.querySelector(".key").onclick = (e) => { e.currentTarget.disabled = true; saved(); };
+  draft = { idea, blk, perch, list, shadow, look, chips: (idea.refine || GENERIC).slice(), outline: d, foot, wide };
   await wait(300);
-  drawWidgie(perch, "lean", { mirror: "1", eyes: "happy" });
-  stand(perch, size, "lean", true, foot.x, foot.y);
+  // The reply, Save and the change chips land on the same frame.
+  drawWidgie(perch, "lean", mir ? { mirror: "1", eyes: "happy" } : { eyes: "happy" });
+  stand(perch, size, "lean", mir, foot.x, foot.y);
   bubble.textContent = idea.reply; bubble.classList.remove("pop"); void bubble.offsetWidth; bubble.classList.add("pop");
-  page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
+  list.insertAdjacentHTML("beforeend", `<div class="after"><button class="key" type="button">Save widget</button></div>`);
+  const after = list.lastChild;
+  bindSave(after);
   building = false; composerMode();
+  announce(idea.reply);
+  keepInView(bubble, after);
 }
-// What this prototype can do with typed words: a color or a size. Anything else gets an honest answer.
-const COLORS = { green: "linear-gradient(160deg,#245b3c,#163a27)", blue: "linear-gradient(160deg,#23407a,#152a55)", red: "linear-gradient(160deg,#a8322a,#6e1c16)", purple: "linear-gradient(160deg,#6b3fc4,#4a2a96)", pink: "linear-gradient(160deg,#c04a78,#8e2f55)", orange: "linear-gradient(160deg,#d9682a,#a8471a)", yellow: "linear-gradient(160deg,#c9a227,#94740f)" };
+// What this prototype can do with typed words: a name, a place, a color or a size. Anything else gets an honest answer.
 function understood(text) {
-  const t = text.toLowerCase(), c = Object.keys(COLORS).find((k) => t.includes(k));
-  const w = draft?.idea.w, pairs = draft?.blk._words || [];
-  const called = (text.match(/(?:call(?:ed)?|name(?:d|s| is)?|it's|its)\s+(?:him|her|it|the dog|the cat)?\s*([A-Z][a-z]+)/) || text.match(/^([A-Z][a-z]+)$/) || [])[1];
-  const place = (text.match(/\b(?:to|in|for)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)?)/) || text.match(/^([A-Z][a-z]+(?: [A-Z][a-z]+)?)$/) || [])[1];
-  if (w === "luna" && called) return [text, { rename: [["Luna", called], ...pairs.slice(1)], name: called }, `${called} it is.`];
-  if (w === "count" && place) return [text, { rename: [["Lisbon", place], ["LIS", code(place)]], name: `${place} trip` }, `Counting down to ${place}.`];
-  if (w === "hearts" && called) return [text, { rename: [["Sam", called]], name: `Hearts for ${called}`, who: called }, `Hearts go to ${called} now.`];
-  if (c) return [text, { bg: COLORS[c] }, `${c[0].toUpperCase() + c.slice(1)}, done.`];
-  if (/bigger|larger|huge|size/.test(t)) return [text, { big: 1 }, "Bigger, done."];
+  const t = text.toLowerCase(), w = draft?.idea.w, pairs = draft?.blk._words || [];
+  const c = Object.keys(COLORS).find((k) => new RegExp(`\\b${k}\\b`).test(t));
+  const bigger = /\b(bigger|larger|huge|size|big)\b/.test(t);
+  const named = cleanName((text.match(/\b(?:call|called|name|named|rename)\b(?:\s+(?:him|her|it|them|the\s+\p{L}+))?\s+(?:to\s+|as\s+)?(.+)$/iu) || text.match(/\bname(?:'s|\s+is)\s+(.+)$/iu) || [])[1]);
+  const plain = !c && !bigger;
+  const bare = plain ? cleanName((text.match(/^\s*(\p{L}[\p{L}'.-]*(?:\s+\p{L}[\p{L}'.-]*){0,3})\s*[.!]?\s*$/u) || [])[1], 4) : null;
+  const placed = plain ? cleanName((text.match(/\b(?:to|in)\s+(.+)$/iu) || [])[1], 4) : null;
+  const forWho = plain ? cleanName((text.match(/\b(?:for|to)\s+(.+)$/iu) || [])[1]) : null;
+  if (w === "luna" && (named || bare)) { const v = named || bare; return [text, { rename: [["Luna", v], ...pairs.slice(1)], name: v }, `${v} it is.`]; }
+  if (w === "count" && (placed || bare)) { const v = placed || bare; return [text, { rename: route(v), name: `${v} trip` }, `Counting down to ${v}.`]; }
+  if (w === "hearts" && (named || forWho || bare)) { const v = named || forWho || bare; return [text, { rename: [["Sam", v], ...pairs.slice(1)], name: `Hearts for ${v}`, who: v }, `Hearts go to ${v} now.`]; }
+  if (c) return [text, COLORS[c], `${c[0].toUpperCase() + c.slice(1)}, done.`];
+  if (bigger) return [text, { big: 1 }, "Bigger, done."];
   return null;
 }
-function bindChips(after) {
-  const { chips } = draft;
-  after.querySelector(".refine").innerHTML = chips.slice(0, 2).map((r, i) => `<button class="chip" data-r="${i}">${r[0]}</button>`).join("");
-  for (const b of after.querySelectorAll(".chip")) b.onclick = () => refine(chips[b.dataset.r][0], chips[b.dataset.r]);
-}
-// A change to the draft: your words and Widgie's answer, scrolled into view, then the same tile changed in place.
-async function refine(text, change) {
+// A change to the draft: your words and Widgie's answer appear above it while the widget itself stays put, then the
+// same tile changes in place.
+async function refine(text, change, chip) {
   if (!draft || building || saving) return;
   building = true; composerMode();
+  if (chip) { chip.classList.add("working"); chip.textContent = "Changing"; }
   const { blk, perch, list, chips } = draft;
-  const studio = list.querySelector(".studio"), after = list.querySelector(".after"), page = $("#p-make");
-  after.classList.add("busy");
-  if (change) { const c = after.querySelector(`[data-r="${chips.indexOf(change)}"]`); if (c) { c.classList.add("working"); c.textContent = "Changing"; } }
+  const studio = list.querySelector(".studio"), page = $("#p-make");
+  list.querySelector(".confirm")?.remove();
   const me = document.createElement("div"); me.className = "me"; me.textContent = text;
   const row = document.createElement("div"); row.className = "them";
   row.innerHTML = `<div class="bubble">Changing it<span class="caretbar"></span></div>`;
+  const was = studio.getBoundingClientRect().top;
   list.insertBefore(me, studio); list.insertBefore(row, studio);
-  page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
+  page.scrollTop += (studio.getBoundingClientRect().top - was) / ZOOM;
   play(perch, "glance", 900);
   await wait(900);
   const typed = change ? null : understood(text);
-  const [, look, done] = change || typed || [text, null, "Here I can change its colors, its size or its name. Try one of these."];
+  let [, look, done] = change || typed || [text, null, "I can change its colors, its size or its name here. Try one of these."];
+  if (look && look.bg && !("ink" in look)) look = { ...look, ink: 0 };
   if (look && look.rename) {
     words(blk, look.rename);
     draft.idea = { ...draft.idea, words: look.rename, name: look.name, who: look.who || draft.idea.who };
-    blk.classList.remove("squish"); void blk.offsetWidth; blk.classList.add("squish");
-    hop(perch, true);
   } else if (look) {
     Object.assign(draft.look, look);
     dress(blk, draft.look);
-    blk.classList.remove("squish"); void blk.offsetWidth; blk.classList.add("squish");
-    hop(perch, true);
-  } else play(perch, "glance", 900);
-  row.querySelector(".bubble").textContent = done;
+  }
+  if (look) { blk.classList.remove("squish"); void blk.offsetWidth; blk.classList.add("squish"); hop(perch, true); }
+  else play(perch, "glance", 900);
+  const said = row.querySelector(".bubble");
+  said.textContent = done;
   if (change) {
     chips.splice(chips.indexOf(change), 1);
     (draft.used ||= []).push(change[0]);
     const showing = chips.map(kind);
     const spare = GENERIC.find((g) => !chips.includes(g) && !draft.used.includes(g[0]) && !(kind(g) === "size" && draft.look.big) && !showing.includes(kind(g)));
     if (spare && chips.length < 2) chips.push(spare);
-    bindChips(after);
   }
-  after.classList.remove("busy");
-  page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
+  $("#quick")._key = "";
   building = false; composerMode();
+  announce(done);
+  keepInView(said, list.querySelector(".after") || studio);
 }
 async function saved() {
-  const { idea, blk, perch, list, shadow, look, outline: d } = draft;
+  const { idea, blk, perch, list, shadow, look, outline: d, foot } = draft;
+  list.querySelector(".confirm")?.remove();
   draft = null; saving = true; composerMode();
   list.querySelector(".after")?.classList.add("going");
-  const fx = parseFloat(perch.style.left) + .58 * 116, fy = parseFloat(perch.style.top) + .989 * 116;
-  drawWidgie(perch, "jump", { eyes: "happy" }); stand(perch, 116, "jump", false, fx, fy);
+  drawWidgie(perch, "jump", { eyes: "happy" }); stand(perch, 116, "jump", false, foot.x, foot.y);
   hop(perch);
   burst(blk);
   await wait(240);
   const studio = blk.parentElement, W = blk.offsetWidth, H = blk.offsetHeight;
   if (d) studio.insertAdjacentHTML("afterbegin", `<svg class="ghost" viewBox="0 0 ${W} ${H}"><path d="${d}"/></svg>`);
   await flyToTab(blk);
-  if (tab !== "widgets") $("#badge").classList.add("show");
   squishGlyph();
-  addToFeed({ w: idea.w, name: idea.name, words: idea.words, look: { ...look, pet2: idea.w === "luna" && idea.words ? 1 : undefined }, who: idea.who });
+  addToFeed({ w: idea.w, name: idea.name, words: idea.words, look: { ...look }, who: idea.who });
   if (tab !== "widgets") toast(`${idea.name} is in your widgets.`);
   if (!calm) perch.animate([{ transform: "none" }, { transform: "translateY(-14px) scale(.95,1.06)", offset: .35 }, { transform: "translateY(44px) scale(1.04,.94)", opacity: 0 }], { duration: 360, easing: "cubic-bezier(.5,0,.75,.4)", fill: "forwards" });
   shadow.style.opacity = "0";
@@ -836,33 +1086,35 @@ async function saved() {
   list.classList.add("leaving");
   await wait(280);
   saving = false;
-  makeReset();
+  makeReset(true);
 }
 // "Change in chat" from a template: Make opens with that widget as the draft, ready for words.
 function adopt(w, title, pairs, look, who) {
   const idea = { w, name: title, words: pairs, who, refine: IDEAS.find((d) => d.w === w)?.refine || GENERIC };
-  const wide = MEDIUM.has(w), W = wide ? 362 : 174;
+  const wide = MEDIUM.has(w), W = wide ? 362 : 174, mir = !wide;
   const page = $("#p-make");
   page.innerHTML = `${threadBar()}<div class="thread ${wide ? "" : "narrow"}"><div class="them"><div class="bubble"></div></div><div class="studio ${wide ? "wide" : ""}" style="width:${W}px;height:174px"><div class="widgie perch sway"></div><div class="shadow" style="opacity:1"></div></div></div>`;
+  page.scrollTop = 0;
   bindBar(page);
   const list = page.querySelector(".thread"), studio = list.querySelector(".studio"), perch = studio.querySelector(".perch"), shadow = studio.querySelector(".shadow");
-  list.querySelector(".bubble").textContent = `What should we change about ${title}?`;
+  const line = `What should we change about ${title}?`;
+  list.querySelector(".bubble").textContent = line;
   studio.insertAdjacentHTML("afterbegin", tile(w));
   const blk = studio.firstChild;
   if (pairs) words(blk, pairs);
-  live(studio);
+  const dressed = { ...(look || {}), ...petLook(w) };
+  dress(blk, dressed);
+  live(studio, () => hop(perch, true));
   const foot = perchAt(wide, W);
-  stand(perch, 116, "lean", true, foot.x, foot.y);
+  stand(perch, 116, "lean", mir, foot.x, foot.y);
   shadow.classList.add("onface");
   Object.assign(shadow.style, { left: foot.x - 18 + "px", top: "0px" });
-  drawWidgie(perch, "lean", { mirror: "1", eyes: "happy" });
-  const chips = idea.refine.slice();
-  draft = { idea, blk, perch, list, shadow, look: { ...(look || {}) }, chips, outline: outline(W, 174, foot.x) };
-  list.insertAdjacentHTML("beforeend", `<div class="after"><div class="refine"></div><button class="key">Save widget</button></div>`);
-  const after = list.lastChild;
-  bindChips(after);
-  after.querySelector(".key").onclick = (e) => { e.currentTarget.disabled = true; saved(); };
+  drawWidgie(perch, "lean", mir ? { mirror: "1", eyes: "happy" } : { eyes: "happy" });
+  draft = { idea, blk, perch, list, shadow, look: dressed, chips: idea.refine.slice(), outline: outline(W, 174, foot.x), foot, wide };
+  list.insertAdjacentHTML("beforeend", `<div class="after"><button class="key" type="button">Save widget</button></div>`);
+  bindSave(list.lastChild);
   composerMode();
+  announce(line);
 }
 
 // ---------- confetti, the flight into the tab bar, the toast ----------
@@ -876,10 +1128,10 @@ function burst(el) {
   box.innerHTML = Array.from({ length: 18 }, (_, i) => { const x = r.x + r.w * (.15 + .7 * (i / 17)); const dx = (i / 17 - .5) * 220 + (i % 3 - 1) * 18; const dy = -120 - (i % 4) * 22; return `<i style="left:${x}px;top:${r.y}px;background:${POPS[i % 6]};--dx:${dx}px;--dy:${dy}px;--r:${(i % 2 ? 1 : -1) * (160 + i * 14)}deg"></i>`; }).join("");
   setTimeout(() => (box.innerHTML = ""), 1200);
 }
-// The tile flies on a curve into the Widgets tab: whole until the last quarter, then it shrinks into the icon.
+// The tile flies on one smooth arc into the Widgets tab, shrinking all the way into the icon.
 function flyToTab(el, ms = 600) {
   if (calm) { el.style.opacity = ".4"; return Promise.resolve(); }
-  const r = local(el.getBoundingClientRect()), t = local(document.querySelector('[data-tab="widgets"] .glyph').getBoundingClientRect());
+  const r = local(el.getBoundingClientRect()), t = local($('[data-tab="widgets"] .glyph').getBoundingClientRect());
   const copy = el.cloneNode(true);
   copy.classList.remove("fadein", "press", "squish"); copy.classList.add("flyer");
   Object.assign(copy.style, { position: "absolute", left: r.x + "px", top: r.y + "px", margin: 0, transform: "none" });
@@ -887,9 +1139,9 @@ function flyToTab(el, ms = 600) {
   el.style.visibility = "hidden";
   const dx = t.x + t.w / 2 - r.x - r.w / 2, dy = t.y + t.h / 2 - r.y - r.h / 2, end = 22 / Math.max(r.w, r.h);
   const frames = Array.from({ length: 32 }, (_, i) => {
-    const k = i / 31, e = k < .3 ? .06 * (k / .3) : .06 + .94 * ((q) => q * q * (3 - 2 * q))((k - .3) / .7);
-    const s = k < .3 ? 1 - .15 * (k / .3) : k < .5 ? .85 - .15 * ((k - .3) / .2) : .7 - (.7 - end) * ((k - .5) / .5);
-    let tx = dx * e; const ty = dy * e - 70 * 4 * k * (1 - k);
+    const k = i / 31, e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    const s = 1 - (1 - end) * Math.pow(k, 1.65);
+    let tx = dx * e; const ty = dy * e - 56 * Math.sin(Math.PI * k);
     const half = (r.w * s) / 2, cx = r.x + r.w / 2 + tx;
     if (cx - half < 8) tx += 8 - (cx - half);
     if (cx + half > 394) tx -= cx + half - 394;
@@ -898,101 +1150,135 @@ function flyToTab(el, ms = 600) {
   return copy.animate(frames, { duration: ms, easing: "linear", fill: "forwards" }).finished.then(() => copy.remove());
 }
 // The Widgets icon takes the tile in with a squish.
-function squishGlyph() { if (!calm) document.querySelector('[data-tab="widgets"] .glyph').animate([{ scale: 1 }, { scale: .8, offset: .3 }, { scale: 1.08, offset: .7 }, { scale: 1 }], { duration: 380, easing: "ease-out" }); }
+function squishGlyph() { if (!calm) $('[data-tab="widgets"] .glyph').animate([{ scale: 1 }, { scale: .8, offset: .3 }, { scale: 1.08, offset: .7 }, { scale: 1 }], { duration: 380, easing: "ease-out" }); }
 function toast(text) { $("#t-text").textContent = text; drawWidgie($("#t-widgie"), "idle", { eyes: "happy" }); const t = $("#toast"); t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2400); }
 
 // ---------- Templates: the landing page's widgets, by category ----------
+// Each banner's fill is one color that cross-fades; its light comes from a fixed overlay.
 const CATS = {
-  two: { name: "For two", icon: icon.heart, bg: "linear-gradient(150deg,#d4436a,#b82c53)", day: "linear-gradient(150deg,#ffb3c6,#f58aa6)", line: "Little signals for the two of you", actors: () => couple(), items: [["hearts", "Thinking of you", "A heart in one tap"], ["mood", "Our moods", "Swap faces all day"], ["count", "Trip countdown", "Days until the big one"], ["days", "Days together", "Since your first date"], ["quest", "Today's question", "One a day, both answer"]] },
-  home: { name: "Home", icon: HOUSE, bg: "linear-gradient(150deg,#bc4734,#a93225)", day: "linear-gradient(150deg,#ffad94,#f5876b)", line: "The jobs you share at home", actors: () => single("lean", { mirror: "1" }, `<div class="shadow" style="left:40px;top:122px;width:64px"></div><div style="position:absolute;left:40px;top:76px;width:64px">${puppy(false)}</div>`, 150), items: [["luna", "Pet fed", "Who fed them, and when"], ["bins", "Bins night", "Pass the turn along"], ["groc", "Shared groceries", "Cross it off for both"], ["plant", "Plant care", "Goes red when thirsty"], ["dinner", "Dinner tonight", "Who cooks, who washes up"], ["baby", "Baby feeds", "Red after three hours"], ["chores", "Chores scoreboard", "Winner picks the movie"]] },
-  habits: { name: "Habits", icon: icon.leaf, bg: "linear-gradient(150deg,#5a3c98,#38206a)", day: "linear-gradient(150deg,#c7b4f7,#a58aea)", line: "See your weeks fill up", actors: () => single("lean", {}, `<div class="shadow" style="left:148px;top:122px;width:44px"></div><div style="position:absolute;left:150px;top:84px;width:40px;transform:rotate(6deg)">${SQUARES}</div>`, 104), items: [["grid", "Habit squares", "Two weeks at a glance"], ["streak", "Streak", "Don't break the chain"], ["water", "Water", "Glasses toward a goal"], ["pushups", "Pushups", "A ring that fills up"]] },
-  goals: { name: "Goals", icon: STAR, bg: "linear-gradient(150deg,#554028,#38283c)", day: "linear-gradient(150deg,#ffd95a,#f6b820)", line: "Little wins add up", actors: () => single("jump", { eyes: "happy" }, `<div class="shadow" style="left:142px;top:122px;width:44px"></div><div style="position:absolute;left:146px;top:72px;width:38px;transform:rotate(8deg)">${MEDAL}</div>`, 100), items: [["savings", "Savings jar", "Every $50 counts"], ["sober", "Days free", "A medal at 60"], ["word", "Word of the day", "A new one each morning"]] },
+  two: { name: "For two", icon: icon.heart, day: "#f99db6", night: "#c03a60", line: "Little signals for the two of you", actors: () => couple(), items: [["hearts", "Thinking of you", "A heart in one tap"], ["mood", "Our moods", "Share how you're feeling"], ["count", "Trip countdown", "Days until the big one"], ["days", "Days together", "Since your first date"], ["quest", "Today's question", "One a day, both answer"]] },
+  home: { name: "Home", icon: HOUSE, day: "#fa9a7f", night: "#b03b2c", line: "The jobs you share at home", actors: () => actor("lean", 138, { mirror: "1" }, 112, "notice") + `<div class="shadow" style="left:40px;top:122px;width:64px"></div><div class="prop" style="position:absolute;left:40px;top:76px;width:64px">${puppy(false)}</div>`, items: [["luna", "Pet fed", "Who fed them, and when"], ["bins", "Bins night", "Pass the turn along"], ["groc", "Shared groceries", "Cross it off for both"], ["plant", "Plant care", "Goes red when thirsty"], ["dinner", "Dinner tonight", "Who cooks, who washes up"], ["baby", "Baby feeds", "Red after three hours"], ["chores", "Chores scoreboard", "Winner picks the movie"]] },
+  habits: { name: "Habits", icon: icon.leaf, day: "#b69ff0", night: "#4a2e82", line: "See your weeks fill up", actors: () => actor("lean", 112, {}, 104, "fill") + `<div class="shadow" style="left:148px;top:122px;width:44px"></div><div class="prop" style="position:absolute;left:150px;top:84px;width:40px;transform:rotate(6deg)">${SQUARES}</div>`, items: [["grid", "Habit squares", "Two weeks at a glance"], ["streak", "Streak", "Don't break the chain"], ["water", "Water", "Glasses toward a goal"], ["pushups", "Pushups", "A ring that fills up"]] },
+  goals: { name: "Goals", icon: STAR, day: "#fbc93d", night: "#9c6508", line: "Little wins add up", actors: () => actor("lean", 116, { eyes: "happy" }, 104, "admire") + `<div class="shadow" style="left:146px;top:122px;width:44px"></div><div class="prop" style="position:absolute;left:150px;top:70px;width:38px;transform:rotate(8deg);transform-origin:50% 0">${MEDAL}</div>`, items: [["savings", "Savings jar", "Every $50 counts"], ["sober", "Days free", "Count alcohol-free days"], ["word", "Word of the day", "A new one each morning"]] },
 };
 let cat = "two";
-// A banner actor: a Widgie whose foot stands at x on the banner floor, with its shadow under the foot.
-const actor = (pose, x, extra = {}, size = 112) => `<div class="shadow" style="left:${x - 26}px;top:122px;width:52px"></div><div class="widgie sway" data-a="${pose}" data-x="${x}" data-size="${size}" ${Object.entries(extra).map(([k, v]) => `data-${k}="${v}"`).join(" ")}></div>`;
-const couple = () => actor("lean", 74, { eyes: "happy" }, 100) + actor("lean", 150, { mirror: "1" }, 100) + `<div class="beat" style="position:absolute;left:101px;top:6px;width:20px;height:20px;color:var(--heart)">${icon.heart}</div>`;
-const single = (pose, extra, prop = "", x = 130) => actor(pose, x, extra) + prop;
+// A banner actor: a Widgie whose foot stands at x on the banner floor, with its shadow under the foot, and the one
+// thing it does with its prop when the banner comes on.
+const actor = (pose, x, extra = {}, size = 112, act = "") => `<div class="shadow" style="left:${x - 26}px;top:122px;width:52px"></div><div class="widgie sway" data-a="${pose}" data-x="${x}" data-size="${size}" data-act="${act}" ${Object.entries(extra).map(([k, v]) => `data-${k}="${v}"`).join(" ")}></div>`;
+const couple = () => actor("lean", 76, { eyes: "happy" }, 94) + actor("lean", 146, { mirror: "1" }, 94) + `<div class="beat" style="position:absolute;left:101px;top:12px;width:20px;height:20px;color:var(--heart)">${icon.heart}</div>`;
 function renderCats() {
-  $("#cats").innerHTML = Object.entries(CATS).map(([k, c]) => `<button class="chip cat ${k === cat ? "on" : ""}" role="tab" aria-selected="${k === cat}" data-cat="${k}">${svg(c.icon)}${c.name}</button>`).join("");
-  for (const el of document.querySelectorAll(".cat")) el.onclick = () => { if (el.dataset.cat !== cat) { cat = el.dataset.cat; renderCats(); renderPile(true); } };
+  const box = $("#cats");
+  box.innerHTML = Object.entries(CATS).map(([k, c]) => `<button class="chip cat" role="tab" id="cat-${k}" aria-controls="pile" data-cat="${k}">${svg(c.icon)}${c.name}</button>`).join("");
+  box.addEventListener("click", (e) => { const b = e.target.closest(".cat"); if (b) pickCat(b.dataset.cat); });
+  // Arrow keys move along the categories, and the focus moves with the choice.
+  box.addEventListener("keydown", (e) => {
+    const keys = Object.keys(CATS); let i = keys.indexOf(cat);
+    if (e.key === "ArrowRight") i = (i + 1) % keys.length; else if (e.key === "ArrowLeft") i = (i + keys.length - 1) % keys.length; else if (e.key === "Home") i = 0; else if (e.key === "End") i = keys.length - 1; else return;
+    e.preventDefault(); pickCat(keys[i]); $(`#cat-${keys[i]}`).focus();
+  });
+  markCats();
 }
-function castBanner(c) {
+function markCats() {
+  for (const b of $$(".cat")) { const on = b.dataset.cat === cat; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1; }
+  $("#pile").setAttribute("aria-labelledby", `cat-${cat}`);
+}
+function pickCat(k) { if (k === cat) return; cat = k; markCats(); renderPile(true); }
+function paintBanner(c) {
+  const banner = $("#banner"), ink = !night;
+  banner.style.backgroundColor = night ? c.night : c.day;
+  banner.classList.toggle("ink", ink);
+  banner.style.color = ink ? "#121a2e" : "#fff";
+  banner.style.setProperty("--heart", night ? "#ffadc2" : "#d4436a");
+}
+function castBanner(c, act = false) {
   $("#actors").innerHTML = c.actors();
-  for (const w of document.querySelectorAll("#actors .widgie")) {
+  for (const w of $$("#actors .widgie")) {
     const extra = {}; for (const k of ["eyes", "mirror"]) if (w.dataset[k]) extra[k] = w.dataset[k];
-    extra.moon = night && !c.dark ? "1" : "0";
+    extra.moon = night ? "1" : "0";
     drawWidgie(w, w.dataset.a, extra);
     stand(w, +w.dataset.size, w.dataset.a, extra.mirror === "1", +w.dataset.x, 128);
+    if (act) hop(w, true);
+    const prop = $("#actors .prop"), square = $("#actors .fillme");
+    // Each actor does one thing with its prop as the banner comes on, then rests.
+    if (w.dataset.act === "fill" && square) {
+      if (!act || calm) square.setAttribute("fill", "var(--sq-on)");
+      else setTimeout(() => { w.animate([{ rotate: "0deg" }, { rotate: "7deg", offset: .45 }, { rotate: "0deg" }], { duration: 440, easing: SOFT }); setTimeout(() => square.setAttribute("fill", "var(--sq-on)"), 200); }, 260);
+    }
+    if (w.dataset.act === "notice" && act && !calm) setTimeout(() => w.animate([{ rotate: "0deg" }, { rotate: "-6deg", offset: .5 }, { rotate: "0deg" }], { duration: 440, easing: SOFT }), 220);
+    if (w.dataset.act === "admire" && act && !calm && prop) setTimeout(() => prop.animate([{ rotate: "0deg" }, { rotate: "-12deg", offset: .35 }, { rotate: "6deg", offset: .7 }, { rotate: "0deg" }], { duration: 700, easing: SOFT }), 260);
   }
 }
 function renderPile(swap) {
   const c = CATS[cat];
   const fill = () => {
-    const banner = $("#banner");
-    const ink = !night || c.dark;
-    banner.style.background = night ? c.bg : c.day || c.bg;
-    banner.classList.toggle("ink", ink);
-    banner.style.color = ink ? "#121a2e" : "#fff";
-    banner.style.setProperty("--heart", night ? "#ffadc2" : "#d4436a");
     $("#b-line").textContent = c.line;
-    castBanner(c);
-    $("#actors").classList.remove("out");
-    if (swap) for (const w of document.querySelectorAll("#actors .widgie")) hop(w, true);
+    castBanner(c, swap);
+    $("#actors").classList.remove("out"); $("#b-line").classList.remove("out");
     // Small tiles lean up to 2.5 degrees, wide ones 1, alternating, so the pile reads as handled but stays in the gutters.
     // A small card with no partner in its row is centred across the row, so the pile never shows a hole.
     let col = 0;
     const solo = c.items.map(([w], i) => { if (MEDIUM.has(w)) { col = 0; return false; } const next = c.items[i + 1]; const alone = col === 0 && (!next || MEDIUM.has(next[0])); col = alone ? 0 : (col + 1) % 2; return alone; });
-    $("#pile").innerHTML = c.items.map(([w, n, sub], i) => { const rot = (i % 2 ? 1 : -1) * (MEDIUM.has(w) ? 1 : [2.5, 2, 1.5][i % 3]); return `<button class="item ${MEDIUM.has(w) ? "wide" : ""} ${solo[i] ? "solo" : ""} rise" style="animation-delay:${i * .05}s" data-i="${i}" aria-label="${n}: ${sub}. Try it">${tile(w, rot)}<div class="tmeta" aria-hidden="true"><div class="tname">${n}</div><div class="tsub">${sub}<span class="try">Try${CHEV}</span></div></div></button>`; }).join("");
-    live($("#pile"));
-    for (const b of document.querySelectorAll("#pile .blk button")) { b.tabIndex = -1; b.setAttribute("aria-hidden", "true"); }
-    for (const it of document.querySelectorAll("#pile .item")) it.onclick = () => openSheet(c.items[it.dataset.i], it);
+    // Each card is one control; its face is a sample that only comes alive in the sheet.
+    $("#pile").innerHTML = c.items.map(([w, n, sub], i) => { const rot = (i % 2 ? 1 : -1) * (MEDIUM.has(w) ? 1 : [2.5, 2, 1.5][i % 3]); return `<div class="item ${MEDIUM.has(w) ? "wide" : ""} ${solo[i] ? "solo" : ""} rise" role="button" tabindex="0" style="animation-delay:${i * .05}s" data-i="${i}" aria-label="${n}: ${sub}. Try it">${tile(w, rot)}<div class="tmeta" aria-hidden="true"><div class="tname"><span class="nm">${n}</span><span class="try">Try${CHEV}</span></div><div class="tsub">${sub}</div></div></div>`; }).join("");
+    for (const b of $$("#pile .blk")) { mountWidget(b); b.inert = true; }
+    for (const it of $$("#pile .item")) {
+      it.onclick = () => openSheet(c.items[it.dataset.i], it);
+      it.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); it.click(); } };
+    }
   };
+  paintBanner(c);
   if (!swap) return fill();
-  $("#actors").classList.add("out");
+  $("#actors").classList.add("out"); $("#b-line").classList.add("out");
   $("#pile").classList.add("leaving");
-  for (const it of document.querySelectorAll("#pile .item")) it.classList.add("pop-out");
+  for (const it of $$("#pile .item")) it.classList.add("pop-out");
   clearTimeout(renderPile._t);
-  renderPile._t = setTimeout(() => { fill(); $("#pile").classList.remove("leaving"); }, 140);
+  renderPile._t = setTimeout(() => { fill(); $("#pile").classList.remove("leaving"); }, calm ? 0 : 160);
 }
-// Each template's blank: the question, the word it starts with here, and every word on the tile that follows it.
+// Each template's blank: the question, the word it starts with here, every word on the tile that follows it, and
+// what Widgie says when you change it.
+const named = (v) => (v.length > 16 ? "Name updated." : `${v} it is.`);
 const BLANKS = {
-  luna: { label: "Your pet's name", start: "Luna", pairs: (v) => [["Luna", v], ...UNFED] },
+  luna: { label: "Your pet's name", start: "Luna", pairs: (v) => [["Luna", v]] },
   hearts: { label: "Who gets the hearts?", start: "Sam", pairs: (v) => [["Sam", v]] },
-  count: { label: "Where are you going?", start: "Lisbon", pairs: (v) => [["Lisbon", v], ["LIS", code(v)]] },
+  count: { label: "Where are you going?", start: "Lisbon", pairs: (v) => route(v), said: (v) => (v.length > 16 ? "Destination updated." : `Off to ${v}!`) },
   plant: { label: "Your plant", start: "Monstera", pairs: (v) => [["Monstera", v]] },
   savings: { label: "What's the fund called?", start: "Japan fund", pairs: (v) => [["Japan fund", v]] },
   bins: { label: "Who's in the rota with you?", start: "Sam", pairs: (v) => [["Sam", v]] },
   baby: { label: "Who's on feeds with you?", start: "Sam", pairs: (v) => [["Sam", v]] },
   mood: { label: "Your partner's name", start: "Sam", pairs: (v) => [["Sam", v]] },
   chores: { label: "Who are you up against?", start: "Sam", pairs: (v) => [["Sam", v]] },
+  dinner: { label: "Who do you cook with?", start: "Sam", pairs: (v) => [["Sam", v], [/^S$/, v[0].toUpperCase()]] },
+  quest: { label: "Your partner's name", start: "Sam", pairs: (v) => [["Sam", v]] },
 };
+// What to try first in each template, said by Widgie when the sheet opens.
+const HINTS = { luna: "Tap the check after a meal.", hearts: "Tap to send a heart.", bins: "Tap to pass the turn.", groc: "Tap an item to cross it off.", plant: "Tap the check after watering.", dinner: "Tap to say you'll cook.", baby: "Tap L, R or the bottle.", chores: "Tap when you did one.", mood: "Tap your face to change it.", quest: "Tap when you've answered.", grid: "Tap a square in Today.", streak: "Tap the check when it's done.", water: "Tap for each glass.", pushups: "Tap after every ten.", savings: "Tap when you save $50.", word: "Tap Know it or Again.", count: "It counts down by itself.", sober: "Add it to start tracking.", days: "It counts up by itself." };
 const savedName = (w, title, v) => ({ luna: v, hearts: `Hearts for ${v}`, count: `${v} trip`, plant: v, savings: v }[w] || title);
-let sheetItem = null, opener = null, spotWidgie = null;
+let sheetItem = null, opener = null, spotWidgie = null, sheetRun = 0, nameTimer;
 function openSheet(item, from) {
+  const run = ++sheetRun;
   sheetItem = item; opener = from;
   const [w, title, sub] = item, blank = BLANKS[w];
   $("#s-title").textContent = title;
   $("#s-line").textContent = sub + ".";
   $("#s-field").hidden = !blank;
-  if (blank) { $("#s-label").textContent = blank.label; $("#s-name").value = blank.start; }
-  $("#s-hint").textContent = WIDGETS[w].tap ? "It already works. Give it a tap." : "A live preview. Make it yours below.";
+  if (blank) { $("#s-label").textContent = blank.label; $("#s-name").value = blank.start; $("#s-name").placeholder = blank.start; }
   const wide = MEDIUM.has(w), k = wide ? 330 / 364 : 1.08, W = (wide ? 364 : 170) * k, H = 170 * k;
   $("#s-spot").classList.toggle("wide", wide);
-  $("#s-spot").innerHTML = `<div class="stagebox" style="width:${W}px;height:${H}px">${tile(w, 0, k)}<div class="shadow"></div><div class="widgie perch sway"></div><div class="bubble gone"></div></div>`;
+  $("#s-spot").innerHTML = `<div class="stagebox" style="width:${W}px;height:${H}px">${tile(w, 0, k)}<div class="shadow"></div><div class="widgie perch sway"></div><div class="bubble gone" role="status" aria-live="polite"></div></div>`;
   const box = $("#s-spot").firstChild, blk = box.firstChild, shadow = box.querySelector(".shadow"), b = box.querySelector(".bubble");
   blk.style.position = "relative";
-  live(box, () => hop(spotWidgie, true));
-  if (blank) words(blk, blank.pairs(blank.start));
   spotWidgie = box.querySelector(".perch");
-  const hint = WIDGETS[w].tap ? "It works. Tap it!" : "Make it yours below.";
+  // The sheet starts with the words its tile showed in the pile. A tap here is practice, and Widgie says so once.
+  let practiced = false;
+  live(box, () => { hop(spotWidgie, true); if (!practiced && run === sheetRun) { practiced = true; say(b, "That was practice. Yours starts fresh.", { swap: true }); } });
+  if (blank) words(blk, blank.pairs(blank.start));
   if (wide) {
     // A wide tile: Widgie perches on its left, clear of the art on the right, and talks to its right.
     const size = 100, x = 48;
     drawWidgie(spotWidgie, "lean", {});
     stand(spotWidgie, size, "lean", false, x, 2);
     shadow.className = "shadow onface"; Object.assign(shadow.style, { left: x - 18 + "px", top: "0px" });
-    b.className = "bubble left gone"; Object.assign(b.style, { left: "88px", top: "-62px" });
+    b.classList.add("left"); Object.assign(b.style, { left: "88px", top: "-62px" });
     box.style.transform = "none";
   } else {
     // A small tile: Widgie stands beside it on the spotlight floor, the pair centred, and talks from above.
@@ -1000,69 +1286,137 @@ function openSheet(item, from) {
     drawWidgie(spotWidgie, "lean", { mirror: "1" });
     stand(spotWidgie, size, "lean", true, x, H);
     Object.assign(shadow.style, { left: x - 32 + "px", top: H - 5 + "px", width: "64px" });
-    b.className = "bubble down gone"; Object.assign(b.style, { left: W + 4 + "px", bottom: "121px", top: "auto", maxWidth: "138px" }); b.style.setProperty("--tx", "34%");
-    box.style.transform = "translateX(-58px)";
+    b.classList.add("down"); Object.assign(b.style, { left: W + 4 + "px", bottom: "120px", top: "auto", maxWidth: "134px" }); b.style.setProperty("--tx", "26px");
+    box.style.transform = "translateX(-46px)";
   }
-  $("#s-hint").textContent = hint;
-  $("#s-hint").hidden = true;
-  $("#sheet").inert = false;
+  const sheet = $("#sheet");
+  sheet.inert = false;
   for (const p of ["#p-widgets", "#p-make", "#p-tpl", "#tabbar", "#composer"]) $(p).inert = true;
+  phone.classList.add("sheet-open");
   $("#scrim").classList.add("show");
-  $("#sheet").classList.add("show");
+  sheet.scrollTop = 0;
+  sheet.classList.add("show");
+  sheet.focus({ preventScroll: true });
   // The tile you tapped grows up into the sheet's tile, so it reads as the same thing coming closer.
   const src = from?.querySelector(".blk"), dst = $("#s-spot .blk");
   if (src && dst && !calm) {
-    const a = src.getBoundingClientRect(), z = ZOOM;
-    const bR = dst.getBoundingClientRect();
-    const dx = (a.left + a.width / 2 - (bR.left + bR.width / 2)) / z, dy = (a.top + a.height / 2 - (bR.top + bR.height / 2)) / z;
-    const k = a.width / bR.width;
-    dst.animate([{ transform: `translate(${dx}px,${dy}px) scale(${k}) rotate(${src.style.getPropertyValue("--rot") || "0deg"})` }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.22,1.06,.36,1)" });
+    const a = src.getBoundingClientRect(), bR = dst.getBoundingClientRect();
+    const dx = (a.left + a.width / 2 - (bR.left + bR.width / 2)) / ZOOM, dy = (a.top + a.height / 2 - (bR.top + bR.height / 2)) / ZOOM;
+    dst.animate([{ transform: `translate(${dx}px,${dy}px) scale(${a.width / bR.width}) rotate(${src.style.getPropertyValue("--rot") || "0deg"})` }, { transform: "none" }], { duration: 420, easing: SPRING });
     from.style.visibility = "hidden";
   }
-  const spoken = $("#s-spot .bubble"), hintNow = $("#s-hint").textContent;
-  setTimeout(() => { if (!$("#sheet").classList.contains("show")) return; say(spoken, hintNow); hop(spotWidgie, true); }, calm ? 0 : 440);
-  setTimeout(() => $("#sheet").focus({ preventScroll: true }), calm ? 0 : 300);
+  setTimeout(() => { if (run !== sheetRun) return; say(b, HINTS[w] || "It works. Tap it!"); hop(spotWidgie, true); }, calm ? 0 : 440);
 }
-let nameTimer;
 $("#s-name").addEventListener("input", () => {
   const blank = BLANKS[sheetItem[0]]; if (!blank) return;
-  const blk = $("#s-spot .blk"), v = $("#s-name").value.trim() || blank.start;
-  words(blk, blank.pairs(v));
+  const raw = $("#s-name").value.trim(), v = raw || blank.start;
+  words($("#s-spot .blk"), blank.pairs(v));
   clearTimeout(nameTimer);
-  nameTimer = setTimeout(() => { const bb = $("#s-spot .bubble"); say(bb, v.length > 16 ? "Name updated." : `${v} it is.`); hop(spotWidgie, true); }, 500);
+  if (!raw) return;
+  const run = sheetRun;
+  nameTimer = setTimeout(() => { if (run !== sheetRun) return; say($("#s-spot .bubble"), (blank.said || named)(raw)); hop(spotWidgie, true); }, 500);
 });
-function closeSheet() {
-  $("#scrim").classList.remove("show"); $("#sheet").classList.remove("show"); $("#s-name").blur();
-  if (opener) { const o = opener; setTimeout(() => (o.style.visibility = ""), calm ? 0 : 260); }
-  $("#sheet").inert = true; $("#tabbar").inert = false;
-  go(tab, true);
-  opener?.focus({ preventScroll: true });
+// Closing is opening in reverse: the sheet's tile shrinks back into its card in the pile while the sheet slides away.
+function flyBack(o) {
+  const src = $("#s-spot .blk"), dst = o.querySelector(".blk");
+  if (!src || !dst || calm) return Promise.resolve();
+  const a = local(src.getBoundingClientRect()), b = local(dst.getBoundingClientRect());
+  const copy = src.cloneNode(true);
+  copy.classList.remove("press", "squish", "fadein"); copy.classList.add("flyer");
+  Object.assign(copy.style, { position: "absolute", left: a.x + "px", top: a.y + "px", margin: 0, transform: "none" });
+  phone.appendChild(copy);
+  src.style.visibility = "hidden";
+  const dx = b.x + b.w / 2 - (a.x + a.w / 2), dy = b.y + b.h / 2 - (a.y + a.h / 2);
+  return copy.animate([{ transform: "none" }, { transform: `translate(${dx}px,${dy}px) scale(${b.w / a.w}) rotate(${dst.style.getPropertyValue("--rot") || "0deg"})` }], { duration: 340, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" }).finished.then(() => copy.remove());
 }
-$("#scrim").onclick = closeSheet;
-$("#s-close").onclick = closeSheet;
+function closeSheet({ flying = false } = {}) {
+  const sheet = $("#sheet");
+  if (!sheet.classList.contains("show")) return;
+  sheetRun++; clearTimeout(nameTimer);
+  $("#scrim").classList.remove("show"); $("#scrim").style.opacity = "";
+  sheet.classList.remove("show", "dragging"); sheet.style.transform = "";
+  $("#s-name").blur();
+  phone.classList.remove("sheet-open");
+  sheet.inert = true;
+  go(tab, true);
+  const o = opener; opener = null;
+  if (!o) return;
+  const back = () => { o.style.visibility = ""; o.focus({ preventScroll: true }); };
+  if (flying || calm) setTimeout(back, calm ? 0 : 260); else flyBack(o).then(back);
+}
+$("#scrim").onclick = () => closeSheet();
+$("#s-close").onclick = () => closeSheet();
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#sheet").classList.contains("show")) closeSheet(); });
+// The focus stays inside the sheet while it is open.
+$("#sheet").addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+  const f = [...$("#sheet").querySelectorAll("button, input")].filter((x) => !x.disabled && x.getClientRects().length && !x.closest("[hidden]"));
+  if (!f.length) return;
+  const i = f.indexOf(document.activeElement);
+  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && (i === -1 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+});
+// The sheet follows a drag down from its grabber or its title, and closes past 120 points or on a quick flick.
+(() => {
+  const sheet = $("#sheet"), scrim = $("#scrim");
+  let y0 = 0, dy = 0, trail = [], on = false;
+  sheet.addEventListener("pointerdown", (e) => {
+    if (!sheet.classList.contains("show") || !e.target.closest("#s-grab, #s-title, #s-line")) return;
+    on = true; y0 = e.clientY; dy = 0; trail = [[e.timeStamp, 0]];
+    sheet.classList.add("dragging"); sheet.setPointerCapture(e.pointerId);
+  });
+  sheet.addEventListener("pointermove", (e) => {
+    if (!on) return;
+    const raw = (e.clientY - y0) / ZOOM;
+    dy = raw > 0 ? raw : raw * .2;
+    sheet.style.transform = `translateY(${dy}px)`;
+    scrim.style.opacity = String(Math.max(0, 1 - Math.max(0, dy) / 400));
+    trail.push([e.timeStamp, dy]); if (trail.length > 5) trail.shift();
+  });
+  const end = () => {
+    if (!on) return;
+    on = false;
+    const [ta, ya] = trail[0], [tb, yb] = trail[trail.length - 1], v = tb > ta ? (yb - ya) / (tb - ta) : 0;
+    sheet.classList.remove("dragging");
+    if (dy > 120 || v > .5) closeSheet(); else { sheet.style.transform = ""; scrim.style.opacity = ""; }
+  };
+  sheet.addEventListener("pointerup", end);
+  sheet.addEventListener("pointercancel", end);
+})();
 function sheetChoice() {
   const [w, title] = sheetItem, blank = BLANKS[w];
   const v = blank ? ($("#s-name").value.trim() || blank.start) : null;
-  return { w, title, name: v ? savedName(w, title, v) : title, words: v ? blank.pairs(v) : undefined, who: w === "hearts" ? v : undefined };
+  return { w, title, name: v ? savedName(w, title, v) : title, words: [...(v ? blank.pairs(v) : []), ...(FRESH[w] || [])], who: w === "hearts" ? v : undefined };
 }
-$("#s-chat").onclick = () => { const c = sheetChoice(); closeSheet(); setTimeout(() => { go("make"); adopt(c.w, c.name, c.words, undefined, c.who); say_.focus(); }, calm ? 0 : 240); };
+$("#s-chat").onclick = () => {
+  const c = sheetChoice();
+  closeSheet();
+  setTimeout(() => {
+    go("make");
+    const open = () => { adopt(c.w, c.name, c.words, undefined, c.who); say_.focus(); };
+    if (draft) confirmReplace(`Swap your draft for ${c.name}?`, open); else open();
+  }, calm ? 0 : 240);
+};
 $("#s-add").onclick = (e) => {
   const key = e.currentTarget; key.disabled = true;
   const blk = $("#s-spot .blk"), c = sheetChoice();
   burst(blk); hop(spotWidgie);
   setTimeout(() => {
     const flight = flyToTab(blk, 480);
-    $("#sheet").classList.add("leaving"); closeSheet();
+    $("#sheet").classList.add("leaving"); closeSheet({ flying: true });
     setTimeout(() => $("#sheet").classList.remove("leaving"), 200);
-    flight.then(() => { $("#badge").classList.add("show"); squishGlyph(); addToFeed({ w: c.w, name: c.name, words: c.words, who: c.who, look: c.w === "luna" ? { pet2: 1 } : undefined }); toast(`${c.name} is in your widgets.`); key.disabled = false; });
+    flight.then(() => {
+      squishGlyph();
+      addToFeed({ w: c.w, name: c.name, words: c.words, who: c.who, look: petLook(c.w) });
+      if (tab !== "widgets") toast(`${c.name} is in your widgets.`);
+      key.disabled = false;
+    });
   }, calm ? 0 : 200);
 };
 
 // ---------- tabs: each page renders once and keeps its state; switching is a quick slide ----------
 function placePill() {
-  const t = document.querySelector(`.tab[data-tab="${tab}"]`);
-  const pill = $("#pill");
+  const t = $(`.tab[data-tab="${tab}"]`), pill = $("#pill");
   pill.style.left = t.offsetLeft + "px";
   pill.style.width = t.offsetWidth + "px";
 }
@@ -1077,41 +1431,50 @@ function go(next, quiet = false) {
     page.classList.toggle("to-right", i > to);
     page.inert = k !== next;
   }
-  $("#composer").classList.toggle("hidden", next !== "make");
-  $("#composer").inert = next !== "make";
-  for (const t of document.querySelectorAll(".tab")) { t.classList.toggle("on", t.dataset.tab === next); t.setAttribute("aria-selected", t.dataset.tab === next); }
+  // The composer is part of the Make canvas, so it slides with it.
+  const comp = $("#composer"), mi = ORDER.indexOf("make");
+  comp.classList.toggle("hidden", next !== "make");
+  comp.classList.toggle("to-left", mi < to);
+  comp.classList.toggle("to-right", mi > to);
+  comp.inert = next !== "make";
+  for (const t of $$(".tab")) { const on = t.dataset.tab === next; t.classList.toggle("on", on); if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current"); t.removeAttribute("aria-selected"); }
   placePill();
   keyFace();
   if (next === "widgets") {
-    $("#badge").classList.remove("show");
-    if (pending && !quiet) { const it = pending; pending = null; $("#toast").classList.remove("show"); land(it); }
+    unseen = 0; badge();
+    if (pending.length && !quiet) { const a = pending; pending = []; $("#toast").classList.remove("show"); land(a); }
   }
 }
-for (const t of document.querySelectorAll("[data-tab]")) t.onclick = () => go(t.dataset.tab);
-for (const b of document.querySelectorAll("[data-go]")) b.onclick = () => go(b.dataset.go);
+for (const t of $$("[data-tab]")) t.onclick = () => go(t.dataset.tab);
+for (const b of $$("[data-go]")) b.onclick = () => go(b.dataset.go);
 function keyFace() { drawWidgie($("#tab-widgie"), "idle", { moon: night && tab !== "make" ? "1" : "0" }); }
 function redrawCast() {
-  for (const el of document.querySelectorAll(".widgie")) {
+  for (const el of $$(".widgie")) {
     if (!el._pose) continue;
     el.classList.remove("fadeswap"); void el.offsetWidth; el.classList.add("fadeswap");
     drawWidgie(el, ...el._pose);
   }
 }
-for (const b of document.querySelectorAll("[data-time]")) b.onclick = () => {
+// Day and night: the sky, every surface and every Widgie cross-fade; the pile stays as it is.
+for (const b of $$("[data-time]")) b.onclick = () => {
   night = b.dataset.time === "night";
-  for (const x of document.querySelectorAll("[data-time]")) x.classList.toggle("on", x === b);
+  for (const x of $$("[data-time]")) x.classList.toggle("on", x === b);
   phone.classList.toggle("night", night);
   $("#w-hello").textContent = night ? "Good evening" : "Good morning";
   redrawCast(); keyFace();
-  castBanner(CATS[cat]); renderPile(false);
+  paintBanner(CATS[cat]); castBanner(CATS[cat]);
   say($("#w-bubble"), greet(), { swap: true });
 };
 
-// Widgie's idle life on Widgets: a double blink, a glance at your widgets, or a little hop, every 8 to 11 seconds.
-let beat = 0;
+// Widgie's idle life on Widgets: a double blink, a glance at your widgets, or a little hop, every 8 to 11 seconds,
+// only while you are not busy with something.
+let beat = 0, lastTouch = 0;
+for (const ev of ["pointerdown", "keydown", "wheel"]) phone.addEventListener(ev, () => (lastTouch = Date.now()), true);
+$("#p-widgets").addEventListener("scroll", () => (lastTouch = Date.now()), { passive: true });
 function idle() {
   const w = $("#w-widgie");
-  if (tab === "widgets" && !calm) { const n = beat++ % 3; if (n === 0) play(w, "blink2", 640); else if (n === 1) play(w, "glance", 1420); else hop(w, true); }
+  const quiet = Date.now() - lastTouch > 4000 && $("#p-widgets").scrollTop < 140 && !$("#sheet").classList.contains("show");
+  if (tab === "widgets" && !calm && quiet) { const n = beat++ % 3; if (n === 0) play(w, "blink2", 640); else if (n === 1) play(w, "glance", 1420); else hop(w, true); }
   setTimeout(idle, 8000 + (beat % 3) * 1500);
 }
 
@@ -1120,17 +1483,19 @@ makeReset();
 renderCats();
 renderPile(false);
 go("widgets");
+badge();
 setTimeout(() => say($("#w-bubble"), greet()), 700);
 setTimeout(idle, 9000);
 window.proto = {
-  go, ask: (i) => ask(IDEAS[i], IDEAS[i].t), openSheet: (i) => openSheet(CATS[cat].items[i], null),
-  setNight: (n) => document.querySelector(`[data-time="${n ? "night" : "day"}"]`).click(),
+  go, ask: (i) => ask(IDEAS[i], IDEAS[i].t, $$(".idea")[i]), openSheet: (i) => openSheet(CATS[cat].items[i], $$("#pile .item")[i] || null),
+  setNight: (n) => $(`[data-time="${n ? "night" : "day"}"]`).click(),
   say: () => say($("#w-bubble"), greet()),
-  cat: (k) => document.querySelector(`.cat[data-cat="${k}"]`).click(),
+  cat: (k) => pickCat(k),
   add: (w, n, pairs, look) => addToFeed({ w, name: n, words: pairs, look }),
   refine: (i) => draft && refine(draft.chips[i][0], draft.chips[i]),
+  send: (text) => { say_.value = text; composerMode(); $("#composer").requestSubmit(); },
   saveDraft: () => draft && saved(),
-  adopt,
+  adopt, closeSheet,
 };
 })();
 </script>
