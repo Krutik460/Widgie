@@ -1,5 +1,6 @@
 // The top level is production. Environments inherit no vars, secrets, or bindings, so each declares its own.
-// Secret per environment: MODEL_API_KEY.
+// Secret per environment: MODEL_API_KEY. Secret on dev only: DEV_REGISTRATION_SECRET, which lets the simulator
+// register an account without App Attest; production refuses it even if it were set, because ENVIRONMENT is not "dev".
 // MODEL_URL is any OpenAI-compatible chat completions endpoint: OpenRouter here, or Bedrock Mantle
 // (https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions, with PROVIDER empty). PROVIDER pins one OpenRouter
 // provider: Together serves DeepSeek V4.1 Flash at full precision and does not train on requests. REASONING is
@@ -9,6 +10,9 @@
 // Release builds. ATTESTED_KEY is one SQLite-backed Durable Object per App Attest key (public key, counter, pending
 // challenge). The class was created SQLite-backed (migration v1) and can never change backend. There are no usage
 // limits for now (no attest rate limit, no daily quota); they come back later.
+// DB is the environment's D1 database (accounts, automations, tasks, changes, spend), its schema in migrations/.
+// PLACEHOLDER database ids: create each database with `npx wrangler d1 create widgie` and
+// `npx wrangler d1 create widgie-dev`, and put the ids they print here before the first deploy.
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "widgie",
@@ -16,6 +20,7 @@
     "compatibility_date": "2026-08-15",
     "observability": { "enabled": true },
     "vars": {
+        "ENVIRONMENT": "production",
         "MODEL_URL": "https://openrouter.ai/api/v1/chat/completions",
         "MODEL": "deepseek/deepseek-v4.1-flash-1017",
         "PROVIDER": "together",
@@ -25,10 +30,19 @@
     },
     "durable_objects": { "bindings": [{ "name": "ATTESTED_KEY", "class_name": "AttestedKey" }] },
     "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }],
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "widgie",
+            "database_id": "PLACEHOLDER-run-wrangler-d1-create-widgie",
+            "migrations_dir": "migrations"
+        }
+    ],
     "env": {
         "dev": {
             "name": "widgie-dev",
             "vars": {
+                "ENVIRONMENT": "dev",
                 "MODEL_URL": "https://openrouter.ai/api/v1/chat/completions",
                 "MODEL": "deepseek/deepseek-v4.1-flash-1017",
                 "PROVIDER": "together",
@@ -37,7 +51,15 @@
                 "ATTEST_ENV": "development"
             },
             "durable_objects": { "bindings": [{ "name": "ATTESTED_KEY", "class_name": "AttestedKey" }] },
-            "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }]
+            "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AttestedKey"] }],
+            "d1_databases": [
+                {
+                    "binding": "DB",
+                    "database_name": "widgie-dev",
+                    "database_id": "PLACEHOLDER-run-wrangler-d1-create-widgie-dev",
+                    "migrations_dir": "migrations"
+                }
+            ]
         }
     }
 }

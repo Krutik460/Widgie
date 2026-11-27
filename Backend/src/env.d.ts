@@ -15,5 +15,11 @@ declare namespace Cloudflare {
         ATTEST_ENV: string;
         /// One object per App Attest key, named by the key id.
         ATTESTED_KEY: DurableObjectNamespace<import("./attested-key").AttestedKey>;
+        /// "dev" or "production". Only "dev" takes DEV_REGISTRATION_SECRET.
+        ENVIRONMENT: string;
+        /// A secret on `dev` only: the simulator registers an account with it, since it cannot attest.
+        DEV_REGISTRATION_SECRET?: string;
+        /// The environment's accounts, automations, tasks, and changes (migrations/).
+        DB: D1Database;
     }
 }
