@@ -1,0 +1,16 @@
+{
+  "name": "Today's question",
+  "line": "A new question every day",
+  "category": "for-two",
+  "order": 50,
+  "family": "medium",
+  "hint": "Tap when you've answered.",
+  "blanks": [
+    {
+      "key": "partner",
+      "label": "Your partner's name",
+      "placeholder": "Sam",
+      "maxLength": 20
+    }
+  ]
+}
