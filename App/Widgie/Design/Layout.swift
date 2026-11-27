@@ -7,6 +7,31 @@ enum Page {
     static let margin: CGFloat = 20
 }
 
+/// Wraps its text as CSS `text-wrap: balance` does: at the narrowest width that keeps the number of lines it takes
+/// at the width offered, so its lines come out about even instead of ending on a short one.
+struct Balanced: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let text = subviews.first else { return .zero }
+        guard let offered = proposal.width, offered.isFinite else { return text.sizeThatFits(proposal) }
+        let lines = text.sizeThatFits(ProposedViewSize(width: offered, height: nil)).height
+        var (narrow, wide) = (CGFloat.zero, offered)
+        while wide - narrow > 0.5 {
+            let middle = (narrow + wide) / 2
+            if text.sizeThatFits(ProposedViewSize(width: middle, height: nil)).height > lines {
+                narrow = middle
+            } else {
+                wide = middle
+            }
+        }
+        // The width found, not the text's own, so that placing the text at it breaks the same lines.
+        return CGSize(width: wide, height: lines)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, proposal: ProposedViewSize(width: bounds.width, height: nil))
+    }
+}
+
 /// A face drawn at `size` through `host`, lifted off the ground like a widget. A grey tile until it draws.
 struct FaceTile: View {
     let face: Face?

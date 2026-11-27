@@ -145,14 +145,16 @@ struct TemplateBanner: View {
     }
 
     private var line: some View {
-        Text(shown.line)
-            .display(size: 27, relativeTo: .title, lineHeight: 1.02)
-            .foregroundStyle(Palette.bannerText)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 22)
-            .padding(.vertical, 18)
-            .id(shown)
-            .accessibilityAddTraits(.isHeader)
+        Balanced {
+            Text(shown.line)
+                .display(size: 27, relativeTo: .title, lineHeight: 1.02)
+                .foregroundStyle(Palette.bannerText)
+                .accessibilityAddTraits(.isHeader)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, 22)
+        .padding(.vertical, 18)
+        .id(shown)
     }
 }
 
