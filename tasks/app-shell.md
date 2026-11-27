@@ -252,13 +252,15 @@ Asked for on 2026-11-27: once the five units merged, clean up the code and merge
 - [x] The chips draw the prototype's heart, house, leaf and star as shapes, not SF Symbols, and the banner line wraps balanced, as the prototype's `text-wrap: balance` does, so Habits reads "See your / weeks fill up" and Goals "Little wins / add up". (look, toward the prototype)
 - [x] Look comments in the 19 templates stop naming "the prototype", since a look is sent to the model on Change in chat.
 - [x] Pet fed's hint says it stays on this phone for now, as plant care does.
+- [x] The banner's Widgies take the prototype's sizes (94 for the couple, 112 at home, 104 for habits and goals) and stand on the sole of their foot, as the feed's Widgie does, so they stand above the banner's edge with their floor shadows showing, where before they were drawn about 1.2 times larger and sank into the edge. (look, toward the prototype)
+- [x] Our moods keeps the prototype's line, "Share how you're feeling". Its old line, "A face each, on one phone for now", was cut off in the pile, and its hint already says it stays on this phone, as every other shared template's does.
 - [x] The pile uses `FeedRow.singles`; `SampleRow.datesFromToday` is set in its initializer; fonts register where they are drawn, not in the parser; a long doc comment rewrapped.
 - [x] Tests: no repeated "me" builds, one face instead of a timeline in the label test, a cached catalog lookup, shared rows-file (`withRows`) and undo-list fixtures, `TemplateBench` renamed `TemplateRig`.
 
 **Checks**
 
-- [ ] `scripts/check` green with no warnings after each pass.
-- [ ] Simulator screenshots of every tab against the prototype, light and dark, for the look items.
+- [x] `scripts/check` green with no warnings after each pass.
+- [x] Simulator screenshots of the Templates tab against the prototype, all four categories, light and dark, for the look items; the Widgets and Make tabs compared before and after passes A and B, unchanged.
 - [ ] A review guide in `docs/pr/`, a fresh Opus review, fixes, then merge.
 
 Left out on purpose: the badge's spacer stacks (an alignment guide could move it), moving `cut-bricolage.py` out of `Sources/` (PR 16 kept it beside the fonts on purpose), folding `Template.Info`, and renaming blank keys (internal, and the labels already match).
