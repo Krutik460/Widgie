@@ -15,7 +15,7 @@ Done means, on a real iPhone:
 ## Decisions (user, 2026-11-27)
 
 1. **A task table, not per-account alarms.** One D1 database holds the tasks with their due times; a cron every minute claims the due ones and hands them to a Queue. The user asked for it, and it is simpler: one place to see, query, and fix every run. Writing rows a period ahead makes the cron's weak points (a skipped minute during a deploy, no built-in retry) harmless.
-2. **Workers Paid ($5 a month).** Free's 10 ms CPU per cron run and 10,000 queue operations a day do not fit. The user upgrades in the Cloudflare dashboard before P3 deploys.
+2. **Workers Paid ($5 a month), when a measured number needs it.** Approved by the user, then corrected the same day: the design runs on Free at test scale. The cron and the consumer mostly wait on D1 and OpenRouter, and waiting is not CPU. P3 measures CPU per cron run and per consumer run on `dev` against Free's 10 ms, and the upgrade happens when a measurement comes within 2 ms of it, or before the first people outside testing, whichever is first. Free's daily ceilings, for reference: 10,000 queue operations (about 3,000 runs), 100,000 Worker requests (pulls from about 2,000 widgets), 100,000 D1 rows written, and queue messages kept 24 hours.
 3. **Automations follow the phone's time zone.** Someone who moves from New York to Los Angeles keeps getting the word at 06:00 local. The upload sends the phone's current zone, the app re-uploads when it changes, and the engine reads the same zone.
 4. **Push moves to phase 4.** Rows written a period ahead plus the app's pull after an upload meet every phase 3 done criterion. Phase 4 needs push for a partner's tap and carries the spike, the APNs key, the push handler, and the signer.
 
@@ -117,7 +117,7 @@ Starts with the wire format doc and the vectors file, which P2 also builds on.
 - [ ] The consumer: the automation system prompt, structured output where supported (`response_format` and `require_parameters` added to `model.ts` behind a setting), the last 60 rows, the repeat check, validation, one repair retry, then the version-guarded write batch. A dead-letter queue, `max_concurrency` to protect OpenRouter, `max_tokens` around 1,500.
 - [ ] Logs model, seconds, usage, and cost per run, never the prompt text.
 - [ ] Vitest: lead times and offsets stay in their windows, two crons never claim the same task, an expired claim is claimed again, a stale version writes nothing, a replayed message writes once, a repeat is rejected, five failures move the task on, the daily run limit.
-- [ ] Deploy to `dev` (after the Paid upgrade) and run 20 hourly automations for a day; record failures, repeats, and cost.
+- [ ] Deploy to `dev` and run 20 hourly automations for a day; record failures, repeats, cost, and CPU per cron and consumer run against Free's 10 ms (decision 2).
 
 ### P4. App and extension: register, upload, pull
 
