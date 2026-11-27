@@ -27,7 +27,7 @@ package enum JSONValue: Hashable, Sendable {
     }
 
     /// How an error line names a value: `the string "6am"`, `the number 3`, `a list`.
-    var described: String {
+    package var described: String {
         switch self {
         case .null: "null"
         case .bool(let value): value ? "true" : "false"

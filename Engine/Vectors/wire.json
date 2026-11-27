@@ -1,0 +1,2161 @@
+{
+  "about": "Shared vectors for the wire format in docs/engine/WIRE.md. Engine/Tests/RowsTests/WireTests.swift and the Worker's tests check every case. Times are milliseconds since 1970-01-01T00:00:00Z, and days are Day indexes, the days since 1970-01-01.",
+  "format": 1,
+  "stamps": [
+    {
+      "name": "a server write",
+      "ms": 1794978000000,
+      "counter": 0,
+      "stamp": "117635678208000000"
+    },
+    {
+      "name": "the next write in the same millisecond",
+      "ms": 1794978000000,
+      "counter": 1,
+      "stamp": "117635678208000001"
+    },
+    {
+      "name": "the largest counter",
+      "ms": 1794978000000,
+      "counter": 65535,
+      "stamp": "117635678208065535"
+    },
+    {
+      "name": "the epoch",
+      "ms": 0,
+      "counter": 0,
+      "stamp": "0"
+    },
+    {
+      "name": "the largest stamp",
+      "ms": 140737488355327,
+      "counter": 65535,
+      "stamp": "9223372036854775807"
+    }
+  ],
+  "badStamps": [
+    {
+      "name": "negative",
+      "stamp": "-1"
+    },
+    {
+      "name": "a leading zero",
+      "stamp": "01"
+    },
+    {
+      "name": "past 64 bits",
+      "stamp": "9223372036854775808"
+    },
+    {
+      "name": "empty",
+      "stamp": ""
+    },
+    {
+      "name": "a fraction",
+      "stamp": "1.0"
+    },
+    {
+      "name": "a space",
+      "stamp": " 1"
+    },
+    {
+      "name": "hex",
+      "stamp": "0x10"
+    },
+    {
+      "name": "a plus sign",
+      "stamp": "+1"
+    },
+    {
+      "name": "a number",
+      "stamp": 1794978000000
+    },
+    {
+      "name": "null",
+      "stamp": null
+    }
+  ],
+  "days": [
+    {
+      "name": "New York, the last millisecond of a day",
+      "at": 1794977999999,
+      "timeZone": "America/New_York",
+      "day": 20774,
+      "date": "2026-11-17"
+    },
+    {
+      "name": "New York, midnight",
+      "at": 1794978000000,
+      "timeZone": "America/New_York",
+      "day": 20775,
+      "date": "2026-11-18"
+    },
+    {
+      "name": "New York, the word's run at 06:00",
+      "at": 1795086000000,
+      "timeZone": "America/New_York",
+      "day": 20776,
+      "date": "2026-11-19"
+    },
+    {
+      "name": "New York, just before clocks spring forward",
+      "at": 1772953199999,
+      "timeZone": "America/New_York",
+      "day": 20520,
+      "date": "2026-03-08"
+    },
+    {
+      "name": "New York, 03:00 right after they spring forward",
+      "at": 1772953200000,
+      "timeZone": "America/New_York",
+      "day": 20520,
+      "date": "2026-03-08"
+    },
+    {
+      "name": "New York, the end of the 23-hour day",
+      "at": 1773028799999,
+      "timeZone": "America/New_York",
+      "day": 20520,
+      "date": "2026-03-08"
+    },
+    {
+      "name": "New York, midnight after the 23-hour day",
+      "at": 1773028800000,
+      "timeZone": "America/New_York",
+      "day": 20521,
+      "date": "2026-03-09"
+    },
+    {
+      "name": "New York, the first 01:30 of the day clocks fall back",
+      "at": 1793511000000,
+      "timeZone": "America/New_York",
+      "day": 20758,
+      "date": "2026-11-01"
+    },
+    {
+      "name": "New York, the second 01:30",
+      "at": 1793514600000,
+      "timeZone": "America/New_York",
+      "day": 20758,
+      "date": "2026-11-01"
+    },
+    {
+      "name": "New York, the end of the 25-hour day",
+      "at": 1793595599999,
+      "timeZone": "America/New_York",
+      "day": 20758,
+      "date": "2026-11-01"
+    },
+    {
+      "name": "Kolkata, half an hour off UTC, before midnight",
+      "at": 1794940199999,
+      "timeZone": "Asia/Kolkata",
+      "day": 20774,
+      "date": "2026-11-17"
+    },
+    {
+      "name": "Kolkata, midnight",
+      "at": 1794940200000,
+      "timeZone": "Asia/Kolkata",
+      "day": 20775,
+      "date": "2026-11-18"
+    },
+    {
+      "name": "Kiritimati, 14 hours ahead",
+      "at": 1794909600000,
+      "timeZone": "Pacific/Kiritimati",
+      "day": 20775,
+      "date": "2026-11-18"
+    },
+    {
+      "name": "Sydney in summer time, before midnight",
+      "at": 1795006799999,
+      "timeZone": "Australia/Sydney",
+      "day": 20775,
+      "date": "2026-11-18"
+    },
+    {
+      "name": "Sydney in summer time, midnight",
+      "at": 1795006800000,
+      "timeZone": "Australia/Sydney",
+      "day": 20776,
+      "date": "2026-11-19"
+    },
+    {
+      "name": "UTC, midnight",
+      "at": 1794960000000,
+      "timeZone": "UTC",
+      "day": 20775,
+      "date": "2026-11-18"
+    }
+  ],
+  "keys": [
+    {
+      "name": "the word's key, minted when its task was made",
+      "key": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+      "ms": 1794891600000
+    },
+    {
+      "name": "the smallest",
+      "key": "00000000-0000-7000-8000-000000000000",
+      "ms": 0
+    },
+    {
+      "name": "the largest",
+      "key": "ffffffff-ffff-7fff-bfff-ffffffffffff",
+      "ms": 281474976710655
+    }
+  ],
+  "badKeys": [
+    {
+      "name": "uppercase",
+      "key": "01A1E7E0-5080-7005-A17C-3E9D2B04F6A8"
+    },
+    {
+      "name": "version 4",
+      "key": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f"
+    },
+    {
+      "name": "variant 11",
+      "key": "00000000-0000-7000-c000-000000000000"
+    },
+    {
+      "name": "no hyphens",
+      "key": "01a1e7e050807005a17c3e9d2b04f6a8"
+    },
+    {
+      "name": "braces",
+      "key": "{01a1e7e0-5080-7005-a17c-3e9d2b04f6a8}"
+    },
+    {
+      "name": "one digit short",
+      "key": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a"
+    },
+    {
+      "name": "empty",
+      "key": ""
+    },
+    {
+      "name": "a number",
+      "key": 7
+    }
+  ],
+  "changes": [
+    {
+      "name": "insertRow: the word of the day, written ahead",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 0,
+        "day": "2026-11-19",
+        "at": "2026-11-19T11:00:00.000Z"
+      }
+    },
+    {
+      "name": "setCell: text",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "word",
+        "kind": "text",
+        "value": "serendipity",
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 0,
+        "field": "word",
+        "text": "serendipity"
+      }
+    },
+    {
+      "name": "setCell: number",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "rank",
+        "kind": "number",
+        "value": 3.5,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 0,
+        "field": "rank",
+        "number": 3.5
+      }
+    },
+    {
+      "name": "setCell: bool",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "learned",
+        "kind": "bool",
+        "value": false,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 0,
+        "field": "learned",
+        "bool": false
+      }
+    },
+    {
+      "name": "setCell: date",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "due",
+        "kind": "date",
+        "value": 20777,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 0,
+        "field": "due",
+        "date": "2026-11-20"
+      }
+    },
+    {
+      "name": "setCell: a negative whole number",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "rank",
+        "kind": "number",
+        "value": -12,
+        "stamp": "117635678208000001",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 1,
+        "field": "rank",
+        "number": -12
+      }
+    },
+    {
+      "name": "setCell: a date before 1970",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "due",
+        "kind": "date",
+        "value": -165,
+        "stamp": "117635678208000002",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 2,
+        "field": "due",
+        "date": "1969-07-20"
+      }
+    },
+    {
+      "name": "setCell: empty text",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "word",
+        "kind": "text",
+        "value": "",
+        "stamp": "117635678208000003",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 3,
+        "field": "word",
+        "text": ""
+      }
+    },
+    {
+      "name": "setCell: text at the limit, 300 UTF-16 units with an emoji counted as 2",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "word",
+        "kind": "text",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀",
+        "stamp": "117635678208000004",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 4,
+        "field": "word",
+        "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀"
+      }
+    },
+    {
+      "name": "setCell: text over the limit decodes, and receive refuses it",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "word",
+        "kind": "text",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀",
+        "stamp": "117635678208000005",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 5,
+        "field": "word",
+        "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀"
+      }
+    },
+    {
+      "name": "deleteRow",
+      "wire": {
+        "op": "deleteRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "stamp": "117635914137600000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "deleteRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794981600000,
+        "counter": 0
+      }
+    },
+    {
+      "name": "deleteRow: the largest counter",
+      "wire": {
+        "op": "deleteRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "stamp": "117635678208065535",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "deleteRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 65535
+      }
+    },
+    {
+      "name": "deleteRow: stamp zero",
+      "wire": {
+        "op": "deleteRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "stamp": "0",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "deleteRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 0,
+        "counter": 0
+      }
+    },
+    {
+      "name": "insertRow: the earliest day and at",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5081-7000-9234-abcd567900a1",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": -719162,
+        "at": 0,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5081-7000-9234-abcd567900a1",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 0,
+        "day": "0001-01-01",
+        "at": "1970-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "name": "insertRow: the latest day and at",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5081-7000-9234-abcd567900a1",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 2932896,
+        "at": 253402300799999,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      },
+      "means": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5081-7000-9234-abcd567900a1",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "ms": 1794978000000,
+        "counter": 0,
+        "day": "9999-12-31",
+        "at": "9999-12-31T23:59:59.999Z"
+      }
+    }
+  ],
+  "badChanges": [
+    {
+      "name": "an unknown op",
+      "wire": {
+        "op": "moveHead",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a missing key",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "an unknown key",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "extra": 1
+      }
+    },
+    {
+      "name": "insertRow with a setCell key",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "field": "word"
+      }
+    },
+    {
+      "name": "the stamp as a number",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": 1794978000000,
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "the stamp with a leading zero",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "0117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "the stamp past 64 bits",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "9223372036854775808",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a negative stamp",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "-1",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "an uppercase row key",
+      "wire": {
+        "op": "insertRow",
+        "row": "01A1E7E0-5080-7005-A17C-3E9D2B04F6A8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a row key that is a UUIDv4",
+      "wire": {
+        "op": "insertRow",
+        "row": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a row key without hyphens",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e050807005a17c3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a dataset that is not a UUID",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "words",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "an uppercase dataset",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3F6C1D2E-8B4A-4C9E-9D7F-2A1B3C4D5E6F",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a replica that is not a UUID",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "sample:Sam"
+      }
+    },
+    {
+      "name": "an uppercase replica",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7D9E4C1A-2B3F-4A5D-8E6F-1C2D3E4F5A6B"
+      }
+    },
+    {
+      "name": "a day with a fraction",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776.5,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a day as an ISO date",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": "2026-11-19",
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a day after 9999-12-31",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 2932897,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a day before 0001-01-01",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": -719163,
+        "at": 1795086000000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a negative at",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": -1,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "an at after 9999",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 253402300800000,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "an at with a fraction",
+      "wire": {
+        "op": "insertRow",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "day": 20776,
+        "at": 1795086000000.5,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "an unknown kind",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "word",
+        "kind": "string",
+        "value": "x",
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a text kind with a number value",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "word",
+        "kind": "text",
+        "value": 3,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a number kind with a string value",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "rank",
+        "kind": "number",
+        "value": "3.5",
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a bool kind with 1",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "learned",
+        "kind": "bool",
+        "value": 1,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a date kind with an ISO date",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "due",
+        "kind": "date",
+        "value": "2026-11-20",
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a date kind with a fraction",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "due",
+        "kind": "date",
+        "value": 20777.5,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a field id that starts with a capital",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "Word",
+        "kind": "text",
+        "value": "x",
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a field id longer than 32",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+        "kind": "text",
+        "value": "x",
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "a null value",
+      "wire": {
+        "op": "setCell",
+        "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+        "field": "word",
+        "kind": "text",
+        "value": null,
+        "stamp": "117635678208000000",
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+      }
+    },
+    {
+      "name": "not an object",
+      "wire": [
+        {
+          "op": "insertRow",
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+          "day": 20776,
+          "at": 1795086000000,
+          "stamp": "117635678208000000",
+          "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "an empty page",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [],
+        "nextWrite": null
+      }
+    },
+    {
+      "name": "the word of the day",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 1,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 2,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "word",
+              "kind": "text",
+              "value": "serendipity",
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 3,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "rank",
+              "kind": "number",
+              "value": 3.5,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 4,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "learned",
+              "kind": "bool",
+              "value": false,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 5,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "due",
+              "kind": "date",
+              "value": 20777,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          }
+        ],
+        "nextWrite": 1795064400000
+      }
+    },
+    {
+      "name": "ids may skip",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 7,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 42,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "word",
+              "kind": "text",
+              "value": "serendipity",
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          }
+        ],
+        "nextWrite": 1795064400000
+      }
+    }
+  ],
+  "badPages": [
+    {
+      "name": "ids out of order",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 2,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 1,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "word",
+              "kind": "text",
+              "value": "serendipity",
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          }
+        ],
+        "nextWrite": 1795064400000
+      }
+    },
+    {
+      "name": "a repeated id",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 1,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 1,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "word",
+              "kind": "text",
+              "value": "serendipity",
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          }
+        ],
+        "nextWrite": 1795064400000
+      }
+    },
+    {
+      "name": "id zero",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 0,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          }
+        ],
+        "nextWrite": 1795064400000
+      }
+    },
+    {
+      "name": "an id with a fraction",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 1.5,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          }
+        ],
+        "nextWrite": 1795064400000
+      }
+    },
+    {
+      "name": "one change that does not decode refuses the whole page",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 1,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          },
+          {
+            "id": 2,
+            "change": {
+              "op": "setCell",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "field": "word",
+              "kind": "string",
+              "value": "serendipity",
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            }
+          }
+        ],
+        "nextWrite": 1795064400000
+      }
+    },
+    {
+      "name": "a missing nextWrite",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": []
+      }
+    },
+    {
+      "name": "a nextWrite with a fraction",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [],
+        "nextWrite": 1795064400000.5
+      }
+    },
+    {
+      "name": "a replica that is not a UUID",
+      "wire": {
+        "replica": "automations",
+        "changes": [],
+        "nextWrite": 1795064400000
+      }
+    },
+    {
+      "name": "an unknown key",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [],
+        "nextWrite": 1795064400000,
+        "more": true
+      }
+    },
+    {
+      "name": "an entry with an unknown key",
+      "wire": {
+        "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+        "changes": [
+          {
+            "id": 1,
+            "change": {
+              "op": "insertRow",
+              "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+              "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+              "day": 20776,
+              "at": 1795086000000,
+              "stamp": "117635678208000000",
+              "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+            },
+            "at": 1
+          }
+        ],
+        "nextWrite": null
+      }
+    },
+    {
+      "name": "not an object",
+      "wire": [
+        {
+          "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+          "changes": [],
+          "nextWrite": 1795064400000
+        }
+      ]
+    }
+  ],
+  "receive": [
+    {
+      "name": "an empty page records the automation replica",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [],
+            "nextWrite": null
+          },
+          "watermark": 0,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        },
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [],
+            "nextWrite": null
+          },
+          "watermark": 0,
+          "changed": false,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": []
+    },
+    {
+      "name": "a word written ahead",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "serendipity",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 3.5,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 4,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "learned",
+                  "kind": "bool",
+                  "value": false,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 5,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "due",
+                  "kind": "date",
+                  "value": 20777,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 5,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": [
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "day": "2026-11-19",
+          "at": 1795086000000,
+          "cells": {
+            "word": "serendipity",
+            "rank": 3.5,
+            "learned": false,
+            "due": 20777
+          }
+        }
+      ]
+    },
+    {
+      "name": "a replayed page changes nothing",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "serendipity",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 3.5,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 4,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "learned",
+                  "kind": "bool",
+                  "value": false,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 5,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "due",
+                  "kind": "date",
+                  "value": 20777,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 5,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        },
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "serendipity",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 3.5,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 4,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "learned",
+                  "kind": "bool",
+                  "value": false,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 5,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "due",
+                  "kind": "date",
+                  "value": 20777,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 5,
+          "changed": false,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": [
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "day": "2026-11-19",
+          "at": 1795086000000,
+          "cells": {
+            "word": "serendipity",
+            "rank": 3.5,
+            "learned": false,
+            "due": 20777
+          }
+        }
+      ]
+    },
+    {
+      "name": "a held change stops the page and its watermark",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "early",
+                  "stamp": "117637840896000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 1,
+                  "stamp": "117637840896065536",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 4,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "learned",
+                  "kind": "bool",
+                  "value": true,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 2,
+          "changed": true,
+          "held": 2,
+          "refused": 0
+        },
+        {
+          "now": 1795010520000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "early",
+                  "stamp": "117637840896000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 1,
+                  "stamp": "117637840896065536",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 4,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "learned",
+                  "kind": "bool",
+                  "value": true,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 4,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": [
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "day": "2026-11-19",
+          "at": 1795086000000,
+          "cells": {
+            "word": "early",
+            "rank": 1,
+            "learned": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "text over the limit is refused and the watermark passes it",
+      "fields": {
+        "word": "text",
+        "note": "text"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "note",
+                  "kind": "text",
+                  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 3,
+          "changed": true,
+          "held": 0,
+          "refused": 1
+        }
+      ],
+      "rows": [
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "day": "2026-11-19",
+          "at": 1795086000000,
+          "cells": {
+            "note": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a tombstone wins in either order",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5082-7000-9234-abcd567911b2",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5082-7000-9234-abcd567911b2",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "gone",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "deleteRow",
+                  "row": "01a1e7e0-5082-7000-9234-abcd567911b2",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "stamp": "117635914137600000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 4,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5082-7000-9234-abcd567911b2",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "after",
+                  "stamp": "117636150067200000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 5,
+                "change": {
+                  "op": "deleteRow",
+                  "row": "01a1e7e0-5083-7000-9234-abcd567922c3",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 6,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5083-7000-9234-abcd567922c3",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 7,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5083-7000-9234-abcd567922c3",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "never",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 7,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": []
+    },
+    {
+      "name": "the larger stamp wins, then the larger replica",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "kept",
+                  "stamp": "117635678208000002",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "older",
+                  "stamp": "117635678208000001",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 4,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 1,
+                  "stamp": "117635678208000003",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 5,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 2,
+                  "stamp": "117635678208000003",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6c"
+                }
+              },
+              {
+                "id": 6,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 3,
+                  "stamp": "117635678208000003",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 6,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": [
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "day": "2026-11-19",
+          "at": 1795086000000,
+          "cells": {
+            "word": "kept",
+            "rank": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "the watermark never moves backwards",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 7,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 8,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "word",
+                  "kind": "text",
+                  "value": "serendipity",
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 8,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        },
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 3,
+                "change": {
+                  "op": "setCell",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "field": "rank",
+                  "kind": "number",
+                  "value": 4,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              }
+            ],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 8,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        },
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [],
+            "nextWrite": 1795064400000
+          },
+          "watermark": 8,
+          "changed": false,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": [
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "day": "2026-11-19",
+          "at": 1795086000000,
+          "cells": {
+            "word": "serendipity",
+            "rank": 4
+          }
+        }
+      ]
+    }
+  ]
+}
