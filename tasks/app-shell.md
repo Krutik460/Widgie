@@ -129,21 +129,22 @@ Decisions (2026-11-26, from the user):
 
 ### U3. Templates tab
 
-- [ ] `Template` data: one folder per template under `App/Templates/<id>/` with `widget.json` (the same format as the fixtures, samples included) and `template.json` (`name`, `line`, `category`, `blanks: [{key, label, placeholder}]`, `suggestion` for the chat chips). Templates ship in release builds, unlike the debug fixtures.
-- [ ] Blanks: substitution runs on the decoded document, never on raw text. In `name` and other plain strings, `{{key}}` becomes the value. In `look`, `{{key}}` becomes a complete JSON string literal, quotes included, which is also a valid JS string literal, so templates write `const PET = {{pet}};`. The result then goes through `engine.build`, the same path every widget takes. An empty blank uses its placeholder ("Luna").
-- [ ] `TemplatesView`: a title, category chips (All, For two, Home, Habits, Goals, Learning), and the same feed layout as Widgets, with name and line under each face. Faces render from a sample in a scratch engine, so they look alive.
-- [ ] `TemplateDetail` sheet: a live try-it face (taps work on scratch data), the blank fields, Add widget (builds into the library, then switches to Widgets with the new card highlighted), and Change it in chat (opens Make with the filled template as the draft, so the first message is a refine).
-- [ ] **Check:** every template builds through `engine.build` in an app test, with and without blank values, including a value with quotes and emoji. On the simulator: browse, filter, try, add with a name, and change in chat. Screenshots in light and dark.
+- [x] `Template` data: one folder per template under `App/Templates/<id>/` with `widget.json` (the same format as the fixtures, samples included) and `template.json` (`name`, `line`, `category`, `order`, `family` for its size in the pile, `hint` for Widgie's first line in the sheet, and `blanks: [{key, label, placeholder}]`). Templates ship in release builds, unlike the debug fixtures. The `suggestion` for the chat chips comes with U2, which uses it.
+- [x] Blanks: substitution runs on the decoded document, never on raw text. In `name` and other plain strings, `{{key}}` becomes the value. In `look`, `{{key}}` becomes a complete JSON string literal, quotes included, which is also a valid JS string literal, so templates write `const PET = {{pet}};`. The result then goes through `engine.build`, the same path every widget takes. An empty blank uses its placeholder ("Luna").
+- [x] The six fixtures moved over as the first templates, named as in the prototype: For two "Thinking of you" (blank: who gets the hearts), Home "Pet fed" (blank: the pet's name) and "To-do list", Habits "Habit squares" (blank: the habit) and "Water", Goals "Word of the day". `Engine/Fixtures/` stays as it is, because engine tests read it.
+- [x] `TemplatesView`, as drawn in the prototype: the eyebrow and title, the category chips (For two, Home, Habits, Goals: no All and no Learning, as in the prototype, with word of the day in Goals), a banner per category where Widgie acts it out, and the pile: the feed's layout with each card tilted, one button with an inert sample face. Faces render from the first sample in the gallery's own scratch engine, at the column size, lazily, once per template.
+- [x] `TemplateSheet`, the native sheet fitted to its content: the live face (taps work on scratch data and Widgie calls them practice), Widgie's bubble starting with the template's hint, the blank fields (a typed name rebuilds the face), Add widget (builds into the library, then switches to Widgets with the new card highlighted), and Change in chat (opens Make with the filled template as the draft, so the first message is a refine; a draft already in Make asks first).
+- [x] The feed's empty state gains Browse templates. The display face is `display(size:)`, the system font at heavy weight until U1b bundles Bricolage.
+- [x] **Check:** every template builds through `engine.build` in an app test, with and without blank values, including a value with quotes and emoji. On the simulator: browse, filter, try, add with a name, and change in chat. Screenshots in light and dark, and at the largest text size.
 
 ### U4. Template content
 
-Taken from the landing page (`Site/public/widgets.js`), grouped by the categories above. Six already exist as fixtures (dog fed, hearts, water, habit, to-do, word of the day) and move over.
+Taken from the landing page (`Site/public/widgets.js`), grouped by the prototype's four categories. U3 moved the six fixtures over (thinking of you, pet fed, to-do list, habit squares, water, word of the day); these are the rest.
 
-- [ ] For two: thinking of you, our moods, today's question, days together, trip countdown.
-- [ ] Home: pet fed, bins rota, shared groceries, plant care, chores scoreboard, dinner tonight, baby feeds.
-- [ ] Habits: water, meditate streak, habit squares, pushups this week.
+- [ ] For two: our moods, today's question, days together, trip countdown.
+- [ ] Home: bins rota, shared groceries, plant care, chores scoreboard, dinner tonight, baby feeds.
+- [ ] Habits: meditate streak, pushups this week.
 - [ ] Goals: savings jar, alcohol-free days.
-- [ ] Learning: word of the day.
 - [ ] Each one is written with the dev bridge, checked with `render-tool proof`, and looked at as small and medium PNGs in full color and tinted mode before it is committed. Shared widgets (groceries, hearts) work on one phone until phase 4 sync. Their line says so only if it would otherwise mislead.
 
 ### U5. Polish and the end-to-end check
