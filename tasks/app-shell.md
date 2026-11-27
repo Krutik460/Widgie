@@ -175,11 +175,13 @@ Decisions from the second review of Add widget (2026-11-27):
 The prototype's remaining 13 tiles, taken from the landing page (`Site/public/widgets.js`) and grouped by its four categories. U3 made the first six (thinking of you, pet fed, shared groceries, habit squares, water, word of the day). As in U3, every face matches its prototype tile, by day and by night.
 
 - [x] For two: Our moods (a face each, yours steps to the next face on a tap), Trip countdown (the boarding pass is one tap that sets the date and where you fly from), Days together (one tap sets your first date), Today's question (a question a day from a list in the look until the day's automation has written one, and "I answered" for each of you).
-- [x] Home: Bins night (each pass hands the turn to the other), Plant care (red after a week), Dinner tonight (say you'll cook, or swap back), Baby feeds (L, R or the bottle, red after three hours, a dot per feed in the last day, undo for ten minutes), Chores scoreboard (this week's count each, the leader crowned).
-- [x] Habits: Streak (Meditate: the check marks today or takes it back), Pushups (+10 toward 300 this week).
+- [x] Home: Bins night (each pass hands the turn to the other), Plant care (red after a week, undo for an hour), Dinner tonight (say you'll cook, or swap back), Baby feeds (L, R or the bottle, red after three hours, a dot per feed in the last day, undo for ten minutes), Chores scoreboard (this week's count each, the leader crowned, undo for ten minutes).
+- [x] Habits: Streak (Meditate: the check marks today or takes it back), Pushups (+10 toward 300 this week, undo for ten minutes).
 - [x] Goals: Savings jar (+$50 toward $2,000, with what a week takes to make it by June, undo for ten minutes), Days free (alcohol-free days since a date you set, and the next medal).
 - [x] Each one is checked with `render-tool proof` and rendered next to its reference tile, small and medium, light, dark, and tinted, and at the app's sizes (170 by 170, 354 by 170, and the sheet's 358 by 172), before it is committed. Shared widgets work on one phone until phase 4 sync, so no line promises the other person's side.
 - [x] A sample can give a date as days from the day it is drawn (`{"daysFromToday": 12}`), so the countdown and the anniversaries show the tile's count on any day.
+- [x] A sample row can stay on today (`{"minutesAgo": 3, "staysToday": true}`), so a sample drawn just after midnight keeps its glasses and its "just watered".
+- [x] Review fixes: the pile draws its faces in the background from launch, without the builder's proof, so no card waits grey; a blank set to "me" never becomes a sample's author; every timed undo is tested by tapping; the copy never implies the other person can tap on this phone.
 
 ### U5. Polish and the end-to-end check
 
