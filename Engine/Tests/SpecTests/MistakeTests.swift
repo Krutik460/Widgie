@@ -282,14 +282,6 @@ struct Mistake: CustomTestStringConvertible, Sendable {
             json: withTables(
                 #""automations": {"daily": {"prompt": "p", "every": "day", "at": "06:00", "writes": "word"}}"#),
             line: #"automation "daily": no table "word" (tables: glasses, items)"#),
-        Mistake(
-            label: "unknown time zone",
-            json: withTables(
-                #""automations": {"daily": {"prompt": "p", "every": "day", "at": "06:00", "writes": "items", "timeZone": "Mars/Base"}}"#
-            ),
-            line:
-                #"automation "daily": "timeZone" must be a time zone name like "America/Los_Angeles", not the string "Mars/Base""#
-        ),
     ]
 
     static let samplesCases: [Mistake] = [

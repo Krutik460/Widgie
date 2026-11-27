@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import Rows
 import Spec
 
 // The public value types. Everything else in this module is `package` or private.
@@ -125,6 +126,33 @@ public struct Face: Sendable {
     public var buttonLabels: [String] {
         if case .drawing(let drawing) = content { drawing.root.buttonLabels } else { [] }
     }
+}
+
+/// A page of the account's changes, as `GET /v1/changes` returns it (docs/engine/WIRE.md). The transport hands
+/// over the response body and the engine parses it, so no caller handles the format.
+public struct RemotePage: Sendable {
+    package let page: Page
+
+    /// Throws, naming the first problem, when the bytes are not a page. One change that does not decode refuses
+    /// the whole page.
+    public init(json: Data) throws(EngineError) {
+        do throws(Diagnostic) {
+            page = try Page(json: json)
+        } catch {
+            throw EngineError(message: "not a page of changes: \(error.line)")
+        }
+    }
+
+    /// When the server next expects to write a change for this account, or nil when it expects none.
+    public var nextWrite: Date? { page.nextWrite }
+}
+
+/// The body of `PUT /v1/automations` and its SHA-256 (docs/engine/WIRE.md).
+public struct AutomationPayload: Sendable, Equatable {
+    /// Canonical JSON: equal payloads are equal bytes.
+    public let json: Data
+    /// The SHA-256 of `json` as lowercase hex.
+    public let digest: String
 }
 
 public struct EngineError: Error, Sendable {

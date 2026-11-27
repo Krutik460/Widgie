@@ -91,32 +91,13 @@ private func clash(_ table: Spec.Table, _ other: Spec.Table) -> (Spec.AnyField, 
 }
 
 extension Spec {
-
-    /// Gives every automation without a time zone this one. The builder calls it before saving.
-    package func fillingTimeZone(_ zone: TimeZone) -> Spec {
-        replacing(
-            automations: automations.map { automation in
-                Automation(
-                    id: automation.id, prompt: automation.prompt,
-                    schedule: Schedule(
-                        cadence: automation.schedule.cadence, timeZone: automation.schedule.timeZone ?? zone),
-                    writes: automation.writes)
-            })
-    }
-
     /// Records the stored bytes behind each listed asset. Saving calls it before hashing the revision.
     package func fillingDigests(_ digests: [AssetID: Digest]) -> Spec {
-        replacing(
+        Spec(
+            name: name, tables: tables, queries: queries, actions: actions, automations: automations,
             assets: assets.map { asset in
                 Asset(id: asset.id, about: asset.about, digest: digests[asset.id] ?? asset.digest)
-            })
-    }
-
-    private func replacing(automations: [Automation]? = nil, assets: [Asset]? = nil) -> Spec {
-        Spec(
-            name: name, tables: tables, queries: queries, actions: actions,
-            automations: automations ?? self.automations,
-            assets: assets ?? self.assets, samples: samples, look: look)
+            }, samples: samples, look: look)
     }
 
     private static func parse(document: JSONValue) throws(Diagnostic) -> Spec {

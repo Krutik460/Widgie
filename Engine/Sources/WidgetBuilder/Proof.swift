@@ -23,7 +23,7 @@ extension Engine {
         let images: [Spec.AssetID: Data]
         let chosen: ProofState
         do throws(Diagnostic) {
-            spec = try Spec.parse(source.json).fillingTimeZone(calendar.timeZone)
+            spec = try Spec.parse(source.json)
             images = try ingest(source.images, spec: spec, keeping: nil, store: nil)
             chosen = try ProofState(state, of: spec)
         } catch {
@@ -64,7 +64,7 @@ extension Engine {
     {
         let spec: Spec
         do throws(Diagnostic) {
-            spec = try Spec.parse(source.json).fillingTimeZone(calendar.timeZone)
+            spec = try Spec.parse(source.json)
         } catch {
             return ProofMatrix(name: nil, renders: [], verdict: error.line)
         }

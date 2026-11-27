@@ -20,10 +20,9 @@ extension Engine {
     ///    datasets, and keep its key. Without: a new key, whose tables get new datasets on save.
     /// 3. `ingest`: every image has an asset entry, and every asset has bytes in `source.images` or a digest
     ///    whose file this store holds. Downscale and encode.
-    /// 4. `spec.fillingTimeZone(calendar.timeZone)`.
-    /// 5. `prove`, the matrix `Engine.proofs` also runs: every data state in every family, then the tinted and
+    /// 4. `prove`, the matrix `Engine.proofs` also runs: every data state in every family, then the tinted and
     ///    dark redraws, then action coverage and the content check. The first problem is the rejection.
-    /// 6. `store.save`, or `store.replace` with `replacing`: files first, then the revision, the head move, and
+    /// 5. `store.save`, or `store.replace` with `replacing`: files first, then the revision, the head move, and
     ///    a new dataset for each table that has none. `onCommit` runs. `store.replace` runs step 2 again inside
     ///    its write, so a widget deleted while this proved throws, and one refined or written to meanwhile is
     ///    checked as it is now.
@@ -60,15 +59,14 @@ extension Engine {
         } catch {
             return .rejected(error.line)
         }
-        let zoned = spec.fillingTimeZone(calendar.timeZone)
         let matrix = try await prove(
-            zoned, images: images, today: Today(at: date, calendar: calendar), sandbox: sandbox,
+            spec, images: images, today: Today(at: date, calendar: calendar), sandbox: sandbox,
             keepsRenders: false)
         if let verdict = matrix.verdict { return .rejected(verdict) }
         if old == nil {
-            _ = try attempt { () throws(StoreError) in try store.save(key, spec: zoned, assets: images) }
+            _ = try attempt { () throws(StoreError) in try store.save(key, spec: spec, assets: images) }
         } else if let line = try attempt({ () throws(StoreError) in
-            try store.replace(key, with: zoned, assets: images)
+            try store.replace(key, with: spec, assets: images)
         }) {
             return .rejected(line)
         }

@@ -334,6 +334,38 @@ package final class RowStore: Sendable {
         }
     }
 
+    /// Every automation of the account as `PUT /v1/automations` takes it (docs/engine/WIRE.md), and the SHA-256
+    /// of those bytes. One entry per automation of each live widget, as the revision the widget draws defines it,
+    /// with the dataset its `writes` table is bound to, sorted by widget and automation id. Canonical bytes, so
+    /// equal payloads have equal digests. `timeZone` is the phone's current zone, which every automation runs in.
+    package func automationPayload(timeZone: TimeZone) throws(StoreError) -> (json: Data, digest: Spec.Digest) {
+        let json = try read { db in
+            var entries: [JSONValue] = []
+            let widgets = try Row.fetchAll(db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL ORDER BY w.key")
+                .compactMap { try? StoredWidget(row: $0) }
+            for widget in widgets {
+                for automation in widget.spec.automations {
+                    guard let dataset = try Rows.dataset(of: widget.key, table: automation.writes.id.raw, db) else {
+                        continue
+                    }
+                    let fields = Dictionary(
+                        uniqueKeysWithValues: automation.writes.fields.map {
+                            ($0.id.raw, JSONValue.string($0.kind.rawValue))
+                        })
+                    let entry: [String: JSONValue] = [
+                        "widget": .string(widget.key.raw), "automation": .string(automation.id.raw),
+                        "prompt": .string(automation.prompt), "dataset": .string(dataset.raw),
+                        "fields": .object(fields),
+                    ]
+                    entries.append(.object(entry.merging(automation.schedule.cadence.members) { $1 }))
+                }
+            }
+            return JSONValue.object(["timeZone": .string(timeZone.identifier), "automations": .array(entries)])
+                .encoded()
+        }
+        return (json, digest(of: json))
+    }
+
     /// Records this device's proof of a revision: nil when it passed, the rejection line otherwise. Local
     /// only, never synced. A pass can change what a widget draws, so `onCommit` runs.
     package func recordProof(of revision: Spec.Digest, verdict: String?) throws(StoreError) {
@@ -371,12 +403,27 @@ package final class RowStore: Sendable {
         QueryResult]
     {
         try read { db in
-            let me = try local(db).replica
             var results: [Spec.QueryID: QueryResult] = [:]
             for query in queries {
-                results[query.id] = try evaluate(query.shape, widget: widget, today: today, me: me, db)
+                results[query.id] = try evaluate(query.shape, widget: widget, today: today, db)
             }
             return results
+        }
+    }
+
+    /// The next two distinct instants after `instant` at which a live row of a dataset the widget is bound to
+    /// reveals itself, soonest first: rows written ahead, which every query hides until their `at`. A timeline
+    /// draws an entry at the first and ends by the second.
+    package func reveals(of widget: WidgetKey, after instant: Date) throws(StoreError) -> [Date] {
+        try read { db in
+            try Int64.fetchAll(
+                db,
+                sql: """
+                    SELECT DISTINCT at FROM row
+                    WHERE dataset IN (SELECT dataset FROM binding WHERE widget = ?) AND deleted IS NULL AND at > ?
+                    ORDER BY at LIMIT 2
+                    """, arguments: [widget.raw, milliseconds(instant)]
+            ).map(date)
         }
     }
 
@@ -905,7 +952,8 @@ package struct RowValue: Sendable, Equatable {
     package let values: [Spec.FieldID: Spec.Cell]
 }
 
-/// Who inserted a row. `me` when this store's replica wrote it. `name` comes from the local `member` table,
+/// Who inserted a row. `me` when a replica in the local `mine` table wrote it: this store's own, or the
+/// account's automation replica, which a pull adds. `name` comes from the local `member` table,
 /// and is nil for a writer it does not name: before sharing exists, every row but a sample's.
 package struct RowAuthor: Sendable, Equatable {
     package let me: Bool

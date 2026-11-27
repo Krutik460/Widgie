@@ -95,7 +95,6 @@ import Testing
         #expect(spec.actions.isEmpty)
         let automation = try #require(spec.automations.first)
         #expect(automation.schedule.cadence == .daily(hour: 6, minute: 0))
-        #expect(automation.schedule.timeZone == nil)
         #expect(automation.writes.fields.map(\.id.raw) == ["definition", "example", "kind", "word"])
     }
 }
