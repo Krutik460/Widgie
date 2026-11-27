@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { PAGE_SIZE } from "../src/accounts";
 import { HOUR, MINUTE } from "../src/schedule";
-import { decodePage, encodeChange, mintRowKey, stampOf } from "../src/wire";
+import { encodeChange, mintRowKey, stampOf } from "../src/wire";
 import { automation, changes, DATASET, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
 
 async function replicaOf(account: string): Promise<string> {
@@ -10,6 +10,27 @@ async function replicaOf(account: string): Promise<string> {
         .bind(account)
         .first<{ replica: string }>();
     return row?.replica ?? "";
+}
+
+interface Page {
+    replica: string;
+    changes: { id: number; change: Record<string, unknown> }[];
+    nextWrite: number | null;
+}
+
+/// A page the route wrote, checked for WIRE.md's shape: exactly its keys, ids that rise, and the stored change bytes.
+/// The strict reader is the phone's (Wire.swift); the Worker writes pages and reads none until phase 4.
+function readPage(text: string): Page {
+    const page = JSON.parse(text) as Page;
+    expect(Object.keys(page)).toEqual(["replica", "changes", "nextWrite"]);
+    expect(page.nextWrite === null || Number.isInteger(page.nextWrite)).toBe(true);
+    let last = 0;
+    for (const entry of page.changes) {
+        expect(Object.keys(entry)).toEqual(["id", "change"]);
+        expect(entry.id).toBeGreaterThan(last);
+        last = entry.id;
+    }
+    return page;
 }
 
 /// `count` setCell changes for the account, each a different word.
@@ -60,12 +81,11 @@ describe("a pull", () => {
         let after = 0;
         for (;;) {
             const { text } = await send(changes(token, after));
-            // The strict reader the phone's mirrors takes every page this route writes.
-            const page = decodePage(JSON.parse(text));
+            const page = readPage(text);
             expect(page.replica).toBe(await replicaOf(id));
             sizes.push(page.changes.length);
             if (page.changes.length === 0) break;
-            for (const { change } of page.changes) if (change.op === "setCell") words.push(String(change.value));
+            for (const { change } of page.changes) words.push(String(change.value));
             after = page.changes.at(-1)?.id ?? after;
         }
         expect(PAGE_SIZE).toBe(500);
@@ -79,19 +99,19 @@ describe("a pull", () => {
         await writeChanges(id, 2);
         await writeChanges((await newAccount()).id, 2);
         await writeChanges(id, 2);
-        const all = decodePage(JSON.parse((await send(changes(token))).text)).changes.map((entry) => entry.id);
+        const all = readPage((await send(changes(token))).text).changes.map((entry) => entry.id);
         expect(all).toHaveLength(4);
         expect(all[2]).toBeGreaterThan((all[1] ?? 0) + 1);
-        const rest = decodePage(JSON.parse((await send(changes(token, all[1] ?? 0))).text)).changes;
+        const rest = readPage((await send(changes(token, all[1] ?? 0))).text).changes;
         expect(rest.map((entry) => entry.id)).toEqual(all.slice(2));
-        const none = decodePage(JSON.parse((await send(changes(token, all[3] ?? 0))).text)).changes;
+        const none = readPage((await send(changes(token, all[3] ?? 0))).text).changes;
         expect(none).toEqual([]);
     });
 
     it("names the next write: the earliest time one of the account's tasks is due", async () => {
         const { id, token } = await newAccount();
         await send(upload(token, payload([automation()])));
-        const nextWrite = async () => decodePage(JSON.parse((await send(changes(token))).text)).nextWrite;
+        const nextWrite = async () => readPage((await send(changes(token))).text).nextWrite;
         // The run now is due now, and the schedule for tomorrow morning is due a lead before it, already past.
         const due = await env.DB.prepare("SELECT min(due_at) AS due FROM tasks WHERE account = ?")
             .bind(id)
@@ -158,7 +178,7 @@ describe("a pull", () => {
         ]);
         const account = await env.DB.prepare("SELECT parked_at, pulled_at FROM accounts WHERE id = ?").bind(id).first();
         expect(account).toEqual({ parked_at: null, pulled_at: later });
-        expect(decodePage(JSON.parse(text)).nextWrite).not.toBeNull();
+        expect(readPage(text).nextWrite).not.toBeNull();
     });
 
     it("keeps a schedule an upload made while the account was parked", async () => {
