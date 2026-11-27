@@ -92,14 +92,23 @@ flowchart LR
 
 Starts with the wire format doc and the vectors file, which P2 also builds on.
 
-- [ ] The canonical JSON for `Stamped` and `docs/engine/` vectors, including stamp, `day`, and key cases; Swift tests decode every vector and merge it.
-- [ ] A public `Engine.receive(_ page: RemotePage)` that merges through `RowStore.receive`, stores the automation replica in `mine` and the watermark (`max`) in the same transaction, stops at the first held change, and logs refused cells.
-- [ ] `RowStore.receive` fires `onCommit` only when rows actually changed.
-- [ ] A local `mine` table; `by me`, `by others`, and `RowAuthor.me` read it; the local replica is always in it.
-- [ ] Rows reveal at their `at`: every query window hides a future `at`, `faces` adds an entry at the next hidden row's `at` within the image budget, and `face(for:at:)` caps its `reloadAt` there too.
-- [ ] The engine reads the phone's current time zone for `nextRun` (decision 3), and a public accessor returns the account's automation payload with its hash.
-- [ ] Tests: a row written ahead stays hidden until its `at` and shows in the entry dated then (counts, `latest`, streaks, and `minutesAgo` included); `by me` counts an automation row once its replica is in `mine`; a replayed page fires no commit and changes nothing; a held change stops the page and the watermark; the watermark never moves backwards; the payload hash changes on save, restore, roll back, and delete.
-- [ ] `docs/engine/` updated: the wire format, the reveal rule, `mine`, the time zone rule.
+- [x] The canonical JSON for `Stamped` and `docs/engine/` vectors, including stamp, `day`, and key cases; Swift tests decode every vector and merge it.
+- [x] A public `Engine.receive(_ page: RemotePage)` that merges through `RowStore.receive`, stores the automation replica in `mine` and the watermark (`max`) in the same transaction, stops at the first held change, and logs refused cells.
+- [x] `RowStore.receive` fires `onCommit` only when rows actually changed.
+- [x] A local `mine` table; `by me`, `by others`, and `RowAuthor.me` read it; the local replica is always in it.
+- [x] Rows reveal at their `at`: every query window hides a future `at`, `faces` adds an entry at the next hidden row's `at` within the image budget, and `face(for:at:)` caps its `reloadAt` there too.
+- [x] The engine reads the phone's current time zone for `nextRun` (decision 3), and a public accessor returns the account's automation payload with its hash.
+- [x] Tests: a row written ahead stays hidden until its `at` and shows in the entry dated then (counts, `latest`, streaks, and `minutesAgo` included); `by me` counts an automation row once its replica is in `mine`; a replayed page fires no commit and changes nothing; a held change stops the page and the watermark; the watermark never moves backwards; the payload hash changes on save, restore, roll back, and delete.
+- [x] `docs/engine/` updated: the wire format, the reveal rule, `mine`, the time zone rule.
+
+**P1 results (2026-11-27, branch `phase-3-p1-engine`).**
+
+- **Wire format** in `docs/engine/WIRE.md`, vectors in `Engine/Vectors/wire.json` (the path P2's tests read). A stamp travels as a decimal string, since `ms << 16` passes 2^53. `at` is milliseconds, `day` and date cells are `Day` indexes, ids are lowercase (row keys UUIDv7), and every object has exactly its keys. A page is `{ replica, changes: [{ id, change }], nextWrite }`; it decodes whole or not at all, so one bad change from the server stops the pull until it is fixed rather than losing it. The vectors also hold receive scenarios (watermark, commit, held, refused, rows), which only the phone runs.
+- **Public API**: `Engine.receive(_:at:)` with `RemotePage(json:)` (and `nextWrite`), `Engine.watermark()`, and `Engine.automationPayload()` returning `AutomationPayload { json, digest }`. The engine parses the page bytes and writes the upload bytes, so P4's transport only moves bytes. The payload format is in WIRE.md: one canonical JSON object (strings only, keys sorted) whose SHA-256 is the digest, so the server can hash the body it receives the same way.
+- **The document's `timeZone` is gone.** With decision 3 nothing reads it, so the builder no longer fills it and the encoder never writes it. Older stored revisions keep parsing (the key is read past), which matters for the widgets already on the dev phone. New revisions no longer hash differently by the zone they were built in. The zone lives once in the payload, so a move changes the digest and triggers the re-upload.
+- **Reveal**: queries keep the day cap and add `at <= now`, so a row needs both its day and its instant. `faces` draws one entry at the next hidden row's `at` (inside the call's image budget, or the timeline is cut there) and ends by the second hidden `at`, so two automations a few minutes apart both land on time. A peer clock running ahead now delays its rows by the skew instead of showing them with 0 minutes ago.
+- **`onCommit`** for both `receive`s runs only when `merge` changed something (counted with `totalChangesCount`, before the clock update) or `mine` gained a replica, so the first pull reloads once even when empty and every replay reloads nothing.
+- **Not done here**: the 16 automations per account limit is left to the server, which refuses an over-limit upload with a reason (P2). There is no phone-to-server encoder yet; phase 4 adds it against the same vectors.
 
 ### P2. Worker: accounts, automations, and the pull
 
