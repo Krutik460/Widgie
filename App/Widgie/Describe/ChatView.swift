@@ -90,7 +90,7 @@ private struct Conversation: View {
         /// The draft's top in the thread's own space, which only the messages above it move, and the line Widgie
         /// opened with when it was measured.
         var draftTop: CGFloat?
-        var opening: String?
+        var openingLine: String?
         var end: CGFloat = 0
         /// Where a scroll this view started is heading, until it gets there or the person takes over.
         var aim: CGFloat?
@@ -143,9 +143,9 @@ private struct Conversation: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !pageHidden { composer }
         }
-        .onChange(of: reply) { settle() }
+        .onChange(of: results) { settle() }
         .onChange(of: chat.question) { settle() }
-        .onChange(of: session.opening) { settle() }
+        .onChange(of: session.openingLine) { settle() }
         .onGeometryChange(for: CGFloat.self) {
             $0.size.width
         } action: { width in
@@ -153,7 +153,7 @@ private struct Conversation: View {
             if session.draft == nil { session.preview.sizes = FaceSizes(column: width - 2 * Page.margin) }
         }
         .onChange(of: scrolled || !session.blank, initial: true) { _, past in pastMoon = past }
-        .onChange(of: session.latest?.result) { was, now in react(was: was, now: now) }
+        .onChange(of: session.latest?.result) { _, now in react(to: now) }
         .onChange(of: session.phase) { _, phase in
             if case .saved(let id) = phase { leave(id) }
         }
@@ -167,7 +167,7 @@ private struct Conversation: View {
         }
     }
 
-    private var reply: [DescribeSession.TurnResult] { session.turns.map(\.result) }
+    private var results: [DescribeSession.TurnResult] { session.turns.map(\.result) }
 
     // MARK: The bar
 
@@ -222,8 +222,8 @@ private struct Conversation: View {
 
     private var thread: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if let opening = session.opening {
-                WidgieSays(words: opening, voice: .normal)
+            if let line = session.openingLine {
+                WidgieSays(words: line, voice: .normal)
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .global).minY
                     } action: { [track] top in
@@ -258,7 +258,7 @@ private struct Conversation: View {
         }
         // The prototype's 8 under the bar and the thread's own 20.
         .padding(.top, 28)
-        .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.45, bounce: 0.25), value: reply)
+        .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.45, bounce: 0.25), value: results)
         .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.4, bounce: 0.2), value: chat.question)
     }
 
@@ -406,9 +406,9 @@ private struct Conversation: View {
     private func hold(draftAt top: CGFloat) {
         defer {
             track.draftTop = top
-            track.opening = session.opening
+            track.openingLine = session.openingLine
         }
-        guard let was = track.draftTop, abs(top - was) > 0.5, track.opening == session.opening else { return }
+        guard let was = track.draftTop, abs(top - was) > 0.5, track.openingLine == session.openingLine else { return }
         scroll(to: track.target + top - was)
     }
 
@@ -452,7 +452,7 @@ private struct Conversation: View {
     }
 
     /// Widgie on the draft glances while a change builds and hops when one lands.
-    private func react(was: DescribeSession.TurnResult?, now: DescribeSession.TurnResult?) {
+    private func react(to now: DescribeSession.TurnResult?) {
         switch now {
         case .pending where session.draft != nil: act.play(.glance)
         case .accepted: act.play(.hop)

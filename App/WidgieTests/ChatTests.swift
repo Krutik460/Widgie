@@ -241,7 +241,7 @@ import WidgetEngine
         chat.change(try petFed("Bo"), named: "Bo fed")
         #expect(chat.question == nil)
         await chat.session.open()
-        #expect(chat.session.opening == "What should we change about Bo fed?")
+        #expect(chat.session.openingLine == "What should we change about Bo fed?")
 
         chat.leave()
         chat.replace()
@@ -257,7 +257,7 @@ import WidgetEngine
         #expect(chat.session !== session)
         await chat.session.open()
         #expect(chat.session.editing == nil)
-        #expect(chat.session.opening == "What should we change about Mochi fed?")
+        #expect(chat.session.openingLine == "What should we change about Mochi fed?")
         #expect(try shared.engine.widgets().isEmpty, "the template stays out of the library until Save")
     }
 
@@ -268,7 +268,7 @@ import WidgetEngine
         var closed = 0
         let untouched = chat(.library(library), close: { closed += 1 })
         await untouched.session.open()
-        #expect(untouched.session.opening == "What should we change about Counter?")
+        #expect(untouched.session.openingLine == "What should we change about Counter?")
         #expect(untouched.session.draft != nil)
         untouched.leave()
         #expect(closed == 1)
@@ -445,7 +445,7 @@ import WidgetEngine
 
         chat.saved(id)
         await chat.session.open()
-        #expect(chat.session.opening == "What should we change about Mochi fed?")
+        #expect(chat.session.openingLine == "What should we change about Mochi fed?")
     }
 
     @Test func aTemplateOpenedDuringTheSavesFlightStaysWhenTheFlightEnds() async throws {

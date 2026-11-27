@@ -111,7 +111,7 @@ final class DescribeSession {
     /// Every turn the person sent, oldest first.
     private(set) var turns: [Turn] = []
     /// Widgie's first line about the widget the session opened on, nil when it starts from nothing.
-    private(set) var opening: String?
+    private(set) var openingLine: String?
     private(set) var buildStarted = Date.now
 
     var latest: Turn? { turns.last }
@@ -210,7 +210,7 @@ final class DescribeSession {
         if shown == nil {
             fail(.unopened, .open)
         } else {
-            opening = "What should we change about \(preview.name ?? "this widget")?"
+            openingLine = "What should we change about \(preview.name ?? "this widget")?"
             phase = .composing
         }
     }
