@@ -70,11 +70,12 @@ final class TemplateTrial {
             guard let source = try? template.source(filling: typed),
                 await preview.adopt(source, replacing: shown) != nil
             else { return }
+            let (was, now) = (filled(shownValues), filled(typed))
             shownValues = typed
             guard shown != nil else { continue }
-            let name = template.blanks.lazy.compactMap { typed[$0.key]?.trimmingCharacters(in: .whitespaces) }
-                .first { !$0.isEmpty }
-            if let name { react(name.count > 16 ? "Name updated." : "\(name) it is.") }
+            // Widgie takes up the word that changed, not the first one filled in. A cleared field says nothing.
+            let edited = template.blanks.lazy.compactMap { now[$0.key] == was[$0.key] ? nil : now[$0.key] }.first
+            if let edited { react(edited.count > 16 ? "Name updated." : "\(edited) it is.") }
         }
     }
 
