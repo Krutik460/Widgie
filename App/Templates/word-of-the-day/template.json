@@ -1,9 +1,9 @@
 {
   "name": "Word of the day",
-  "line": "A new one each morning",
+  "line": "Daily words are coming soon",
   "category": "goals",
   "order": 10,
   "family": "medium",
-  "hint": "A new Spanish word lands here every morning.",
+  "hint": "Daily words are on their way. For now, try Know it and Again.",
   "blanks": []
 }
