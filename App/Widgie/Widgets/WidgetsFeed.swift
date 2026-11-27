@@ -50,7 +50,6 @@ struct WidgetsFeed: View {
         var touched = Date.distantPast
     }
 
-    static let margin: CGFloat = 20
     private static let top = "top"
 
     var body: some View {
@@ -72,7 +71,7 @@ struct WidgetsFeed: View {
                         feed
                     }
                 }
-                .padding(.horizontal, Self.margin)
+                .padding(.horizontal, Page.margin)
                 .padding(.bottom, 40)
             }
             .scrollEdgeEffectStyle(.soft, for: .all)
@@ -104,7 +103,7 @@ struct WidgetsFeed: View {
         .onGeometryChange(for: CGFloat.self) {
             $0.size.width
         } action: { width in
-            column = width - 2 * Self.margin
+            column = width - 2 * Page.margin
             library.fit(column: column)
         }
         .task {

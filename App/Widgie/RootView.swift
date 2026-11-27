@@ -33,7 +33,7 @@ struct RootView: View {
                 TabBar(page: tabs.page, unseen: tabs.arrivals.badge, caught: tabs.caught, pick: tabs.go) { [flights] in
                     flights.target = $0
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, Page.margin)
                 .padding(.bottom, -8)
             }
         }
@@ -42,7 +42,7 @@ struct RootView: View {
                 if let toast = tabs.toast {
                     // On Make it comes down below the bar, so New and the title stay in reach.
                     ToastView(toast: toast)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, Page.margin)
                         .padding(.top, toast.low ? 88 : -8)
                         .transition(reduceMotion ? .opacity : .offset(y: toast.low ? -240 : -150))
                         .id(toast.id)
@@ -64,7 +64,7 @@ struct RootView: View {
         .onGeometryChange(for: CGFloat.self) {
             $0.size.width
         } action: { width in
-            gallery.fit(column: width - 2 * TemplatesView.margin)
+            gallery.fit(column: width - 2 * Page.margin)
         }
         .onChange(of: tabs.page) {
             flights.settle()

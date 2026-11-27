@@ -33,7 +33,7 @@ struct WidgetDetail: View {
                             howToAdd.padding(.top, 28)
                         }
                     }
-                    .padding(.horizontal, WidgetsFeed.margin)
+                    .padding(.horizontal, Page.margin)
                     .padding(.top, 34)
                     .padding(.bottom, 16)
                 }
@@ -94,7 +94,7 @@ struct WidgetDetail: View {
             Button("Change it") { changing = Chat(.library(id), close: { changing = nil }) }
                 .buttonStyle(KeyButtonStyle())
         }
-        .padding(.horizontal, WidgetsFeed.margin)
+        .padding(.horizontal, Page.margin)
         .padding(.top, 28)
         .padding(.bottom, 8)
         .background {
@@ -114,11 +114,11 @@ struct WidgetDetail: View {
     /// VoiceOver tells apart the two keys that do the same thing.
     private func faces(_ item: Library.Item) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            LiveFace(face: item.faces[.medium], size: library.sizes.medium, tap: perform, form: showForm)
+            FaceTile(face: item.faces[.medium], size: library.sizes.medium, host: .app(tap: perform, form: showForm))
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Medium size")
             HStack(alignment: .bottom, spacing: 0) {
-                LiveFace(face: item.faces[.small], size: library.sizes.small, tap: perform, form: showForm)
+                FaceTile(face: item.faces[.small], size: library.sizes.small, host: .app(tap: perform, form: showForm))
                     .accessibilityElement(children: .contain)
                     .accessibilityLabel("Small size")
                 Spacer(minLength: 0)

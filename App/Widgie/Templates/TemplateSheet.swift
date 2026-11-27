@@ -184,15 +184,10 @@ struct TemplateSheet: View {
 
         /// The live face: taps write to scratch rows, which Widgie calls practice.
         @ViewBuilder private func face(_ size: CGSize) -> some View {
-            Group {
-                if let face = preview.faces[template.family] {
-                    FaceView(face, host: .app(tap: { trial.tap($0) }, form: { trial.showForm(for: $0) }))
-                } else {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.disabled.opacity(0.4))
-                }
-            }
-            .frame(width: size.width, height: size.height)
-            .faceShadow()
+            FaceTile(
+                face: preview.faces[template.family], size: size,
+                host: .app(tap: { trial.tap($0) }, form: { trial.showForm(for: $0) })
+            )
             .onGeometryChange(for: CGRect.self) {
                 $0.frame(in: .global)
             } action: {

@@ -136,23 +136,11 @@ private struct Flyer: View {
             let half = from.width * scale / 2
             let y = from.midY + (flight.to.midY - from.midY) * eased - 56 * sin(.pi * k)
             let x = min(max(from.midX + (flight.to.midX - from.midX) * eased, 8 + half), width - 8 - half)
-            tile(from.size)
+            FaceTile(face: flight.launch.face, size: from.size)
                 .scaleEffect(scale)
                 .opacity(k < 0.8 ? 1 : 1 - (k - 0.8) / 0.2 * 0.7)
                 .position(x: x, y: y)
         }
-    }
-
-    @ViewBuilder private func tile(_ size: CGSize) -> some View {
-        Group {
-            if let face = flight.launch.face {
-                FaceView(face, host: .still)
-            } else {
-                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.disabled.opacity(0.4))
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        .faceShadow()
     }
 }
 
