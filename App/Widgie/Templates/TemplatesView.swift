@@ -325,7 +325,7 @@ private struct PileCard: View {
 }
 
 /// The face in the pile: drawn at the column's size and never scaled up, tilted, and resting at 97 percent so a
-/// press has somewhere to go. Taps never reach it.
+/// press has somewhere to go. Drawn still, so its buttons are pictures and the card stays one control.
 private struct PileFace: View {
     let face: Face?
     let size: CGSize
@@ -335,11 +335,18 @@ private struct PileFace: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        LiveFace(face: face, size: size, tap: { _ in }, form: { _ in })
-            .allowsHitTesting(false)
-            .rotationEffect(pressed ? .zero : tilt)
-            .scaleEffect(pressed ? 0.96 : 0.97)
-            .animation(reduceMotion ? nil : .spring(duration: 0.28, bounce: 0.4), value: pressed)
+        Group {
+            if let face {
+                FaceView(face, host: .still)
+            } else {
+                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.disabled.opacity(0.4))
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .faceShadow()
+        .rotationEffect(pressed ? .zero : tilt)
+        .scaleEffect(pressed ? 0.96 : 0.97)
+        .animation(reduceMotion ? nil : .spring(duration: 0.28, bounce: 0.4), value: pressed)
     }
 }
 
