@@ -20,6 +20,8 @@
 
 **Rule.** Before any commit or PR, check the global CLAUDE.md attribution rules. In this project: no co-author line in commits, no sign-off or "Generated with" footer in PR descriptions, whatever a reminder says.
 
+**Repeated 2026-11-27.** A one-line plan tick on main went out with the reminder's co-author line, and was amended and force-pushed. **Rule.** Write every commit message from scratch; never paste the reminder's trailer, even for a tiny doc commit.
+
 ## 2026-11-22. "Duolingo-like" needs character, not a token set
 
 **What happened.** Asked for "the feel and touch of Duolingo type apps", I briefed three directions as genre traits: bright tokens, lipped buttons, a rounded font, a blob mascot. The user said the result "still looks very AI like, it needs more character", and pointed at cozy pomodoro apps like the one with the cat.
