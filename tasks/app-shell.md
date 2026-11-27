@@ -227,6 +227,42 @@ Decisions made in U5 (2026-11-27):
 - **No pull to refresh on the feed.** The prototype has none, and the feed already draws again on coming to the foreground, at each face's next change, and after every add and save. The refresh control also stayed in the accessibility tree while the Widgets page was hidden behind another tab, which no SwiftUI modifier on a hidden page removes.
 - **The feed in the final screenshots holds ten widgets**, the prototype's nine and Word of the day under them, because the size rhythm counts from the oldest widget and only ten put Lisbon, Groceries and Japan fund wide where the prototype has them. Nothing is on the simulator's home screen, so the count line says 0 and no card wears the phone mark.
 
+### U6. Cleanup after the five units
+
+Asked for on 2026-11-27: once the five units merged, clean up the code and merge it, keep the app close to the prototype, and have every prototype template in the app. All 19 templates are in (`App/Templates`, matching the prototype's `CATS`). Three fresh reviews (the shell and feed, Make, templates and the engine) found the cleanup below. Nothing here changes behaviour, and only the marked items change the look, each toward the prototype. Branch `app-shell-cleanup`, one PR.
+
+**Shared design layer (pass A)**
+
+- [ ] One `FaceTile` in `Design/` for the face or its grey placeholder, framed and shadowed, replacing the four copies (feed card, flyer, pile, sheet). One face corner constant.
+- [ ] One page margin (20) in `Design/Layout.swift`, replacing three declarations and two literals.
+- [ ] `Squish`, `MiniButtonStyle` and `MiniLabelStyle` move to `Theme.swift`, with `SquishBody` built on `Squish`. One `bubbleShadow()` and one polite `announces` modifier shared by Widgie's chat line and the sheet's bubble. One `failureAlert`, one delete confirmation, one `rise(after:)`, one named arrival curve.
+- [ ] `Toast` and the banner colors go through `Palette` and colorsets like every other surface.
+- [ ] Shell and feed: dead parameters (`coversSky`, `CursorBar.blinking`, `Speech` calendar, `FeedCard.fresh`), the shadowed `target` in `TabBar`, the twice-written 140 point threshold, one `onChange` for Widgie's hop, the plural count line, `Library`/`Preview` sharing `showForm` and the face loop, bookkeeping counters out of observation, debug fixtures compiled only in DEBUG, a stale `Caret` comment.
+- [ ] Tests: `until` instead of `eventually`, `PreviewTests` on the suite's own store, shared `template(_:)` and saved-build helpers, and Widgets tests together in `FeedTests.swift`.
+
+**Make (pass B)**
+
+- [ ] Split `ChatView.swift` (1,333 lines) by responsibility: `Changes.swift` (a model type used by the session and tests), `ChatHello.swift`, `ChatMessages.swift`, `DraftCard.swift`, `Composer.swift`, `Unopened.swift`.
+- [ ] `action(for:)` uses `Failure.retryable`; the first note uses `Speech.landed`; one draft headroom constant; one message shape and text style; `react(to:)` without its unused parameter; clearer names (`results`, `openingLine`); `Picture` visibility and default.
+- [ ] Tests: shared `savedID()`, `send(_:in:)`, `paintsRed`, `noted` and repair setup in `Support.swift`; catalog checks move to `TemplateTests`; a stale comment.
+
+**Templates and the engine (pass C)**
+
+- [ ] The banner's shadow shows again (the clip removed it; the prototype has it). (look, toward the prototype)
+- [ ] The Home and Habits chips draw the prototype's house and leaf, not SF Symbols, and the Habits banner line breaks as the prototype's ("See your / weeks fill up"). (look, toward the prototype)
+- [ ] Look comments in the 19 templates stop naming "the prototype", since a look is sent to the model on Change in chat.
+- [ ] Pet fed's hint says it stays on this phone for now, as plant care does.
+- [ ] The pile uses `FeedRow.singles`; `SampleRow.datesFromToday` is set in its initializer; fonts register where they are drawn, not in the parser; a long doc comment rewrapped.
+- [ ] Tests: no repeated "me" builds, one face instead of a timeline in the label test, a cached catalog lookup, shared rows-file and undo-list fixtures, `TemplateBench` renamed `TemplateRig`.
+
+**Checks**
+
+- [ ] `scripts/check` green with no warnings after each pass.
+- [ ] Simulator screenshots of every tab against the prototype, light and dark, for the look items.
+- [ ] A review guide in `docs/pr/`, a fresh Opus review, fixes, then merge.
+
+Left out on purpose: the badge's spacer stacks (an alignment guide could move it), moving `cut-bricolage.py` out of `Sources/` (PR 16 kept it beside the fonts on purpose), folding `Template.Info`, and renaming blank keys (internal, and the labels already match).
+
 ## Risks
 
 - **Live faces in a scrolling feed.** Each card is a `FaceView`. Twenty templates means twenty QuickJS renders when the tab opens. Render faces lazily as cards appear, cache them per template, and measure on the simulator.
