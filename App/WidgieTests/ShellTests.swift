@@ -34,12 +34,23 @@ import WidgetEngine
         #expect(arrivals.landing == b)
     }
 
-    @Test func openingWidgetsWithNothingNewLandsNothing() {
+    @Test func openingWidgetsWithNothingNewChangesNothing() {
         var arrivals = Arrivals()
         arrivals.arrive(a, onWidgets: true)
+        let before = arrivals
         arrivals.openWidgets()
-        #expect(arrivals.landing == a)
+        #expect(arrivals == before)
+    }
+
+    @Test func aTemplateAddedFromTemplatesBadgesAndLandsOnlyWhenWidgetsOpens() {
+        var arrivals = Arrivals()
+        arrivals.arrive(a, onWidgets: true)
+        arrivals.arrive(b, onWidgets: false)
+        #expect(arrivals.badge == 1)
+        #expect(arrivals.landing == a, "the earlier landing stays; the template waits")
+        arrivals.openWidgets()
         #expect(arrivals.badge == 0)
+        #expect(arrivals.landing == b)
     }
 
     @Test func theNewTagMovesToTheNextWidgetThatArrives() {
@@ -82,6 +93,44 @@ import WidgetEngine
     @Test func aNewWidgetWithButtonsAsksForATap() {
         #expect(Speech.landed("Biscuit", buttons: true) == "Here’s Biscuit. Give it a tap.")
         #expect(Speech.landed("Biscuit", buttons: false) == "Here’s Biscuit, ready to go.")
+    }
+}
+
+@Suite struct PerchTests {
+    private let a = WidgetID(rawValue: "a")
+    private let b = WidgetID(rawValue: "b")
+    private let c = WidgetID(rawValue: "c")
+
+    @Test func widgieStandsOnTheFirstRowsWideOrRightOrLoneWidget() {
+        #expect(Perch(.wide(a)) == .wide(a))
+        #expect(Perch(.pair(a, b)) == .right(b))
+        #expect(Perch(.pair(a, nil)) == .lone(a))
+        #expect(Perch(nil) == nil)
+    }
+
+    @Test func aFreshSmallAtTheTopIsTheOneWidgieStandsOn() {
+        let shown: [(id: WidgetID, family: Family)] = [(a, .small), (b, .medium), (c, .small)]
+        #expect(Perch(FeedRow.rows(shown, fresh: a).first)?.id == a)
+        #expect(Perch(FeedRow.singles(shown).first)?.id == a, "at the accessibility text sizes too")
+    }
+
+    @Test func widgieTalksTowardTheEmptyHalfOfALoneSmallAndAcrossTheOthers() {
+        #expect(Perch.lone(a).bubble == .right)
+        #expect(Perch.right(a).bubble == .left)
+        #expect(Perch.wide(a).bubble == .left)
+    }
+
+    @Test func widgieStandsOverTheMiddleOfTheRightSmallAndClearOfTheCountLineOnAWide() {
+        #expect(Perch.right(a).x(column: 362, small: 174, large: false) == 275)
+        #expect(Perch.wide(a).x(column: 362, small: 174, large: false) == 214)
+        #expect(Perch.lone(a).x(column: 362, small: 174, large: false) == 122)
+        #expect(Perch.wide(a).room > Perch.right(a).room, "a wide perch sits under the count line")
+    }
+
+    @Test func atTheAccessibilityTextSizesWidgieStandsNearTheEdgeToLeaveItsBubbleRoom() {
+        #expect(Perch.wide(a).x(column: 362, small: 174, large: true) == 318)
+        #expect(Perch.lone(a).x(column: 362, small: 174, large: true) == 52)
+        #expect(Perch.wide(a).bubbleWidth(column: 362, x: 318, large: true) == 287)
     }
 }
 

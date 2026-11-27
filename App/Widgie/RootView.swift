@@ -13,8 +13,15 @@ struct RootView: View {
 
     @State private var page = Page.widgets
     @State private var visited: Set<Page> = [.widgets]
-    @State private var scrolled: [Page: CGFloat] = [:]
+    /// The pages scrolled past the moon.
+    @State private var pastMoon: Set<Page> = []
     @State private var arrivals = Arrivals()
+    @State private var flights = Flights()
+    /// Counts the widgets that flew into the Widgets tab.
+    @State private var caught = 0
+    @State private var toast: Toast?
+    /// The full screen covers up, each with a sky of its own over this one.
+    @State private var covers = 0
     /// The keyboard is up in Make, so the tab bar steps aside as the system's does.
     @State private var typing = false
     /// The Make tab's session. It outlives a tab switch, so a draft is never lost by looking at your widgets.
@@ -25,9 +32,11 @@ struct RootView: View {
     @State private var chosen: (source: WidgetSource, name: String)?
     @State private var asking = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         ZStack {
-            Sky(moon: Sky.moonShown(scrolled: scrolled[page] ?? 0))
+            Sky(moon: !pastMoon.contains(page), still: covers > 0)
             ForEach(Page.allCases, id: \.self) { shown in
                 if visited.contains(shown) {
                     content(shown).modifier(
@@ -37,11 +46,24 @@ struct RootView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !(typing && page == .make) {
-                TabBar(page: page, unseen: arrivals.badge, pick: go)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, -8)
+                TabBar(page: page, unseen: arrivals.badge, caught: caught, pick: go) { [flights] in
+                    flights.target = $0
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, -8)
             }
         }
+        .overlay(alignment: .top) {
+            if let toast {
+                ToastView(toast: toast)
+                    .padding(.horizontal, 20)
+                    .padding(.top, -8)
+                    .transition(reduceMotion ? .opacity : .offset(y: -150))
+                    .id(toast.id)
+            }
+        }
+        .environment(flights)
+        .environment(\.coverSky) { covers += $0 ? 1 : -1 }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             typing = true
         }
@@ -70,9 +92,15 @@ struct RootView: View {
             }
             handOver()
         }
-        // Leaving Make after a save starts a fresh session, so Make never reopens on the Saved screen.
         .onChange(of: page) { _, page in
+            // Leaving Make after a save starts a fresh session, so Make never reopens on the Saved screen.
             if page != .make, case .saved = making.phase { making = DescribeSession() }
+            if page == .widgets { withAnimation(toastMotion) { toast = nil } }
+            // Once the switch has applied, VoiceOver moves to the new page, as it does for a system tab bar.
+            Task {
+                await Task.yield()
+                AccessibilityNotification.LayoutChanged().post()
+            }
         }
         // A form link from a home screen widget opens its form over your widgets.
         .onOpenURL { url in
@@ -85,7 +113,7 @@ struct RootView: View {
         switch shown {
         case .widgets:
             WidgetsFeed(
-                library: library, arrivals: arrivals, active: page == .widgets, scrolled: scroll(.widgets)
+                library: library, arrivals: arrivals, active: page == .widgets, pastMoon: pastMoon(.widgets)
             ) {
                 go(.make)
             } browse: {
@@ -101,9 +129,8 @@ struct RootView: View {
             }
             .id(ObjectIdentifier(making))
         case .templates:
-            TemplatesView(gallery: gallery, library: library, scrolled: scroll(.templates)) { id in
-                go(.widgets)
-                arrivals.arrive(id, onWidgets: true)
+            TemplatesView(gallery: gallery, library: library, pastMoon: pastMoon(.templates)) { id, launch in
+                Task { await take(id, from: launch) }
             } chat: { source, name in
                 go(.make)
                 chosen = (source, name)
@@ -117,16 +144,31 @@ struct RootView: View {
         visited.insert(next)
         page = next
         if next == .widgets { arrivals.openWidgets() }
-        // Once the 320 ms switch has run, VoiceOver reads the new page. Without it, VoiceOver kept the old page's
-        // safe area content, such as Make's Build it, while another tab showed.
-        Task {
-            try? await Task.sleep(for: .milliseconds(350))
-            AccessibilityNotification.LayoutChanged().post()
-        }
     }
 
-    private func scroll(_ shown: Page) -> Binding<CGFloat> {
-        Binding(get: { scrolled[shown] ?? 0 }, set: { scrolled[shown] = $0 })
+    private func pastMoon(_ shown: Page) -> Binding<Bool> {
+        Binding(
+            get: { pastMoon.contains(shown) },
+            set: { past in
+                if past { pastMoon.insert(shown) } else { pastMoon.remove(shown) }
+            })
+    }
+
+    /// A widget added from a template flies into the Widgets tab while the person stays where they are. The glyph
+    /// takes it in, the count goes up, and a toast says so; it lands when they open Widgets.
+    private func take(_ id: WidgetID, from launch: Launch) async {
+        if !reduceMotion { await flights.fly(launch) }
+        caught += 1
+        arrivals.arrive(id, onWidgets: page == .widgets)
+        guard page != .widgets, let name = library.items.first(where: { $0.id == id })?.summary.name else { return }
+        let shown = Toast(id: (toast?.id ?? 0) + 1, words: "\(name) is in your widgets.")
+        withAnimation(toastMotion) { toast = shown }
+        try? await Task.sleep(for: Toast.shownFor)
+        if toast == shown { withAnimation(toastMotion) { toast = nil } }
+    }
+
+    private var toastMotion: Animation {
+        reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.38, bounce: 0.3)
     }
 
     /// Puts the chosen template into Make once that loses nothing, asks first while it would discard a draft,
@@ -150,6 +192,13 @@ struct RootView: View {
     }
 }
 
+extension EnvironmentValues {
+    /// Whether the tab page holding this view is not the one showing. What a scroll view puts in its safe area
+    /// inset escapes the page's `accessibilityHidden`, its own too, so Make leaves its composer out while hidden;
+    /// otherwise VoiceOver reached Build it from another tab.
+    @Entry var pageHidden = false
+}
+
 /// A tab's page coming and going: the outgoing one fades out in 120 ms, and the incoming one fades in and slides 14
 /// points from the side it lies on, after 40 ms. Only a fade with Reduce Motion.
 private struct PageSwitch: ViewModifier {
@@ -171,5 +220,6 @@ private struct PageSwitch: ViewModifier {
             }
             .allowsHitTesting(shown)
             .accessibilityHidden(!shown)
+            .environment(\.pageHidden, !shown)
     }
 }

@@ -44,6 +44,11 @@ final class TemplateTrial {
         react(template.hint)
     }
 
+    /// Widgie hops for joy without a word, as the template goes into the library.
+    func cheer() {
+        reactions += 1
+    }
+
     /// A tap on the live face writes to scratch rows only, and Widgie says so the first time.
     func tap(_ tap: Tap) {
         preview.perform(tap)

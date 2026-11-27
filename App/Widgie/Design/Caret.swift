@@ -300,6 +300,8 @@ struct HoppingCaret: View {
     var happy = false
     var height: CGFloat = 16
     var turn: Double = 0
+    /// Whether it blinks and fidgets between hops.
+    var alive = true
     let cue: Int
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -314,7 +316,7 @@ struct HoppingCaret: View {
         let give = height / 250
         KeyframeAnimator(initialValue: Motion(), trigger: reduceMotion ? 0 : cue) { motion in
             Caret(
-                pose: pose, size: size, color: color, eye: eye, grounded: grounded, lift: motion.lift,
+                pose: pose, size: size, color: color, eye: eye, alive: alive, grounded: grounded, lift: motion.lift,
                 squash: motion.squash, happy: happy
             )
             .rotationEffect(.degrees(motion.turn), anchor: Caret.foot(pose))

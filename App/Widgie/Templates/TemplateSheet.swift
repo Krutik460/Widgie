@@ -9,7 +9,8 @@ struct TemplateSheet: View {
     let trial: TemplateTrial
     let library: Library
     let height: CGFloat
-    let added: (WidgetID) -> Void
+    /// Added to the library: the new widget, and its tile leaving the sheet for the Widgets tab.
+    let added: (WidgetID, Launch) -> Void
     let chat: (WidgetSource, String) -> Void
 
     @State private var message: String?
@@ -33,7 +34,7 @@ struct TemplateSheet: View {
                 .padding(.trailing, 14)
         }
         .foregroundStyle(Palette.text)
-        // Added lands in Widgets, so the sheet stays until it does.
+        // The sheet stays until the new widget is in the library and its tile flies.
         .interactiveDismissDisabled(adding)
         // At the accessibility text sizes the content is taller than the screen, so the sheet opens full height
         // and scrolls.
@@ -81,11 +82,21 @@ struct TemplateSheet: View {
         let library: Library
         @Binding var message: String?
         @Binding var adding: Bool
-        let added: (WidgetID) -> Void
+        let added: (WidgetID, Launch) -> Void
         let chat: (WidgetSource, String) -> Void
 
         @FocusState private var typing: String?
+        /// The face's frame in the window, where its flight to the Widgets tab starts.
+        @State private var tile = CGRect.zero
+        @State private var leaving: Leaving?
+        @Environment(Flights.self) private var flights
         @Environment(\.dynamicTypeSize) private var typeSize
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        /// An added widget on its way out: confetti bursts from the tile and Widgie hops, then the tile flies.
+        private enum Leaving {
+            case cheering, flying
+        }
 
         private var template: Template { trial.template }
         private var preview: Preview { trial.preview }
@@ -182,6 +193,13 @@ struct TemplateSheet: View {
             }
             .frame(width: size.width, height: size.height)
             .faceShadow()
+            .onGeometryChange(for: CGRect.self) {
+                $0.frame(in: .global)
+            } action: {
+                tile = $0
+            }
+            // The flight draws the tile from here on, and with Reduce Motion it only dims as the sheet closes.
+            .opacity(leaving == .flying ? (reduceMotion ? 0.4 : 0) : 1)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("\(template.name), to try")
         }
@@ -274,9 +292,11 @@ struct TemplateSheet: View {
             }
             .buttonStyle(KeyButtonStyle())
             .disabled(adding)
-            .sensoryFeedback(.success, trigger: adding) { was, now in was && !now && message == nil }
+            .sensoryFeedback(.success, trigger: leaving) { was, now in was == nil && now != nil }
         }
 
+        /// Builds the filled template into the library. Then confetti bursts from the tile and Widgie hops, and
+        /// 200 ms later the tile flies to the Widgets tab as the sheet closes.
         private func add() {
             guard let choice = attempt({ try trial.choice() }) else { return }
             typing = nil
@@ -284,11 +304,18 @@ struct TemplateSheet: View {
             Task {
                 switch await library.add(choice.source) {
                 case .success(let id):
-                    added(id)
+                    leaving = .cheering
+                    if !reduceMotion {
+                        flights.burst(from: tile)
+                        trial.cheer()
+                        try? await Task.sleep(for: .milliseconds(200))
+                    }
+                    leaving = .flying
+                    added(id, Launch(face: preview.faces[template.family], from: tile))
                 case .failure(let unsaved):
                     message = unsaved.line
+                    adding = false
                 }
-                adding = false
             }
         }
 
@@ -304,14 +331,21 @@ struct TemplateSheet: View {
 }
 
 /// Widgie's speech bubble, with its tail pointing down to Widgie below it or to Widgie beside it. It pops in with
-/// each new line and is read out by VoiceOver. Empty until Widgie first speaks.
+/// each new line, which VoiceOver reads out as `voice` says. Empty until Widgie first speaks.
 struct Bubble: View {
     enum Tail {
         case down, left, right
     }
 
+    /// How VoiceOver reads a new line: not at all, as on a page that is not showing, after what it is saying, as
+    /// for a greeting, or as a reply to what the person just did.
+    enum Voice {
+        case silent, low, normal
+    }
+
     let words: String?
     let tail: Tail
+    var voice = Voice.normal
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -346,10 +380,15 @@ struct Bubble: View {
                             ? .opacity
                             : .scale(scale: 0.6, anchor: growsFrom).combined(with: .opacity)
                     )
-                    .onAppear { AccessibilityNotification.Announcement(words).post() }
             }
         }
         .animation(reduceMotion ? .linear(duration: 0.15) : .spring(duration: 0.45, bounce: 0.45), value: words)
+        .onChange(of: words, initial: true) { _, words in
+            guard let words, voice != .silent else { return }
+            var line = AttributedString(words)
+            if voice == .low { line.accessibilitySpeechAnnouncementPriority = .low }
+            AccessibilityNotification.Announcement(line).post()
+        }
     }
 
     private var tailCorner: Alignment {
