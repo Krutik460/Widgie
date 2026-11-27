@@ -1,0 +1,15 @@
+{
+  "name": "Habit squares",
+  "line": "A square for every day you do it",
+  "category": "habits",
+  "order": 10,
+  "family": "medium",
+  "hint": "Tap the circle when it's done.",
+  "blanks": [
+    {
+      "key": "habit",
+      "label": "What's the habit?",
+      "placeholder": "Meditate"
+    }
+  ]
+}

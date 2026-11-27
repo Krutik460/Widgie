@@ -17,6 +17,23 @@ enum Palette {
     static let gridDot = Color(.widgieGridDot)
     static let widgetShadow = Color(.widgieWidgetShadow)
     static let chipLabel = Color(.widgieChipLabel)
+    /// A soft control resting on the ground: an unchosen category, a quiet key.
+    static let surface = Color(.widgieSurface)
+    static let chosenFill = Color(.widgieChosenFill)
+    static let chosenLabel = Color(.widgieChosenLabel)
+    /// The main key: ink by day, sun yellow by night.
+    static let keyFill = Color(.widgieKeyFill)
+    static let keyLabel = Color(.widgieKeyLabel)
+    static let quietKeyFill = Color(.widgieQuietKeyFill)
+    static let fieldFill = Color(.widgieFieldFill)
+    /// The faint square behind a sheet's close mark.
+    static let softFill = Color(.widgieSoftFill)
+    static let sheetTop = Color(.widgieSheetTop)
+    static let sheetBottom = Color(.widgieSheetBottom)
+    static let spotGlow = Color(.widgieSpotGlow)
+    static let bubble = Color(.widgieBubble)
+    static let restShadow = Color(.widgieRestShadow)
+    static let sun = Color(.widgieSun)
 
     static let failureGround = Color(.widgieFailureGround)
     static let failureCaret = Color(.widgieFailureCaret)
@@ -52,6 +69,18 @@ extension View {
         modifier(ScaledFont(size: size, weight: weight, style: style))
     }
 
+    /// The display face for titles and big words, at the prototype's point size and tight tracking, scaled with
+    /// Dynamic Type like `style`.
+    func display(size: CGFloat, relativeTo style: Font.TextStyle = .largeTitle) -> some View {
+        modifier(DisplayFont(size: size, style: style))
+    }
+
+    /// The soft lift under a control that rests on the ground: a close contact shadow and a wide faint one.
+    func restShadow() -> some View {
+        shadow(color: Palette.restShadow.opacity(0.4), radius: 1, y: 1)
+            .shadow(color: Palette.restShadow, radius: 7, y: 4)
+    }
+
     /// The page: the ground color under a home-screen dot grid, edge to edge.
     func ground(_ color: Color = Palette.ground) -> some View {
         background {
@@ -81,6 +110,18 @@ private struct ScaledFont: ViewModifier {
 
     func body(content: Content) -> some View {
         content.font(.system(size: size, weight: weight))
+    }
+}
+
+private struct DisplayFont: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+
+    init(size: CGFloat, style: Font.TextStyle) {
+        _size = ScaledMetric(wrappedValue: size, relativeTo: style)
+    }
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: size, weight: .heavy)).tracking(-0.025 * size)
     }
 }
 
@@ -249,5 +290,90 @@ struct CloseButton: View {
                 .contentShape(Rectangle())
         }
         .accessibilityLabel(label)
+    }
+}
+
+/// A key in a sheet: the main one (ink by day, sun yellow by night) or a quiet one beside it. It squishes with a
+/// spring when pressed.
+struct KeyButtonStyle: ButtonStyle {
+    var prominent = true
+
+    func makeBody(configuration: Configuration) -> some View {
+        KeyButton(configuration: configuration, prominent: prominent)
+    }
+}
+
+private struct KeyButton: View {
+    let configuration: ButtonStyleConfiguration
+    let prominent: Bool
+
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let pressed = configuration.isPressed && isEnabled
+        configuration.label
+            .font(size: 17, weight: .bold)
+            .tracking(-0.2)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(prominent ? Palette.keyLabel : Palette.text)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background {
+                let shape = RoundedRectangle(cornerRadius: 15, style: .continuous)
+                if prominent {
+                    shape.fill(Palette.keyFill).shadow(color: Palette.widgetShadow, radius: 10, y: 8)
+                } else {
+                    shape.fill(Palette.quietKeyFill).restShadow()
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .scaleEffect(pressed && !reduceMotion ? 0.97 : 1)
+            .opacity(isEnabled ? 1 : 0.5)
+            .animation(.spring(duration: 0.25, bounce: 0.4), value: pressed)
+            .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
+    }
+}
+
+/// A sheet's close button: a 34-point soft square with the cross, inside a 44-point target.
+struct SoftCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Palette.text)
+                .frame(width: 34, height: 34)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.softFill))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(SquishStyle())
+        .accessibilityLabel("Close")
+    }
+}
+
+/// Shrinks a control a little while it is pressed, with a spring back. Still with Reduce Motion.
+struct SquishStyle: ButtonStyle {
+    var scale: CGFloat = 0.9
+
+    func makeBody(configuration: Configuration) -> some View {
+        SquishBody(configuration: configuration, scale: scale)
+    }
+}
+
+private struct SquishBody: View {
+    let configuration: ButtonStyleConfiguration
+    let scale: CGFloat
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1)
+            .animation(.spring(duration: 0.3, bounce: 0.45), value: configuration.isPressed)
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import WidgetBuilder
+import WidgetEngine
 
 /// A ready-made widget that ships in the app: a folder in `Templates/` holding `widget.json` (and `assets/`,
 /// like any widget source) and `template.json`, which says where it sits in the gallery and which blanks a person
@@ -14,9 +15,10 @@ struct Template: Identifiable, Sendable {
         var id: String { key }
     }
 
+    /// The gallery's shelves, in the order its category row shows them.
     enum Category: String, Decodable, CaseIterable, Sendable {
         case forTwo = "for-two"
-        case home, habits, goals, learning
+        case home, habits, goals
     }
 
     /// The folder's name.
@@ -26,6 +28,10 @@ struct Template: Identifiable, Sendable {
     let category: Category
     /// Its place in the gallery, lowest first.
     let order: Int
+    /// The size the gallery shows it in.
+    let family: Family
+    /// What Widgie says first when the template opens: what to try on it.
+    let hint: String
     let blanks: [Blank]
     let folder: URL
 
@@ -34,6 +40,8 @@ struct Template: Identifiable, Sendable {
         let line: String
         let category: Category
         let order: Int
+        let family: Family
+        let hint: String
         let blanks: [Blank]
     }
 
@@ -50,7 +58,7 @@ struct Template: Identifiable, Sendable {
             else { return nil }
             return Template(
                 id: folder.lastPathComponent, name: info.name, line: info.line, category: info.category,
-                order: info.order, blanks: info.blanks, folder: folder)
+                order: info.order, family: info.family, hint: info.hint, blanks: info.blanks, folder: folder)
         }
         .sorted { ($0.order, $0.id) < ($1.order, $1.id) }
     }

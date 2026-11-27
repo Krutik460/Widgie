@@ -1,0 +1,9 @@
+{
+  "name": "Word of the day",
+  "line": "A new one each morning",
+  "category": "goals",
+  "order": 10,
+  "family": "medium",
+  "hint": "A new word lands here every morning.",
+  "blanks": []
+}
