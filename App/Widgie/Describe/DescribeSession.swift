@@ -318,9 +318,7 @@ final class DescribeSession {
     /// say what to do with it, never what it shows.
     private func note(first: Bool) -> String {
         guard first else { return "Done. Anything else?" }
-        let name = preview.name ?? "your widget"
-        return preview.faces[.medium]?.hasButtons == true
-            ? "Here’s \(name). Give it a tap." : "Here’s \(name), ready to go."
+        return Speech.landed(preview.name ?? "your widget", buttons: preview.faces[.medium]?.hasButtons == true)
     }
 
     /// Proves the draft against the shared store. A line only that store can give (a widget sharing the data,
