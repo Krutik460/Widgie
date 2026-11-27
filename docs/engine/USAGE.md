@@ -314,15 +314,17 @@ import WidgetEngine
 import WidgetBuilder
 
 // render-tool <widget dir> <small|medium> <out.png> [--sample name | --full | --state rows.json]
-//             [--appearance light|dark|tinted] [--date 2026-11-18T09:00:00Z] [--time-zone Europe/Berlin]
+//             [--appearance light|dark|tinted] [--size 358x172] [--date 2026-11-18T09:00:00Z]
+//             [--time-zone Europe/Berlin]
 @main struct RenderTool {
     static func main() async throws {
         let args = try Arguments.parse(CommandLine.arguments)   // a usage error exits 2
         let source = try WidgetSource(directory: args.widget)    // an unreadable widget exits 2
         do {
             let proof = try await Engine.proof(
-                source, state: args.state, family: args.family, appearance: args.appearance, at: args.date,
-                calendar: args.calendar)   // days in --time-zone (default UTC), weeks from Monday
+                source, state: args.state, family: args.family, size: args.size, appearance: args.appearance,
+                at: args.date, calendar: args.calendar)   // days in --time-zone (default UTC), weeks from Monday;
+                                                          // size nil is the family's standard size
             try proof.png.write(to: args.output)
             print(String(decoding: try JSONEncoder().encode(proof.fit), as: UTF8.self))
             if let verdict = proof.verdict { FileHandle.standardError.write(Data((verdict + "\n").utf8)) }

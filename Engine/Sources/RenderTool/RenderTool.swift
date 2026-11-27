@@ -38,7 +38,8 @@ struct RenderTool {
 
         USAGE
           render-tool <widget dir> <small|medium> <out.png> [--sample <name> | --full | --state <rows.json>]
-                      [--appearance <light|dark|tinted>] [--date <ISO 8601>] [--time-zone <identifier>]
+                      [--appearance <light|dark|tinted>] [--size <width>x<height>] [--date <ISO 8601>]
+                      [--time-zone <identifier>]
           render-tool proof <widget dir> <out dir> [--date <ISO 8601>] [--time-zone <identifier>]
           render-tool loop <words> <out dir> [--image <png|jpg>] [--bridge <url>] [--time-zone <identifier>]
           render-tool refine <old widget dir> <new widget dir> <out dir> [--date <ISO 8601>]
@@ -50,7 +51,9 @@ struct RenderTool {
         RENDER MODE
           Draws one data state in one family: the empty state unless --sample, --full, or --state picks
           another. --state reads rows in the grammar of one "samples" entry. --appearance draws it in
-          full color light (the default) or dark, or in the emulated tinted mode. Writes the PNG (3x),
+          full color light (the default) or dark, or in the emulated tinted mode. --size draws it at that
+          size in points, like 358x172 for a face in the app, instead of the family's standard size; the
+          builder proves only the standard sizes. Writes the PNG (3x),
           prints the fit report as one line of JSON on stdout, and prints the verdict or the error on
           stderr.
 
@@ -169,6 +172,7 @@ private enum Command {
         let named = try options.value("--appearance")
         let full = options.flag("--full")
         let state = try options.value("--state")
+        let size = try options.size()
         try options.done(positionals: 3)
         guard [sample != nil, full, state != nil].filter({ $0 }).count <= 1 else {
             throw Usage(line: "pick at most one of --sample, --full, and --state")
@@ -195,8 +199,8 @@ private enum Command {
         self = .render(
             Render(
                 widget: URL(filePath: options.positional[0]), family: family,
-                output: URL(filePath: options.positional[2]), state: chosen, appearance: appearance, date: date,
-                calendar: calendar))
+                output: URL(filePath: options.positional[2]), state: chosen, appearance: appearance, size: size,
+                date: date, calendar: calendar))
     }
 }
 
@@ -247,6 +251,15 @@ private struct Options {
         return (calendar, name)
     }
 
+    mutating func size() throws(Usage) -> CGSize? {
+        guard let text = try value("--size") else { return nil }
+        let sides = text.split(separator: "x", omittingEmptySubsequences: false).compactMap { Double($0) }
+        guard sides.count == 2, sides.allSatisfy({ $0 > 0 && $0 <= 2000 }) else {
+            throw Usage(line: "--size must be a width and height in points, like 358x172, not \"\(text)\"")
+        }
+        return CGSize(width: sides[0], height: sides[1])
+    }
+
     func done(positionals count: Int) throws(Usage) {
         if let unknown = remaining.first(where: { $0.hasPrefix("--") }) {
             throw Usage(line: "unknown option \"\(unknown)\"")
@@ -263,6 +276,7 @@ private struct Render {
     let output: URL
     let state: DataState
     let appearance: Appearance
+    let size: CGSize?
     let date: Date
     let calendar: Calendar
 
@@ -277,7 +291,8 @@ private struct Render {
         let proof: Proof
         do throws(Rejected) {
             proof = try await Engine.proof(
-                source, state: state, family: family, appearance: appearance, at: date, calendar: calendar)
+                source, state: state, family: family, size: size, appearance: appearance, at: date,
+                calendar: calendar)
         } catch {
             standardError("error: \(error.line)")
             return 1
