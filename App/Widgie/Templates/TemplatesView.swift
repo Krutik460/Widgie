@@ -46,7 +46,7 @@ struct TemplatesView: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel(shown.title)
             }
-            .padding(.horizontal, Page.margin)
+            .padding(.horizontal, Margin.page)
             .padding(.bottom, 28)
         }
         .scrollEdgeEffectStyle(.soft, for: .all)
@@ -147,11 +147,11 @@ private struct CategoryRow: View {
             FillRow(spacing: 7) { chips }
             ScrollView(.horizontal) {
                 HStack(spacing: 7) { chips }
-                    .padding(.horizontal, Page.margin)
+                    .padding(.horizontal, Margin.page)
                     .padding(.vertical, 12)
             }
             .scrollIndicators(.hidden)
-            .padding(.horizontal, -Page.margin)
+            .padding(.horizontal, -Margin.page)
             .padding(.vertical, -12)
         }
         .accessibilityElement(children: .contain)

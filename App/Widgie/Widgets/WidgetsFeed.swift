@@ -73,7 +73,7 @@ struct WidgetsFeed: View {
                         feed
                     }
                 }
-                .padding(.horizontal, Page.margin)
+                .padding(.horizontal, Margin.page)
                 .padding(.bottom, 40)
             }
             .scrollEdgeEffectStyle(.soft, for: .all)
@@ -105,7 +105,7 @@ struct WidgetsFeed: View {
         .onGeometryChange(for: CGFloat.self) {
             $0.size.width
         } action: { width in
-            column = width - 2 * Page.margin
+            column = width - 2 * Margin.page
             library.fit(column: column)
         }
         .task {

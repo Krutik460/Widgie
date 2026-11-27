@@ -3,12 +3,14 @@ import WidgetEngine
 import WidgetHosting
 
 /// The space between a page's content and the sides of the screen, which the tab bar and the toast keep too.
-enum Page {
-    static let margin: CGFloat = 20
+enum Margin {
+    static let page: CGFloat = 20
 }
 
 /// Wraps its text as CSS `text-wrap: balance` does: at the narrowest width that keeps the number of lines it takes
-/// at the width offered, so its lines come out about even instead of ending on a short one.
+/// at the width offered, so its lines come out about even instead of ending on a short one. The text must wrap
+/// freely: with a `lineLimit` or a `minimumScaleFactor` it never grows taller as it narrows, and the search would
+/// shrink it to nothing.
 struct Balanced: Layout {
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         guard let text = subviews.first else { return .zero }

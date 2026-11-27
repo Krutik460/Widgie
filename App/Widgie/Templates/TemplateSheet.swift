@@ -329,12 +329,6 @@ struct Bubble: View {
         case down, left, right
     }
 
-    /// How VoiceOver reads a new line: not at all, as on a page that is not showing, after what it is saying, as
-    /// for a greeting, or as a reply to what the person just did.
-    enum Voice {
-        case silent, low, normal
-    }
-
     let words: String?
     let tail: Tail
     var voice = Voice.normal

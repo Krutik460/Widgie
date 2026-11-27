@@ -67,7 +67,7 @@ struct YouSaid: View {
 struct WidgieSays: View {
     let words: String
     var working = false
-    let voice: Bubble.Voice
+    let voice: Voice
 
     @Environment(\.pageHidden) private var pageHidden
 
