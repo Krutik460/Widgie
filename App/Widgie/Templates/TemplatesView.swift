@@ -122,6 +122,7 @@ struct TemplatesView: View {
     private func pick(_ category: Template.Category) {
         guard category != chosen else { return }
         chosen = category
+        gallery.show(category)
         switched = true
         guard !reduceMotion else {
             shown = category
@@ -259,13 +260,12 @@ private struct Pile: View {
         if let index = templates.firstIndex(where: { $0.id == id }) {
             let template = templates[index]
             PileCard(
-                template: template, face: gallery.faces[id], size: gallery.sizes[template.family],
+                template: template, card: gallery.card(id), size: gallery.sizes[template.family],
                 tilt: Self.tilt(at: index, family: template.family)
             ) {
                 open(template)
             }
             .rise(after: Double(index) * 0.05)
-            .task(id: gallery.sizes) { await gallery.draw(template) }
         }
     }
 
@@ -281,7 +281,7 @@ private struct Pile: View {
 /// button; pressing it straightens the face and squishes it.
 private struct PileCard: View {
     let template: Template
-    let face: Face?
+    let card: TemplateGallery.Card
     let size: CGSize
     let tilt: Angle
     let open: () -> Void
@@ -295,7 +295,7 @@ private struct PileCard: View {
     var body: some View {
         Button(action: open) {
             VStack(alignment: .leading, spacing: 12) {
-                PileFace(face: face, size: size, tilt: tilt)
+                PileFace(card: card, size: size, tilt: tilt)
                     .frame(maxWidth: large ? .infinity : nil)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 8) {
@@ -335,7 +335,7 @@ private struct PileCard: View {
 /// The face in the pile: drawn at the column's size and never scaled up, tilted, and resting at 97 percent so a
 /// press has somewhere to go. Drawn still, so its buttons are pictures and the card stays one control.
 private struct PileFace: View {
-    let face: Face?
+    let card: TemplateGallery.Card
     let size: CGSize
     let tilt: Angle
 
@@ -344,7 +344,7 @@ private struct PileFace: View {
 
     var body: some View {
         Group {
-            if let face {
+            if let face = card.face {
                 FaceView(face, host: .still)
             } else {
                 RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.disabled.opacity(0.4))

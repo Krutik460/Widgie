@@ -151,7 +151,7 @@ final class Preview {
         let drawing = drawings
         var faces: [Family: Face] = [:]
         for family in Family.allCases {
-            faces[family] = await engine.faces(for: widget, family: family, size: sizes[family], from: .now).current
+            faces[family] = await engine.face(for: widget, family: family, size: sizes[family], at: .now)
         }
         return drawing == drawings ? faces : nil
     }

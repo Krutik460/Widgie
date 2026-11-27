@@ -84,9 +84,7 @@ final class Library {
             for summary in try engine.widgets() {
                 var faces: [Family: Face] = [:]
                 for family in Family.allCases {
-                    faces[family] = await engine.faces(
-                        for: summary.id, family: family, size: sizes[family], from: .now
-                    ).current
+                    faces[family] = await engine.face(for: summary.id, family: family, size: sizes[family], at: .now)
                 }
                 items.append(Item(summary: summary, faces: faces))
             }

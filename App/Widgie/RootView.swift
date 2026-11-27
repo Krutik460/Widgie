@@ -64,6 +64,12 @@ struct RootView: View {
             typing = false
         }
         .tint(Palette.caret)
+        // The pile is as wide as the window, so its faces start drawing at launch, before Templates opens.
+        .onGeometryChange(for: CGFloat.self) {
+            $0.size.width
+        } action: { width in
+            gallery.fit(column: width - 2 * TemplatesView.margin)
+        }
         .confirmationDialog(
             "Swap your draft for \(chosen?.name ?? "this template")?",
             isPresented: Binding(
