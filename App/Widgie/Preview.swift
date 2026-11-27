@@ -23,6 +23,8 @@ final class Preview {
     private(set) var states: [DataState] = []
     private(set) var state: DataState = .empty
     private(set) var faces: [Family: Face] = [:]
+    /// The sizes the faces are drawn at. Set it before the first draft goes on show.
+    var sizes = FaceSizes.standard
     var form: ShownForm?
     var message: String?
 
@@ -83,15 +85,27 @@ final class Preview {
                 log.error("copy: \(saved.rawValue, privacy: .public) is no longer in the library")
                 return nil
             }
-            switch try await engine.build(source) {
+            return await adopt(source)
+        } catch {
+            log.error("copy: \(error.message, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// Builds a widget that is not in the library, such as a filled template, into the scratch engine and shows
+    /// it, as a new draft or as a new revision of `replacing`. Returns the draft's id, or nil, with the reason
+    /// logged, when it does not build or go on show.
+    func adopt(_ source: WidgetSource, replacing: WidgetID? = nil) async -> WidgetID? {
+        do {
+            switch try await engine.build(source, replacing: replacing) {
             case .saved(let draft):
                 return await show(draft) ? draft : nil
             case .rejected(let line):
-                log.error("copy: the preview rejected it: \(line, privacy: .public)")
+                log.error("adopt: the preview rejected it: \(line, privacy: .public)")
                 return nil
             }
         } catch {
-            log.error("copy: \(error.message, privacy: .public)")
+            log.error("adopt: \(error.message, privacy: .public)")
             return nil
         }
     }
@@ -137,8 +151,7 @@ final class Preview {
         let drawing = drawings
         var faces: [Family: Face] = [:]
         for family in Family.allCases {
-            faces[family] = await engine.faces(for: widget, family: family, size: family.standardSize, from: .now)
-                .current
+            faces[family] = await engine.faces(for: widget, family: family, size: sizes[family], from: .now).current
         }
         return drawing == drawings ? faces : nil
     }

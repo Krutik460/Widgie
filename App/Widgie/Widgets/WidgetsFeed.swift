@@ -91,7 +91,7 @@ struct WidgetsFeed: View {
         .refreshable { await library.reload() }
     }
 
-    private var rows: [FeedRow] {
+    private var rows: [FeedRow<WidgetID>] {
         FeedRow.rows(
             library.items.enumerated().map { index, item in (item.id, library.family(of: item, at: index)) })
     }

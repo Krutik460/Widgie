@@ -119,20 +119,34 @@ final class Library {
     /// Builds a bundled fixture through `engine.build`, the path a model-written widget takes.
     func install(_ fixture: String) {
         Task {
-            do {
+            do throws(Rejected) {
                 guard let source = try Self.fixture(fixture) else { return }
-                switch try await engine.build(source) {
-                case .saved: await reload()
-                case .rejected(let line): message = line
-                }
-            } catch let error as EngineError {
-                message = error.message
-            } catch let error as Rejected {
-                message = error.line
+                if case .failure(let unsaved) = await add(source) { message = unsaved.line }
             } catch {
-                message = "\(error)"
+                message = error.line
             }
         }
+    }
+
+    /// Builds `source` into the library through `engine.build`, the path every widget takes, and draws the feed
+    /// with it. Returns the new widget's id.
+    func add(_ source: WidgetSource) async -> Result<WidgetID, Unsaved> {
+        do {
+            switch try await engine.build(source) {
+            case .saved(let id):
+                await reload()
+                return .success(id)
+            case .rejected(let line):
+                return .failure(Unsaved(line: line))
+            }
+        } catch {
+            return .failure(Unsaved(line: error.message))
+        }
+    }
+
+    /// Why a widget did not go into the library, in one line.
+    struct Unsaved: Error {
+        let line: String
     }
 
     func delete(_ widget: WidgetID) {
@@ -180,9 +194,16 @@ struct FaceSizes: Equatable {
 
     init(column width: CGFloat) {
         let side = max(0, ((width - Self.gap) / 2).rounded(.down))
-        small = CGSize(width: side, height: side)
-        medium = CGSize(width: side * 2 + Self.gap, height: side)
+        self.init(small: CGSize(width: side, height: side), medium: CGSize(width: side * 2 + Self.gap, height: side))
     }
+
+    init(small: CGSize, medium: CGSize) {
+        self.small = small
+        self.medium = medium
+    }
+
+    /// The look language's reference sizes.
+    static let standard = FaceSizes(small: Family.small.standardSize, medium: Family.medium.standardSize)
 
     subscript(family: Family) -> CGSize { family == .small ? small : medium }
 }

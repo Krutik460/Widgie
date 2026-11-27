@@ -16,7 +16,7 @@ private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describ
 @MainActor @Observable
 final class DescribeSession: Identifiable {
     enum Phase: Equatable {
-        /// Copying the library widget being refined into the preview.
+        /// Putting the widget the session starts from into the preview.
         case opening
         case composing
         case building(BuildStep)
@@ -39,7 +39,7 @@ final class DescribeSession: Identifiable {
         case interrupted
         /// The store failed, which is not something rewording can fix.
         case broken
-        /// The library widget could not be copied into the preview, so there is nothing to refine.
+        /// The widget the session starts from could not be put into the preview, so there is nothing to refine.
         case unopened
         /// This build names no model service.
         case unavailable
@@ -77,8 +77,16 @@ final class DescribeSession: Identifiable {
         case save
     }
 
-    /// The library widget being refined, nil when creating a new one.
-    let editing: WidgetID?
+    /// What the session starts from.
+    private enum Origin {
+        case nothing
+        /// A library widget to refine, which Save replaces.
+        case library(WidgetID)
+        /// A widget that is not in the library yet, such as a filled template, which Save adds.
+        case unsaved(WidgetSource)
+    }
+
+    private let origin: Origin
     let preview: Preview
     private(set) var phase: Phase
     /// The only exchange the screen shows.
@@ -96,6 +104,11 @@ final class DescribeSession: Identifiable {
     /// The last accepted widget in the preview's scratch engine.
     var draft: WidgetID? { preview.widget }
 
+    /// The library widget being refined, nil when creating a new one.
+    var editing: WidgetID? {
+        if case .library(let id) = origin { id } else { nil }
+    }
+
     private let model: (any WidgetModel)?
     /// Returns once the shared store takes writes.
     private let sharedWritesOpen: @MainActor () async -> Void
@@ -104,15 +117,32 @@ final class DescribeSession: Identifiable {
     private var background = UIBackgroundTaskIdentifier.invalid
     private var expired = false
 
-    init(
+    convenience init(
         editing: WidgetID? = nil, model: (any WidgetModel)? = BridgeModel.configured, preview: Preview = Preview(),
         sharedWritesOpen: @escaping @MainActor () async -> Void = SharedWrites.open
     ) {
-        self.editing = editing
+        self.init(
+            origin: editing.map(Origin.library) ?? .nothing, model: model, preview: preview,
+            sharedWritesOpen: sharedWritesOpen)
+    }
+
+    /// Starts on `draft` as if a turn had just made it, so the person's first message refines it.
+    convenience init(
+        draft: WidgetSource, model: (any WidgetModel)? = BridgeModel.configured, preview: Preview = Preview(),
+        sharedWritesOpen: @escaping @MainActor () async -> Void = SharedWrites.open
+    ) {
+        self.init(origin: .unsaved(draft), model: model, preview: preview, sharedWritesOpen: sharedWritesOpen)
+    }
+
+    private init(
+        origin: Origin, model: (any WidgetModel)?, preview: Preview,
+        sharedWritesOpen: @escaping @MainActor () async -> Void
+    ) {
+        self.origin = origin
         self.model = model
         self.preview = preview
         self.sharedWritesOpen = sharedWritesOpen
-        phase = editing == nil ? .composing : .opening
+        if case .nothing = origin { phase = .composing } else { phase = .opening }
     }
 
     var canSend: Bool {
@@ -121,8 +151,14 @@ final class DescribeSession: Identifiable {
     }
 
     func open() async {
-        guard let editing, phase == .opening else { return }
-        if await preview.copy(editing) == nil {
+        guard phase == .opening else { return }
+        let shown: WidgetID?
+        switch origin {
+        case .nothing: return
+        case .library(let id): shown = await preview.copy(id)
+        case .unsaved(let source): shown = await preview.adopt(source)
+        }
+        if shown == nil {
             fail(.unopened, job: nil)
         } else {
             phase = .composing
