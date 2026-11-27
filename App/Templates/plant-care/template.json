@@ -4,7 +4,7 @@
   "category": "home",
   "order": 40,
   "family": "small",
-  "hint": "Tap the check after watering.",
+  "hint": "Tap the check after watering. For now it stays on this phone.",
   "blanks": [
     {
       "key": "plant",

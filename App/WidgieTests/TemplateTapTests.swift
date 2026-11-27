@@ -1,0 +1,162 @@
+import Foundation
+import Testing
+import WidgetBuilder
+import WidgetEngine
+
+@testable import Widgie
+
+/// What a template's face does when it is tapped, and what it shows, read off its picture.
+@MainActor @Suite struct TemplateTapTests {
+    /// Wednesday, 9 in the morning.
+    private let nine = moment(2026, 11, 18, 9)
+
+    private func text(_ id: String, rows: String? = nil, at date: Date) async throws -> String {
+        try await TemplateBench(id, rows: rows, at: date).words(at: date).joined(separator: " ")
+    }
+
+    /// Each template whose tap writes a row, the button, how many minutes its undo lasts, and rows whose newest
+    /// is a minute old and Sam's.
+    @Test(arguments: [
+        ("plant-care", "water", 60, #"{"waterings": [{"minutesAgo": 1, "by": "Sam"}]}"#),
+        ("pet-fed", "feed", 60, #"{"feeds": [{"minutesAgo": 1, "by": "Sam"}]}"#),
+        ("baby-feeds", "left", 10, #"{"feeds": [{"minutesAgo": 1, "side": "Left", "by": "Sam"}]}"#),
+        ("savings-jar", "add", 10, #"{"deposits": [{"minutesAgo": 1, "amount": 50, "by": "Sam"}]}"#),
+        ("pushups", "ten", 10, #"{"sets": [{"minutesAgo": 1, "reps": 10, "by": "Sam"}]}"#),
+        ("chores-scoreboard", "did", 10, #"{"chores": [{"minutesAgo": 1, "by": "Sam"}]}"#),
+        ("water", "drink", 10, #"{"glasses": [{"minutesAgo": 1, "by": "Sam"}]}"#),
+    ])
+    func aTapCanBeTakenBackForAWhileButOnlyYourOwn(id: String, action: String, minutes: Int, theirs: String)
+        async throws
+    {
+        let bench = try TemplateBench(id, rows: "{}", at: nine)
+        let before = await bench.picture(at: nine.adding(minutes: 1))
+        try await bench.tap(action, at: nine)
+        #expect(await bench.actions(at: nine.adding(minutes: minutes - 1)).contains("undo"), "\(id) offers the undo")
+        #expect(
+            !(await bench.actions(at: nine.adding(minutes: minutes + 1)).contains("undo")),
+            "\(id)'s undo lasts \(minutes) minutes")
+
+        try await bench.tap("undo", at: nine.adding(minutes: 1))
+        #expect(await bench.picture(at: nine.adding(minutes: 1)).looksLike(before), "\(id)'s undo takes the tap back")
+
+        let partner = try TemplateBench(id, rows: theirs, at: nine)
+        #expect(!(await partner.actions(at: nine)).contains("undo"), "\(id) cannot take back Sam's row")
+    }
+
+    /// The pile shows each template's first sample, and none of them offers an undo at any hour, a minute after
+    /// midnight included.
+    @Test func noUndoShowsInThePileAtAnyHour() async throws {
+        for id in ["plant-care", "pet-fed", "baby-feeds", "savings-jar", "pushups", "chores-scoreboard", "water"] {
+            for hour in [0, 9, 12, 23] {
+                let date = moment(2026, 11, 23, hour, hour == 0 ? 1 : 59)
+                let actions = try await TemplateBench(id, at: date).actions(at: date)
+                #expect(!actions.contains("undo"), "\(id) offers an undo in the pile at \(hour)")
+            }
+        }
+    }
+
+    /// A sample means the same just after midnight as at noon: no row placed minutes ago falls on yesterday.
+    /// Monday, so the counts of the week start that day too.
+    @Test func everySampleLooksTheSameJustAfterMidnightAsAtNoon() async throws {
+        let (early, noon) = (moment(2026, 11, 23, 0, 1), moment(2026, 11, 23, 12))
+        for template in Template.catalog() {
+            let document = try JSONSerialization.jsonObject(with: template.source().json) as? [String: Any]
+            let samples = (document?["samples"] as? [String: Any] ?? [:]).keys.sorted()
+            for sample in samples {
+                let rows = try JSONSerialization.data(
+                    withJSONObject: (document?["samples"] as? [String: Any])?[sample] ?? [:])
+                let state = String(decoding: rows, as: UTF8.self)
+                for family in Family.allCases {
+                    let atEarly = try await TemplateBench(template.id, family: family, rows: state, at: early)
+                        .picture(at: early)
+                    let atNoon = try await TemplateBench(template.id, family: family, rows: state, at: noon)
+                        .picture(at: noon)
+                    #expect(atEarly.looksLike(atNoon), "\(template.id) \"\(sample)\" \(family) drifts after midnight")
+                }
+            }
+        }
+    }
+
+    @Test func binsNightPassesTheTurnBackAndForth() async throws {
+        let bench = try TemplateBench("bins-night", rows: "{}", at: nine)
+        let words = { try await bench.words(at: nine).joined(separator: " ") }
+        #expect(try await words().contains("Sam up tonight"), "the turn starts with Sam")
+        try await bench.tap("pass", at: nine)
+        #expect(try await words().contains("You your turn tonight"))
+        try await bench.tap("pass", at: nine)
+        #expect(try await words().contains("Sam up tonight"))
+    }
+
+    /// The scoreboard counts your taps for you and Sam's rows for Sam.
+    @Test func aChoreYouTapCountsAsYours() async throws {
+        let bench = try TemplateBench(
+            "chores-scoreboard", rows: #"{"chores": [{"by": "Sam", "repeat": 11}, {"repeat": 9}]}"#, at: nine)
+        try await bench.tap("did", at: nine)
+        let expected = try TemplateBench(
+            "chores-scoreboard",
+            rows: #"{"chores": [{"minutesAgo": 60, "by": "Sam", "repeat": 11}, {"minutesAgo": 60, "repeat": 9}, {}]}"#,
+            at: nine)
+        #expect(await bench.picture(at: nine).looksLike(await expected.picture(at: nine)), "you 10, Sam 11")
+        let words = try await bench.words(at: nine)
+        #expect(words.contains("10") && words.contains("11") && !words.contains("9"))
+    }
+
+    @Test func theTripCountsDownToTodayAndThenHome() async throws {
+        let cases = [
+            ("{}", ["tap to set the date", "HOME", "SET DATE"]),
+            (#"{"trips": [{"date": {"daysFromToday": 12}, "from": "London"}]}"#, ["12", "days until our trip", "LHR"]),
+            (#"{"trips": [{"date": {"daysFromToday": 1}}]}"#, ["1", "day until our trip", "HOME", "NOV 19"]),
+            (#"{"trips": [{"date": {"daysFromToday": 0}}]}"#, ["Today", "have a wonderful trip"]),
+            (#"{"trips": [{"date": {"daysFromToday": -2}}]}"#, ["Home", "tap to plan the next one"]),
+        ]
+        for (rows, expected) in cases {
+            let words = try await TemplateBench("trip-countdown", family: .medium, rows: rows, at: nine).words(at: nine)
+            for word in expected { #expect(words.contains(word), "\(rows) shows \(word), not \(words)") }
+        }
+    }
+
+    @Test func daysFreeNamesTheNextMedal() async throws {
+        for (days, medal) in [(0, 1), (6, 7), (7, 14), (47, 60), (180, 365), (400, 730)] {
+            let rows = #"{"starts": [{"since": {"daysFromToday": -\#(days)}}]}"#
+            let shown = try await text("days-free", rows: rows, at: nine)
+            #expect(shown.contains("next medal: \(medal)"), "\(days) days: \(shown)")
+        }
+    }
+
+    /// $1,240 of $2,000 saved: the $760 left, spread over the weeks to the end of the next June.
+    @Test func theSavingsPlanSpreadsWhatIsLeftOverTheWeeksToJune() async throws {
+        let cases = [
+            (nine, "$24 a week to make it by June"),
+            (moment(2027, 6, 20, 9), "$380 a week to make it by June"),
+            (moment(2027, 6, 26, 9), "$760 to go by the end of June"),
+            (moment(2027, 6, 30, 9), "$760 to go, and June ends today"),
+            (moment(2027, 7, 1, 9), "$15 a week to make it by June"),
+        ]
+        for (date, line) in cases {
+            let shown = try await text("savings-jar", at: date)
+            #expect(shown.contains(line), "\(date): \(shown)")
+        }
+    }
+
+    /// Each dated template is one button that opens a form, and the face counts from the date it sets, and from
+    /// a new date when it is set again.
+    @Test(arguments: [
+        ("trip-countdown", "plan", "date", 12, "12 days until our trip", 30, "30 days until our trip"),
+        ("days-together", "set", "since", -23, "23", -40, "40"),
+        ("days-free", "start", "since", -47, "47 days", -6, "6 days"),
+    ])
+    func aDatedTemplateCountsFromTheDateItSets(
+        id: String, action: String, field: String, first: Int, firstShown: String, second: Int, secondShown: String
+    ) async throws {
+        let bench = try TemplateBench(id, rows: "{}", at: nine)
+        #expect(await bench.actions(at: nine) == [action])
+        for (days, shown) in [(first, firstShown), (second, secondShown)] {
+            let day = Calendar.autoupdatingCurrent.dateComponents(
+                [.year, .month, .day], from: Calendar.autoupdatingCurrent.date(byAdding: .day, value: days, to: nine)!)
+            try await bench.tap(
+                action, at: nine, input: [field: .date(year: day.year!, month: day.month!, day: day.day!)])
+            let words = try await bench.words(at: nine).joined(separator: " ")
+            #expect(words.contains(shown), "\(id) set to \(days) days from today shows \(words)")
+        }
+    }
+}

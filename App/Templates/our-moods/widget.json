@@ -67,7 +67,7 @@
         },
         {
           "daysAgo": 0,
-          "by": "{{partner}}",
+          "by": "Sam",
           "mood": 4
         }
       ]
@@ -80,7 +80,7 @@
         },
         {
           "daysAgo": 0,
-          "by": "{{partner}}",
+          "by": "Sam",
           "mood": 1
         }
       ]
@@ -93,7 +93,7 @@
         },
         {
           "daysAgo": 1,
-          "by": "{{partner}}",
+          "by": "Sam",
           "mood": 2
         }
       ]

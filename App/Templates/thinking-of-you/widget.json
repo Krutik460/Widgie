@@ -34,7 +34,7 @@
       "hearts": [
         {
           "daysAgo": 0,
-          "by": "{{who}}",
+          "by": "Sam",
           "repeat": 5
         },
         {
@@ -50,7 +50,7 @@
         },
         {
           "daysAgo": 2,
-          "by": "{{who}}"
+          "by": "Sam"
         }
       ]
     }

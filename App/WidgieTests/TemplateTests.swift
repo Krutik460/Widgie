@@ -101,7 +101,8 @@ import WidgetEngine
 
 @Suite struct TemplateCatalogTests {
     /// Every bundled template reads, has every blank its document uses, and builds through `engine.build`, with
-    /// its placeholders, with awkward values, and with every blank at its longest, which also proves the face.
+    /// its placeholders, with awkward values, with every blank at its longest, and with every blank "me" or "Me",
+    /// which also proves the face.
     @Test func everyBundledTemplateBuildsWithItsPlaceholdersAwkwardValuesAndTheLongestValues() async throws {
         let root = try #require(Bundle.main.url(forResource: "Templates", withExtension: nil))
         let folders = try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
@@ -118,7 +119,10 @@ import WidgetEngine
                         ($0.key, String(repeating: glyph, count: $0.maxLength + 5))
                     })
             }
-            for values in [[:], awkward] + longest {
+            // "me" in any case is how a sample names the person, so a blank must never reach a sample's author.
+            let me = ["me", "Me"].map { word in Dictionary(uniqueKeysWithValues: template.blanks.map { ($0.key, word) })
+            }
+            for values in [[:], awkward] + longest + me {
                 let source = try template.source(filling: values)
                 #expect(
                     !String(decoding: source.json, as: UTF8.self).contains("{{"), "\(template.id) has an unfilled blank"
@@ -176,18 +180,6 @@ import WidgetEngine
         #expect(try await buttons("streak", rows: #"{"sessions": [{"daysAgo": 1}]}"#) == ["done"])
         #expect(try await buttons("streak", rows: #"{"sessions": [{"daysAgo": 1}, {}]}"#) == ["undo"])
     }
-
-    @Test func aDatedWidgetIsOneTapThatSetsOrChangesItsDate() async throws {
-        for (id, table, family) in [
-            ("trip-countdown", "trips", Family.medium), ("days-together", "dates", .small),
-            ("days-free", "starts", .small),
-        ] {
-            let action = try await buttons(id, family: family, rows: "{}")
-            #expect(action.count == 1, "\(id) draws one button")
-            let dated = #"{"\#(table)": [{"daysAgo": 3}]}"#
-            #expect(try await buttons(id, family: family, rows: dated) == action)
-        }
-    }
 }
 
 @MainActor @Suite struct TemplateGalleryTests {
@@ -223,11 +215,39 @@ import WidgetEngine
 
     @Test func everyTemplateDrawsAFaceFromItsSampleInThePile() async throws {
         gallery.fit(column: 362)
+        await gallery.drawn()
         for template in gallery.catalog {
-            await gallery.draw(template)
-            let face = try #require(gallery.faces[template.id], "\(template.id) drew no face")
+            let face = try #require(gallery.card(template.id).face, "\(template.id) drew no face")
             #expect(!face.isFallback, "\(template.id) fell back instead of drawing its look")
         }
+    }
+
+    /// Every face is drawn once the pile's width is known, the shown category's first, and drawn again when the
+    /// width changes.
+    @Test func theFacesDrawInTheBackgroundTheShownCategoryFirst() async throws {
+        var landed: [Template.ID] = []
+        func watch() {
+            for template in gallery.catalog {
+                let card = gallery.card(template.id)
+                withObservationTracking {
+                    _ = card.face
+                } onChange: {
+                    MainActor.assumeIsolated { landed.append(template.id) }
+                }
+            }
+        }
+        watch()
+        gallery.show(.goals)
+        gallery.fit(column: 362)
+        await gallery.drawn()
+        let goals = gallery.templates(in: .goals).map(\.id)
+        #expect(Set(landed.prefix(goals.count)) == Set(goals), "the shown category comes first")
+        #expect(Set(landed) == Set(gallery.catalog.map(\.id)) && landed.count == gallery.catalog.count)
+
+        gallery.fit(column: 330)
+        #expect(gallery.catalog.allSatisfy { gallery.card($0.id).face == nil }, "the old size's faces go")
+        await gallery.drawn()
+        #expect(gallery.catalog.allSatisfy { gallery.card($0.id).face != nil }, "and the new size's come")
     }
 
     /// A value typed into any blank changes what the face draws, in both sizes, so it reaches the face and not
