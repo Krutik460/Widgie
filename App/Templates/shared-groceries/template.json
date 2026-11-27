@@ -2,7 +2,7 @@
   "name": "Shared groceries",
   "line": "Cross it off, on one phone for now",
   "category": "home",
-  "order": 20,
+  "order": 30,
   "family": "medium",
   "hint": "Tap an item to cross it off.",
   "blanks": []

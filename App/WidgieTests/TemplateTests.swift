@@ -134,14 +134,76 @@ import WidgetEngine
     }
 }
 
+/// What a template's face offers to tap in a given state: the action of every button it draws.
+@Suite struct TemplateBehaviourTests {
+    private func buttons(_ id: String, family: Family = .small, rows: String) async throws -> [String] {
+        let template = try #require(Template.catalog().first { $0.id == id })
+        let file = FileManager.default.temporaryDirectory.appending(path: "state-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        try Data(rows.utf8).write(to: file)
+        let proof = try await Engine.proof(template.source(), state: .file(file), family: family)
+        #expect(proof.verdict == nil, "\(id) draws this state")
+        return proof.fit.buttons
+    }
+
+    @Test func yourMoodFaceStepsToTheNextFaceAndWrapsAround() async throws {
+        #expect(try await buttons("our-moods", rows: "{}") == ["mood2"], "no mood yet starts on a smile")
+        for (mood, next) in [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)] {
+            let rows = #"{"moods": [{"mood": 3, "by": "Sam"}, {"mood": \#(mood)}]}"#
+            #expect(try await buttons("our-moods", rows: rows) == ["mood\(next)"])
+        }
+        #expect(
+            try await buttons("our-moods", rows: #"{"moods": [{"mood": 4, "daysAgo": 1}]}"#) == ["mood2"],
+            "yesterday's mood is not today's")
+    }
+
+    @Test func sayingYoullCookCanBeTakenBackButOnlyYourOwnSay() async throws {
+        #expect(try await buttons("dinner-tonight", rows: "{}") == ["cook"])
+        #expect(try await buttons("dinner-tonight", rows: #"{"cooks": [{"by": "Sam"}]}"#) == ["cook"])
+        #expect(try await buttons("dinner-tonight", rows: #"{"cooks": [{"by": "Sam"}, {}]}"#) == ["unsay"])
+        #expect(try await buttons("dinner-tonight", rows: #"{"cooks": [{"daysAgo": 1}]}"#) == ["cook"])
+    }
+
+    @Test func answeringTodaysQuestionCanBeUndoneUntilTomorrow() async throws {
+        #expect(try await buttons("todays-question", family: .medium, rows: "{}") == ["answer"])
+        #expect(try await buttons("todays-question", family: .medium, rows: #"{"answers": [{}]}"#) == ["unanswer"])
+        #expect(
+            try await buttons("todays-question", family: .medium, rows: #"{"answers": [{"daysAgo": 1}]}"#)
+                == ["answer"])
+    }
+
+    @Test func theStreakCheckMarksTodayOrTakesItBack() async throws {
+        #expect(try await buttons("streak", rows: #"{"sessions": [{"daysAgo": 1}]}"#) == ["done"])
+        #expect(try await buttons("streak", rows: #"{"sessions": [{"daysAgo": 1}, {}]}"#) == ["undo"])
+    }
+
+    @Test func aDatedWidgetIsOneTapThatSetsOrChangesItsDate() async throws {
+        for (id, table, family) in [
+            ("trip-countdown", "trips", Family.medium), ("days-together", "dates", .small),
+            ("days-free", "starts", .small),
+        ] {
+            let action = try await buttons(id, family: family, rows: "{}")
+            #expect(action.count == 1, "\(id) draws one button")
+            let dated = #"{"\#(table)": [{"daysAgo": 3}]}"#
+            #expect(try await buttons(id, family: family, rows: dated) == action)
+        }
+    }
+}
+
 @MainActor @Suite struct TemplateGalleryTests {
     private let gallery = TemplateGallery()
 
-    @Test func theSixTemplatesSitOnTheirShelvesInGalleryOrder() {
+    @Test func everyTemplateSitsOnItsShelfInThePrototypesOrder() {
         let shelves = Template.Category.allCases.map { gallery.templates(in: $0).map(\.id) }
         #expect(
             shelves == [
-                ["thinking-of-you"], ["pet-fed", "shared-groceries"], ["habit-squares", "water"], ["word-of-the-day"],
+                ["thinking-of-you", "our-moods", "trip-countdown", "days-together", "todays-question"],
+                [
+                    "pet-fed", "bins-night", "shared-groceries", "plant-care", "dinner-tonight", "baby-feeds",
+                    "chores-scoreboard",
+                ],
+                ["habit-squares", "streak", "water", "pushups"],
+                ["savings-jar", "days-free", "word-of-the-day"],
             ])
     }
 
