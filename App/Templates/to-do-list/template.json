@@ -1,9 +1,0 @@
-{
-  "name": "To-do list",
-  "line": "Add a job, tick it off",
-  "category": "home",
-  "order": 20,
-  "family": "medium",
-  "hint": "Tap a job to tick it off.",
-  "blanks": []
-}

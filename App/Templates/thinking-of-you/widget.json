@@ -20,15 +20,6 @@
         "by": "others"
       },
       "window": "today"
-    },
-    "lastIn": {
-      "latest": "hearts",
-      "where": {
-        "by": "others"
-      },
-      "window": {
-        "days": 7
-      }
     }
   },
   "actions": {
@@ -37,33 +28,25 @@
     }
   },
   "automations": {},
-  "assets": {
-    "photo": {
-      "about": "the couple's own photo, two people at the beach at sunset"
-    }
-  },
+  "assets": {},
   "samples": {
     "both ways": {
       "hearts": [
         {
-          "minutesAgo": 300,
+          "daysAgo": 0,
           "by": "{{who}}",
-          "repeat": 2
+          "repeat": 5
         },
         {
-          "minutesAgo": 120,
+          "daysAgo": 0,
           "repeat": 3
-        },
-        {
-          "minutesAgo": 12,
-          "by": "{{who}}"
         }
       ]
     },
     "only mine": {
       "hearts": [
         {
-          "minutesAgo": 45
+          "daysAgo": 0
         },
         {
           "daysAgo": 2,
@@ -72,5 +55,5 @@
       ]
     }
   },
-  "look": "// Who gets the hearts, filled in when the template is added.\nconst WHO = {{who}};\nconst PINK = '#FF4F8B';\n\nfunction ago(minutes) {\n  if (minutes < 1) return 'just now';\n  if (minutes < 60) return minutes + ' min ago';\n  const hours = Math.floor(minutes / 60);\n  if (hours < 24) return hours + ' h ago';\n  return Math.floor(hours / 24) + ' d ago';\n}\n\nfunction tally(symbol, value, label) {\n  return { type: 'hstack', spacing: 4, children: [\n    { type: 'symbol', name: symbol, size: 11, weight: 'semibold', color: '#FFFFFFCC' },\n    { type: 'text', value: value, size: 15, weight: 'bold', design: 'rounded', color: '#FFFFFF', lineLimit: 1,\n      minScale: 0.6 },\n    label && { type: 'text', value: label, size: 11, weight: 'medium', color: '#FFFFFFB3', lineLimit: 1,\n      minScale: 0.7 },\n  ] };\n}\n\nfunction render(ctx) {\n  const d = ctx.data;\n  const medium = ctx.family === 'medium';\n  const them = d.lastIn && (d.lastIn.by.name || WHO);\n  const note = d.lastIn\n    ? them + ' sent a heart ' + ago(d.lastIn.minutesAgo)\n    : 'Send ' + WHO + ' a heart today';\n\n  // The heart is cut out of the disc, so it shows in tinted and clear mode.\n  const send = { type: 'button', action: 'send', children: [\n    { type: 'symbol', name: 'heart.circle.fill', size: medium ? 56 : 42, color: PINK, accent: true,\n      shadow: { color: '#00000066', radius: 6, y: 2 } } ] };\n\n  const tallies = { type: 'hstack', spacing: 10, children: [\n    tally('arrow.up.heart.fill', d.sent, medium ? 'sent' : null),\n    tally('arrow.down.heart.fill', d.received, medium ? 'received' : null),\n  ], shadow: { color: '#00000080', radius: 3 } };\n\n  // The photo fades out toward the bottom instead of sitting under a dark scrim, so the text stays readable in\n  // tinted and clear mode, where a scrim would turn into a white sheet and the backdrop shows through instead.\n  const photo = { type: 'image', asset: 'photo', crop: medium ? null : [0.2, 0, 0.6, 1],\n    mask: { gradient: 'linear', stops: ['#000000FF', '#000000FF', '#00000040'], from: 'top', to: 'bottom' } };\n\n  const noteText = { type: 'text', value: note, size: medium ? 12 : 11, weight: 'medium', color: '#FFFFFFE6',\n    lineLimit: medium ? 2 : 3, minScale: 0.7, shadow: { color: '#00000080', radius: 3 } };\n\n  if (medium) {\n    return {\n      type: 'zstack',\n      frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n      widgetBackground: '#1E0D17',\n      children: [\n        photo,\n        { type: 'hstack', align: 'bottom', spacing: 8, padding: 14,\n          frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottom' },\n          children: [\n            { type: 'vstack', align: 'leading', spacing: 4, frame: { maxWidth: 'infinity', alignment: 'leading' },\n              children: [\n                { type: 'text', value: 'Thinking of you', size: 17, weight: 'bold', color: '#FFFFFF', lineLimit: 1,\n                  minScale: 0.6, shadow: { color: '#00000080', radius: 3 } },\n                noteText,\n                tallies,\n              ] },\n            send,\n          ] },\n      ],\n    };\n  }\n\n  return {\n    type: 'zstack',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: '#1E0D17',\n    children: [\n      photo,\n      { type: 'vstack', align: 'leading', spacing: 0, padding: 12,\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          tallies,\n          { type: 'spacer', minLength: 0 },\n          { type: 'hstack', align: 'bottom', spacing: 6, children: [\n            { type: 'vstack', frame: { maxWidth: 'infinity', alignment: 'bottomLeading' }, children: [noteText] },\n            send ] },\n        ] },\n    ],\n  };\n}\n"
+  "look": "// Who gets the hearts, filled in when the template is added.\nconst WHO = {{who}};\nconst PLUM = '#3a1830';\nconst BLUSH = '#ffe3ec';\nconst PINK = '#ff8fb0';\nconst HEART = 'M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.6 0 5.7 '\n  + '3.7 4.2 7.2C19.5 16.4 12 21 12 21z';\n// The key: a disc with the heart cut out, so the heart still shows in tinted and clear mode.\nconst KEY = 'M24 0A24 24 0 1 0 24 48A24 24 0 1 0 24 0Z M24 33s-7.5-4.6-9.6-9.3C12.9 20.2 15 16.5 18.6 16.5c2.1 0 '\n  + '3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.6 0 5.7 3.7 4.2 7.2C31.5 28.4 24 33 24 33z';\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall. Bricolage's line is 1.2 times its size, so\n  // the gaps around the number are 0.1 of its size shorter than the prototype's.\n  const u = ctx.height / 170;\n  const d = ctx.data;\n  const line = (value) => ({ type: 'text', value, size: 12.5 * u, weight: 'semibold', color: BLUSH, opacity: 0.8,\n    lineLimit: 1, minScale: 0.6, frame: { height: 16.25 * u, alignment: 'leading' } });\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: PLUM,\n    children: [\n      { type: 'vstack', align: 'leading', spacing: 0,\n        padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: HEART, viewBox: [0, 0, 24, 24], fill: PINK, frame: { width: 15 * u, height: 15 * u } },\n            { type: 'text', value: WHO, size: 13 * u, weight: 'bold', color: PINK, lineLimit: 1, minScale: 0.6 } ] },\n          { type: 'text', value: d.received, fontName: 'Bricolage Grotesque Display', size: 36 * u,\n            kerning: -1.08 * u, color: BLUSH, accent: true, lineLimit: 1, minScale: 0.5, padding: { top: 4.4 * u } },\n          { type: 'vstack', align: 'leading', spacing: 0, padding: { top: 1.4 * u },\n            frame: { maxWidth: ctx.family === 'small' ? 112 * u : 200 * u, alignment: 'leading' },\n            children: [\n              line(d.received > 0 ? 'from ' + WHO + ' today' : 'No hearts yet'),\n              d.sent > 0 && line('you sent ' + d.sent),\n            ] },\n        ] },\n      { type: 'zstack', padding: 13 * u,\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomTrailing' },\n        children: [\n          { type: 'button', action: 'send', children: [\n            { type: 'path', d: KEY, viewBox: [0, 0, 48, 48], fill: '#ff6f8c', accent: true,\n              frame: { width: 46 * u, height: 46 * u }, shadow: { color: '#0000004D', radius: 5 * u, y: 4 * u } } ] },\n        ] },\n    ],\n  };\n}\n"
 }

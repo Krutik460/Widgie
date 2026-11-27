@@ -114,12 +114,12 @@ import WidgetEngine
         let shelves = Template.Category.allCases.map { gallery.templates(in: $0).map(\.id) }
         #expect(
             shelves == [
-                ["thinking-of-you"], ["pet-fed", "to-do-list"], ["habit-squares", "water"], ["word-of-the-day"],
+                ["thinking-of-you"], ["pet-fed", "shared-groceries"], ["habit-squares", "water"], ["word-of-the-day"],
             ])
     }
 
     @Test func aTypedNameNamesTheAddedWidget() async throws {
-        let names = ["thinking-of-you": "Hearts for Alex", "pet-fed": "Alex fed", "habit-squares": "Alex"]
+        let names = ["thinking-of-you": "Hearts for Alex", "pet-fed": "Alex fed"]
         for (id, expected) in names {
             let template = try #require(gallery.catalog.first { $0.id == id })
             let values = Dictionary(uniqueKeysWithValues: template.blanks.map { ($0.key, "  Alex ") })

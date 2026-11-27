@@ -1,0 +1,9 @@
+{
+  "name": "Shared groceries",
+  "line": "Cross it off for both",
+  "category": "home",
+  "order": 20,
+  "family": "medium",
+  "hint": "Tap an item to cross it off.",
+  "blanks": []
+}
