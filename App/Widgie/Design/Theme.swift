@@ -107,8 +107,9 @@ extension View {
             .shadow(color: Palette.restShadow, radius: 7, y: 4)
     }
 
-    /// The lift under Widgie's speech bubble: a close shadow and a soft one well below it.
-    func bubbleShadow() -> some View {
+    /// The quiet lift under Widgie's speech bubbles and the template banner: a close shadow and a soft one well
+    /// below it.
+    func quietShadow() -> some View {
         shadow(color: Palette.restShadow.opacity(0.5), radius: 2, y: 2)
             .shadow(color: Palette.restShadow, radius: 12, y: 10)
     }

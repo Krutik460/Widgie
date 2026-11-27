@@ -54,6 +54,7 @@ struct TemplateBanner: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
         // At the accessibility text sizes the line takes the banner's width and the cast stands under it.
         Group {
             if typeSize.isAccessibilitySize {
@@ -73,8 +74,10 @@ struct TemplateBanner: View {
         .opacity(leaving ? 0 : 1)
         .offset(y: leaving && !reduceMotion ? 6 : 0)
         .frame(maxWidth: .infinity, minHeight: Cast.size.height)
+        // Clips the cast and the line, not the background's shadow.
+        .clipShape(shape)
         .background {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            shape
                 .fill(chosen.banner)
                 .overlay {
                     // A fixed light over the color, so a switch cross-fades only the hue.
@@ -86,11 +89,10 @@ struct TemplateBanner: View {
                             colors: [.white.opacity(0.14), .clear], center: UnitPoint(x: 0.85, y: 1), startRadius: 0,
                             endRadius: 180)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .clipShape(shape)
                 }
-                .restShadow()
+                .quietShadow()
         }
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: chosen)
     }
 
