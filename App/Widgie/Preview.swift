@@ -9,7 +9,8 @@ private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describ
 
 /// A draft's live face, drawn from a scratch engine of its own. The draft never reaches the shared store, so
 /// the home screen widget picker cannot list it before Save, and taps write to sample rows, never the
-/// person's. Releasing the preview deletes the draft.
+/// person's. Releasing the preview deletes the draft. While the app is in the foreground it draws the faces again
+/// at the moment they change, such as an undo's window closing.
 @MainActor @Observable
 final class Preview {
     /// Where the draft lives. The build loop runs on this engine, so every accepted attempt saves only here.
@@ -28,9 +29,18 @@ final class Preview {
     var form: ShownForm?
     var message: String?
 
-    init(library: Engine = Hosting.engine, engine: Engine = .scratch()) {
+    @ObservationIgnored private let redraws: Redraws
+
+    init(
+        library: Engine = Hosting.engine, engine: Engine = .scratch(), clock: FaceClock = .system,
+        center: NotificationCenter = .default
+    ) {
         self.library = library
         self.engine = engine
+        redraws = Redraws(clock: clock, center: center)
+        redraws.redraw = { [weak self] in
+            Task { await self?.redraw() }
+        }
     }
 
     /// Shows a draft the scratch engine holds. A new draft starts on its first sample, so it does not look
@@ -46,16 +56,17 @@ final class Preview {
             states = [.empty] + (try engine.samples(of: widget)).map(DataState.sample)
             let kept = self.widget == widget && states.contains(self.state)
             state = kept ? self.state : states.dropFirst().first ?? .empty
-            try engine.load(state, into: widget)
+            try engine.load(state, into: widget, at: redraws.clock.now())
         } catch {
             log.error("show: \(error.message, privacy: .public)")
             return false
         }
-        guard let faces = await draw(widget), !Task.isCancelled else { return false }
+        guard let drawn = await draw(widget), !Task.isCancelled else { return false }
         self.widget = widget
         self.states = states
         self.state = state
-        self.faces = faces
+        faces = drawn.faces
+        redraws.schedule(drawn.changes)
         return true
     }
 
@@ -68,7 +79,7 @@ final class Preview {
     func select(_ state: DataState) async {
         guard let widget else { return }
         do {
-            try engine.load(state, into: widget)
+            try engine.load(state, into: widget, at: redraws.clock.now())
             self.state = state
         } catch {
             message = error.message
@@ -121,7 +132,7 @@ final class Preview {
 
     func perform(_ tap: Tap, input: [String: InputValue] = [:]) {
         do {
-            try engine.perform(tap, input: input)
+            try engine.perform(tap, input: input, at: redraws.clock.now())
         } catch {
             message = error.message
         }
@@ -139,20 +150,25 @@ final class Preview {
     private var drawings = 0
 
     private func redraw() async {
-        guard let widget, let faces = await draw(widget) else { return }
-        self.faces = faces
+        guard let widget, let drawn = await draw(widget) else { return }
+        faces = drawn.faces
+        redraws.schedule(drawn.changes)
     }
 
-    /// The widget's faces in both families. Every write happens on the main actor before the drawing that
-    /// shows it starts, so the drawing started last reads the newest rows. Nil when a later drawing started,
-    /// because this one is stale.
-    private func draw(_ widget: WidgetID) async -> [Family: Face]? {
+    /// The widget's faces in both families, and when the first of them changes. Every write happens on the main
+    /// actor before the drawing that shows it starts, so the drawing started last reads the newest rows. Nil
+    /// when a later drawing started, because this one is stale.
+    private func draw(_ widget: WidgetID) async -> (faces: [Family: Face], changes: Date)? {
         drawings += 1
         let drawing = drawings
+        let now = redraws.clock.now()
         var faces: [Family: Face] = [:]
+        var changes = Date.distantFuture
         for family in Family.allCases {
-            faces[family] = await engine.face(for: widget, family: family, size: sizes[family], at: .now)
+            let drawn = await engine.face(for: widget, family: family, size: sizes[family], at: now)
+            faces[family] = drawn.current
+            changes = min(changes, drawn.reloadAt)
         }
-        return drawing == drawings ? faces : nil
+        return drawing == drawings ? (faces, changes) : nil
     }
 }

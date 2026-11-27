@@ -182,6 +182,7 @@ The prototype's remaining 13 tiles, taken from the landing page (`Site/public/wi
 - [x] A sample can give a date as days from the day it is drawn (`{"daysFromToday": 12}`), so the countdown and the anniversaries show the tile's count on any day.
 - [x] A sample row can stay on today (`{"minutesAgo": 3, "staysToday": true}`), so a sample drawn just after midnight keeps its glasses and its "just watered".
 - [x] Review fixes: the pile draws its faces in the background from launch, without the builder's proof, so no card waits grey; a blank set to "me" never becomes a sample's author; every timed undo is tested by tapping; the copy never implies the other person can tap on this phone.
+- [x] Second review fixes: a face on show draws again when it changes while the app stays open (an undo's window closing, a feed turning late, midnight), in the feed, the sheet's trial and Make's draft; the pile shows each sample as staged that day and stages it again when the day turns; a template that fails to stage or draws a fallback face is tried again; baby feeds' empty face no longer mentions the partner; text checks look for words in what recognition read, not for its exact lines; `Engine.stage` is `Engine.stageProved`.
 
 ### U5. Polish and the end-to-end check
 

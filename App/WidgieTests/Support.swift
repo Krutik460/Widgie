@@ -102,3 +102,61 @@ extension DescribeSession {
         }
     }
 }
+
+/// A wall clock that moves only when a test moves it, for the waits of `Redraws`.
+final class TestClock: Sendable {
+    private struct Sleeper {
+        let id: UUID
+        let until: Date
+        let wake: CheckedContinuation<Void, any Error>
+    }
+
+    private let state: Mutex<(now: Date, sleepers: [Sleeper])>
+
+    init(_ now: Date) { state = Mutex((now, [])) }
+
+    var now: Date { state.withLock { $0.now } }
+
+    /// The soonest moment something waits for, nil when nothing waits.
+    var soonest: Date? { state.withLock { $0.sleepers.map(\.until).min() } }
+
+    var clock: FaceClock {
+        FaceClock(now: { self.now }, sleep: { try await self.sleep(until: $0) })
+    }
+
+    /// Moves the clock to `date` and wakes every wait for a moment up to it.
+    func move(to date: Date) {
+        let woken = state.withLock { state in
+            state.now = date
+            let woken = state.sleepers.filter { $0.until <= date }
+            state.sleepers.removeAll { $0.until <= date }
+            return woken
+        }
+        for sleeper in woken { sleeper.wake.resume() }
+    }
+
+    private func sleep(until date: Date) async throws {
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (wake: CheckedContinuation<Void, any Error>) in
+                let early: (any Error)?? = state.withLock { state in
+                    if Task.isCancelled { return .some(CancellationError()) }
+                    if date <= state.now { return .some(nil) }
+                    state.sleepers.append(Sleeper(id: id, until: date, wake: wake))
+                    return nil
+                }
+                switch early {
+                case .some(let error?): wake.resume(throwing: error)
+                case .some(nil): wake.resume()
+                case nil: break
+                }
+            }
+        } onCancel: {
+            let sleeper = state.withLock { state -> Sleeper? in
+                guard let index = state.sleepers.firstIndex(where: { $0.id == id }) else { return nil }
+                return state.sleepers.remove(at: index)
+            }
+            sleeper?.wake.resume(throwing: CancellationError())
+        }
+    }
+}

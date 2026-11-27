@@ -229,6 +229,29 @@ import WidgetEngine
         #expect(faces.reloadAt == from.addingTimeInterval(2 * 3600))
     }
 
+    /// A host showing one face draws it again when it may change: in 15 minutes for a look that reads the clock,
+    /// at midnight for one that does not.
+    @Test @MainActor func aSingleFaceSaysWhenItNextChanges() async throws {
+        let scratch = Scratch()
+        let dogfed = try await scratch.build(try fixture("dogfed"))
+        let water = try await scratch.build(try fixture("water"))
+        let fed = instant("2026-11-18T14:00:00Z")
+        try scratch.engine.perform(try button("feed", on: await scratch.face(dogfed, at: fed)).tap, at: fed)
+
+        let from = instant("2026-11-18T14:10:00Z")
+        let size = Family.small.standardSize
+        let clock = await scratch.engine.face(for: dogfed, family: .small, size: size, at: from)
+        #expect(clock.entries.map(\.date) == [from])
+        #expect(clock.reloadAt == from.addingTimeInterval(15 * 60))
+        let late = instant("2026-11-18T23:50:00Z")
+        #expect(
+            await scratch.engine.face(for: dogfed, family: .small, size: size, at: late).reloadAt
+                == instant("2026-11-19T00:00:00Z"))
+        #expect(
+            await scratch.engine.face(for: water, family: .small, size: size, at: from).reloadAt
+                == instant("2026-11-19T00:00:00Z"))
+    }
+
     @Test @MainActor func midnightCutsTheQuarterHoursShort() async throws {
         let scratch = Scratch()
         let id = try await scratch.build(try fixture("dogfed"))

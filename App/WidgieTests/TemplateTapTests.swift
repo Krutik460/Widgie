@@ -11,7 +11,7 @@ import WidgetEngine
     private let nine = moment(2026, 11, 18, 9)
 
     private func text(_ id: String, rows: String? = nil, at date: Date) async throws -> String {
-        try await TemplateBench(id, rows: rows, at: date).words(at: date).joined(separator: " ")
+        try await TemplateBench(id, rows: rows, at: date).text(at: date)
     }
 
     /// Each template whose tap writes a row, the button, how many minutes its undo lasts, and rows whose newest
@@ -79,12 +79,14 @@ import WidgetEngine
 
     @Test func binsNightPassesTheTurnBackAndForth() async throws {
         let bench = try TemplateBench("bins-night", rows: "{}", at: nine)
-        let words = { try await bench.words(at: nine).joined(separator: " ") }
-        #expect(try await words().contains("Sam up tonight"), "the turn starts with Sam")
+        let start = await bench.picture(at: nine)
+        let shown = try await bench.text(at: nine)
+        #expect(shown.contains("Sam") && shown.contains("up tonight"), "the turn starts with Sam: \(shown)")
         try await bench.tap("pass", at: nine)
-        #expect(try await words().contains("You your turn tonight"))
+        let passed = try await bench.text(at: nine)
+        #expect(passed.contains("your turn tonight") && !passed.contains("Sam"), "then it is yours: \(passed)")
         try await bench.tap("pass", at: nine)
-        #expect(try await words().contains("Sam up tonight"))
+        #expect(await bench.picture(at: nine).looksLike(start), "and Sam's again")
     }
 
     /// The scoreboard counts your taps for you and Sam's rows for Sam.
@@ -97,8 +99,8 @@ import WidgetEngine
             rows: #"{"chores": [{"minutesAgo": 60, "by": "Sam", "repeat": 11}, {"minutesAgo": 60, "repeat": 9}, {}]}"#,
             at: nine)
         #expect(await bench.picture(at: nine).looksLike(await expected.picture(at: nine)), "you 10, Sam 11")
-        let words = try await bench.words(at: nine)
-        #expect(words.contains("10") && words.contains("11") && !words.contains("9"))
+        let shown = try await bench.text(at: nine)
+        #expect(shown.contains("10") && shown.contains("11") && !shown.contains("9"), "\(shown)")
     }
 
     @Test func theTripCountsDownToTodayAndThenHome() async throws {
@@ -110,8 +112,8 @@ import WidgetEngine
             (#"{"trips": [{"date": {"daysFromToday": -2}}]}"#, ["Home", "tap to plan the next one"]),
         ]
         for (rows, expected) in cases {
-            let words = try await TemplateBench("trip-countdown", family: .medium, rows: rows, at: nine).words(at: nine)
-            for word in expected { #expect(words.contains(word), "\(rows) shows \(word), not \(words)") }
+            let shown = try await TemplateBench("trip-countdown", family: .medium, rows: rows, at: nine).text(at: nine)
+            for words in expected { #expect(shown.contains(words), "\(rows) shows \(words), not \(shown)") }
         }
     }
 
@@ -155,8 +157,8 @@ import WidgetEngine
                 [.year, .month, .day], from: Calendar.autoupdatingCurrent.date(byAdding: .day, value: days, to: nine)!)
             try await bench.tap(
                 action, at: nine, input: [field: .date(year: day.year!, month: day.month!, day: day.day!)])
-            let words = try await bench.words(at: nine).joined(separator: " ")
-            #expect(words.contains(shown), "\(id) set to \(days) days from today shows \(words)")
+            let text = try await bench.text(at: nine)
+            #expect(text.contains(shown), "\(id) set to \(days) days from today shows \(text)")
         }
     }
 }

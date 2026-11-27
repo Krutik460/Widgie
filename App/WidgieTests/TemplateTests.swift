@@ -251,17 +251,29 @@ import WidgetEngine
     }
 
     /// A value typed into any blank changes what the face draws, in both sizes, so it reaches the face and not
-    /// only the widget's name.
+    /// only the widget's name: the empty face a new widget starts on, or the first sample, which the pile and the
+    /// trial show while the person types.
     @Test func everyBlankReachesTheFace() async throws {
         let date = Date(timeIntervalSince1970: 1_795_000_000)
         for template in gallery.catalog {
+            let document = try JSONSerialization.jsonObject(with: template.source().json) as? [String: Any]
+            let first = (document?["samples"] as? [String: Any] ?? [:]).keys
+                .min { Array($0.utf8).lexicographicallyPrecedes($1.utf8) }
+            let states = [DataState.empty] + (first.map { [.sample($0)] } ?? [])
             for family in Family.allCases {
-                let placeholders = try await Engine.proof(template.source(), family: family, at: date).png
+                var placeholders: [Data] = []
+                for state in states {
+                    placeholders.append(
+                        try await Engine.proof(template.source(), state: state, family: family, at: date).png)
+                }
                 for blank in template.blanks {
                     let typed = try template.source(filling: [blank.key: "Zed"])
-                    #expect(
-                        try await Engine.proof(typed, family: family, at: date).png != placeholders,
-                        "\(template.id), \(family): \(blank.label) does not reach the face")
+                    var reaches = false
+                    for (state, placeholder) in zip(states, placeholders) where !reaches {
+                        reaches =
+                            try await Engine.proof(typed, state: state, family: family, at: date).png != placeholder
+                    }
+                    #expect(reaches, "\(template.id), \(family): \(blank.label) does not reach the face")
                 }
             }
         }

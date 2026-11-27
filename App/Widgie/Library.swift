@@ -5,7 +5,9 @@ import WidgetEngine
 import WidgetHosting
 import WidgetKit
 
-/// The app's view of the shared store: the widgets, their faces in both sizes, and the open form.
+/// The app's view of the shared store: the widgets, their faces in both sizes, and the open form. While the app is
+/// in the foreground it draws the faces again at the moment the soonest one changes, such as an undo's window
+/// closing.
 @MainActor @Observable
 final class Library {
     struct Item: Identifiable {
@@ -25,10 +27,13 @@ final class Library {
     var message: String?
 
     private let engine: Engine
+    @ObservationIgnored private let redraws: Redraws
     private var reloads = 0
 
-    init(engine: Engine = Hosting.engine) {
+    init(engine: Engine = Hosting.engine, clock: FaceClock = .system, center: NotificationCenter = .default) {
         self.engine = engine
+        redraws = Redraws(clock: clock, center: center)
+        redraws.redraw = { [weak self] in self?.refresh() }
     }
 
     /// The reference widgets bundled in debug builds: each folder and the name its widget gives itself.
@@ -80,11 +85,15 @@ final class Library {
         reloads += 1
         let reload = reloads
         do {
+            let now = redraws.clock.now()
             var items: [Item] = []
+            var changes: Date?
             for summary in try engine.widgets() {
                 var faces: [Family: Face] = [:]
                 for family in Family.allCases {
-                    faces[family] = await engine.face(for: summary.id, family: family, size: sizes[family], at: .now)
+                    let drawn = await engine.face(for: summary.id, family: family, size: sizes[family], at: now)
+                    faces[family] = drawn.current
+                    changes = min(changes ?? drawn.reloadAt, drawn.reloadAt)
                 }
                 items.append(Item(summary: summary, faces: faces))
             }
@@ -93,6 +102,7 @@ final class Library {
                 self.items = items
                 self.placed = placed
                 loaded = true
+                redraws.schedule(changes)
             }
         } catch {
             message = error.message
@@ -169,7 +179,7 @@ final class Library {
     }
 
     func perform(_ tap: Tap, input: [String: InputValue] = [:]) {
-        attempt { () throws(EngineError) in try engine.perform(tap, input: input) }
+        attempt { () throws(EngineError) in try engine.perform(tap, input: input, at: redraws.clock.now()) }
     }
 
     func showForm(for tap: Tap) {
