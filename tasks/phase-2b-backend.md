@@ -48,15 +48,16 @@ flowchart LR
 
 Runs alongside B1. It needs only signing.
 
-- [ ] `App/project.yml`: `DEVELOPMENT_TEAM: Z23KXVBB26`. Both targets provisioned with the App Group. Developer Mode on the phone.
-- [ ] Install the six fixtures from the Debug app and place them in small and medium.
+- [x] `App/project.yml`: `DEVELOPMENT_TEAM: Z23KXVBB26`. Both targets provisioned with the App Group (2026-11-27: Xcode signed in, the group registered from Signing & Capabilities, since command-line automatic signing turns the capability on but never creates a group; a signed `generic/platform=iOS` Debug build carries the group in both targets and `appattest-environment` `development` in the app).
+- [ ] Pair the phone over a cable once (the team already lists its UDID `00008140-000A10983684801C`), then Developer Mode on the phone. Wi-Fi works only after the first cable pairing.
+- [ ] Install the six fixtures from the Debug app and add the 19 templates from the Templates tab, and place them in small and medium.
 - [ ] Widget extension memory with Instruments, for the largest fixture, in a fresh process and in one that has drawn every widget. Rules: the system cap is 30 MB, and the project rule from the simulator is 20 MB. Run the heap diff owed from P6 on the long-lived process (`tasks/todo.md`, 19.5 MB at rest).
 - [ ] Tinted and Clear modes for every fixture, with screenshots.
 - [ ] `Button` taps on a locked and an unlocked phone: what the widget shows when an unlock is cancelled.
 - [ ] A long press on a widget's button never runs its action.
 - [ ] Whether a tapped widget redraws one step late, as on the simulator.
 - [ ] Taps, the picker, and form links on the home screen, as in the phase 0 simulator check.
-- [ ] Keyboard overlap on the describe and try-it screens.
+- [ ] Keyboard overlap on Make's composer and on a template sheet's blanks.
 - [ ] Record every result in a device review in `tasks/todo.md`, with screenshots in `Engine/.artifacts/device/`.
 
 ### B1. Worker that answers `/v1/reply` through a model service, gated from the first deploy
