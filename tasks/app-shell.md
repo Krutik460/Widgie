@@ -233,12 +233,12 @@ Asked for on 2026-11-27: once the five units merged, clean up the code and merge
 
 **Shared design layer (pass A)**
 
-- [ ] One `FaceTile` in `Design/` for the face or its grey placeholder, framed and shadowed, replacing the four copies (feed card, flyer, pile, sheet). One face corner constant.
-- [ ] One page margin (20) in `Design/Layout.swift`, replacing three declarations and two literals.
-- [ ] `Squish`, `MiniButtonStyle` and `MiniLabelStyle` move to `Theme.swift`, with `SquishBody` built on `Squish`. One `bubbleShadow()` and one polite `announces` modifier shared by Widgie's chat line and the sheet's bubble. One `failureAlert`, one delete confirmation, one `rise(after:)`, one named arrival curve.
-- [ ] `Toast` and the banner colors go through `Palette` and colorsets like every other surface.
-- [ ] Shell and feed: dead parameters (`coversSky`, `CursorBar.blinking`, `Speech` calendar, `FeedCard.fresh`), the shadowed `target` in `TabBar`, the twice-written 140 point threshold, one `onChange` for Widgie's hop, the plural count line, `Library`/`Preview` sharing `showForm` and the face loop, bookkeeping counters out of observation, debug fixtures compiled only in DEBUG, a stale `Caret` comment.
-- [ ] Tests: `until` instead of `eventually`, `PreviewTests` on the suite's own store, shared `template(_:)` and saved-build helpers, and Widgets tests together in `FeedTests.swift`.
+- [x] One `FaceTile` in `Design/` for the face or its grey placeholder, framed and shadowed, replacing the four copies (feed card, flyer, pile, sheet). One face corner constant.
+- [x] One page margin (20) in `Design/Layout.swift`, replacing three declarations and two literals.
+- [x] `Squish`, `MiniButtonStyle` and `MiniLabelStyle` move to `Theme.swift`, with `SquishBody` built on `Squish`. One `bubbleShadow()` and one polite `announces` modifier shared by Widgie's chat line and the sheet's bubble. One `failureAlert`, one delete confirmation, one `rise(after:)`, one named arrival curve.
+- [x] `Toast` and the banner colors go through `Palette` and colorsets like every other surface.
+- [x] Shell and feed: dead parameters (`coversSky`, `CursorBar.blinking`, `Speech` calendar, `FeedCard.fresh`), the shadowed `target` in `TabBar`, the twice-written 140 point threshold, one `onChange` for Widgie's hop, the plural count line, `Library`/`Preview` sharing the face loop (`Engine.faces(of:sizes:at:)`; `showForm` stays in each, since sharing its one call would add more than it removes), bookkeeping counters out of observation, debug fixtures compiled only in DEBUG, a stale `Caret` comment.
+- [x] Tests: `until` instead of `eventually`, `PreviewTests` on the suite's own store, shared `template(_:)` and saved-build helpers, and Widgets tests together in `FeedTests.swift`.
 
 **Make (pass B)**
 
