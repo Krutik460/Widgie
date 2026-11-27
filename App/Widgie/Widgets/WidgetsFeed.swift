@@ -232,7 +232,7 @@ struct WidgetsFeed: View {
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 0 : min(480, 160 + Int(scrolled * 0.5))))
             guard !Task.isCancelled else { return }
         }
-        withAnimation(reduceMotion ? .linear(duration: 0.15) : .timingCurve(0.22, 0.8, 0.26, 1, duration: 0.26)) {
+        withAnimation(reduceMotion ? .linear(duration: 0.15) : .arrival(duration: 0.26)) {
             settled = id
         }
         let moved = widgie.hop(to: perchPoint, reduceMotion: reduceMotion)
@@ -293,10 +293,7 @@ struct WidgetsFeed: View {
                         }
                     }
                 }
-                .opacity(risen || reduceMotion ? 1 : 0)
-                .offset(y: risen || reduceMotion ? 0 : 18)
-                .scaleEffect(risen || reduceMotion ? 1 : 0.98)
-                .animation(.spring(duration: 0.42, bounce: 0.2).delay(Double(index) * 0.05), value: risen)
+                .rise(risen, after: Double(index) * 0.05)
             }
         }
         .animation(reduceMotion ? nil : .spring(duration: 0.42, bounce: 0.15), value: rows)

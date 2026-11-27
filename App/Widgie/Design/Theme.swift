@@ -119,6 +119,11 @@ extension View {
         )
     }
 
+    /// Rises in from a little below, `delay` seconds after `risen` turns true. Shown at once with Reduce Motion.
+    func rise(_ risen: Bool, after delay: Double) -> some View {
+        modifier(Rise(risen: risen, delay: delay))
+    }
+
     /// A sheet in the prototype's style: 36-point corners over the light gradient by day and the dusk at night,
     /// with the grabber.
     func sheetStyle() -> some View {
@@ -127,6 +132,29 @@ extension View {
             .presentationBackground {
                 LinearGradient(colors: [Palette.sheetTop, Palette.sheetBottom], startPoint: .top, endPoint: .bottom)
             }
+    }
+}
+
+extension Animation {
+    /// The quick ease out that settles something arriving: a page switched to, a new card in the feed.
+    static func arrival(duration: Double) -> Animation {
+        .timingCurve(0.22, 0.8, 0.26, 1, duration: duration)
+    }
+}
+
+private struct Rise: ViewModifier {
+    let risen: Bool
+    let delay: Double
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let shown = risen || reduceMotion
+        content
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 18)
+            .scaleEffect(shown ? 1 : 0.98)
+            .animation(.spring(duration: 0.42, bounce: 0.2).delay(delay), value: risen)
     }
 }
 
