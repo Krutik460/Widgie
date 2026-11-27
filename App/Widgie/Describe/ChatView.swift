@@ -411,10 +411,11 @@ private struct Conversation: View {
         .animation(.easeOut(duration: 0.2), value: session.ready)
     }
 
-    /// Scrolls by as much as the messages above the draft moved it, so the draft stays where it was on screen.
+    /// Scrolls by as much as the messages above the draft moved it, so the draft stays where it was on screen. Only a
+    /// change holds it: the line Widgie opens an edit with goes in above the card and stays in view.
     private func hold(draftAt top: CGFloat) {
         defer { track.draftTop = top }
-        guard let was = track.draftTop, abs(top - was) > 0.5 else { return }
+        guard let was = track.draftTop, abs(top - was) > 0.5, !session.turns.isEmpty else { return }
         scroll(to: track.target + top - was)
     }
 
