@@ -5,6 +5,18 @@ extension View {
     func arriving() -> some View {
         modifier(Arriving())
     }
+
+    /// The type of a message in the thread.
+    fileprivate func messageText() -> some View {
+        font(size: 15.5, weight: .semibold, relativeTo: .callout).tracking(-0.15)
+    }
+}
+
+/// A message's bubble, its corner tight at the bottom on the speaker's side, where a tail would be.
+private func messageShape(tail: HorizontalEdge) -> UnevenRoundedRectangle {
+    UnevenRoundedRectangle(
+        topLeadingRadius: 20, bottomLeadingRadius: tail == .leading ? 6 : 20,
+        bottomTrailingRadius: tail == .trailing ? 6 : 20, topTrailingRadius: 20, style: .continuous)
 }
 
 private struct Arriving: ViewModifier {
@@ -31,20 +43,16 @@ struct YouSaid: View {
                 Thumbnail(picture: picture, size: 52)
             }
             Text(turn.words)
-                .font(size: 15.5, weight: .semibold, relativeTo: .callout)
-                .tracking(-0.15)
+                .messageText()
                 .lineSpacing(2)
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 15)
                 .padding(.vertical, 11)
                 .background {
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 20, bottomLeadingRadius: 20, bottomTrailingRadius: 6, topTrailingRadius: 20,
-                        style: .continuous
-                    )
-                    .fill(Palette.youFill)
-                    .shadow(color: Palette.widgetShadow, radius: 10, y: 10)
+                    messageShape(tail: .trailing)
+                        .fill(Palette.youFill)
+                        .shadow(color: Palette.widgetShadow, radius: 10, y: 10)
                 }
         }
         .frame(maxWidth: 262, alignment: .trailing)
@@ -72,20 +80,16 @@ struct WidgieSays: View {
                     .alignmentGuide(.lastTextBaseline) { $0[.bottom] - 3 }
             }
         }
-        .font(size: 15.5, weight: .semibold, relativeTo: .callout)
-        .tracking(-0.15)
+        .messageText()
         .lineSpacing(2)
         .foregroundStyle(Palette.ink)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 15)
         .padding(.vertical, 11)
         .background {
-            UnevenRoundedRectangle(
-                topLeadingRadius: 20, bottomLeadingRadius: 6, bottomTrailingRadius: 20, topTrailingRadius: 20,
-                style: .continuous
-            )
-            .fill(Palette.bubble)
-            .bubbleShadow()
+            messageShape(tail: .leading)
+                .fill(Palette.bubble)
+                .bubbleShadow()
         }
         .animation(.easeInOut(duration: 0.25), value: words)
         .frame(maxWidth: 262, alignment: .leading)
@@ -111,8 +115,7 @@ struct WidgieFailed: View {
             VStack(alignment: .leading, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(failure.title)
-                        .font(size: 15.5, weight: .semibold, relativeTo: .callout)
-                        .tracking(-0.15)
+                        .messageText()
                     #if DEBUG
                         if failure == .unreachable {
                             Text("Check that the bridge is running.")
@@ -134,12 +137,9 @@ struct WidgieFailed: View {
             .padding(.horizontal, 15)
             .padding(.vertical, 12)
             .background {
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 20, bottomLeadingRadius: 6, bottomTrailingRadius: 20, topTrailingRadius: 20,
-                    style: .continuous
-                )
-                .fill(Palette.failureGround)
-                .shadow(color: Palette.restShadow, radius: 12, y: 10)
+                messageShape(tail: .leading)
+                    .fill(Palette.failureGround)
+                    .shadow(color: Palette.restShadow, radius: 12, y: 10)
             }
         }
         .frame(maxWidth: 310, alignment: .leading)
