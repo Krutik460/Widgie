@@ -30,7 +30,9 @@ struct NodeView: View {
         case .image(let picture):
             PictureView(picture: picture, host: host).modifier(Probe(path: node.path, role: .leaf))
         case .button(let press, let label, let children):
-            pressable(press, label: AnyView(ZStack { Nodes(children, host) }))
+            // The whole frame takes the tap and is what VoiceOver outlines, not only the pixels drawn in it, so a
+            // plus in a 30 point frame is a 30 point target.
+            pressable(press, label: AnyView(ZStack { Nodes(children, host) }.contentShape(Rectangle())))
                 .accessibilityLabel(Text(verbatim: label))
                 .modifier(Probe(path: node.path, role: .leaf))
         }
