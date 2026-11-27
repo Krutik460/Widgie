@@ -1,11 +1,12 @@
 import Observation
 import WidgetBuilder
+import WidgetEngine
 
 /// One Make chat around its session: the ideas its empty page offers, and the question it asks in the thread before
 /// work would be lost, whether to start over, to swap the draft for a template, or to leave a change unsaved. In the
 /// Make tab it starts a fresh session in place; editing a library widget, it closes.
 @MainActor @Observable
-final class Chat {
+final class Chat: Identifiable {
     enum Question: Equatable {
         /// New, in the Make tab, with a draft.
         case startOver
@@ -73,7 +74,9 @@ final class Chat {
         chosen = nil
     }
 
+    /// Not while a save is under way: it cannot be stopped, and would land in a session nobody watches.
     func replace() {
+        guard session.replacement != .waits else { return }
         switch question {
         case .startOver: begin(.nothing)
         case .swap: begin(waiting)
@@ -82,8 +85,23 @@ final class Chat {
         }
     }
 
-    /// A save finished its flight into the Widgets tab: a fresh chat starts, or the template that waited for it.
-    func saved() {
+    /// Sends the composer, an idea, or a change's chip.
+    func send(_ suggestion: String? = nil, change: Changes.Change? = nil) {
+        going { session.send(suggestion, change: change) }
+    }
+
+    func save() {
+        going { session.save() }
+    }
+
+    func retry() {
+        going { session.retry() }
+    }
+
+    /// The save of `id` finished its flight into the Widgets tab: a fresh chat starts, or the template that waited for
+    /// it. Not when that session is gone already, as after a template's Change in chat during the flight.
+    func saved(_ id: WidgetID) {
+        guard session.phase == .saved(id) else { return }
         begin(waiting)
     }
 
@@ -92,6 +110,14 @@ final class Chat {
         guard chosen != nil, question == nil else { return }
         if case .saved = session.phase { return }
         weigh()
+    }
+
+    /// Runs `work`, and once it starts a turn or a save, drops the question as Keep editing would, as the prototype
+    /// does: the person carried on with the draft instead of answering.
+    private func going(_ work: () -> Void) {
+        let was = session.phase
+        work()
+        if session.phase != was { keepEditing() }
     }
 
     private var waiting: DescribeSession.Origin {

@@ -5,6 +5,12 @@
   "order": 50,
   "family": "medium",
   "hint": "Tap when you've answered. For now it stays on this phone.",
+  "suggestion": {
+    "title": "A question for us every day",
+    "subtitle": "Something new to talk about",
+    "icon": "bubble.left.and.bubble.right.fill",
+    "tint": "lilac"
+  },
   "blanks": [
     {
       "key": "partner",

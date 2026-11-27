@@ -74,8 +74,8 @@ final class Preview {
         await redraw()
     }
 
-    /// Copies a library widget into the scratch engine and shows it with its first sample, so refining it
-    /// never shows or writes the person's rows. Returns the draft's id in the scratch engine, or nil, with the
+    /// Copies a library widget into the scratch engine and shows it as `show` does, so refining it never shows or
+    /// writes the person's rows. Returns the draft's id in the scratch engine, or nil, with the
     /// reason logged, when the widget is gone or cannot be copied.
     func copy(_ saved: WidgetID) async -> WidgetID? {
         do {

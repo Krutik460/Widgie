@@ -5,5 +5,11 @@
   "order": 40,
   "family": "small",
   "hint": "Tap after every ten.",
+  "suggestion": {
+    "title": "How many pushups today?",
+    "subtitle": "A ring that fills toward your goal",
+    "icon": "figure.strengthtraining.traditional",
+    "tint": "coral"
+  },
   "blanks": []
 }

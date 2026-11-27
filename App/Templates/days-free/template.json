@@ -5,5 +5,11 @@
   "order": 20,
   "family": "small",
   "hint": "Tap it to set the day you started.",
+  "suggestion": {
+    "title": "How many days without a drink?",
+    "subtitle": "Count the alcohol-free days",
+    "icon": "calendar.badge.checkmark",
+    "tint": "sky"
+  },
   "blanks": []
 }

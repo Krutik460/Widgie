@@ -71,7 +71,8 @@ import WidgetEngine
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try document().write(to: folder.appending(path: "widget.json"))
         let template = Template(
-            id: "pet", name: "Pet fed", line: "", category: .home, order: 0, family: .small, hint: "", suggestion: nil,
+            id: "pet", name: "Pet fed", line: "", category: .home, order: 0, family: .small, hint: "",
+            suggestion: .init(title: "When was the dog fed?", subtitle: "", icon: "pawprint.fill", tint: .amber),
             blanks: [.init(key: "pet", label: "Your pet's name", placeholder: "Luna", maxLength: maxLength)],
             folder: folder)
         return (template, folder)

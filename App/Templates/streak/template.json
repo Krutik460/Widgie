@@ -5,5 +5,11 @@
   "order": 20,
   "family": "small",
   "hint": "Tap the check when it's done.",
+  "suggestion": {
+    "title": "How many days in a row?",
+    "subtitle": "Keep the streak going",
+    "icon": "flame.fill",
+    "tint": "amber"
+  },
   "blanks": []
 }

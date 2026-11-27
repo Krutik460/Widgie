@@ -5,6 +5,12 @@
   "order": 20,
   "family": "small",
   "hint": "Tap your face to change it. For now it stays on this phone.",
+  "suggestion": {
+    "title": "How are we both feeling?",
+    "subtitle": "A face each, side by side",
+    "icon": "face.smiling.inverse",
+    "tint": "amber"
+  },
   "blanks": [
     {
       "key": "partner",

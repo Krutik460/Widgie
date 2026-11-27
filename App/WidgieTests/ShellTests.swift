@@ -101,6 +101,20 @@ import WidgetEngine
         #expect(first != nil && tabs.toast != nil && tabs.toast != first)
     }
 
+    @Test func aToastOnMakeSitsBelowItsBarAndLeavesWithMake() async {
+        let tabs = Tabs()
+        tabs.go(.make)
+        await tabs.take(a, named: "Counter") {}
+        #expect(tabs.toast?.words == "Counter is in your widgets." && tabs.toast?.low == true)
+        tabs.go(.templates)
+        #expect(tabs.toast == nil, "it leaves with Make")
+
+        await tabs.take(b, named: "Water") {}
+        #expect(tabs.toast?.low == false)
+        tabs.go(.make)
+        #expect(tabs.toast?.words == "Water is in your widgets.", "a toast from another tab stays up on Make")
+    }
+
     @Test func aSaveLandsOnWidgetsAndCountsElsewhere() {
         let tabs = Tabs()
         tabs.arrive(a)
