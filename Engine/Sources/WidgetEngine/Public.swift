@@ -120,6 +120,11 @@ public struct Face: Sendable {
     public var hasButtons: Bool {
         if case .drawing(let drawing) = content { !drawing.taps.isEmpty } else { false }
     }
+
+    /// What VoiceOver reads for each button the face draws, in tree order. None is empty.
+    public var buttonLabels: [String] {
+        if case .drawing(let drawing) = content { drawing.root.buttonLabels } else { [] }
+    }
 }
 
 public struct EngineError: Error, Sendable {

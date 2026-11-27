@@ -102,15 +102,18 @@ package enum Vocabulary {
             (props, parser) throws(Diagnostic) in
             .image(try parser.picture(props))
         },
-        NodeType("button", ["action", "rowId", "day", "children"]) { (props, parser) throws(Diagnostic) in
+        NodeType("button", ["action", "rowId", "day", "label", "children"]) { (props, parser) throws(Diagnostic) in
             let press = try parser.press(props)
             let children = try parser.children(of: props, place: .button)
             guard !children.isEmpty else {
                 throw props.error("needs \"children\" to show; a button looks exactly like its children")
             }
+            let given = try props.read("label") { (value, name) throws(Diagnostic) in
+                try Value.string(value, name, maxLength: Limits.textLength)
+            }
             // A day the store would refuse today still draws, untappable, so a week strip stays valid.
             guard let press else { return .zstack(align: .center, children: children) }
-            return .button(press, children: children)
+            return .button(press, label: spokenLabel(given, children, press.tap.action), children: children)
         },
     ]
 
@@ -186,6 +189,20 @@ package enum Vocabulary {
     private static let shapeProps = ["fill", "stroke", "trimFrom", "trimTo"]
     private static let spacing = -Limits.padding...Limits.padding
     private static let black = ColorPair(RGBA(r: 0, g: 0, b: 0, a: 1))
+
+    /// What VoiceOver reads for a button: the look's `label`, else the words its children show, else its
+    /// action's id as words ("markFed" reads "Mark fed"), so no button is ever read as blank.
+    private static func spokenLabel(_ given: String?, _ children: [Node], _ action: String) -> String {
+        if let given = given?.trimmingCharacters(in: .whitespacesAndNewlines), !given.isEmpty { return given }
+        let shown = children.flatMap(\.shownWords).joined(separator: ", ")
+        if !shown.isEmpty { return shown }
+        var words = ""
+        for character in action {
+            if character.isUppercase || (character.isNumber && !(words.last?.isNumber ?? true)) { words.append(" ") }
+            words.append(character)
+        }
+        return words.prefix(1).uppercased() + words.dropFirst().lowercased()
+    }
 
     private static func shapePaint(_ props: Props) throws(Diagnostic) -> ShapePaint {
         let fill = try props.fill("fill")
