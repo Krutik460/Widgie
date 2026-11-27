@@ -221,6 +221,42 @@ import WidgetEngine
         }
     }
 
+    @Test @MainActor func aStagedWidgetShowsItsFirstSampleInOneFace() async throws {
+        let engine = Engine.scratch(calendar: utc)
+        let source = try fixture("water")
+        let id = try engine.stage(source, at: morning)
+
+        let first = try #require(try engine.samples(of: id).first)
+        for family in Family.allCases {
+            let face = await engine.face(for: id, family: family, size: family.standardSize, at: morning)
+            #expect(picture(face, family).looksLike(try await proof(source, .sample(first), family)))
+            let timeline = await engine.faces(for: id, family: family, size: family.standardSize, from: morning)
+            #expect(picture(face, family).looksLike(picture(timeline.current, family)), "the timeline's first face")
+        }
+    }
+
+    /// Staging trusts the source, so a look the proof turns down still draws: the proof is what it saves.
+    @Test @MainActor func stagingSkipsTheProof() async throws {
+        let wide = document(
+            look: """
+                function render(ctx) {
+                  return { type: 'text', value: String(ctx.data.n), size: 30, frame: { width: 900 },
+                    widgetBackground: '#102030', color: '#FFFFFF' };
+                }
+                """)
+        guard case .rejected = try await Engine.scratch(calendar: utc).build(wide) else {
+            Issue.record("the proof should turn a 900 point frame down")
+            return
+        }
+        let engine = Engine.scratch(calendar: utc)
+        let id = try engine.stage(wide, at: morning)
+        #expect(!(await engine.face(for: id, family: .small, size: Family.small.standardSize, at: morning)).isFallback)
+    }
+
+    @Test func onlyAScratchEngineStages() throws {
+        #expect(throws: EngineError.self) { try Scratch().engine.stage(try fixture("water")) }
+    }
+
     private func build(_ source: WidgetSource, in engine: Engine, replacing: WidgetID? = nil) async throws
         -> WidgetID
     {
