@@ -9,6 +9,7 @@ import { dayOf } from "../src/schedule";
 import {
     type Change,
     dayIndex,
+    encodeAroundStamp,
     encodeChange,
     encodePage,
     isoDay,
@@ -82,6 +83,13 @@ describe("row keys", () => {
 describe("changes", () => {
     it.each(vectors.changes)("writes $name", ({ wire, means }) => {
         expect(encodeChange(changeMeaning(means))).toBe(JSON.stringify(wire));
+    });
+
+    // The runner writes a change whose stamp SQL takes in the same batch, as the bytes on either side of it.
+    it.each(vectors.changes)("writes $name around its stamp", ({ wire, means }) => {
+        const change = changeMeaning(means);
+        const { head, tail } = encodeAroundStamp(change);
+        expect(`${head}${change.stamp}${tail}`).toBe(JSON.stringify(wire));
     });
 });
 

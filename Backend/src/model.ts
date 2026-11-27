@@ -1,6 +1,6 @@
 // One model call to an OpenAI-compatible chat completions endpoint: Bedrock Mantle on the user's AWS account, or
-// OpenRouter. The build prompt goes as a cached system message, then one user turn. Phase 3's scheduler calls this
-// too, so it knows nothing about HTTP routes.
+// OpenRouter. The system prompt goes as a cached system message, then one user turn. The build route and the
+// automation runner both call this, so it knows nothing about HTTP routes or tasks.
 
 import type { UserTurn } from "./request";
 
@@ -14,6 +14,16 @@ export interface ModelSettings {
     /// "off" turns the model's thinking off, "low", "medium", or "high" sets its effort, and empty sends nothing,
     /// for a model that does not think unless asked.
     reasoning: string;
+    /// Whether a call that brings a JSON schema sends it as `response_format`, and on OpenRouter only to a provider
+    /// that honors it (`provider.require_parameters`). Off, the schema is left out and the reply is checked all the
+    /// same. On for OpenRouter's Together, which serves json_schema for DeepSeek V4.1 Flash.
+    structured: boolean;
+}
+
+/// What one call asks for beyond the settings: its output cap, and the JSON schema its reply must match.
+export interface CallOptions {
+    maxTokens?: number;
+    schema?: { name: string; schema: object };
 }
 
 export interface Usage {
@@ -27,6 +37,8 @@ export interface ModelReply {
     text: string;
     model: string;
     provider: string;
+    /// Why the model stopped, such as "stop" or "length", when the service says.
+    finish: string | null;
     usage: Usage;
 }
 
@@ -41,15 +53,28 @@ export const MAX_TOKENS = 16_000;
 /// Under the app's 120 s request timeout, so the app always gets the Worker's answer instead of its own timeout.
 export const DEADLINE_MS = 95_000;
 
-export function requestBody(settings: ModelSettings, system: string, turn: UserTurn) {
+/// The settings an environment names: wrangler.jsonc's vars and the MODEL_API_KEY secret.
+export function modelSettings(env: Cloudflare.Env): ModelSettings {
+    return {
+        url: env.MODEL_URL,
+        apiKey: env.MODEL_API_KEY,
+        model: env.MODEL,
+        provider: env.PROVIDER,
+        reasoning: env.REASONING,
+        structured: env.STRUCTURED_OUTPUT === "on",
+    };
+}
+
+export function requestBody(settings: ModelSettings, system: string, turn: UserTurn, options: CallOptions = {}) {
     const content: object[] = [];
     if (turn.image) {
         content.push({ type: "image_url", image_url: { url: `data:${turn.image.mime};base64,${turn.image.base64}` } });
     }
     content.push({ type: "text", text: turn.text });
+    const schema = settings.structured ? options.schema : undefined;
     return {
         model: settings.model,
-        max_tokens: MAX_TOKENS,
+        max_tokens: options.maxTokens ?? MAX_TOKENS,
         // Array form, because cache_control only works on a content part.
         messages: [
             { role: "system", content: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] },
@@ -58,9 +83,20 @@ export function requestBody(settings: ModelSettings, system: string, turn: UserT
         ...(settings.reasoning && {
             reasoning: settings.reasoning === "off" ? { enabled: false } : { effort: settings.reasoning },
         }),
-        // On OpenRouter: one provider and no fallbacks, so every call reads the same prompt cache, and the cost.
+        ...(schema && {
+            response_format: {
+                type: "json_schema",
+                json_schema: { name: schema.name, strict: true, schema: schema.schema },
+            },
+        }),
+        // On OpenRouter: one provider and no fallbacks, so every call reads the same prompt cache, and the cost. A
+        // call with a schema also requires the provider to honor it, so a provider that would ignore it refuses.
         ...(settings.provider && {
-            provider: { order: [settings.provider], allow_fallbacks: false },
+            provider: {
+                order: [settings.provider],
+                allow_fallbacks: false,
+                ...(schema && { require_parameters: true }),
+            },
             usage: { include: true },
         }),
     };
@@ -72,6 +108,7 @@ export async function callModel(
     turn: UserTurn,
     fetcher: typeof fetch = fetch,
     deadlineMs: number = DEADLINE_MS,
+    options: CallOptions = {},
 ): Promise<ModelReply> {
     const abort = new AbortController();
     const timer = setTimeout(() => abort.abort(), deadlineMs);
@@ -81,7 +118,7 @@ export async function callModel(
         const response = await fetcher(settings.url, {
             method: "POST",
             headers: { Authorization: `Bearer ${settings.apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody(settings, system, turn)),
+            body: JSON.stringify(requestBody(settings, system, turn, options)),
             signal: abort.signal,
         });
         status = response.status;
@@ -104,13 +141,15 @@ export async function callModel(
     if (status !== 200 || body.error) {
         throw new ModelFailure(`HTTP ${status}: ${body.error?.code ?? "no code"} ${body.error?.message ?? ""}`.trim());
     }
-    const text = body.choices?.[0]?.message?.content;
+    const choice = body.choices?.[0];
+    const text = choice?.message?.content;
     if (typeof text !== "string" || text.trim() === "") throw new ModelFailure("the reply held no text");
     const usage = body.usage;
     return {
         text,
         model: body.model ?? settings.model,
         provider: body.provider ?? "unknown",
+        finish: typeof choice?.finish_reason === "string" ? choice.finish_reason : null,
         usage: {
             input_tokens: usage?.prompt_tokens ?? 0,
             cached_tokens: usage?.prompt_tokens_details?.cached_tokens ?? 0,
@@ -124,7 +163,7 @@ interface OpenRouterBody {
     model?: string;
     provider?: string;
     error?: { code?: number | string; message?: string };
-    choices?: { message?: { content?: unknown } }[];
+    choices?: { message?: { content?: unknown }; finish_reason?: unknown }[];
     usage?: {
         prompt_tokens?: number;
         completion_tokens?: number;

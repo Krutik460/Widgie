@@ -18,6 +18,13 @@ export interface UserTurn {
 
 export class BadRequest extends Error {}
 
+/// One line of at most 300 characters, as bridge.py's `one_line` makes it, so an echoed key name or a provider's
+/// message can neither break the line nor carry much of a request.
+export function oneLine(text: string): string {
+    const line = text.split(/\s+/).filter(Boolean).join(" ");
+    return line.length > 300 ? `${line.slice(0, 299)}…` : line;
+}
+
 const FIELDS = new Set(["words", "image", "current", "repair"]);
 const MEDIA_TYPES = ["image/jpeg", "image/png"];
 

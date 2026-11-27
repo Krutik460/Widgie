@@ -266,15 +266,17 @@ export function leadSeed(account: string, widget: string, automation: string): s
     return `${account}/${widget}/${automation}`;
 }
 
-/// The schedule task for the run after `now`: its run time, and due a lead ahead of it.
+/// The schedule task for the run after `after` (by default `now`): its run time, due a lead ahead of it, and a row key
+/// minted `now`.
 export function scheduleTask(
     account: string,
     row: Pick<Stored, "widget" | "automation" | "every" | "at" | "weekday">,
     timeZone: string,
     now: number,
+    after = now,
 ) {
     const cadence = cadenceOf(row);
-    const runAt = nextRun(cadence, timeZone, now);
+    const runAt = nextRun(cadence, timeZone, after);
     const dueAt = runAt - leadMs(cadence.every, leadSeed(account, row.widget, row.automation));
     return { once: 0, runAt, dueAt, rowKey: mintRowKey(now) };
 }
