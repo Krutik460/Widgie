@@ -12,6 +12,32 @@ extension Engine {
         return try self.widget(key, in: store)?.spec.samples.map(\.name) ?? []
     }
 
+    /// Saves `source` into this scratch engine without the proof `build` runs, with the rows of its first
+    /// sample as of `date`, or none when it has no samples. For a widget proved before it shipped, such as a
+    /// bundled template, whose face is wanted at once: drawing it then costs one look run instead of the
+    /// proof's dozens of renders. A source that would fail the proof can draw a fallback face.
+    ///
+    /// Only a scratch engine takes this, so an unproved widget never reaches the shared store, and saving a
+    /// draft there builds it, which proves it. Throws for any other engine, a source that does not parse or
+    /// whose images do not ingest, and a store failure.
+    public func stage(_ source: WidgetSource, at date: Date = .now) throws(EngineError) -> WidgetID {
+        guard isScratch else { throw EngineError(message: "only a scratch engine stages a widget it has not proved") }
+        let store = try self.store()
+        let spec: Spec
+        let images: [Spec.AssetID: Data]
+        do throws(Diagnostic) {
+            spec = try Spec.parse(source.json).fillingTimeZone(calendar.timeZone)
+            images = try ingest(source.images, spec: spec, keeping: nil, store: store)
+        } catch {
+            throw EngineError(message: error.line)
+        }
+        let key = WidgetKey.mint()
+        _ = try attempt { () throws(StoreError) in try store.save(key, spec: spec, assets: images) }
+        let widget = WidgetID(rawValue: key.raw)
+        if let first = try samples(of: widget).first { try load(.sample(first), into: widget, at: date) }
+        return widget
+    }
+
     /// Replaces the widget's rows with the rows of `state`, as of `date`, so a draft shows what it looks
     /// like in use. Each table moves to a new, empty dataset that the state's rows go into, in one
     /// transaction, so switching from one sample to another never mixes them, and `.empty` shows no rows.

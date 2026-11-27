@@ -74,6 +74,18 @@ public final class Engine: Sendable {
     /// that face and reloads at its date, so the next call draws it with a fresh budget. Only a current face
     /// whose images pass the budget on their own falls back.
     public func faces(for widget: WidgetID?, family: Family, size: CGSize, from date: Date) async -> Faces {
+        await faces(for: widget, family: family, size: size, from: date, timeline: true)
+    }
+
+    /// The widget's face at `date` alone, without the later entries `faces` draws for a timeline, for a host
+    /// that shows one picture now: the app's feed, a preview, the template pile. Never throws, as `faces`.
+    public func face(for widget: WidgetID?, family: Family, size: CGSize, at date: Date) async -> Face {
+        await faces(for: widget, family: family, size: size, from: date, timeline: false).current
+    }
+
+    private func faces(for widget: WidgetID?, family: Family, size: CGSize, from date: Date, timeline: Bool)
+        async -> Faces
+    {
         let today = Today(at: date, calendar: calendar)
         let store: RowStore
         do throws(EngineError) {
@@ -129,6 +141,7 @@ public final class Engine: Sendable {
         } catch {
             first = (fallback(at: date, error), nil, false)
         }
+        guard timeline else { return Faces(entries: [first.face], reloadAt: today.nextDayStart) }
         var entries = [first.face]
         // The first later instant whose images do not fit. The timeline ends there, and the one WidgetKit asks
         // for at that instant starts with a fresh image budget.

@@ -6,8 +6,8 @@ One object, `Engine`, does everything. What a caller can do with it depends on w
 
 | Import | Adds to `Engine` | Who imports it |
 |---|---|---|
-| `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, `Engine.scratch()`, `Engine.removeLeftoverScratch()`, plus `FaceView`, `FaceHost`, `Face.traits`, and `Face.isFallback` | app, widget extension (through `WidgetHosting`) |
-| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `checkpoint(of:)` and `rollBack(to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
+| `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `face(for:family:size:at:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `Engine.suspend()`, `Engine.resume()`, `Engine.scratch()`, `Engine.removeLeftoverScratch()`, plus `FaceView`, `FaceHost`, `Face.traits`, and `Face.isFallback` | app, widget extension (through `WidgetHosting`) |
+| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `stage(_:at:)`, `checkpoint(of:)` and `rollBack(to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
 | `WidgetHosting` | `Hosting.engine`, `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
 
 The widget extension never imports `WidgetBuilder`, so it cannot build, ingest images, or encode PNGs. That is a link-time fact, not a convention.
@@ -106,6 +106,8 @@ import WidgetHosting
 
 What `faces` hides: choosing the latest creation when `widget` is nil, loading and upgrading the revision it draws (the head once this device has proved it), opening the database, computing today in the user's calendar, running every query in one read transaction, running the look in the sandbox with a step and memory budget, validating the returned tree, decoding image assets at the display's pixel size within a 1.5 megapixel budget for the whole call, stamping every button with the revision it was drawn from, precomputing the entry for the next midnight so day windows flip on time without spending refresh budget, adding an entry every 15 minutes for two hours, where the picture changed, when the look read `now` or a row's `minutesAgo`, and choosing `reloadAt` from the next day boundary, the end of those two hours, and the next automation run. When a later entry's images would pass the call's image budget, the timeline ends before that entry and `reloadAt` is its date, so the next call draws it with a fresh budget. It never throws. Any failure becomes a calm fallback face and a log line.
 
+A host that shows one picture now, not a timeline, calls `face(for:family:size:at:)`: the same first entry, without drawing the later ones. The app's feed, its previews, and the template pile use it.
+
 ## 2. The App Intent
 
 Lives in `WidgetHosting`, so the app and the extension compile the same intent. One engine call. It only ever runs actions that write in place. A form button is a link, so it never reaches the intent.
@@ -190,6 +192,13 @@ if let source = try scratch.source(of: draft) {
 A refinement is checked against the head of the widget it replaces twice: before the proof, so a mismatch costs no rendering, and again inside the write that moves the head, so a widget deleted while the draft was proved throws, and one refined or written to meanwhile is checked as it is now. The head counts even when it came from another device and is not proved here yet, so the refinement keeps the fields it added, and a head this device cannot read declines the refinement. `EngineError.isSuspended` is true only when the store refused a write, or a shared store refused to open, because `Engine.suspend()` holds; no other error is worth retrying as it is.
 
 `load` moves each table to a new, empty dataset and inserts the state's rows there in one transaction, so switching samples never mixes rows, and taps then write on top of the sample. It throws on any engine but a scratch one, because in the shared store it would hide the person's rows.
+
+A widget proved before it shipped, such as a bundled template, can skip the proof in a scratch engine. `stage(_:at:)` saves the source there as it is, with its first sample's rows, so its face costs one look run instead of the proof's dozens of renders. The template pile draws every face this way. Only a scratch engine takes it, and saving the draft to the shared store builds it there, which proves it.
+
+```swift
+let template = try scratch.stage(source)              // saved unproved, its first sample loaded
+let face = await scratch.face(for: template, family: .small, size: size, at: .now)
+```
 
 To undo a refinement the person cancelled, take a checkpoint before the build and roll back to it after. The checkpoint records the draft's head and the dataset each table reads. The rows those datasets hold, taps included, stay in place when a later `load` moves the tables on, so `rollBack(to:)` brings back exactly what was on show, in one transaction. A table the checkpoint did not have loses its dataset, so a later refinement may add it again with other field kinds. Both calls throw on any engine but a scratch one.
 
