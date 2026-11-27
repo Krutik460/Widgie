@@ -1,11 +1,14 @@
-// Every case in Engine/Vectors/wire.json, the file the Swift engine's WireTests also checks.
+// The good cases in Engine/Vectors/wire.json, the file the Swift engine's WireTests also checks: the Worker writes
+// each change and page byte for byte from what the vector means. The refusal cases (badChanges, badPages) test a
+// reader, and in phase 3 the Worker reads no changes or pages, so they wait for phase 4, when the phone's changes
+// reach the server and the Worker gets a reader of its own.
 
 import { describe, expect, it } from "vitest";
 import vectors from "../../Engine/Vectors/wire.json";
 import { dayOf } from "../src/schedule";
 import {
-    decodeChange,
-    decodePage,
+    type Change,
+    dayIndex,
     encodeChange,
     encodePage,
     isoDay,
@@ -27,7 +30,6 @@ describe("stamps", () => {
     it.each(vectors.stamps)("$name", ({ ms, counter, stamp }) => {
         expect(stampOf(ms, counter)).toBe(stamp);
         expect(stampParts(stamp)).toEqual({ ms, counter });
-        expect(parseStamp(stamp).toString()).toBe(stamp);
     });
 
     it.each(vectors.badStamps)("refuses $name", ({ stamp }) => {
@@ -47,12 +49,13 @@ describe("days", () => {
     it.each(vectors.days)("$name", ({ at, timeZone, day, date }) => {
         expect(dayOf(at, timeZone)).toBe(day);
         expect(isoDay(day)).toBe(date);
+        expect(dayIndexOf(date)).toBe(day);
     });
 
     it("spans 0001-01-01 through 9999-12-31", () => {
         expect(isoDay(-719_162)).toBe("0001-01-01");
         expect(isoDay(2_932_896)).toBe("9999-12-31");
-        expect(isoDay(0)).toBe("1970-01-01");
+        expect(dayIndexOf("1970-01-01")).toBe(0);
     });
 });
 
@@ -62,7 +65,7 @@ describe("row keys", () => {
         expect(rowKeyMs(key)).toBe(ms);
     });
 
-    it.each(vectors.badKeys)("refuses $name", ({ key }) => {
+    it.each(vectors.badKeys)("is not $name", ({ key }) => {
         expect(isRowKey(key)).toBe(false);
     });
 
@@ -77,47 +80,39 @@ describe("row keys", () => {
 });
 
 describe("changes", () => {
-    it.each(vectors.changes)("$name", ({ wire, means }) => {
-        const change = decodeChange(wire);
-        const { ms, counter } = stampParts(change.stamp);
-        const read: Record<string, unknown> = {
-            op: change.op,
-            row: change.row,
-            dataset: change.dataset,
-            replica: change.replica,
-            ms,
-            counter,
-        };
-        if (change.op === "insertRow") {
-            read.day = isoDay(change.day);
-            read.at = new Date(change.at).toISOString();
-        }
-        if (change.op === "setCell") {
-            read.field = change.field;
-            read[change.kind] = change.kind === "date" ? isoDay(change.value) : change.value;
-        }
-        expect(read).toEqual(means);
-        expect(encodeChange(change)).toBe(JSON.stringify(wire));
-    });
-
-    it.each(vectors.badChanges)("refuses $name", ({ wire }) => {
-        expect(() => decodeChange(wire)).toThrow(WireError);
+    it.each(vectors.changes)("writes $name", ({ wire, means }) => {
+        expect(encodeChange(changeMeaning(means))).toBe(JSON.stringify(wire));
     });
 });
 
 describe("pages", () => {
-    it.each(vectors.pages)("$name", ({ wire }) => {
-        const page = decodePage(wire);
-        const entries = page.changes.map(({ id, change }) => ({ id, change: encodeChange(change) }));
-        expect(encodePage(page.replica, entries, page.nextWrite)).toBe(JSON.stringify(wire));
-    });
-
-    it.each(vectors.badPages)("refuses $name", ({ wire }) => {
-        expect(() => decodePage(wire)).toThrow(WireError);
-    });
-
-    // The receive scenarios merge on the phone; every page they send must decode here too.
-    it.each(vectors.receive)("decodes every page of: $name", ({ steps }) => {
-        for (const step of steps) expect(() => decodePage(step.page)).not.toThrow();
+    // A pull writes the change bytes the `changes` table stores, so the page writer takes them already encoded.
+    it.each(vectors.pages)("writes $name", ({ wire }) => {
+        const entries = wire.changes.map(({ id, change }) => ({ id, change: JSON.stringify(change) }));
+        expect(encodePage(wire.replica, entries, wire.nextWrite)).toBe(JSON.stringify(wire));
     });
 });
+
+function dayIndexOf(date: string): number {
+    const [year, month, day] = date.split("-").map(Number);
+    return dayIndex(year ?? 0, month ?? 0, day ?? 0);
+}
+
+/// The change a vector's `means` describes, built without reading its wire form.
+function changeMeaning(means: Record<string, unknown>): Change {
+    const common = {
+        row: String(means.row),
+        dataset: String(means.dataset),
+        stamp: stampOf(Number(means.ms), Number(means.counter)),
+        replica: String(means.replica),
+    };
+    if (means.op === "insertRow") {
+        return { op: "insertRow", ...common, day: dayIndexOf(String(means.day)), at: Date.parse(String(means.at)) };
+    }
+    if (means.op === "deleteRow") return { op: "deleteRow", ...common };
+    const field = String(means.field);
+    if ("text" in means) return { op: "setCell", ...common, field, kind: "text", value: String(means.text) };
+    if ("number" in means) return { op: "setCell", ...common, field, kind: "number", value: Number(means.number) };
+    if ("bool" in means) return { op: "setCell", ...common, field, kind: "bool", value: Boolean(means.bool) };
+    return { op: "setCell", ...common, field, kind: "date", value: dayIndexOf(String(means.date)) };
+}

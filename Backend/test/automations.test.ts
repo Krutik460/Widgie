@@ -4,7 +4,7 @@ import { leadSeed } from "../src/automations";
 import { sha256, toHex } from "../src/bytes";
 import { MAX_AUTOMATIONS_BODY } from "../src/index";
 import { DAY, HOUR, LEADS, leadMs, MINUTE } from "../src/schedule";
-import { decodeChange, encodeChange, isRowKey, mintRowKey, rowKeyMs, stampOf, stampParts } from "../src/wire";
+import { encodeChange, isRowKey, mintRowKey, rowKeyMs, stampOf, stampParts } from "../src/wire";
 import { automation, DATASET, NOW, newAccount, payload, send, upload, WIDGET } from "./helpers/accounts";
 
 interface Task {
@@ -250,8 +250,7 @@ describe("tombstones", () => {
         expect(BigInt(stamp)).toBeGreaterThan(BigInt(before));
         expect(stampParts(stamp)).toEqual({ ms: later, counter: 0 });
         for (const tombstone of written) {
-            const change = decodeChange(JSON.parse(tombstone.change));
-            expect(change).toEqual({ op: "deleteRow", row: tombstone.row_key, dataset: DATASET, stamp, replica });
+            const change = { op: "deleteRow", row: tombstone.row_key, dataset: DATASET, stamp, replica } as const;
             // SQL wrote exactly the bytes the wire encoder writes.
             expect(tombstone.change).toBe(encodeChange(change));
             expect(tombstone).toMatchObject({ dataset: DATASET, widget: WIDGET, automation: "daily", at: null });
