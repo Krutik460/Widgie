@@ -76,6 +76,23 @@ private let shared = #"""
         #expect(mine.at <= (try instant(morning)), "midday would be four hours ahead")
     }
 
+    @Test func aSeededDateFromTodayIsCountedFromTheSeedsDay() throws {
+        let spec = try parse(
+            #"""
+            {
+              "name": "Trip", "look": "function render() { return { type: 'spacer' }; }",
+              "tables": { "trips": { "fields": { "date": "date" } } },
+              "queries": { "trip": { "latest": "trips", "window": "all" } },
+              "samples": { "soon": { "trips": [{ "date": { "daysFromToday": 12 } }] } }
+            }
+            """#)
+        let bench = try Bench(spec: spec)
+        let late = "2026-11-27T23:30:00-05:00"
+        try bench.seed("soon", at: late)
+        let trip = try #require(bench.rows("trip", at: late).first)
+        #expect(trip.values.first { $0.key.raw == "date" }?.value == .date(try #require(Day(iso: "2026-12-09"))))
+    }
+
     /// New York springs forward on 2026-03-08: midnight to noon is 660 minutes, less than `full`'s 719, and
     /// its today rows must still land on today.
     @Test func fullStaysOnTodayOnASpringForwardDay() throws {

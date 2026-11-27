@@ -44,6 +44,38 @@ private func rows(
         #expect(rows[1].values.map(\.value) == [.bool(true), .number(2.5), .text("a")])
     }
 
+    @Test func aDateFromTodayResolvesAgainstTheDayTheSampleIsDrawn() throws {
+        let spec = try parse(
+            withTables(
+                #""samples": {"trip": {"items": [{"title": "Lisbon", "due": {"daysFromToday": 12}}, {"due": {"daysFromToday": -1204}}]}}"#
+            ))
+        let rows = try #require(spec.sample(named: "trip")).rows
+        let today = try #require(Day(iso: "2026-11-27"))
+        #expect(rows[0].values.map(\.value) == [.text("Lisbon")])
+        #expect(
+            rows[0].values(on: today).map(\.value) == [.date(try #require(Day(iso: "2026-12-09"))), .text("Lisbon")])
+        #expect(rows[1].values(on: today).map(\.value) == [.date(try #require(Day(iso: "2023-08-11")))])
+    }
+
+    @Test func aDateFromTodaySurvivesTheCanonicalDocument() throws {
+        let spec = try parse(withTables(#""samples": {"trip": {"items": [{"due": {"daysFromToday": 12}}]}}"#))
+        #expect(try Spec.parse(spec.encoded()) == spec)
+    }
+
+    @Test func aDateFromTodayIsAWholeNumberOfDaysAndNothingElse() {
+        let rule =
+            #"sample "trip", items[0]: "items.due" is a date field; give a date like "2026-11-18", or {"daysFromToday": 12} for a date that many days after the day the sample is drawn"#
+        for value in [#"{"daysFromToday": 1.5}"#, #"{"days": 12}"#, #"{"daysFromToday": 12, "x": 1}"#, "{}"] {
+            let line = rejection(withTables(#""samples": {"trip": {"items": [{"due": \#(value)}]}}"#))
+            #expect(
+                line == rule || line?.hasPrefix(#"sample "trip", items[0]: "daysFromToday" must be"#) == true,
+                "\(value)")
+        }
+        #expect(
+            rejection(withTables(#""samples": {"trip": {"items": [{"title": {"daysFromToday": 1}}]}}"#))
+                == #"sample "trip", items[0]: "items.title" is a text field; give a string, not an object"#)
+    }
+
     @Test func sampleOverAThousandRowsIsRefused() {
         let entries = Array(repeating: #"{"repeat": 100}"#, count: 11).joined(separator: ", ")
         #expect(
