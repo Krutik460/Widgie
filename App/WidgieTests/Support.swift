@@ -108,8 +108,22 @@ extension Engine {
 extension Template {
     /// The bundled template `id`.
     static func bundled(_ id: String) throws -> Template {
-        try #require(catalog().first { $0.id == id }, "no template \(id)")
+        try #require(bundledCatalog.first { $0.id == id }, "no template \(id)")
     }
+
+    /// Read once, since the template rig looks a template up for every face it stages.
+    private static let bundledCatalog = catalog()
+}
+
+/// Runs `body` with a state that reads `rows`, in the grammar of one `samples` entry, from a scratch file, which
+/// goes once `body` returns.
+func withRows<T>(
+    _ rows: String, isolation: isolated (any Actor)? = #isolation, _ body: (DataState) async throws -> T
+) async throws -> T {
+    let file = FileManager.default.temporaryDirectory.appending(path: "rows-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: file) }
+    try Data(rows.utf8).write(to: file)
+    return try await body(.file(file))
 }
 
 /// Waits, a few seconds at most, until `condition` holds.

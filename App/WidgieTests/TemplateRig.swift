@@ -11,22 +11,19 @@ import WidgetEngine
 
 /// One bundled template in a scratch engine of its own, with rows the test gives, so a test can tap its face
 /// at a chosen time and read what the face then shows, as a person would.
-@MainActor final class TemplateBench {
+@MainActor final class TemplateRig {
     let template: Template
     let family: Family
     let engine = Engine.scratch()
     private let widget: WidgetID
 
     /// `rows` in the grammar of one `samples` entry, or nil for the template's first sample.
-    init(_ id: String, family: Family? = nil, rows: String? = nil, at date: Date) throws {
+    init(_ id: String, family: Family? = nil, rows: String? = nil, at date: Date) async throws {
         template = try Template.bundled(id)
         self.family = family ?? template.family
         widget = try engine.stageProved(template.source(), at: date)
         if let rows {
-            let file = FileManager.default.temporaryDirectory.appending(path: "rows-\(UUID().uuidString).json")
-            defer { try? FileManager.default.removeItem(at: file) }
-            try Data(rows.utf8).write(to: file)
-            try engine.load(.file(file), into: widget, at: date)
+            try await withRows(rows) { [engine, widget] in try engine.load($0, into: widget, at: date) }
         }
     }
 
