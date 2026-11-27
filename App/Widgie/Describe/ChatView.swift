@@ -58,7 +58,7 @@ struct EditChat: View {
             library.refresh()
             Task {
                 try? await Task.sleep(for: .milliseconds(700))
-                chat.close?()
+                chat.close()
             }
         }
         .background { Sky(moon: false) }

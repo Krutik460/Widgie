@@ -286,6 +286,23 @@ import WidgetEngine
         #expect(!String(decoding: source.json, as: UTF8.self).contains("#1B3A8C"), "nothing was saved")
     }
 
+    /// The cover closes a moment after a save lands, and Close may come first. The late close must not take down a
+    /// cover opened in that moment.
+    @Test func aChatClosesItsCoverOnce() async throws {
+        let library = try await shared.build(counterDocument())
+        var closed = 0
+        let chat = chat(.library(library), answers: [[counter(background: "#1B3A8C")]], close: { closed += 1 })
+        await chat.session.open()
+        try await send("make it blue", in: chat.session)
+        chat.save()
+        try await until({ chat.session.settled }, "the save never finished")
+        #expect(chat.session.phase == .saved(library))
+
+        chat.leave()
+        chat.close()
+        #expect(closed == 1)
+    }
+
     @Test func saveWhileLeaveIsAskedDropsTheQuestionAndSavesTheChange() async throws {
         let gate = SuspendingGate(comesBack: .whenReleased)
         defer { Engine.resume() }
@@ -302,9 +319,8 @@ import WidgetEngine
         chat.save()
         #expect(chat.question == nil, "saving answers it")
         try await until({ gate.waiting }, "the save never waited for the app")
-        chat.replace()
         chat.leave()
-        #expect(closed == 0 && chat.question == nil, "nothing discards a save under way")
+        #expect(closed == 0 && chat.question == nil, "Close does not discard a save under way")
 
         gate.release()
         try await until({ session.settled }, "the save never finished")
@@ -359,9 +375,8 @@ import WidgetEngine
         chat.save()
         #expect(chat.question == nil, "saving answers it")
         try await until(held.stopped, "the save never waited for the app")
-        chat.replace()
         chat.leave()
-        #expect(chat.session === session && chat.question == nil, "nothing replaces a save under way")
+        #expect(chat.session === session && chat.question == nil, "New does not replace a save under way")
 
         held.release()
         try await until({ session.settled }, "the save never finished")
@@ -385,6 +400,24 @@ import WidgetEngine
         try await until({ chat.session.settled }, "the change never finished")
         chat.resume()
         #expect(chat.question == nil, "the template is not asked about again")
+    }
+
+    /// Without a model service every message fails the same way, so sending leaves the phase as it was.
+    @Test func aMessageThatFailsAsTheOneBeforeItStillDropsTheQuestion() async throws {
+        let chat = Chat(
+            .unsaved(try petFed()),
+            start: { [shared] in
+                DescribeSession($0, model: nil, preview: Preview(library: shared.engine, startsEmpty: true))
+            })
+        await chat.session.open()
+        chat.send("make it blue")
+        #expect(chat.session.phase == .failed(.unavailable, .turn))
+        chat.leave()
+        #expect(chat.question == .startOver)
+
+        chat.send("make it green")
+        #expect(chat.session.phase == .failed(.unavailable, .turn))
+        #expect(chat.question == nil)
     }
 
     @Test(arguments: SaveStop.allCases)

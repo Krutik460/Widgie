@@ -220,12 +220,13 @@ final class DescribeSession {
         Set(turns.compactMap { $0.accepted ? $0.change : nil })
     }
 
-    /// Sends the composer, or `suggestion` when the person taps an idea or `change`'s chip.
-    func send(_ suggestion: String? = nil, change: Changes.Change? = nil) {
+    /// Sends the composer, or `suggestion` when the person taps an idea or `change`'s chip. Returns whether it went
+    /// ahead, as `save` and `retry` do.
+    @discardableResult func send(_ suggestion: String? = nil, change: Changes.Change? = nil) -> Bool {
         let typed = (suggestion ?? words).trimmingCharacters(in: .whitespacesAndNewlines)
         let image = suggestion == nil ? picture : nil
         guard ready, suggestion != nil || pendingPhoto == nil, !typed.isEmpty || image != nil else {
-            return
+            return false
         }
         turns.append(
             Turn(
@@ -236,11 +237,13 @@ final class DescribeSession {
             picture = nil
         }
         start(.turn)
+        return true
     }
 
-    func save() {
-        guard draft != nil, ready else { return }
+    @discardableResult func save() -> Bool {
+        guard draft != nil, ready else { return false }
         start(.save)
+        return true
     }
 
     /// Stops the build. The draft stays as it was before the turn.
@@ -249,9 +252,10 @@ final class DescribeSession {
     }
 
     /// Runs again whatever the failure interrupted.
-    func retry() {
-        guard case .failed(let failure, let work) = phase, failure.retryable, work != .open else { return }
+    @discardableResult func retry() -> Bool {
+        guard case .failed(let failure, let work) = phase, failure.retryable, work != .open else { return false }
         start(work)
+        return true
     }
 
     /// Takes the failure as read. After a give-up the words go back in the composer to say another way.
