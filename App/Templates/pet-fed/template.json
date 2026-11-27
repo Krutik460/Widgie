@@ -4,7 +4,7 @@
   "category": "home",
   "order": 10,
   "family": "small",
-  "hint": "Tap the check after a meal.",
+  "hint": "Tap the check after a meal. For now it stays on this phone.",
   "suggestion": {
     "title": "When was the dog fed?",
     "subtitle": "Who fed them, and how long ago",
