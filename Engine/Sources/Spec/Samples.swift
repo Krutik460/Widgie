@@ -28,7 +28,7 @@ extension Spec {
         package let values: [FieldValue]
         /// Date values given as days from the day the sample is drawn, in field id order. Every field belongs to
         /// `table`, and none is also in `values`.
-        package var datesFromToday: [DateFromToday] = []
+        package let datesFromToday: [DateFromToday]
 
         /// Every value of the row, with each date from today resolved against `today`.
         package func values(on today: Day) -> [FieldValue] {
@@ -113,14 +113,14 @@ extension Spec {
                 rows.append(
                     SampleRow(
                         table: table, daysAgo: 0, minutesAgo: Self.widestMinutesAgo, by: author(filter),
-                        staysToday: true, count: count, values: matching(filter)))
+                        staysToday: true, count: count, values: matching(filter), datesFromToday: []))
             }
             for (filter, days, each) in history {
                 for daysAgo in 1..<days {
                     rows.append(
                         SampleRow(
                             table: table, daysAgo: daysAgo, minutesAgo: nil, by: author(filter), staysToday: false,
-                            count: each, values: matching(filter)))
+                            count: each, values: matching(filter), datesFromToday: []))
                 }
             }
         }
@@ -277,16 +277,15 @@ extension Spec.Sample {
             guard value == .bool(true), minutesAgo != nil else { throw Diagnostic(rule) }
             staysToday = true
         }
-        var sampleRow = Spec.SampleRow(
+        return Spec.SampleRow(
             table: table,
             daysAgo: try row.wholeNumber("daysAgo", in: Spec.Limits.daysAgo) ?? 0,
             minutesAgo: minutesAgo,
             by: try author(row),
             staysToday: staysToday,
             count: try row.wholeNumber("repeat", in: Spec.Limits.repeatCount) ?? 1,
-            values: try table.values(row, skipping: reserved + dates.map(\.field.id.raw)))
-        sampleRow.datesFromToday = dates
-        return sampleRow
+            values: try table.values(row, skipping: reserved + dates.map(\.field.id.raw)),
+            datesFromToday: dates)
     }
 
     private static func dateFromToday(_ value: JSONValue, _ field: Spec.Field<Day>) throws(Diagnostic)
