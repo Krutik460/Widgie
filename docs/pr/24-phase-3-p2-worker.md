@@ -2,16 +2,16 @@
 
 Branch `phase-3-p2-worker` into `phase-2b-b2` (PR 23). This is P2 of [tasks/phase-3-ai-block.md](../../tasks/phase-3-ai-block.md) (see its "P2 results" note). The Worker gets a D1 database, accounts with a bearer token, a replace-all upload of the account's automations that turns into versions, tasks, and tombstones, and a pull that returns the account's changes in the wire format. Nothing runs an automation yet: P3 adds the cron that claims due tasks and the Queue consumer that writes rows. Nothing is deployed and no real D1 database exists yet.
 
-The branch merges the wire format commit from P1 (`fbd865f`, via `71cf631`), which brings `docs/engine/WIRE.md`, `Engine/Vectors/wire.json`, and the Swift reader. Review it in PR 22. Here it is the contract: the Worker writes exactly what [WIRE.md](../engine/WIRE.md) defines and is checked against the same vectors. The Swift files in the diff (`Wire.swift`, `RowStore.swift`, `Merge.swift`, `WireTests.swift`, `JSON.swift`, `Spec.swift`) all come from that merge. One line of WIRE.md changes here: `nextWrite` is never sooner than five minutes after the pull (section 3).
+The wire format (`docs/engine/WIRE.md`, `Engine/Vectors/wire.json`, and the Swift reader) came from P1, which merged to main as PR 22; B2 is rebased onto that main, and this branch was replayed onto the rebased B2, so it carries main's reviewed format and no Swift changes of its own. Here it is the contract: the Worker writes exactly what [WIRE.md](../engine/WIRE.md) defines and is checked against the same vectors. One line of WIRE.md changes here: `nextWrite` is never sooner than five minutes after the pull (section 3).
 
-Background reading: [WIRE.md](../engine/WIRE.md) sections "What the server writes" (line 80) and "The automation payload" (line 89), and the plan's "How it works (decided)" (lines 72 to 87).
+Background reading: [WIRE.md](../engine/WIRE.md) sections "What the server writes" (line 82) and "The automation payload" (line 91), and the plan's "How it works (decided)" (lines 72 to 87).
 
 **No usage limits for now.** The user removed them on 2026-11-27 for simplicity: no runs per day, no automations per account, no spend cap, and no rate limits on the sync routes. They come back later; the OpenRouter key's credit limit is the backstop. The document's own rules, which the engine also enforces, are still checked.
 
 ## Core changes
 
 - **A D1 schema.** [0001_automations.sql](../../Backend/migrations/0001_automations.sql) creates `accounts` (token hash, attest key, automation replica, `last_stamp`, `revision`, time zone, `pulled_at`, `pulled_after`, `parked_at`), `automations` (the uploaded payload plus a `version`), `tasks` (`once`, `run_at`, `row_key`, `due_at`, `claimed_until`, `attempts`, at most one of each kind per automation), and `changes` (`AUTOINCREMENT` ids, the wire JSON, and its key columns repeated). Indexes `tasks(due_at)`, `changes(account, id)`, the partial `changes(account, widget, automation, at) WHERE op = 'insertRow'` and `changes(account, row_key) WHERE op = 'deleteRow'`, and `changes(account, dataset, id)` for P3's read-back. Foreign keys cascade from `accounts`.
-- **`POST /v1/account`.** An empty body signed with the B2 App Attest key (`POST\n/v1/account\n<hex SHA-256 of nothing>`) answers `{token}`. A new `AttestedKey.verify` checks and stores the counter without taking build quota. One account per attest key: registering again returns the same account with a new token, in one `INSERT ... ON CONFLICT (attest_key)` statement. On `dev` only, an `X-Widgie-Dev-Secret` header carrying `DEV_REGISTRATION_SECRET` registers a new account for the simulator.
+- **`POST /v1/account`.** An empty body signed with the B2 App Attest key (`POST\n/v1/account\n<hex SHA-256 of nothing>`) answers `{token}`. B2's `AttestedKey.verifyAndAdvance`, the same check `/v1/reply` uses, verifies the assertion and stores its counter. One account per attest key: registering again returns the same account with a new token, in one `INSERT ... ON CONFLICT (attest_key)` statement. On `dev` only, an `X-Widgie-Dev-Secret` header carrying `DEV_REGISTRATION_SECRET` registers a new account for the simulator.
 - **A bearer token.** `<account id>.<secret>`, the secret 32 random bytes as base64url. Only the SHA-256 is stored, and it is compared with `crypto.subtle.timingSafeEqual`. Refusals are 401 `bad-token`.
 - **`PUT /v1/automations`.** Replaces the account's automations with the payload from WIRE.md, read strictly and checked against `Spec.swift`'s rules (4 per widget, prompts of 1 to 2,000 grapheme clusters, 16 fields, reserved ids, canonical cadence spellings, an IANA zone stored by its canonical name). The three limits refuse with 422, a stable `code`, and a sentence the app shows. Answers `{digest}`, the SHA-256 of the bytes received.
 - **Versions, tasks, tombstones in one D1 batch, guarded by a revision.** A version hashes prompt, cadence, time zone, dataset, and fields. New, or a changed prompt or table: a run now plus the next scheduled run. A changed cadence or zone: only the schedule moves. Any change or removal: a `deleteRow` for each of the automation's rows whose `at` is still ahead, under one new stamp of the account's automation replica, selected inside the same batch. The batch writes only if the account's `revision` is still the one it read; otherwise it reads and plans again (3 attempts, then 409 `conflict`). The upload also unparks the account and records it alive.
@@ -20,7 +20,7 @@ Background reading: [WIRE.md](../engine/WIRE.md) sections "What the server write
 - **A wire writer, no reader.** [wire.ts](../../Backend/src/wire.ts) writes stamps, UUIDv7 row keys, day indexes, changes, and pages. The strict reader stays the phone's; phase 4 adds a TypeScript reader with the refusal vectors.
 - **Upkeep for P3's daily cron.** [upkeep.ts](../../Backend/src/upkeep.ts): `parkIdle` (30 days without a pull or upload) and `deleteIdle` (90 days).
 - **Routes carry their method.** `ROUTES` maps each path to one method, so `GET /v1/changes` and `PUT /v1/automations` sit beside the POST routes. The shared `jsonBody` reads a capped JSON body for the attest routes and the upload.
-- **Tests: 233 Worker tests, 154 new.** [account.test.ts](../../Backend/test/account.test.ts), [automations.test.ts](../../Backend/test/automations.test.ts), [changes.test.ts](../../Backend/test/changes.test.ts), [schedule.test.ts](../../Backend/test/schedule.test.ts), [upkeep.test.ts](../../Backend/test/upkeep.test.ts), and [wire.test.ts](../../Backend/test/wire.test.ts), on [helpers/accounts.ts](../../Backend/test/helpers/accounts.ts). [vitest.config.ts](../../Backend/vitest.config.ts) reads the migrations in Node and [setup.ts](../../Backend/test/setup.ts) applies them to the local D1 before each file. The test configuration is production's with `DEV_REGISTRATION_SECRET` set, so a test can prove production refuses it.
+- **Tests: 262 Worker tests, 154 new.** [account.test.ts](../../Backend/test/account.test.ts), [automations.test.ts](../../Backend/test/automations.test.ts), [changes.test.ts](../../Backend/test/changes.test.ts), [schedule.test.ts](../../Backend/test/schedule.test.ts), [upkeep.test.ts](../../Backend/test/upkeep.test.ts), and [wire.test.ts](../../Backend/test/wire.test.ts), on [helpers/accounts.ts](../../Backend/test/helpers/accounts.ts). [vitest.config.ts](../../Backend/vitest.config.ts) reads the migrations in Node and [setup.ts](../../Backend/test/setup.ts) applies them to the local D1 before each file. The test configuration is production's with `DEV_REGISTRATION_SECRET` set, so a test can prove production refuses it.
 - **D1 setup before the first deploy.** [wrangler.jsonc](../../Backend/wrangler.jsonc) binds `DB` with placeholder database ids and adds `ENVIRONMENT`. From `Backend/`:
 
   ```sh
@@ -49,7 +49,7 @@ flowchart TD
   HDR --> E2{"body empty?"}
   E2 -->|"no"| R413b["413"]
   E2 -->|"yes"| CD["client data: POST newline /v1/account newline hex SHA256 of empty"]
-  CD --> VER["AttestedKey.verify: signature, rpIdHash, rising counter, stores counter, no quota"]
+  CD --> VER["AttestedKey.verifyAndAdvance, as /v1/reply: signature, rpIdHash, rising counter, stores counter"]
   VER -->|"unknown-key or bad-assertion"| R401k["401 with code"]
   VER -->|"ok"| REGA["register(DB, keyId)"]
   REGA --> UPS["INSERT accounts (new id, token hash, key, new replica) ON CONFLICT (attest_key) DO UPDATE token_hash RETURNING id"]
@@ -65,22 +65,22 @@ flowchart TD
 
 Files:
 
-- [index.ts:219](../../Backend/src/index.ts#L219): `account`. The dev branch at line 224, the signed branch from line 232, the client data at line 237, `verify` at 238. [index.ts:244](../../Backend/src/index.ts#L244): `devRegistration`. [index.ts:250](../../Backend/src/index.ts#L250): `isEmpty`, a `readCapped` of 0 bytes. [index.ts:53](../../Backend/src/index.ts#L53): the new refusal codes.
-- [attested-key.ts:90](../../Backend/src/attested-key.ts#L90): `verify`, sharing `check` (line 94) with `verifyAndReserve`. The no-quota branch is at line 112.
+- [index.ts:217](../../Backend/src/index.ts#L217): `account`. The dev branch at line 222, the signed branch from line 230, the client data at line 235, `verifyAndAdvance` at 236 (the same call `/v1/reply` makes at line 133). [index.ts:242](../../Backend/src/index.ts#L242): `devRegistration`. [index.ts:248](../../Backend/src/index.ts#L248): `isEmpty`, a `readCapped` of 0 bytes. [index.ts:52](../../Backend/src/index.ts#L52): the new refusal codes.
+- [attested-key.ts:75](../../Backend/src/attested-key.ts#L75): `verifyAndAdvance`, unchanged from B2: the counter is read again after the check's await and stored at line 92.
 - [accounts.ts:24](../../Backend/src/accounts.ts#L24): `register`. [accounts.ts:40](../../Backend/src/accounts.ts#L40): `authenticate`, with the canonical spelling check at line 45 and the constant-time compare at line 60.
 - [0001_automations.sql:10](../../Backend/migrations/0001_automations.sql#L10): `accounts`, `attest_key UNIQUE` and `replica UNIQUE`.
 - [wrangler.jsonc](../../Backend/wrangler.jsonc): `ENVIRONMENT` is `production` at the top level and `dev` under `env.dev`. [env.d.ts](../../Backend/src/env.d.ts): `ENVIRONMENT`, `DEV_REGISTRATION_SECRET`, `DB`.
-- Tests: [account.test.ts:38](../../Backend/test/account.test.ts#L38) (a token, same account on re-register and the old token stops working, no build quota taken, replay and misdirected assertions, a body refused), [account.test.ts:102](../../Backend/test/account.test.ts#L102) (production refuses the right secret, dev accepts it, wrong or empty or unconfigured is refused), [account.test.ts:134](../../Backend/test/account.test.ts#L134) (malformed and non-canonical tokens).
+- Tests: [account.test.ts:38](../../Backend/test/account.test.ts#L38) (a token, same account on re-register and the old token stops working, registration advances the key's one counter, replay and misdirected assertions, a body refused), [account.test.ts:103](../../Backend/test/account.test.ts#L103) (production refuses the right secret, dev accepts it, wrong or empty or unconfigured is refused), [account.test.ts:135](../../Backend/test/account.test.ts#L135) (malformed and non-canonical tokens).
 
 Key decisions:
 
 - **The token, not an assertion, guards sync routes.** The widget extension has no App Attest key and an attest key changes on reinstall, so App Attest is used once to name the account and a token does the rest (as the phase 2b plan recorded).
-- **Registration takes no build quota** but still stores the counter, so a captured registration cannot be replayed.
+- **One verification path.** Registration uses B2's `verifyAndAdvance`, the method `/v1/reply` uses, which stores the counter, so a captured registration cannot be replayed. P2 first added a separate `AttestedKey.verify` that skipped B2's build quota; once the quota was removed both did the same thing, so the restack onto the rebased B2 dropped `verify`. The client data names the route, so an assertion for one route never works on the other.
 - **One statement makes or finds the account.** `ON CONFLICT (attest_key)` means two concurrent registrations of one key can never make two accounts. Re-registering rotates the token, so the previous token stops working.
 - **The token carries the account id.** The id finds the row with a primary key lookup, and only the secret's hash is compared, in constant time with `timingSafeEqual`, the one comparison in Workers that is.
 - **Only the canonical token spelling passes.** The 43rd base64url character holds two bits that must be zero, so one secret never has two accepted spellings.
 - **The dev path is closed twice.** It needs `ENVIRONMENT` to be `dev` and the secret to be set, so production refuses it even if the secret were configured there. A dev registration makes a new account each time, since the simulator has no key to name one by.
-- **No rate limit on registration for now,** with the other usage limits (see the top). The attest routes keep B2's per-address limit.
+- **No rate limit on registration for now,** with the other usage limits (see the top). B2's per-address limit on the attest routes is gone too.
 
 ## 2. Uploading automations: `PUT /v1/automations`
 
@@ -122,7 +122,7 @@ flowchart TD
 
 Files:
 
-- [index.ts:264](../../Backend/src/index.ts#L264): `automations`, the refusals at line 275, the digest at line 283. [index.ts:300](../../Backend/src/index.ts#L300): `jsonBody`. [index.ts:42](../../Backend/src/index.ts#L42): `MAX_AUTOMATIONS_BODY`, a memory guard, not a usage limit. [index.ts:55](../../Backend/src/index.ts#L55): `conflict`.
+- [index.ts:262](../../Backend/src/index.ts#L262): `automations`, the refusals at line 273, the digest at line 281. [index.ts:298](../../Backend/src/index.ts#L298): `jsonBody`. [index.ts:43](../../Backend/src/index.ts#L43): `MAX_AUTOMATIONS_BODY`, a memory guard, not a usage limit. [index.ts:54](../../Backend/src/index.ts#L54): `conflict`.
 - [automations.ts:24](../../Backend/src/automations.ts#L24): `LIMITS`. [automations.ts:37](../../Backend/src/automations.ts#L37): `OverLimit` and its codes. [automations.ts:83](../../Backend/src/automations.ts#L83): `parsePayload`, the zone at line 86, the per-widget check at line 106. [automations.ts:116](../../Backend/src/automations.ts#L116): one entry, with the grapheme count and `prompt-too-long` at line 132. [automations.ts:149](../../Backend/src/automations.ts#L149): `cadence`, canonical `"06:00"` and `":15"` only. [automations.ts:174](../../Backend/src/automations.ts#L174): `fieldKinds`, `too-many-fields` at line 179.
 - [automations.ts:256](../../Backend/src/automations.ts#L256): `versionOf`. [automations.ts:316](../../Backend/src/automations.ts#L316): `TOMBSTONES`. [automations.ts:330](../../Backend/src/automations.ts#L330): `replaceAutomations`, the retry loop at line 341 and the revision re-read from line 349. [automations.ts:358](../../Backend/src/automations.ts#L358): `readState`. [automations.ts:374](../../Backend/src/automations.ts#L374): `replaceStatements`: the plan at line 383, the revision statement at line 403, tombstones at 413, removals at 416, upserts and tasks from 423 (the `same` re-arm at 425).
 - [automations.ts:270](../../Backend/src/automations.ts#L270): `scheduleTask` (section 4). [automations.ts:283](../../Backend/src/automations.ts#L283): `insertTask`, with `ifAbsent` for re-arming.
@@ -171,12 +171,12 @@ flowchart TD
 
 Files:
 
-- [index.ts:288](../../Backend/src/index.ts#L288): `changes`, the `after` check at line 293. [index.ts:96](../../Backend/src/index.ts#L96): `encoded` on the responder, for a body already encoded.
+- [index.ts:286](../../Backend/src/index.ts#L286): `changes`, the `after` check at line 291. [index.ts:95](../../Backend/src/index.ts#L95): `encoded` on the responder, for a body already encoded.
 - [accounts.ts:67](../../Backend/src/accounts.ts#L67): `pull`, the batch at line 74, the liveness and watermark update at line 82, `nextWrite` at line 90. [accounts.ts:13](../../Backend/src/accounts.ts#L13): `NEXT_WRITE_GAP`. [accounts.ts:96](../../Backend/src/accounts.ts#L96): `rearm`. [accounts.ts:11](../../Backend/src/accounts.ts#L11): `PAGE_SIZE`.
 - [wire.ts:159](../../Backend/src/wire.ts#L159): `encodePage`, from changes as the table stores them. [wire.ts:137](../../Backend/src/wire.ts#L137): `encodeChange`, keys in WIRE.md's order, which P3's runner will use to fill `changes.change`.
 - [upkeep.ts:13](../../Backend/src/upkeep.ts#L13): `parkIdle` (marks and deletes tasks). [upkeep.ts:24](../../Backend/src/upkeep.ts#L24): `deleteIdle` (cascades).
 - [0001_automations.sql:80](../../Backend/migrations/0001_automations.sql#L80): `changes_account (account, id)`, the pull's index.
-- [WIRE.md:74](../engine/WIRE.md#L74): `nextWrite`, now never sooner than five minutes after the pull.
+- [WIRE.md:76](../engine/WIRE.md#L76): `nextWrite`, now never sooner than five minutes after the pull.
 - Tests: [changes.test.ts:64](../../Backend/test/changes.test.ts#L64) (empty page with the replica, paging by 500 in the wire format, `after` skipping other accounts' ids, `nextWrite` is the earliest `due_at` but at least 5 minutes ahead, bad `after`, `pulled_at` hourly, `pulled_after` is the last pull's watermark, re-arm, a schedule uploaded meanwhile is kept). [upkeep.test.ts:38](../../Backend/test/upkeep.test.ts#L38) (park, unpark by upload, delete). [wire.test.ts:82](../../Backend/test/wire.test.ts#L82) (every good change and page vector written byte for byte from what it means).
 
 Key decisions:
