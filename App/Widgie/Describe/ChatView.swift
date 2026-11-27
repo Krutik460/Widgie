@@ -47,15 +47,11 @@ struct ChatView: View {
 }
 
 /// Make's chat over the app, changing a library widget: it opens on the widget's card, Close asks before it drops a
-/// change, and Save replaces the widget, bursts confetti and closes. It hides the app's sky behind its own.
+/// change, and Save replaces the widget, bursts confetti and closes. It hides the app's sky behind its own. The
+/// presenter makes `chat` once, as it opens the cover, since a `State` here would build one on every redraw.
 struct EditChat: View {
     let library: Library
-    @State private var chat: Chat
-
-    init(library: Library, editing id: WidgetID, close: @escaping () -> Void) {
-        self.library = library
-        _chat = State(initialValue: Chat(.library(id), close: close))
-    }
+    let chat: Chat
 
     var body: some View {
         ChatView(chat: chat, pastMoon: .constant(true)) { _, _ in
@@ -117,7 +113,7 @@ private struct Conversation: View {
         ScrollView {
             Group {
                 if session.blank {
-                    Hello(ideas: chat.ideas, leaning: typing) { session.send($0) }
+                    Hello(ideas: chat.ideas, leaning: typing) { chat.send($0) }
                         .frame(minHeight: max(0, viewport - 12), alignment: .top)
                 } else {
                     thread
@@ -298,7 +294,7 @@ private struct Conversation: View {
         switch failure {
         case .gaveUp: ("Say it another way", { session.dismissFailure() })
         case .unsaved, .unavailable, .unopened: ("OK", { session.dismissFailure() })
-        case .unreachable, .refused, .interrupted, .broken: ("Try again", { session.retry() })
+        case .unreachable, .refused, .interrupted, .broken: ("Try again", { chat.retry() })
         }
     }
 
@@ -313,7 +309,7 @@ private struct Conversation: View {
                 if let face = session.preview.faces[.medium] {
                     DraftCard(
                         face: face, name: session.preview.name, size: size, act: act, perch: perch,
-                        flown: leaving && !chat.editing
+                        saved: session.phase.isSaved, flown: leaving && !chat.editing
                     ) {
                         session.preview.perform($0)
                         act.play(.smallHop)
@@ -349,7 +345,7 @@ private struct Conversation: View {
         } else if session.draft != nil {
             Button {
                 typing = false
-                session.save()
+                chat.save()
             } label: {
                 Group {
                     if saving {
@@ -370,14 +366,7 @@ private struct Conversation: View {
         }
     }
 
-    /// Proving the draft against the shared store, a repair turn included.
-    private var saving: Bool {
-        switch session.phase {
-        case .saving: true
-        case .building: session.latest?.result != .pending
-        default: false
-        }
-    }
+    private var saving: Bool { session.phase == .saving }
 
     // MARK: The composer
 
@@ -386,11 +375,11 @@ private struct Conversation: View {
             if session.draft != nil, !chips.isEmpty, !saving, !leaving {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
-                        ForEach(chips, id: \.self) { words in
-                            let working = session.latest?.result == .pending && session.latest?.words == words
-                            Button(working ? "Changing" : words) {
+                        ForEach(chips, id: \.self) { chip in
+                            let working = session.latest?.result == .pending && session.latest?.change == chip.change
+                            Button(working ? "Changing" : chip.words) {
                                 typing = false
-                                session.send(words)
+                                chat.send(chip.words, change: chip.change)
                             }
                             .buttonStyle(ChangeChipStyle())
                         }
@@ -401,7 +390,6 @@ private struct Conversation: View {
                 .scrollIndicators(.hidden)
                 .padding(.horizontal, -Self.margin)
                 .disabled(!session.ready)
-                .opacity(session.ready ? 1 : 0.6)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Suggested changes")
                 .transition(.opacity.combined(with: .offset(y: 6)))
@@ -458,15 +446,15 @@ private struct Conversation: View {
         }
     }
 
-    private var chips: [String] {
+    private var chips: [Changes.Chip] {
         guard let traits = session.preview.faces[.medium]?.traits else { return [] }
-        return Changes.suggested(for: traits)
+        return Changes.suggested(for: traits, used: session.usedChanges)
     }
 
     private func send() {
         guard session.canSend else { return }
         typing = false
-        session.send()
+        chat.send()
     }
 
     /// Widgie on the draft glances while a change builds and hops when one lands.
@@ -479,19 +467,25 @@ private struct Conversation: View {
     }
 
     /// The saved draft leaves: confetti bursts from it and Widgie hops, then 240 ms later its tile flies to the
-    /// Widgets tab, which the presenter runs.
+    /// Widgets tab, which the presenter runs. Saved while you are on another tab, nothing bursts.
     private func leave(_ id: WidgetID) {
         let launch = Launch(
             name: session.preview.name ?? "Your widget", face: session.preview.faces[.medium], from: tile)
         Task {
             act.play(.hop)
-            if !reduceMotion {
+            if !reduceMotion && !pageHidden {
                 flights.burst(from: tile)
                 try? await Task.sleep(for: .milliseconds(240))
             }
             leaving = true
             saved(id, launch)
         }
+    }
+}
+
+extension DescribeSession.Phase {
+    fileprivate var isSaved: Bool {
+        if case .saved = self { true } else { false }
     }
 }
 
@@ -507,11 +501,13 @@ private struct Hello: View {
     @State private var risen = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.pageHidden) private var pageHidden
+    @Environment(\.colorScheme) private var scheme
 
     private static let greeting = "Hi! What should we make today?"
 
-    private func widgie(size: CGFloat) -> some View {
-        Caret(pose: .lean(.left), size: size)
+    private func widgie(size: CGFloat, grounded: Bool = true) -> some View {
+        Caret(pose: .lean(.left), size: size, grounded: grounded)
             .rotationEffect(.degrees(leaning && !reduceMotion ? -6 : 0), anchor: Caret.foot(.lean(.left)))
             .animation(.easeOut(duration: 0.22), value: leaning)
             .accessibilityHidden(true)
@@ -532,18 +528,12 @@ private struct Hello: View {
             // At the accessibility text sizes the bubble takes the row, so its words have room, and Widgie stands under it.
             if typeSize.isAccessibilitySize {
                 VStack(alignment: .trailing, spacing: 0) {
-                    Bubble(words: Self.greeting, tail: .down, voice: .low)
+                    Bubble(words: Self.greeting, tail: .down, voice: pageHidden ? .silent : .low)
                     widgie(size: 140).padding(.trailing, 24)
                 }
                 .padding(.top, 12)
             } else {
-                HStack(alignment: .top, spacing: 0) {
-                    Bubble(words: Self.greeting, tail: .right, voice: .low)
-                        .frame(maxWidth: 212, alignment: .trailing)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.top, 34)
-                    widgie(size: 192).padding(.trailing, -18)
-                }
+                stage
             }
             Spacer(minLength: 12)
             if !ideas.isEmpty {
@@ -564,6 +554,44 @@ private struct Hello: View {
             }
         }
         .onAppear { risen = true }
+    }
+}
+
+extension Hello {
+    /// The prototype's stage, measured from the column's trailing edge: Widgie's foot 72 points in and 206 down on a
+    /// soft shadow, and the bubble ending 138 points in, at most 212 wide, so the greeting breaks after "make".
+    fileprivate var stage: some View {
+        let foot = Caret.sole(.lean(.left))
+        let size: CGFloat = 192
+        return ZStack(alignment: .topTrailing) {
+            Ellipse()
+                .fill(
+                    EllipticalGradient(
+                        colors: [Self.shadow(scheme), .clear], startRadiusFraction: 0, endRadiusFraction: 0.5)
+                )
+                .frame(width: 100, height: 13)
+                .padding(.trailing, 22)
+                .padding(.top, 200)
+            widgie(size: size, grounded: false)
+                .offset(x: (1 - foot.x) * size - 72, y: 206 - foot.y * size)
+            // iOS moves a word down rather than leave one alone on the last line, which the prototype's browser does
+            // not, so the greeting breaks after "make" by hand while that line fits.
+            ViewThatFits(in: .horizontal) {
+                Bubble(words: "Hi! What should we make\ntoday?", tail: .right, voice: pageHidden ? .silent : .low)
+                    .fixedSize()
+                Bubble(words: Self.greeting, tail: .right, voice: pageHidden ? .silent : .low)
+            }
+            .frame(maxWidth: 212, alignment: .trailing)
+            .padding(.trailing, 138)
+            .padding(.top, 38)
+        }
+        .frame(maxWidth: .infinity, minHeight: 224, alignment: .topTrailing)
+    }
+
+    private static func shadow(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0, green: 6 / 255, blue: 20 / 255, opacity: 0.5)
+            : Color(red: 18 / 255, green: 26 / 255, blue: 46 / 255, opacity: 0.3)
     }
 }
 
@@ -691,11 +719,13 @@ private struct YouSaid: View {
 }
 
 /// Widgie's words in a white bubble on the left. While Widgie works the words end in the blinking bar, and VoiceOver
-/// reads each new step politely.
+/// reads each new step politely, but nothing while you are on another tab.
 private struct WidgieSays: View {
     let words: String
     var working = false
     let voice: Bubble.Voice
+
+    @Environment(\.pageHidden) private var pageHidden
 
     var body: some View {
         HStack(alignment: .lastTextBaseline, spacing: 3) {
@@ -728,6 +758,7 @@ private struct WidgieSays: View {
         .accessibilityLabel("Widgie: \(words)")
         .accessibilityAddTraits(working ? .updatesFrequently : [])
         .onChange(of: words, initial: true) { _, words in
+            guard !pageHidden else { return }
             var line = AttributedString(words)
             if voice == .low { line.accessibilitySpeechAnnouncementPriority = .low }
             AccessibilityNotification.Announcement(line).post()
@@ -739,6 +770,8 @@ private struct WidgieSays: View {
 private struct WidgieFailed: View {
     let failure: DescribeSession.Failure
     let action: (title: String, run: () -> Void)?
+
+    @Environment(\.pageHidden) private var pageHidden
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 2) {
@@ -780,7 +813,9 @@ private struct WidgieFailed: View {
             }
         }
         .frame(maxWidth: 310, alignment: .leading)
-        .onAppear { AccessibilityNotification.Announcement(failure.title).post() }
+        .onAppear {
+            if !pageHidden { AccessibilityNotification.Announcement(failure.title).post() }
+        }
     }
 }
 
@@ -829,8 +864,10 @@ private struct DraftCard: View {
     let act: HeroAct
     /// Where Widgie's foot stands on the face's top edge.
     let perch: CGPoint
-    /// The saved tile has flown to the Widgets tab, leaving its outline behind with Widgie, until the chat starts
-    /// over. With Reduce Motion it only dims.
+    /// Widgie jumps for joy on a saved draft.
+    let saved: Bool
+    /// The saved tile has flown to the Widgets tab, leaving its outline behind, and Widgie drops away once it lands.
+    /// With Reduce Motion the tile only dims and Widgie stays.
     let flown: Bool
     let tap: @MainActor @Sendable (Tap) -> Void
     let form: @MainActor @Sendable (Tap) -> Void
@@ -840,7 +877,8 @@ private struct DraftCard: View {
     private static let headroom: CGFloat = 112
 
     var body: some View {
-        let sole = Caret.sole(.lean(.left))
+        let sole = Caret.sole(saved ? .jump : .lean(.left))
+        let dropped = flown && !reduceMotion
         VStack(spacing: 0) {
             Color.clear.frame(width: size.width, height: Self.headroom)
             FaceView(face, host: .app(tap: tap, form: form))
@@ -857,10 +895,13 @@ private struct DraftCard: View {
                 .accessibilityLabel("\(name ?? "Your widget"), your draft")
         }
         .overlay(alignment: .topLeading) {
-            FeedHero(leaning: .left, act: act)
+            FeedHero(leaning: .left, act: act, jumping: saved)
                 .offset(
                     x: perch.x - sole.x * FeedHero.size,
-                    y: Self.headroom + perch.y + 2 - sole.y * FeedHero.size)
+                    y: Self.headroom + perch.y + 2 - sole.y * FeedHero.size + (dropped ? 44 : 0)
+                )
+                .opacity(dropped ? 0 : 1)
+                .animation(.timingCurve(0.5, 0, 0.75, 0.4, duration: 0.36).delay(Flights.flightTime), value: dropped)
         }
     }
 }
@@ -976,7 +1017,7 @@ private struct Composer: View {
         return session.draft == nil ? "Describe a widget" : "Ask for a change"
     }
     private var building: Bool {
-        if case .building = session.phase { session.latest?.result == .pending } else { false }
+        if case .building = session.phase { true } else { false }
     }
     /// The blinking bar asks for the first words, and only those.
     private var idle: Bool { session.blank && session.words.isEmpty && !typing.wrappedValue }
@@ -1118,13 +1159,30 @@ extension View {
 }
 
 /// Changes that fit the draft on show, read off its face without asking the model: a color across the wheel from
-/// the one it paints most, and a bigger number when it shows one. None when neither fits.
+/// the one it paints most, and a bigger number when it shows one. As in the prototype, a change whose turn landed
+/// leaves, and a used recolor gives way to new colors. None when nothing fits.
 enum Changes {
-    static func suggested(for traits: FaceTraits) -> [String] {
-        var changes: [String] = []
-        if let hue = traits.hue { changes.append("Make it \(colorName(at: hue + 180))") }
-        if traits.showsNumber { changes.append("Bigger number") }
-        return changes
+    enum Change: Hashable {
+        case recolor, biggerNumber, newColors
+    }
+
+    struct Chip: Hashable {
+        let change: Change
+        let words: String
+    }
+
+    static func suggested(for traits: FaceTraits, used: Set<Change>) -> [Chip] {
+        var chips: [Chip] = []
+        if let hue = traits.hue, !used.contains(.recolor) {
+            chips.append(Chip(change: .recolor, words: "Make it \(colorName(at: hue + 180))"))
+        }
+        if traits.showsNumber, !used.contains(.biggerNumber) {
+            chips.append(Chip(change: .biggerNumber, words: "Bigger number"))
+        }
+        if traits.hue != nil, used.contains(.recolor), !used.contains(.newColors) {
+            chips.append(Chip(change: .newColors, words: "Change the colors"))
+        }
+        return chips
     }
 
     /// The nearest everyday color name to a hue in degrees.
@@ -1152,7 +1210,7 @@ private struct ChangeChipStyle: ButtonStyle {
             .padding(.vertical, 5)
             .contentShape(Rectangle())
             .padding(.vertical, -5)
-            .modifier(Squish(pressed: configuration.isPressed, scale: 0.94))
+            .modifier(Squish(pressed: configuration.isPressed, scale: 0.94, dimmed: 0.6))
     }
 }
 
@@ -1187,6 +1245,8 @@ private struct MiniLabelStyle: LabelStyle {
 private struct Squish: ViewModifier {
     let pressed: Bool
     let scale: CGFloat
+    /// The opacity while disabled.
+    var dimmed = 0.5
 
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1194,7 +1254,7 @@ private struct Squish: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(pressed && !reduceMotion ? scale : 1)
-            .opacity(isEnabled ? 1 : 0.5)
+            .opacity(isEnabled ? 1 : dimmed)
             .animation(.spring(duration: 0.3, bounce: 0.45), value: pressed)
     }
 }

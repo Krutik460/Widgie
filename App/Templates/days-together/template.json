@@ -5,5 +5,11 @@
   "order": 40,
   "family": "small",
   "hint": "Tap it to set your first date.",
+  "suggestion": {
+    "title": "How long have we been together?",
+    "subtitle": "The days since your first date",
+    "icon": "calendar",
+    "tint": "coral"
+  },
   "blanks": []
 }

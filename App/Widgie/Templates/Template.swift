@@ -60,8 +60,7 @@ struct Template: Identifiable, Sendable {
     let family: Family
     /// What Widgie says first when the template opens: what to try on it.
     let hint: String
-    /// Nil for a template Make does not offer.
-    let suggestion: Suggestion?
+    let suggestion: Suggestion
     let blanks: [Blank]
     let folder: URL
 
@@ -72,7 +71,7 @@ struct Template: Identifiable, Sendable {
         let order: Int
         let family: Family
         let hint: String
-        let suggestion: Suggestion?
+        let suggestion: Suggestion
         let blanks: [Blank]
     }
 
@@ -100,11 +99,11 @@ struct Template: Identifiable, Sendable {
     static func ideas(
         from catalog: [Template], count: Int = 3, using generator: inout some RandomNumberGenerator
     ) -> [Suggestion] {
-        let offered = catalog.filter { $0.suggestion != nil }.shuffled(using: &generator)
+        let offered = catalog.shuffled(using: &generator)
         var categories: Set<Category> = []
         let spread = offered.filter { categories.insert($0.category).inserted }
         let rest = offered.filter { template in !spread.contains { $0.id == template.id } }
-        return (spread + rest).prefix(count).compactMap(\.suggestion)
+        return (spread + rest).prefix(count).map(\.suggestion)
     }
 
     /// The template's source with each blank filled: a trimmed value cut to the blank's length, or the blank's

@@ -212,6 +212,8 @@ struct FeedHero: View {
     let act: HeroAct
     /// Whether it blinks and fidgets between acts.
     var alive = true
+    /// Stretched tall with happy eyes instead of leaning, as on a saved draft.
+    var jumping = false
 
     static let size: CGFloat = 116
 
@@ -225,7 +227,7 @@ struct FeedHero: View {
         var shadow: Double = 1
     }
 
-    private var pose: Caret.Pose { .lean(leaning) }
+    private var pose: Caret.Pose { jumping ? .jump : .lean(leaning) }
 
     var body: some View {
         let sole = Caret.sole(pose)

@@ -5,6 +5,8 @@ import SwiftUI
 struct Toast: Identifiable, Equatable {
     let id: Int
     let words: String
+    /// Shown on Make, it sits below Make's bar and leaves when Make does.
+    let low: Bool
 
     static let shownFor = Duration.milliseconds(2400)
 }

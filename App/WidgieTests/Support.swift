@@ -12,6 +12,8 @@ final class ScriptedModel: WidgetModel {
     struct Answer: Sendable {
         let reply: String
         var before: (@Sendable () async -> Void)?
+        /// Thrown instead of the reply.
+        var error: URLError?
     }
 
     private let state: Mutex<(answers: [Answer], requests: [ModelRequest])>
@@ -30,6 +32,7 @@ final class ScriptedModel: WidgetModel {
             throw URLError(.badServerResponse)
         }
         await answer.before?()
+        if let error = answer.error { throw error }
         return answer.reply
     }
 }
@@ -62,6 +65,9 @@ func counterDocument(background: String = "#102030", fields: [String: String] = 
 /// A reply `build` always rejects: it has no look.
 let unbuildable = ScriptedModel.Answer(reply: #"{"name": "Counter"}"#)
 
+/// A model service that gives no answer.
+let unreachable = ScriptedModel.Answer(reply: "", error: URLError(.notConnectedToInternet))
+
 /// An engine standing in for the shared store, on a folder of its own that goes when this does.
 final class SharedStore: Sendable {
     let directory = FileManager.default.temporaryDirectory.appending(path: "app-tests-\(UUID().uuidString)")
@@ -91,12 +97,6 @@ struct Unexpected: Error {}
     }
     Issue.record(comment)
     throw Unexpected()
-}
-
-extension DescribeSession.Turn {
-    var accepted: Bool {
-        if case .accepted = result { true } else { false }
-    }
 }
 
 extension DescribeSession {
@@ -197,6 +197,22 @@ final class TestClock: Sendable {
     }
 
     func release() {
+        resume?.resume()
+        resume = nil
+    }
+}
+
+/// Holds whatever waits on it, such as a model reply, until the test opens it.
+@MainActor final class Latch {
+    private(set) var waiting = false
+    private var resume: CheckedContinuation<Void, Never>?
+
+    func wait() async {
+        waiting = true
+        await withCheckedContinuation { resume = $0 }
+    }
+
+    func open() {
         resume?.resume()
         resume = nil
     }

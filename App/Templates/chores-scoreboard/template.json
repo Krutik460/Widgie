@@ -5,6 +5,12 @@
   "order": 70,
   "family": "medium",
   "hint": "Tap when you did one. For now the score stays on this phone.",
+  "suggestion": {
+    "title": "Who did more chores this week?",
+    "subtitle": "Winner picks the movie",
+    "icon": "trophy.fill",
+    "tint": "amber"
+  },
   "blanks": [
     {
       "key": "who",

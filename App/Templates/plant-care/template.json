@@ -5,6 +5,12 @@
   "order": 40,
   "family": "small",
   "hint": "Tap the check after watering. For now it stays on this phone.",
+  "suggestion": {
+    "title": "When did I water the plants?",
+    "subtitle": "It goes red when they're thirsty",
+    "icon": "leaf.fill",
+    "tint": "mint"
+  },
   "blanks": [
     {
       "key": "plant",

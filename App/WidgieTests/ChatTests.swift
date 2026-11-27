@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 import WidgetBuilder
 import WidgetEngine
 
@@ -10,7 +11,8 @@ import WidgetEngine
 @MainActor @Suite(.serialized) struct ChatTests {
     let shared = SharedStore()
 
-    /// A chat whose sessions answer from `answers` in turn, one script per session.
+    /// A chat whose sessions answer from `answers` in turn, one script per session, each drawing its draft from no
+    /// rows as Make's sessions do.
     private func chat(
         _ origin: DescribeSession.Origin = .nothing, answers: [[ScriptedModel.Answer]] = [],
         close: (() -> Void)? = nil, gate: SuspendingGate? = nil
@@ -19,7 +21,7 @@ import WidgetEngine
         return Chat(origin, close: close) { [shared] origin in
             let model = ScriptedModel(scripts.isEmpty ? [] : scripts.removeFirst())
             return DescribeSession(
-                origin, model: model, preview: Preview(library: shared.engine),
+                origin, model: model, preview: Preview(library: shared.engine, startsEmpty: true),
                 sharedWritesOpen: { await gate?.open() })
         }
     }
@@ -78,9 +80,7 @@ import WidgetEngine
     }
 
     @Test func aNewDraftStartsEmptyAsTheSavedWidgetWill() async throws {
-        let fresh = DescribeSession(
-            .unsaved(try petFed()), model: ScriptedModel([]),
-            preview: Preview(library: shared.engine, startsEmpty: true))
+        let fresh = DescribeSession(.unsaved(try petFed()), model: ScriptedModel([]))
         await fresh.open()
         // Pet fed paints red until the first feed, which its sample has.
         let hue = try #require(fresh.preview.faces[.small]?.traits.hue)
@@ -93,11 +93,115 @@ import WidgetEngine
         #expect(abs(fed - hue) > 20)
     }
 
-    @Test func theChangeChipsFitTheDraftOnShow() async throws {
-        let session = chat(answers: [[counter(background: "#B02020")]]).session
+    @Test func theChangeChipsFitTheDraftAndEachLeavesOnceItsTurnLands() async throws {
+        let chat = chat(answers: [
+            [
+                counter(background: "#B02020"), unbuildable, unbuildable, unbuildable, counter(background: "#20B0B0"),
+                counter(background: "#20B0B0"), counter(background: "#2050B0"),
+            ]
+        ])
+        let session = chat.session
+        func chips() throws -> [Changes.Chip] {
+            let traits = try #require(session.preview.faces[.medium]?.traits)
+            return Changes.suggested(for: traits, used: session.usedChanges)
+        }
+        func tap(_ words: String) async throws {
+            let chip = try #require(try chips().first { $0.words == words })
+            chat.send(chip.words, change: chip.change)
+            try await until({ session.settled }, "the change never finished")
+        }
+
         try await send("a red tap counter", in: session)
-        let traits = try #require(session.preview.faces[.medium]?.traits)
-        #expect(Changes.suggested(for: traits) == ["Make it teal", "Bigger number"])
+        #expect(try chips().map(\.words) == ["Make it teal", "Bigger number"])
+
+        try await tap("Make it teal")
+        #expect(session.phase == .failed(.gaveUp, .turn))
+        #expect(try chips().map(\.words) == ["Make it teal", "Bigger number"], "a change that did not land stays")
+
+        try await tap("Make it teal")
+        #expect(try chips().map(\.words) == ["Bigger number", "Change the colors"], "not Make it red")
+
+        try await tap("Bigger number")
+        #expect(try chips().map(\.words) == ["Change the colors"])
+
+        try await tap("Change the colors")
+        #expect(try chips().isEmpty)
+    }
+
+    @Test func stoppingTheFirstBuildLeavesNoDraftAndTheNextMessageBuilds() async throws {
+        let latch = Latch()
+        let held = ScriptedModel.Answer(reply: counter().reply) { await latch.wait() }
+        let session = chat(answers: [[held, counter()]]).session
+        session.words = "a tap counter"
+        session.send()
+        try await until({ latch.waiting }, "the build never asked the model")
+
+        session.cancel()
+        latch.open()
+        try await until({ session.settled }, "the build never stopped")
+        #expect(session.phase == .composing)
+        #expect(session.latest?.result == .cancelled)
+        #expect(session.draft == nil && session.preview.faces.isEmpty)
+
+        try await send("a tap counter", in: session)
+        #expect(session.latest?.accepted == true && session.draft != nil)
+    }
+
+    // MARK: Try again
+
+    @Test func tryAgainRunsTheFailedTurnAgainInPlace() async throws {
+        let chat = chat(answers: [[unreachable, counter()]])
+        let session = chat.session
+        try await send("a tap counter", in: session)
+        #expect(session.phase == .failed(.unreachable, .turn))
+
+        chat.retry()
+        try await until({ session.settled }, "the turn never ran again")
+        #expect(session.turns.map(\.words) == ["a tap counter"])
+        #expect(session.latest?.accepted == true && session.draft != nil)
+    }
+
+    @Test func tryAgainRunsAFailedSaveAgain() async throws {
+        let library = try await shared.build(counterDocument())
+        let chat = chat(
+            .library(library),
+            answers: [[counter(background: "#1B3A8C"), unreachable, counter(background: "#1B3A8C", fields: noted)]],
+            close: {})
+        let session = chat.session
+        await session.open()
+        try await send("make it blue", in: session)
+        _ = try await shared.build(counterDocument(fields: noted), replacing: library)
+
+        chat.save()
+        try await until({ session.settled }, "the save never finished")
+        #expect(session.phase == .failed(.unreachable, .save))
+
+        chat.retry()
+        try await until({ session.settled }, "the save never ran again")
+        #expect(session.phase == .saved(library))
+        let saved = try #require(try shared.engine.source(of: library))
+        #expect(String(decoding: saved.json, as: UTF8.self).contains("#1B3A8C"))
+    }
+
+    @Test func tryAgainDoesNothingAfterAFailureRunningItAgainCannotFix() async throws {
+        let turn = chat(answers: [[unbuildable, unbuildable, unbuildable]]).session
+        try await send("a tap counter", in: turn)
+        turn.retry()
+        #expect(turn.phase == .failed(.gaveUp, .turn), "and the model is asked nothing more")
+
+        let library = try await shared.build(counterDocument())
+        let save = chat(
+            .library(library),
+            answers: [[counter(background: "#1B3A8C"), unbuildable, unbuildable, unbuildable]], close: {}
+        ).session
+        await save.open()
+        try await send("make it blue", in: save)
+        _ = try await shared.build(counterDocument(fields: noted), replacing: library)
+        save.save()
+        try await until({ save.settled }, "the save never finished")
+        #expect(save.phase == .failed(.unsaved, .save), "a repair that gives up is a save that did not happen")
+        save.retry()
+        #expect(save.phase == .failed(.unsaved, .save))
     }
 
     // MARK: Asking before a draft goes
@@ -182,6 +286,49 @@ import WidgetEngine
         #expect(!String(decoding: source.json, as: UTF8.self).contains("#1B3A8C"), "nothing was saved")
     }
 
+    @Test func saveWhileLeaveIsAskedDropsTheQuestionAndSavesTheChange() async throws {
+        let gate = SuspendingGate(comesBack: .whenReleased)
+        defer { Engine.resume() }
+        let library = try await shared.build(counterDocument())
+        var closed = 0
+        let chat = chat(
+            .library(library), answers: [[counter(background: "#1B3A8C")]], close: { closed += 1 }, gate: gate)
+        let session = chat.session
+        await session.open()
+        try await send("make it blue", in: session)
+        chat.leave()
+        #expect(chat.question == .leave)
+
+        chat.save()
+        #expect(chat.question == nil, "saving answers it")
+        try await until({ gate.waiting }, "the save never waited for the app")
+        chat.replace()
+        chat.leave()
+        #expect(closed == 0 && chat.question == nil, "nothing discards a save under way")
+
+        gate.release()
+        try await until({ session.settled }, "the save never finished")
+        #expect(session.phase == .saved(library))
+        let saved = try #require(try shared.engine.source(of: library))
+        #expect(String(decoding: saved.json, as: UTF8.self).contains("#1B3A8C"))
+    }
+
+    @Test func closeDuringASavesRepairWaitsForTheSave() async throws {
+        var closed = 0
+        let held = try await heldSave(at: .repairing, close: { closed += 1 })
+        let session = held.chat.session
+        held.chat.save()
+        try await until(held.stopped, "the repair never asked the model")
+        #expect(session.phase == .saving && session.replacement == .waits)
+
+        held.chat.leave()
+        #expect(held.chat.question == nil && closed == 0, "Leave without saving? is not asked mid save")
+
+        held.release()
+        try await until({ session.settled }, "the save never finished")
+        #expect(session.phase == .saved(try #require(session.editing)))
+    }
+
     // MARK: Save
 
     @Test func aSaveThatLandedStartsAFreshChat() async throws {
@@ -195,34 +342,131 @@ import WidgetEngine
             return
         }
 
-        chat.saved()
+        chat.saved(id)
         #expect(chat.session !== session)
         #expect(chat.session.blank && chat.session.turns.isEmpty && chat.session.draft == nil)
         #expect(try shared.engine.widgets().map(\.id) == [id])
     }
 
-    @Test func aTemplateChosenDuringASaveOpensOnceTheSaveLands() async throws {
-        let gate = SuspendingGate(comesBack: .whenReleased)
+    @Test func saveWhileStartOverIsAskedDropsTheQuestionAndTheSaveLands() async throws {
+        let held = try await heldSave(at: .waitingForTheApp)
         defer { Engine.resume() }
-        _ = try shared.engine.widgets()
-        let chat = chat(answers: [[counter()], []], gate: gate)
+        let chat = held.chat
         let session = chat.session
-        try await send("a tap counter", in: session)
-        session.save()
-        try await until({ gate.waiting }, "the save never waited for the app")
+        chat.leave()
+        #expect(chat.question == .startOver)
+
+        chat.save()
+        #expect(chat.question == nil, "saving answers it")
+        try await until(held.stopped, "the save never waited for the app")
+        chat.replace()
+        chat.leave()
+        #expect(chat.session === session && chat.question == nil, "nothing replaces a save under way")
+
+        held.release()
+        try await until({ session.settled }, "the save never finished")
+        guard case .saved(let id) = session.phase else {
+            Issue.record("expected the save to land, got \(session.phase)")
+            return
+        }
+        #expect(try shared.engine.widgets().map(\.id) == [id])
+        chat.saved(id)
+        #expect(chat.session !== session && chat.session.blank)
+    }
+
+    @Test func aMessageSentWhileAQuestionIsUpDropsTheQuestion() async throws {
+        let chat = chat(answers: [[counter(), counter(background: "#1B3A8C")]])
+        try await send("a tap counter", in: chat.session)
+        chat.change(try petFed(), named: "Mochi fed")
+        #expect(chat.question == .swap("Mochi fed"))
+
+        chat.send("make it blue")
+        #expect(chat.question == nil)
+        try await until({ chat.session.settled }, "the change never finished")
+        chat.resume()
+        #expect(chat.question == nil, "the template is not asked about again")
+    }
+
+    @Test(arguments: SaveStop.allCases)
+    func aTemplateChosenDuringASaveOpensOnceTheSaveLands(stop: SaveStop) async throws {
+        let held = try await heldSave(at: stop)
+        defer { Engine.resume() }
+        let chat = held.chat
+        let session = chat.session
+        chat.save()
+        try await until(held.stopped, "the save never stopped")
+        #expect(session.phase == .saving && session.replacement == .waits)
 
         chat.change(try petFed(), named: "Mochi fed")
         #expect(chat.question == nil, "a save cannot be stopped, so nothing is asked")
         #expect(chat.session === session)
 
-        gate.release()
+        held.release()
         try await until({ session.settled }, "the save never finished")
         chat.resume()
         #expect(chat.session === session, "the landed save keeps its session until its flight ends")
+        guard case .saved(let id) = session.phase else {
+            Issue.record("expected the save to land, got \(session.phase)")
+            return
+        }
 
-        chat.saved()
+        chat.saved(id)
         await chat.session.open()
         #expect(chat.session.opening == "What should we change about Mochi fed?")
+    }
+
+    @Test func aTemplateOpenedDuringTheSavesFlightStaysWhenTheFlightEnds() async throws {
+        let chat = chat(answers: [[counter()], []])
+        let session = chat.session
+        try await send("a tap counter", in: session)
+        chat.save()
+        try await until({ session.settled }, "the save never finished")
+        guard case .saved(let id) = session.phase else {
+            Issue.record("expected the save to land, got \(session.phase)")
+            return
+        }
+
+        chat.change(try petFed(), named: "Mochi fed")
+        let template = chat.session
+        #expect(template !== session, "a saved draft is replaced at once")
+        chat.saved(id)
+        #expect(chat.session === template)
+    }
+
+    /// Where a save stops until the test releases it.
+    enum SaveStop: CaseIterable, Sendable {
+        /// The shared store refused the write in the background and waits for the app to come back.
+        case waitingForTheApp
+        /// The shared store rejected the change and its repair turn waits on the model.
+        case repairing
+    }
+
+    /// A chat with a draft whose Save stops at `stop`. Waiting for the app, it is a new counter. Repairing, it is a
+    /// library counter changed to blue, which gained a field in the library meanwhile, so the store rejects the
+    /// change until a repair keeps the field.
+    private func heldSave(at stop: SaveStop, close: (() -> Void)? = nil) async throws -> (
+        chat: Chat, stopped: () -> Bool, release: () -> Void
+    ) {
+        switch stop {
+        case .waitingForTheApp:
+            let gate = SuspendingGate(comesBack: .whenReleased)
+            _ = try shared.engine.widgets()
+            let chat = chat(answers: [[counter()], []], close: close, gate: gate)
+            try await send("a tap counter", in: chat.session)
+            return (chat, { gate.waiting }, gate.release)
+        case .repairing:
+            let latch = Latch()
+            let library = try await shared.build(counterDocument())
+            let repaired = ScriptedModel.Answer(reply: counter(background: "#1B3A8C", fields: noted).reply) {
+                await latch.wait()
+            }
+            let chat = chat(
+                .library(library), answers: [[counter(background: "#1B3A8C"), repaired], []], close: close)
+            await chat.session.open()
+            try await send("make it blue", in: chat.session)
+            _ = try await shared.build(counterDocument(fields: noted), replacing: library)
+            return (chat, { latch.waiting }, latch.open)
+        }
     }
 
     // MARK: Ideas
@@ -241,13 +485,17 @@ import WidgetEngine
         #expect(seen.count > 1, "the ideas change from one chat to the next")
     }
 
-    @Test func aTemplateWithoutASuggestionIsNeverOffered() throws {
-        let catalog = Template.catalog()
-        let offered = try #require(catalog.first { $0.suggestion != nil })
-        var generator = Seeded(7)
-        let ideas = Template.ideas(
-            from: [offered] + catalog.filter { $0.id != offered.id }.map(\.withoutSuggestion), using: &generator)
-        #expect(ideas == [offered.suggestion])
+    @Test func everyTemplateOffersAnIdeaOfItsOwnWithASymbolThatExists() throws {
+        let root = try #require(Bundle.main.url(forResource: "Templates", withExtension: nil))
+        let folders = try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
+            .filter { !$0.hasPrefix(".") }
+        let catalog = Template.catalog(in: root)
+        #expect(catalog.count == folders.count, "a template.json without a suggestion does not read")
+        for template in catalog {
+            #expect(UIImage(systemName: template.suggestion.icon) != nil, "\(template.id)'s icon")
+            #expect(!template.suggestion.title.isEmpty && !template.suggestion.subtitle.isEmpty, "\(template.id)")
+        }
+        #expect(Set(catalog.map(\.suggestion.title)).count == catalog.count, "no two ideas say the same")
     }
 }
 
@@ -266,10 +514,5 @@ private struct Seeded: RandomNumberGenerator {
     }
 }
 
-extension Template {
-    fileprivate var withoutSuggestion: Template {
-        Template(
-            id: id, name: name, line: line, category: category, order: order, family: family, hint: hint,
-            suggestion: nil, blanks: blanks, folder: folder)
-    }
-}
+/// A field the library counter gains while a change to it is being made, so saving the change needs a repair.
+private let noted = ["note": "text"]

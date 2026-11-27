@@ -19,10 +19,12 @@ final class Tabs {
 
     @ObservationIgnored private var toasts = 0
 
-    /// Switches tabs. Opening Widgets clears its count and the toast, and what arrived meanwhile lands.
+    /// Switches tabs. Opening Widgets clears its count and the toast, and what arrived meanwhile lands. A toast shown
+    /// on Make leaves with Make.
     func go(_ next: Page) {
         visited.insert(next)
         page = next
+        if next != .make, toast?.low == true { toast = nil }
         if next == .widgets {
             arrivals.openWidgets()
             toast = nil
@@ -45,7 +47,7 @@ final class Tabs {
         arrive(id)
         guard page != .widgets else { return }
         toasts += 1
-        let shown = Toast(id: toasts, words: "\(name) is in your widgets.")
+        let shown = Toast(id: toasts, words: "\(name) is in your widgets.", low: page == .make)
         toast = shown
         Task {
             try? await Task.sleep(for: Toast.shownFor)

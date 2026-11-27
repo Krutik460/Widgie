@@ -7,7 +7,7 @@ struct WidgetDetail: View {
     let library: Library
     let id: WidgetID
 
-    @State private var changing: WidgetsFeed.Shown?
+    @State private var changing: Chat?
     @State private var confirmDelete = false
     @Environment(\.dismiss) private var dismiss
 
@@ -61,8 +61,8 @@ struct WidgetDetail: View {
         } message: {
             Text(Self.deleteMessage(placed: !placed.isEmpty))
         }
-        .fullScreenCover(item: $changing) { shown in
-            EditChat(library: library, editing: shown.id) { changing = nil }
+        .fullScreenCover(item: $changing) { chat in
+            EditChat(library: library, chat: chat)
         }
         .sheet(item: Bindable(library).form) { form in
             FormSheet(form: form.form) { input in
@@ -91,7 +91,7 @@ struct WidgetDetail: View {
         HStack(spacing: 10) {
             Button("Delete") { confirmDelete = true }
                 .buttonStyle(KeyButtonStyle(prominent: false))
-            Button("Change it") { changing = WidgetsFeed.Shown(id: id) }
+            Button("Change it") { changing = Chat(.library(id), close: { changing = nil }) }
                 .buttonStyle(KeyButtonStyle())
         }
         .padding(.horizontal, WidgetsFeed.margin)

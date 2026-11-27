@@ -5,6 +5,12 @@
   "order": 30,
   "family": "medium",
   "hint": "Tap it to set the date.",
+  "suggestion": {
+    "title": "Days until our trip",
+    "subtitle": "A countdown with the date",
+    "icon": "airplane",
+    "tint": "sky"
+  },
   "blanks": [
     {
       "key": "place",

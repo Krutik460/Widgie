@@ -5,6 +5,12 @@
   "order": 10,
   "family": "medium",
   "hint": "Tap when you save $50.",
+  "suggestion": {
+    "title": "How much have we saved?",
+    "subtitle": "A jar that fills $50 at a time",
+    "icon": "banknote.fill",
+    "tint": "mint"
+  },
   "blanks": [
     {
       "key": "fund",

@@ -14,13 +14,14 @@ private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describ
 /// One Make chat: every turn the person sends, the build loop each one starts on the preview's scratch engine, and
 /// Save. A failed or cancelled turn never replaces the draft, so the person always keeps the last widget that worked.
 @MainActor @Observable
-final class DescribeSession: Identifiable {
+final class DescribeSession {
     enum Phase: Equatable {
         /// Putting the widget the session starts from into the preview.
         case opening
         case composing
+        /// A turn's build loop at this step.
         case building(BuildStep)
-        /// Proving the draft against the shared store.
+        /// Proving the draft against the shared store, and the repair turn that may take.
         case saving
         /// The work it interrupted decides where the chat shows it and what Try again runs.
         case failed(Failure, Work)
@@ -39,7 +40,7 @@ final class DescribeSession: Identifiable {
         /// The model service answered with an error.
         case refused
         case gaveUp
-        /// The shared store still rejected the draft after one repair turn.
+        /// The shared store still rejected the draft after one repair turn, or the repair gave up.
         case unsaved
         /// iOS ended the background time before the build finished.
         case interrupted
@@ -78,7 +79,13 @@ final class DescribeSession: Identifiable {
         let id: Int
         let words: String
         let image: Picture?
+        /// The suggested change it sent, nil for the person's own words.
+        let change: Changes.Change?
         var result: TurnResult
+
+        var accepted: Bool {
+            if case .accepted = result { true } else { false }
+        }
     }
 
     enum TurnResult: Equatable {
@@ -111,7 +118,7 @@ final class DescribeSession: Identifiable {
 
     /// What the person asked for in the last accepted turn, which the repair on Save asks again.
     private var acceptedWords: String? {
-        turns.last { if case .accepted = $0.result { true } else { false } }?.words
+        turns.last(where: \.accepted)?.words
     }
 
     var words = ""
@@ -153,7 +160,8 @@ final class DescribeSession: Identifiable {
         case free
         /// A draft, or a build or opening under way, would be thrown away.
         case discards
-        /// A save is under way. It cannot be stopped and would land after a discard, so it has to finish first.
+        /// A save is under way, its repair turn included. It cannot be stopped and would land after a discard, so it
+        /// has to finish first.
         case waits
     }
 
@@ -207,8 +215,13 @@ final class DescribeSession: Identifiable {
         }
     }
 
-    /// Sends the composer, or `suggestion` when the person taps a suggestion.
-    func send(_ suggestion: String? = nil) {
+    /// The suggested changes whose turns landed, which the chips no longer offer.
+    var usedChanges: Set<Changes.Change> {
+        Set(turns.compactMap { $0.accepted ? $0.change : nil })
+    }
+
+    /// Sends the composer, or `suggestion` when the person taps an idea or `change`'s chip.
+    func send(_ suggestion: String? = nil, change: Changes.Change? = nil) {
         let typed = (suggestion ?? words).trimmingCharacters(in: .whitespacesAndNewlines)
         let image = suggestion == nil ? picture : nil
         guard ready, suggestion != nil || pendingPhoto == nil, !typed.isEmpty || image != nil else {
@@ -217,7 +230,7 @@ final class DescribeSession: Identifiable {
         turns.append(
             Turn(
                 id: turns.count, words: typed.isEmpty ? "Make it look like this picture" : typed, image: image,
-                result: .pending))
+                change: change, result: .pending))
         if suggestion == nil {
             words = ""
             picture = nil
@@ -315,15 +328,13 @@ final class DescribeSession: Identifiable {
         }
         var outcome = await saveToLibrary()
         if case .rejected(let line)? = outcome {
-            begin(.repairing(attempt: 1, line: line))
             switch await loop(
                 acceptedWords ?? "Keep this widget as it is.", replacing: draft, repairing: line, model: model)
             {
             case .accepted:
-                phase = .saving
                 outcome = await saveToLibrary()
             case .failed(let failure):
-                return fail(failure, .save)
+                return fail(failure == .gaveUp ? .unsaved : failure, .save)
             case .cancelled:
                 phase = .composing
                 return
@@ -358,7 +369,8 @@ final class DescribeSession: Identifiable {
         case failed(Failure)
     }
 
-    /// One run of the build loop on the scratch engine, shown on the draft when it is accepted.
+    /// One run of the build loop on the scratch engine, shown on the draft when it is accepted. A turn shows each
+    /// step; a save's repair stays `saving`.
     private func loop(
         _ words: String, image: Attachment? = nil, replacing: WidgetID?, repairing line: String? = nil,
         model: some WidgetModel
@@ -381,7 +393,7 @@ final class DescribeSession: Identifiable {
                 words, image: image, replacing: replacing, repairing: line, model: model
             ) { step in
                 log.info("\(step.title, privacy: .public) at \(seconds(), privacy: .public)")
-                self.phase = .building(step)
+                if line == nil { self.phase = .building(step) }
             }
             switch outcome {
             case .accepted(let id, let attempts):

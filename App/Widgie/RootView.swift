@@ -40,10 +40,11 @@ struct RootView: View {
         .overlay(alignment: .top) {
             ZStack {
                 if let toast = tabs.toast {
+                    // On Make it comes down below the bar, so New and the title stay in reach.
                     ToastView(toast: toast)
                         .padding(.horizontal, 20)
-                        .padding(.top, -8)
-                        .transition(reduceMotion ? .opacity : .offset(y: -150))
+                        .padding(.top, toast.low ? 88 : -8)
+                        .transition(reduceMotion ? .opacity : .offset(y: toast.low ? -240 : -150))
                         .id(toast.id)
                 }
             }
@@ -94,13 +95,15 @@ struct RootView: View {
         case .make:
             ChatView(chat: chat, pastMoon: pastMoon(.make)) { id, launch in
                 library.refresh()
+                // Saved while on another tab, there is no tile on show to fly or outline to leave.
+                let flies = !reduceMotion && tabs.page == .make
                 Task {
                     await tabs.take(id, named: launch.name) {
-                        if !reduceMotion { await flights.fly(launch) }
+                        if flies { await flights.fly(launch) }
                     }
-                    // The outline the tile left stays a moment with Widgie on it, as the prototype draws it.
-                    if !reduceMotion { try? await Task.sleep(for: .milliseconds(320)) }
-                    chat.saved()
+                    // The outline the tile left stays a moment as Widgie drops away, as the prototype draws it.
+                    if flies { try? await Task.sleep(for: .milliseconds(320)) }
+                    chat.saved(id)
                 }
             }
         case .templates:

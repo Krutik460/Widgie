@@ -5,6 +5,12 @@
   "order": 60,
   "family": "medium",
   "hint": "Tap L, R or the bottle. For now feeds stay on this phone.",
+  "suggestion": {
+    "title": "When did the baby last eat?",
+    "subtitle": "Each feed, and how long since",
+    "icon": "stroller.fill",
+    "tint": "pink"
+  },
   "blanks": [
     {
       "key": "who",

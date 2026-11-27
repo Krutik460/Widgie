@@ -5,6 +5,12 @@
   "order": 20,
   "family": "small",
   "hint": "Tap to pass the turn. For now it stays on this phone.",
+  "suggestion": {
+    "title": "Whose turn is it for the bins?",
+    "subtitle": "The turn passes along each week",
+    "icon": "trash.fill",
+    "tint": "mint"
+  },
   "blanks": [
     {
       "key": "who",

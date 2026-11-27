@@ -21,7 +21,7 @@ struct WidgetsFeed: View {
 
     @State private var shown: Shown?
     /// The widget changing in Make's chat over the feed.
-    @State private var changing: Shown?
+    @State private var changing: Chat?
     @State private var deleting: WidgetID?
     @State private var widgie = FeedWidgie()
     @State private var activity = Activity()
@@ -122,8 +122,8 @@ struct WidgetsFeed: View {
         .sheet(item: $shown) { shown in
             WidgetDetail(library: library, id: shown.id)
         }
-        .fullScreenCover(item: $changing) { shown in
-            EditChat(library: library, editing: shown.id) { changing = nil }
+        .fullScreenCover(item: $changing) { chat in
+            EditChat(library: library, chat: chat)
         }
         // The detail sheet shows the form and the message itself while it is up.
         .sheet(item: Binding(get: { shown == nil ? library.form : nil }, set: { library.form = $0 })) { form in
@@ -324,12 +324,12 @@ struct WidgetsFeed: View {
                 activity.touched = .now
                 shown = Shown(id: id)
             } change: {
-                changing = Shown(id: id)
+                changing = Chat(.library(id), close: { changing = nil })
             }
             .scaleEffect(waiting(id) ? 0.94 : 1)
             .opacity(waiting(id) ? 0 : 1)
             .contextMenu {
-                Button("Change it", systemImage: "pencil") { changing = Shown(id: id) }
+                Button("Change it", systemImage: "pencil") { changing = Chat(.library(id), close: { changing = nil }) }
                 Button("Delete", systemImage: "trash", role: .destructive) { deleting = id }
             }
         }
