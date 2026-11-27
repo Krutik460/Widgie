@@ -4,9 +4,10 @@ Branch `app-shell-u3-templates` into `main`. This is U3 of [tasks/app-shell.md](
 
 ## Core changes
 
-- **Templates.** Six bundled templates under [App/Templates/](../../App/Templates/), each a `widget.json` and a `template.json` with its name, line, category, order, size in the pile, Widgie's hint, and its blanks. [Template.swift](../../App/Widgie/Templates/Template.swift) reads the catalog and fills blanks in the decoded document. A blank in `look` is always a whole quoted literal.
+- **Templates.** Six bundled templates under [App/Templates/](../../App/Templates/), each a `widget.json` and a `template.json` with its name, line, category, order, size in the pile, Widgie's hint, and its blanks, each with a maximum length. [Template.swift](../../App/Widgie/Templates/Template.swift) reads the catalog and fills blanks in the decoded document, cut to their length. A blank in `look` is always a whole quoted literal.
 - **Faces from the prototype.** Each template's face is redrawn to match its prototype tile by day and by night: hearts, Luna the puppy, shared groceries (was the to-do list), habit squares with three habits, water with its bottle, and a Spanish word of the day with Know it and Again.
-- **Bricolage in the engine.** [Fonts/](../../Engine/Sources/WidgetEngine/Fonts/) holds two static Bricolage Grotesque faces, the script that cuts them and the OFL. [Fonts.swift](../../Engine/Sources/WidgetEngine/Fonts.swift) registers them for the whole process, so looks can name them with `fontName` and the app can use them.
+- **Bricolage in the engine.** [Fonts/](../../Engine/Sources/WidgetEngine/Fonts/) holds two static Bricolage Grotesque faces, the script that cuts them and the OFL. [Fonts.swift](../../Engine/Sources/WidgetEngine/Fonts.swift) registers them for the whole process, so looks can name them with `fontName` and the app can use them, and logs one that fails to register.
+- **Engine additions for checking faces.** `render-tool --size` draws a face at any size, such as the app's 358x172 medium, and `Face.isFallback` tells a host whether a look really drew.
 - **The tab.** [TemplatesView.swift](../../App/Widgie/Templates/TemplatesView.swift) is the third tab in [RootView.swift](../../App/Widgie/RootView.swift): the eyebrow and title, the category chips, the banner ([TemplateBanner.swift](../../App/Widgie/Templates/TemplateBanner.swift)), and the tilted pile. [TemplateGallery.swift](../../App/Widgie/Templates/TemplateGallery.swift) draws each sample face once, lazily, at the column size, in a scratch engine of its own.
 - **The sheet.** [TemplateSheet.swift](../../App/Widgie/Templates/TemplateSheet.swift) shows the face live on scratch data with Widgie and its bubble, a field for each blank, Change in chat, and Add widget. [TemplateTrial.swift](../../App/Widgie/Templates/TemplateTrial.swift) owns the scratch face, the typed values, and what Widgie says.
 - **Seams in shared code.** `FeedRow` is generic over its id, so the pile and the feed share one layout rule. `Preview` takes face sizes and gains `adopt(_:replacing:)`. `Library.add` builds a source into the library. `DescribeSession(draft:)` starts on an unsaved draft.
@@ -23,7 +24,7 @@ flowchart TD
   TV --> BANNER["TemplateBanner: color follows chosen, line and Cast follow shown"]
   BANNER --> CAST["Cast: HoppingCaret actors and a prop per category"]
   TV --> PILE["Pile: FeedRow.rows over template ids, a lone small centred"]
-  PILE --> CARD["PileCard: one button, tilted inert face, name, Try, line"]
+  PILE --> CARD["PileCard: one button, tilted face drawn still, name, Try, line"]
   CARD -->|"appears"| DRAW["TemplateGallery.draw: build in scratch, load first sample, faces at the column size"]
   CARD -->|"tap"| MEASURE["measure TemplateSheet.Content hidden, then open the sheet at that height"]
 ```
@@ -37,6 +38,7 @@ Key decisions:
 - **One layout rule for the feed and the pile.** `FeedRow` is generic over its id instead of a second copy for templates.
 - **Tilt as in the prototype:** smalls alternate at 2.5, 2 and 1.5 degrees, wides at 1, and each face rests at 97 percent so a press straightens and squishes it.
 - **Faces are drawn at the column size,** never scaled up, once per template, when its card first appears.
+- **A pile face is drawn still** (`FaceHost.still`), so the card is the only button: no look button nests inside it or reaches VoiceOver. A test fails when a pile face is the fallback rather than the look.
 - **At the accessibility text sizes** the chips scroll sideways, the banner's line takes the full width over the cast, and every card takes its own row so its words wrap.
 - **Motion:** the pile rises in staggered, scatters out and back in on a switch, the cast hops and acts with its prop, the heart beats, and Widgie blinks and sways. Reduce Motion turns all of it off.
 
@@ -50,7 +52,8 @@ flowchart TD
   OPEN --> FACE["live face: a tap writes scratch rows"]
   FACE --> PRACTICE["first tap: 'Just practice. Yours starts fresh.'"]
   OPEN --> FIELD["a field per blank, placeholder as the prompt"]
-  FIELD -->|"400 ms after typing"| REFILL["TemplateTrial.fill: Preview.adopt(replacing:), '<name> it is.'"]
+  FIELD -->|"each keystroke"| CLAMP["cut to the blank's maxLength"]
+  CLAMP -->|"400 ms after typing"| REFILL["TemplateTrial.fill: Preview.adopt(replacing:), '<value> it is.' for the field that changed"]
 ```
 
 Files: [TemplateSheet.swift](../../App/Widgie/Templates/TemplateSheet.swift), [TemplateTrial.swift](../../App/Widgie/Templates/TemplateTrial.swift), [Preview.swift](../../App/Widgie/Preview.swift), [Theme.swift](../../App/Widgie/Design/Theme.swift), [Caret.swift](../../App/Widgie/Design/Caret.swift).
@@ -61,7 +64,8 @@ Key decisions:
 - **The sheet is measured before it opens.** A sheet keeps the detent it opened with, so a detent that follows the content after opening never applies. The presenter lays out `TemplateSheet.Content` hidden at the sheet's width, then opens the sheet at that height. The face sizes are fixed before then for the same reason. At the accessibility text sizes the sheet opens full height and scrolls.
 - **A preview tap is practice.** It writes to the trial's scratch engine only, and Widgie says so once.
 - **The field shows the placeholder as its prompt,** rather than a prefilled value as in the prototype, so typing a name needs no clearing. Empty means the placeholder.
-- **A typed name rebuilds the face** after a pause, so the face shows the name as it will be added.
+- **A typed name rebuilds the face** after a pause, so the face shows the name as it will be added. Widgie takes up the field that changed, not the first one filled in, and says nothing when a field is cleared.
+- **Each blank has a maximum length, so no value a person types can fail to build.** It counts UTF-16 units, the unit of the engine's member names; a character takes at least one, so it also bounds the 40-character widget name. The face sets the real limit: the builder rejects an ellipsis inside a text's first word, so a one-word name must fit whole. 20 for the pet and for who gets the hearts, whose headers may shrink to 0.4, and 12 for each habit. The field cuts after each keystroke, because a text field whose binding refuses a character keeps showing it, and `Template.source(filling:)` cuts again.
 - **The face always ends on what the fields show.** `TemplateTrial.fill` runs one build at a time in a task of its own, so a debounce cancelled by the next keystroke never stops a build halfway. Values typed while a build runs, the first one included, are built as soon as it ends, so builds never land out of order.
 - **A blank is filled in one pass over the template's text.** A value that holds another blank's `{{key}}` stays as typed, so the result does not depend on the order of the blanks and no value can reach the look's code.
 - **Widgie's words never cover the face.** Beside a small face its bubble stays inside its own column; above a face it ends where the face starts, however many lines it takes.
@@ -81,7 +85,7 @@ Files: [TemplateSheet.swift](../../App/Widgie/Templates/TemplateSheet.swift), [L
 
 Key decisions:
 
-- **Every template goes through `engine.build`,** the path every widget takes. An app test builds each one with its placeholders and with quotes, a backslash and an emoji.
+- **Every template goes through `engine.build`,** the path every widget takes. An app test builds each one with its placeholders, with quotes, a backslash and an emoji, and with every blank past its length in wide letters and in emoji, so Add and Change in chat never meet a rejection a person caused. Another test proves each blank's value changes the face in both sizes.
 - **The added widget starts fresh:** the sample data stays in the pile and the sheet.
 - **The sheet stays while Add runs.** Swipe and the close button wait for it, because a finished add jumps to Widgets.
 - **The highlight is a brief swell and glow,** not the New tag, which U1b adds with Widgie's reaction.
@@ -143,10 +147,13 @@ Key decisions:
 - **Two static faces, not the variable font.** `Bricolage Grotesque Display` (weight 800, 82 percent width, optical size 36) sets big numbers and words. `Bricolage Grotesque Key` (weight 700, 92 percent width, optical size 18) is for keys and bold labels, and U1b uses it for the app. Each is one face, so the renderer passes no weight for them: SwiftUI logs a failure for every weight a family cannot supply.
 - **Registered in two places, both idempotent.** `Engine.init` registers them so the app and the extension can use them from launch. The validator registers them when a look names one, because `Engine.proof` and render-tool draw without an engine. Both run one `static let`.
 - **One copy in the repo.** The fonts are a WidgetEngine resource. Xcode copies the resource bundle into the app and into the widget extension, about 180 KB each.
-- **The model sees the fonts.** `look.md`'s font table and `Vocabulary.fonts` gain both families, a test keeps them equal, and `Backend/scripts/prompt` regenerated the Worker's prompt. `namedFontShipsHere` registers before it checks.
+- **The model sees the fonts.** `look.md`'s font table and `Vocabulary.fonts` gain both families, a test keeps them equal, `look.md` says the two ignore `weight`, and `Backend/scripts/prompt` regenerated the Worker's prompt. `namedFontShipsHere` registers before it checks.
 - **The module check reads only Swift files,** so the cutting script can sit beside the fonts. WidgetEngine may now import CoreText.
 - **Looks are drawn in the prototype's units.** Every size is a multiple of `u = ctx.height / 170`, the prototype's widget height, so a face keeps the tile's proportions in the pile, the sheet and on any phone. Bricolage's line is 1.2 times its size where the prototype's is 1.0, so the gaps around a big number are 0.1 of its size shorter.
 - **Marks are cut out, not drawn on top.** The heart and check keys are discs with the mark cut out by winding, and the puppy's eyes, nose and mouth are cut out of her head, so all of them still show in tinted and clear mode. A key with words on a solid fill (water's +1 glass, Know it) draws the solid fill in `widgetBackground`, which tinted mode removes, under a faint copy in the tree, so its words stay readable when tinted.
 - **Behaviour kept, and added where the tile shows it.** Hearts drops the photo and the unused last-heart query. Pet fed keeps red once 12 hours pass and the undo, which shows top right for an hour after your own feed. Water keeps its undo for ten minutes after a glass. Habit squares tracks three habits (one `checkins` table with a `habit` number) and the footer names the longest streak. Word of the day is Spanish, as on the tile, with `Know it` and `Again` setting a `verdict` and a learned count.
-- **Shared groceries keeps add and toggle and drops remove.** Items stay where they were added and a crossed item keeps its place until open items need it, so nothing needs deleting. Add is a small plus beside the count, the one mark the tile does not have.
-- **Remaining differences from the tiles:** the habit footer says "Read: 7 days in a row" where the tile says "Reading", because it shows the habit's own name. The groceries strike line is SwiftUI's, a little heavier than the browser's. Water's sample glasses are 10 to 14 minutes old, so the pile shows 5 of 8 except in the first quarter hour after midnight.
+- **Shared groceries shows its newest items in the order they were added, crossed or not.** A row only knows when it was added, not when it was crossed, so no rule that puts open items first can keep a just-crossed item in place once the list is full. This one never moves a row when you cross it, and new items push the oldest off, so crossed ones clear themselves. With more items than fit, an older open item can sit below the fold, and the medium's count still says how many are left. The tile's six items keep the tile's order.
+- **A crossed item gets a faint remove mark,** for something added by mistake. Widgets have no long press, and the open list stays as the tile draws it. Add is a small plus beside the count.
+- **Habit squares fits any medium width.** The prototype's row is 357.5 units, wider than the app's medium (353.8 units at 358 by 172 points). The squares keep the prototype's size and the name column takes the rest of the row, never under the prototype's 70 units; below that the squares shrink, 3 percent at the app's size. Both margins stay 16 units and the last square sits under "today". Small keeps 5 days, with its squares at 0.72.
+- **Copy promises only what works today.** No automation runs on the phone or the server before phase 3, so Word of the day says daily words are on their way, in its line, its hint and its empty face. Nothing syncs before phase 4, so groceries' line says it is on one phone for now and Widgie says sent hearts stay on this phone. The other templates' copy was already true.
+- **Remaining differences from the tiles:** the habit footer says "Read: 7 days in a row" where the tile says "Reading", because it shows the habit's own name. The groceries line and Word of the day's line differ from the prototype's because those promised sharing and a daily word. The groceries strike line is SwiftUI's, a little heavier than the browser's. Water's sample glasses are 10 to 14 minutes old, so the pile shows 5 of 8 except in the first quarter hour after midnight.
