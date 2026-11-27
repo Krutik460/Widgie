@@ -32,6 +32,7 @@ struct FormSheet: View {
                         VStack(alignment: .leading, spacing: 4) {
                             TextField(field.label, text: binding(field.id, in: $draft.text, default: ""))
                                 .keyboardType(field.kind == .number ? .decimalPad : .default)
+                                .accessibilityLabel(field.label)
                                 .onChange(of: draft.text[field.id]) { invalid[field.id] = nil }
                             if let problem = invalid[field.id] {
                                 Text(hint(problem))
@@ -59,6 +60,13 @@ struct FormSheet: View {
             .navigationTitle(form.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // A form's prompt is a question that runs longer than a bar's title fits, so it wraps.
+                ToolbarItem(placement: .principal) {
+                    Text(form.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
