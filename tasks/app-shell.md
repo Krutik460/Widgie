@@ -14,7 +14,7 @@ Turn the one-screen app into a modern, clean three-tab app that still feels like
 
 - Feed layout B: wide (medium) widgets span the full width, and square widgets sit in pairs between them, so every face stays readable and live.
 - Templates are real bundled widgets, added at once, with blanks for names. Change it in chat refines them.
-- The plan is approved, to run U1 to U5 in order, one PR each.
+- The plan is approved, one PR per unit. Order after U1: U3, U1b, U2, U4, U5 (see U1b's decisions).
 
 ## Direction update (2026-11-26, second message)
 
@@ -70,10 +70,50 @@ A council (Claude Opus, Gemini Neon, and GPT Sol as a non-blocking voice) review
 
 ### U1b. Restyle to the prototype
 
-- [ ] Soft tiles and captions as in the prototype, the sky and night grounds, and Bricolage Grotesque for titles and big numbers.
-- [ ] Widgie stands on the first row and talks (greeting about the widget under it, tap feedback), and hops between perches when the first row changes.
-- [ ] The custom glass tab bar with the sliding pill, the Make key with Widgie, and the unseen badge.
-- [ ] **Check:** simulator screenshots side by side with the prototype, light and dark.
+The Widgets tab and the tab bar as drawn in the prototype, on the current app's data. Make keeps today's describe flow (U2 restyles it) but sits on the new sky and in the new tab bar. Branch `app-shell-u1b`, one PR.
+
+**Ground and type**
+
+- [ ] `Sky`: the ground for every screen, replacing the flat color and the dot grid. Day is the prototype's gradient (`#B4D4FB` to `#9CC3F5` to `#8AB6F0`) with two soft clouds drifting high up; night (dark mode) is the dusk gradient (`#14284F` to `#223F72` to `#2B4E82`) with 26 twinkling stars and a crescent moon top right. The moon fades out when the page scrolls past 24 pt. Clouds drift and stars twinkle only without Reduce Motion. Tokens go in `WidgieColors.xcassets` so day and night stay one edit each.
+- [ ] Bricolage Grotesque (OFL) for titles and big numbers. The site ships a 268-glyph Latin subset as woff2, which iOS cannot load and which lacks accented letters. Bundle static TTF instances cut from the full variable font (google/fonts), at the prototype's settings: 96 pt optical size, 92 percent width, Bold and ExtraBold. A `display(size:)` font helper scales with Dynamic Type like `font(size:weight:)`. Its OFL license goes next to it.
+
+**The Widgets header and Widgie**
+
+- [ ] Header: the date as an eyebrow, "Good morning / afternoon / evening" from the clock in Bricolage, and the count line "9 widgets · [phone mark] 6 on Home Screen" with the prototype's phone-with-two-widgets mark.
+- [ ] Widgie stands on the first row: on the right card of a pair (leaning left, toward its bubble), or on a wide card clear of the count line. Its foot plants 2 pt into the face with a small contact shadow. The bubble sits to its left and fits its words.
+- [ ] What Widgie says. The app does not know what an AI-made widget means, so lines are about the widget, never invented data:
+  - greeting by day: "Morning! Here's Water." style lines naming the widget under it, or "Tell me a widget." with none; at night, "I'll keep an eye on Water tonight."
+  - after a tap on a live face: a hop and a short line naming the widget ("Water, updated."), then back to the greeting after 2.4 s;
+  - when a new widget lands: "Here's Biscuit. Give it a tap." if it has buttons, "Here's Biscuit, ready to go." if not.
+- [ ] Motion: Widgie hops from the old perch to the new one when the first row changes (lift 40 pt, squash on touchdown, shadow out and back, bubble after touchdown, 560 ms); idle life every 8 to 11 s (double blink, glance, small hop) only while the page is at the top and untouched for 4 s; all of it off with Reduce Motion.
+
+**The feed**
+
+- [ ] Cards: soft lifted shadows (no outlines), a springy press, and captions in 15 pt semibold with the phone mark when placed. The newest widget wears a yellow New tag until the next one arrives.
+- [ ] A new small widget joins the first row on the right, under Widgie, paired with the next small one (`FeedRow.rows` gains `fresh:`; tests extended).
+- [ ] Arrival: the feed scrolls to the top, the new card settles in from 94 percent over 260 ms, and Widgie reacts on contact.
+- [ ] Empty state on the sky: the big Widgie with its bubble "Tell me a widget." and Make one.
+- [ ] The detail sheet in the prototype's sheet style: rounded 36 pt top, the light sheet gradient by day and dusk by night, a 34 pt soft square close button, and the same keys. Behaviour unchanged.
+
+**The tab bar**
+
+- [ ] A custom tab container replaces `TabView`: both pages stay alive, the outgoing page fades in 120 ms and the incoming one fades and slides 14 pt after 40 ms.
+- [ ] The bar: frosted glass floating over the sky with a white pill that springs to the chosen tab, glyphs at 2.4 pt stroke when chosen, and 60 percent ink when not. Widgets, Make in the middle, and Templates (built in U3 first).
+- [ ] The Make key: Widgie in a small rounded key, quiet when unchosen and sun yellow when chosen, hopping as you switch to it.
+- [ ] The badge: a coral count of widgets saved while you were not on Widgets, cleared when you open it, with "Widgets, 2 new" as its accessibility label. A save while you are on Widgets badges nothing.
+- [ ] Accessibility: the bar exposes the chosen tab as selected, decorative glyphs are hidden, Widgie's bubble is announced politely, and every control keeps a 44 pt target.
+
+**Checks**
+
+- [ ] App tests: `FeedRow.rows` with `fresh`, the greeting and tap lines, the unseen count, and the moon's scroll rule.
+- [ ] Simulator screenshots side by side with the prototype, light and dark: the feed at the top and scrolled, the empty state, a new widget landing, the detail sheet, and the Make tab.
+- [ ] Largest Dynamic Type size and Reduce Motion pass on the feed and the bar.
+- [ ] `scripts/check` green, a review guide in `docs/pr/`, a fresh review, then merge.
+
+Decisions (2026-11-26, from the user):
+
+- Widgie's lines are about the widget's name and what just happened, not its data, because the app cannot read meaning from an AI-made widget. The prototype's "12 days until Lisbon!" style needs widgets to declare a glance line, which belongs to a later phase.
+- Templates comes first: U3 (and the content it needs) lands before U1b, so the new tab bar ships with all three tabs and Make in the middle. The order is U3, U1b, U2, U4, U5.
 
 ### U2. Make as a chat
 
