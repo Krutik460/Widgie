@@ -62,7 +62,8 @@ struct TemplatesView: View {
         .background {
             if let measuring {
                 TemplateSheet.Content(
-                    trial: measuring, library: library, message: .constant(nil), added: { _ in }, chat: { _, _ in }
+                    trial: measuring, library: library, message: .constant(nil), adding: .constant(false),
+                    added: { _ in }, chat: { _, _ in }
                 )
                 .frame(width: sheetWidth)
                 .fixedSize(horizontal: false, vertical: true)

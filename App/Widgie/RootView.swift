@@ -16,8 +16,10 @@ struct RootView: View {
     @State private var gallery = TemplateGallery()
     /// The widget a template just added, which the feed highlights.
     @State private var arrived: WidgetID?
-    /// A template to change in chat while Make holds work of its own, waiting on the person's choice.
-    @State private var swapping: (source: WidgetSource, name: String)?
+    /// A template to change in chat while Make holds work of its own: waiting for a save to land, or for the
+    /// person's choice.
+    @State private var chosen: (source: WidgetSource, name: String)?
+    @State private var asking = false
 
     var body: some View {
         TabView(selection: $page) {
@@ -42,26 +44,29 @@ struct RootView: View {
                     page = .widgets
                 } chat: { source, name in
                     page = .make
-                    if makingHasWork {
-                        swapping = (source, name)
-                    } else {
-                        startMaking(from: source)
-                    }
+                    chosen = (source, name)
+                    handOver()
                 }
             }
         }
         .tint(Palette.caret)
         .confirmationDialog(
-            "Swap your draft for \(swapping?.name ?? "this template")?",
-            isPresented: Binding(get: { swapping != nil }, set: { if !$0 { swapping = nil } }),
-            titleVisibility: .visible, presenting: swapping
-        ) { swap in
-            Button("Replace draft", role: .destructive) { startMaking(from: swap.source) }
-            Button("Keep editing", role: .cancel) {}
+            "Swap your draft for \(chosen?.name ?? "this template")?",
+            isPresented: Binding(
+                get: { asking },
+                set: { shown in
+                    asking = shown
+                    if !shown, making.replacement != .waits { chosen = nil }
+                }),
+            titleVisibility: .visible, presenting: chosen
+        ) { choice in
+            Button("Replace draft", role: .destructive) { replace(with: choice.source) }
+            Button("Keep editing", role: .cancel) { chosen = nil }
         }
-        // A save shows in Widgets at once, even when you switch tabs instead of tapping Done.
         .onChange(of: making.phase) { _, phase in
+            // A save shows in Widgets at once, even when you switch tabs instead of tapping Done.
             if case .saved = phase { library.refresh() }
+            handOver()
         }
         // Leaving Make after a save starts a fresh session, so Make never reopens on the Saved screen.
         .onChange(of: page) { _, page in
@@ -74,17 +79,22 @@ struct RootView: View {
         }
     }
 
-    /// Whether Make holds something a template would replace: a draft, or a build or save under way.
-    private var makingHasWork: Bool {
-        switch making.phase {
-        case .saved: false
-        case .opening, .building, .saving: true
-        case .composing, .failed: making.draft != nil
+    /// Puts the chosen template into Make once that loses nothing, asks first while it would discard a draft,
+    /// and waits out a save, which then lands and shows in Widgets before the template takes its place.
+    private func handOver() {
+        guard let chosen else { return }
+        switch making.replacement {
+        case .free: replace(with: chosen.source)
+        case .discards: asking = true
+        case .waits: asking = false
         }
     }
 
     /// Opens Make on a filled template as the draft, so the person's first message refines it.
-    private func startMaking(from source: WidgetSource) {
+    private func replace(with source: WidgetSource) {
+        guard making.replacement != .waits else { return }
+        chosen = nil
+        asking = false
         making.cancel()
         making = DescribeSession(draft: source)
     }

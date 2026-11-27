@@ -13,6 +13,7 @@ struct TemplateSheet: View {
     let chat: (WidgetSource, String) -> Void
 
     @State private var message: String?
+    @State private var adding = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -21,16 +22,19 @@ struct TemplateSheet: View {
 
     var body: some View {
         ScrollView {
-            Content(trial: trial, library: library, message: $message, added: added, chat: chat)
+            Content(trial: trial, library: library, message: $message, adding: $adding, added: added, chat: chat)
         }
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
         .overlay(alignment: .topTrailing) {
             SoftCloseButton { dismiss() }
+                .disabled(adding)
                 .padding(.top, 24)
                 .padding(.trailing, 14)
         }
         .foregroundStyle(Palette.text)
+        // Added lands in Widgets, so the sheet stays until it does.
+        .interactiveDismissDisabled(adding)
         // At the accessibility text sizes the content is taller than the screen, so the sheet opens full height
         // and scrolls.
         .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.height(height)])
@@ -40,14 +44,14 @@ struct TemplateSheet: View {
             LinearGradient(colors: [Palette.sheetTop, Palette.sheetBottom], startPoint: .top, endPoint: .bottom)
         }
         .task {
-            await trial.open()
+            await trial.fill()
             if !reduceMotion { try? await Task.sleep(for: .milliseconds(440)) }
             trial.greet()
         }
         .task(id: trial.values) {
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
-            await trial.refill()
+            await trial.fill()
         }
         .sheet(item: Bindable(preview).form) { shown in
             FormSheet(form: shown.form) { input in
@@ -80,10 +84,10 @@ struct TemplateSheet: View {
         let trial: TemplateTrial
         let library: Library
         @Binding var message: String?
+        @Binding var adding: Bool
         let added: (WidgetID) -> Void
         let chat: (WidgetSource, String) -> Void
 
-        @State private var adding = false
         @FocusState private var typing: String?
         @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -129,7 +133,9 @@ struct TemplateSheet: View {
                     HStack(alignment: .bottom, spacing: -6) {
                         face(size)
                         VStack(spacing: 0) {
+                            // Widgie leans on the face, but its words stay clear of it.
                             bubble(.down)
+                                .padding(.leading, 6)
                                 .padding(.bottom, -6)
                                 .zIndex(1)
                             widgie(.left, size: 124)
@@ -143,8 +149,10 @@ struct TemplateSheet: View {
                         HStack(alignment: .top, spacing: -10) {
                             widgie(.right, size: 118)
                                 .padding(.leading, 16)
+                            // Widgie perches on the face, but its words end above it however many lines they take.
                             bubble(.left)
                                 .padding(.top, 4)
+                                .padding(.bottom, 10)
                                 .zIndex(1)
                         }
                         .padding(.bottom, -10)
@@ -188,7 +196,7 @@ struct TemplateSheet: View {
 
         private func bubble(_ tail: Bubble.Tail) -> some View {
             Bubble(words: trial.said, tail: tail)
-                .frame(maxWidth: tail == .down ? 150 : 210, alignment: tail == .down ? .center : .leading)
+                .frame(maxWidth: tail == .down ? nil : 210, alignment: tail == .down ? .center : .leading)
         }
 
         private func field(_ blank: Template.Blank) -> some View {
@@ -225,10 +233,12 @@ struct TemplateSheet: View {
 
         private var keys: some View {
             ViewThatFits(in: .horizontal) {
+                // Side by side, both keys take the height of the taller one when a label wraps.
                 HStack(spacing: 10) {
                     chatKey
                     addKey
                 }
+                .fixedSize(horizontal: false, vertical: true)
                 VStack(spacing: 10) {
                     addKey
                     chatKey
@@ -237,9 +247,11 @@ struct TemplateSheet: View {
         }
 
         private var chatKey: some View {
-            Button("Change in chat") {
+            Button {
                 guard let choice = attempt({ try trial.choice() }) else { return }
                 chat(choice.source, choice.name)
+            } label: {
+                Text("Change in chat").frame(maxHeight: .infinity)
             }
             .buttonStyle(KeyButtonStyle(prominent: false))
             .disabled(adding)
@@ -249,11 +261,14 @@ struct TemplateSheet: View {
             Button {
                 add()
             } label: {
-                if adding {
-                    ProgressView().tint(Palette.keyLabel).accessibilityLabel("Adding")
-                } else {
-                    Text("Add widget")
+                Group {
+                    if adding {
+                        ProgressView().tint(Palette.keyLabel).accessibilityLabel("Adding")
+                    } else {
+                        Text("Add widget")
+                    }
                 }
+                .frame(maxHeight: .infinity)
             }
             .buttonStyle(KeyButtonStyle())
             .disabled(adding)

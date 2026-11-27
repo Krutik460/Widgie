@@ -19,6 +19,7 @@ final class TemplateTrial {
     private var practiced = false
     /// The values the face on show was built with.
     private var shownValues: [String: String] = [:]
+    private var building: Task<Void, Never>?
 
     /// The face is drawn at `sizes`, which are known before the sheet opens so its height never changes under it.
     init(template: Template, sizes: FaceSizes = .standard, preview: Preview = Preview()) {
@@ -27,10 +28,14 @@ final class TemplateTrial {
         preview.sizes = sizes
     }
 
-    /// Builds the template with its placeholders into the preview.
-    func open() async {
-        guard preview.widget == nil, let source = try? template.source() else { return }
-        _ = await preview.adopt(source)
+    /// Builds the face with what the blanks hold, placeholders until something is typed, and Widgie takes up a
+    /// typed name. One build runs at a time, in a task of the trial's own so that a cancelled debounce never stops
+    /// it halfway, and values typed while it runs are built as soon as it ends, so the face always ends on what
+    /// the fields show.
+    func fill() async {
+        let work = building ?? Task { await buildLatest() }
+        building = work
+        await work.value
     }
 
     /// Widgie's first line: what to try on the face. Skipped once the person has already tried it.
@@ -50,24 +55,27 @@ final class TemplateTrial {
         practice()
     }
 
-    /// Builds the face again with the typed values, and Widgie takes up the new name.
-    func refill() async {
-        guard filled(values) != filled(shownValues), let widget = preview.widget,
-            let source = try? template.source(filling: values)
-        else { return }
-        let typed = values
-        guard await preview.adopt(source, replacing: widget) != nil else { return }
-        shownValues = typed
-        let name = template.blanks.lazy.compactMap { typed[$0.key]?.trimmingCharacters(in: .whitespaces) }
-            .first { !$0.isEmpty }
-        if let name { react(name.count > 16 ? "Name updated." : "\(name) it is.") }
-    }
-
     /// The filled template to add or to change in chat, and the name it will have.
     func choice() throws -> (source: WidgetSource, name: String) {
         let source = try template.source(filling: values)
         let document = try JSONSerialization.jsonObject(with: source.json) as? [String: Any]
         return (source, document?["name"] as? String ?? template.name)
+    }
+
+    private func buildLatest() async {
+        defer { building = nil }
+        while preview.widget == nil || filled(values) != filled(shownValues) {
+            let typed = values
+            let shown = preview.widget
+            guard let source = try? template.source(filling: typed),
+                await preview.adopt(source, replacing: shown) != nil
+            else { return }
+            shownValues = typed
+            guard shown != nil else { continue }
+            let name = template.blanks.lazy.compactMap { typed[$0.key]?.trimmingCharacters(in: .whitespaces) }
+                .first { !$0.isEmpty }
+            if let name { react(name.count > 16 ? "Name updated." : "\(name) it is.") }
+        }
     }
 
     private func practice() {

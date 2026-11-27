@@ -39,6 +39,32 @@ import WidgetHosting
         #expect(library.items.isEmpty)
     }
 
+    @Test func addBuildsATemplateIntoTheLibraryAndDrawsItInTheFeed() async throws {
+        let shared = SharedStore()
+        let library = Library(engine: shared.engine)
+        let template = try #require(Template.catalog().first { $0.id == "pet-fed" })
+
+        guard case .success(let id) = await library.add(try template.source(filling: ["pet": "Mochi"])) else {
+            Issue.record("expected the template to be added")
+            return
+        }
+        #expect(try shared.engine.widgets().map(\.id) == [id])
+        let item = try #require(library.items.first)
+        #expect(library.items.count == 1 && item.id == id && item.summary.name == "Mochi fed")
+        #expect(item.faces[.small] != nil && item.faces[.medium] != nil)
+    }
+
+    @Test func addReportsAWidgetTheLibraryRejectsAndKeepsItOut() async throws {
+        let shared = SharedStore()
+        let library = Library(engine: shared.engine)
+        guard case .failure = await library.add(WidgetSource(json: Data(#"{"name": "Counter"}"#.utf8))) else {
+            Issue.record("expected the widget to be rejected")
+            return
+        }
+        #expect(try shared.engine.widgets().isEmpty)
+        #expect(library.items.isEmpty)
+    }
+
     /// The sheet is keyed by the shown form's id, so a new id is what makes SwiftUI start it over.
     @Test func everyFormLinkPublishesANewShownForm() async throws {
         let shared = SharedStore()
