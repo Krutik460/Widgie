@@ -4,13 +4,13 @@
   "category": "home",
   "order": 20,
   "family": "small",
-  "hint": "Tap to pass the turn.",
+  "hint": "Tap to pass the turn. For now it stays on this phone.",
   "blanks": [
     {
       "key": "who",
       "label": "Who's in the rota with you?",
       "placeholder": "Sam",
-      "maxLength": 20
+      "maxLength": 15
     }
   ]
 }

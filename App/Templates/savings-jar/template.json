@@ -10,7 +10,7 @@
       "key": "fund",
       "label": "What's the fund called?",
       "placeholder": "Japan fund",
-      "maxLength": 24
+      "maxLength": 20
     }
   ]
 }

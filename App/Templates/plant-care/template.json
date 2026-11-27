@@ -10,7 +10,7 @@
       "key": "plant",
       "label": "Your plant",
       "placeholder": "Monstera",
-      "maxLength": 24
+      "maxLength": 20
     }
   ]
 }

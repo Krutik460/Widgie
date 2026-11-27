@@ -4,13 +4,13 @@
   "category": "home",
   "order": 60,
   "family": "medium",
-  "hint": "Tap L, R or the bottle.",
+  "hint": "Tap L, R or the bottle. For now feeds stay on this phone.",
   "blanks": [
     {
       "key": "who",
       "label": "Who's on feeds with you?",
       "placeholder": "Sam",
-      "maxLength": 20
+      "maxLength": 16
     }
   ]
 }
