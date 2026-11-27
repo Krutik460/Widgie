@@ -1,0 +1,61 @@
+{
+  "format": 1,
+  "name": "Chores this week",
+  "tables": {
+    "chores": {
+      "fields": {}
+    }
+  },
+  "queries": {
+    "mine": {
+      "count": "chores",
+      "where": {
+        "by": "me"
+      },
+      "window": "week"
+    },
+    "theirs": {
+      "count": "chores",
+      "where": {
+        "by": "others"
+      },
+      "window": "week"
+    }
+  },
+  "actions": {
+    "did": {
+      "insert": "chores"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "close race": {
+      "chores": [
+        {
+          "daysAgo": 0,
+          "by": "{{who}}",
+          "repeat": 11
+        },
+        {
+          "daysAgo": 0,
+          "repeat": 9
+        }
+      ]
+    },
+    "you lead": {
+      "chores": [
+        {
+          "daysAgo": 0,
+          "by": "{{who}}",
+          "repeat": 4
+        },
+        {
+          "daysAgo": 0,
+          "repeat": 7
+        }
+      ]
+    }
+  },
+  "look": "// Who you are up against, filled in when the template is added.\nconst WHO = {{who}};\n// The bars are drawn out of this many chores, or out of the leader's count once it passes it.\nconst SCALE = 15;\nconst INK = '#121a2e';\nconst APRICOT = { light: '#ffd9b8', dark: '#3e2a1e' };\nconst WORDS = { light: INK, dark: '#ffebd8' };\nconst TRACK = { light: '#121a2e1F', dark: '#ffebd829' };\nconst BAR = { light: INK, dark: '#ffbe85' };\nconst KEY_WORDS = { light: '#ffd9b8', dark: '#2b1a10' };\nconst CROWN = 'M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5z';\n\n// The key's fill sits twice: solid in the backdrop, which tinted and clear mode remove, and faint in the tree.\n// So in full color it reads as one solid key, and in tinted mode its words still show on the faint one.\nfunction key(u, ghost) {\n  return { type: 'zstack', padding: { trailing: 15 * u, bottom: 15 * u },\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomTrailing' },\n    children: [\n      { type: ghost ? 'zstack' : 'button', action: ghost ? null : 'did', children: [\n        { type: 'zstack', padding: { vertical: 7 * u, horizontal: 11 * u },\n          background: { type: 'rect', cornerRadius: 10 * u, fill: ghost ? BAR : { light: '#121a2e40', dark: '#ffbe8540' } },\n          children: [\n            { type: 'text', value: 'I did one', size: 12.5 * u, weight: 'bold', color: KEY_WORDS,\n              opacity: ghost ? 0 : 1 },\n          ] } ] },\n    ] };\n}\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall.\n  const u = ctx.height / 170;\n  const d = ctx.data;\n  const wide = ctx.family === 'medium';\n  const top = Math.max(d.mine, d.theirs);\n  const scale = Math.max(SCALE, top);\n  // The rows take 76 percent of the width inside the padding, as in the prototype.\n  const rows = (ctx.width - 32 * u) * (wide ? 0.76 : 1);\n  const nameWidth = (wide ? 66 : 50) * u;\n  const row = (name, points) => ({ type: 'hstack', spacing: 8 * u, frame: { width: rows }, children: [\n    { type: 'hstack', spacing: 4 * u, frame: { width: nameWidth, alignment: 'leading' }, children: [\n      { type: 'text', value: name, size: 13.5 * u, weight: 'bold', color: WORDS, lineLimit: 1, minScale: 0.6 },\n      points === top && top > 0 && { type: 'path', d: CROWN, viewBox: [0, 0, 24, 24], fill: '#e8a400',\n        frame: { width: 14 * u, height: 14 * u } },\n    ] },\n    { type: 'zstack', align: 'leading', frame: { maxWidth: 'infinity', height: 10 * u }, children: [\n      { type: 'rect', cornerRadius: 5 * u, fill: TRACK },\n      points > 0 && { type: 'rect', cornerRadius: 5 * u, fill: BAR,\n        frame: { width: (rows - nameWidth - (wide ? 24 : 20) * u - 16 * u) * points / scale } },\n    ] },\n    { type: 'text', value: points, size: 13.5 * u, weight: 'bold', color: WORDS, lineLimit: 1, minScale: 0.6,\n      align: 'trailing', frame: { width: (wide ? 24 : 20) * u, alignment: 'trailing' } },\n  ] });\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: { type: 'zstack', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, background: APRICOT,\n      children: [key(u, true)] },\n    children: [\n      { type: 'vstack', align: 'leading', spacing: 0, padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: CROWN, viewBox: [0, 0, 24, 24], fill: WORDS, frame: { width: 15 * u, height: 15 * u } },\n            { type: 'text', value: 'Chores this week', size: 13 * u, weight: 'bold', color: WORDS, lineLimit: 1,\n              minScale: 0.8 } ] },\n          { type: 'vstack', align: 'leading', spacing: 7 * u, padding: { top: 10.5 * u }, children: [\n            row(WHO, d.theirs), row('You', d.mine)] },\n        ] },\n      wide && { type: 'text', value: \"Winner picks Friday's movie\", size: 12.5 * u, weight: 'bold', color: WORDS,\n        opacity: 0.7, lineLimit: 1, minScale: 0.8, padding: { leading: 16 * u, bottom: 17 * u },\n        frame: { maxWidth: ctx.width - 120 * u, maxHeight: 'infinity', alignment: 'bottomLeading' } },\n      key(u, false),\n    ],\n  };\n}\n"
+}

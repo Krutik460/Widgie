@@ -1,0 +1,57 @@
+{
+  "format": 1,
+  "name": "Dinner tonight",
+  "tables": {
+    "cooks": {
+      "fields": {}
+    }
+  },
+  "queries": {
+    "cook": {
+      "latest": "cooks",
+      "window": "today"
+    },
+    "mine": {
+      "latest": "cooks",
+      "where": {
+        "by": "me"
+      },
+      "window": "today"
+    }
+  },
+  "actions": {
+    "cook": {
+      "insert": "cooks"
+    },
+    "unsay": {
+      "delete": "cooks"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "they cook": {
+      "cooks": [
+        {
+          "daysAgo": 1
+        },
+        {
+          "daysAgo": 0,
+          "by": "{{who}}"
+        }
+      ]
+    },
+    "you cook": {
+      "cooks": [
+        {
+          "daysAgo": 0,
+          "by": "{{who}}"
+        },
+        {
+          "daysAgo": 0
+        }
+      ]
+    }
+  },
+  "look": "// Who you cook with, filled in when the template is added.\nconst WHO = {{who}};\nconst INK = '#121a2e';\nconst MINT = { light: '#a9e9cd', dark: '#183b34' };\nconst WORDS = { light: INK, dark: '#d6f7ea' };\nconst FACE = { light: '#FFFFFF', dark: '#24544a' };\nconst FACE_WORDS = { light: INK, dark: '#FFFFFF' };\nconst RIM = { light: '#121a2e52', dark: '#d6f7ea80' };\nconst RIM_OUT = { light: '#121a2e52', dark: '#d6f7ea59' };\nconst KEY = { light: INK, dark: '#8ee4c0' };\nconst KEY_WORDS = { light: '#a9e9cd', dark: '#102923' };\nconst PLATE = 'M3 11h18a9 9 0 0 1-18 0z M9 7.5c0-1.5 1-1.5 1-3.5M14 7.5c0-1.5 1-1.5 1-3.5';\n\n// The faces and the key sit twice: solid in the backdrop, which tinted and clear mode remove, and faint in the\n// tree with their words. So in full color they read as solid, and in tinted mode the words still show.\nfunction scene(u, ghost, cook, key) {\n  const face = (label, on) => ({ type: 'zstack', frame: { width: 34 * u, height: 34 * u },\n    opacity: on ? 1 : 0.55, children: [\n      on && { type: 'circle', fill: ghost ? FACE : { light: '#FFFFFF40', dark: '#24544a40' } },\n      !ghost && { type: 'circle', stroke: on ? { color: RIM, width: 1.5 * u }\n        : { color: RIM_OUT, width: 1.5 * u, dash: [3 * u, 2.4 * u] } },\n      !ghost && { type: 'text', value: label, size: 13 * u, weight: 'heavy', color: FACE_WORDS, lineLimit: 1,\n        minScale: 0.6 },\n    ] });\n  return [\n    { type: 'hstack', spacing: 6 * u, padding: { top: 43.5 * u, leading: 16 * u },\n      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n      children: [face(initial(WHO), cook === 'them'), face('Me', cook === 'me')] },\n    { type: 'zstack', padding: { leading: 15 * u, bottom: 15 * u },\n      frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomLeading' },\n      children: [\n        { type: ghost ? 'zstack' : 'button', action: ghost ? null : key.action, rowId: ghost ? null : key.rowId,\n          children: [\n            { type: 'zstack', padding: { vertical: 7 * u, horizontal: 11 * u },\n              background: { type: 'rect', cornerRadius: 10 * u,\n                fill: ghost ? KEY : { light: '#121a2e40', dark: '#8ee4c040' } },\n              children: [\n                { type: 'text', value: key.label, size: 12.5 * u, weight: 'bold', color: KEY_WORDS,\n                  opacity: ghost ? 0 : 1 },\n              ] } ] },\n      ] },\n  ];\n}\n\nfunction initial(name) {\n  const first = Array.from(name.trim())[0] || '?';\n  return first.toUpperCase();\n}\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall.\n  const u = ctx.height / 170;\n  const d = ctx.data;\n  const cook = !d.cook ? null : d.cook.by.me ? 'me' : 'them';\n  const line = cook === 'me' ? \"You're cooking, \" + WHO + \"'s on dishes\"\n    : cook === 'them' ? WHO + \"'s cooking, you're on dishes\" : \"Who's cooking tonight?\";\n  const key = cook === 'me' && d.mine ? { action: 'unsay', rowId: d.mine.id, label: 'Swap back' }\n    : { action: 'cook', label: \"I'll cook\" };\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: { type: 'zstack', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, background: MINT,\n      children: scene(u, true, cook, key) },\n    children: [\n      { type: 'vstack', padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' }, children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: PLATE, viewBox: [0, 0, 24, 24], frame: { width: 15 * u, height: 15 * u },\n              stroke: { color: WORDS, width: 2.4 * 15 * u / 24, cap: 'round' } },\n            { type: 'text', value: 'Dinner tonight', size: 13 * u, weight: 'bold', color: WORDS, lineLimit: 1,\n              minScale: 0.8 } ] } ] },\n      scene(u, false, cook, key),\n      { type: 'text', value: line, size: 12.5 * u, weight: 'semibold', color: WORDS, opacity: 0.8, lineLimit: 2,\n        minScale: 0.7, padding: { top: 82.5 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' } },\n    ],\n  };\n}\n"
+}

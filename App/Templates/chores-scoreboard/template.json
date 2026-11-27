@@ -1,0 +1,16 @@
+{
+  "name": "Chores scoreboard",
+  "line": "Winner picks the movie",
+  "category": "home",
+  "order": 70,
+  "family": "medium",
+  "hint": "Tap when you did one.",
+  "blanks": [
+    {
+      "key": "who",
+      "label": "Who are you up against?",
+      "placeholder": "Sam",
+      "maxLength": 20
+    }
+  ]
+}

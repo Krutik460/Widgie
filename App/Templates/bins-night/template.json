@@ -1,0 +1,16 @@
+{
+  "name": "Bins night",
+  "line": "Pass the turn along",
+  "category": "home",
+  "order": 20,
+  "family": "small",
+  "hint": "Tap to pass the turn.",
+  "blanks": [
+    {
+      "key": "who",
+      "label": "Who's in the rota with you?",
+      "placeholder": "Sam",
+      "maxLength": 20
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "name": "{{plant}}",
+  "tables": {
+    "waterings": {
+      "fields": {}
+    }
+  },
+  "queries": {
+    "last": {
+      "latest": "waterings",
+      "window": "all"
+    }
+  },
+  "actions": {
+    "water": {
+      "insert": "waterings"
+    },
+    "undo": {
+      "delete": "waterings"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "a day from thirsty": {
+      "waterings": [
+        {
+          "daysAgo": 6,
+          "by": "Sam"
+        },
+        {
+          "daysAgo": 13
+        }
+      ]
+    },
+    "just watered": {
+      "waterings": [
+        {
+          "minutesAgo": 3
+        },
+        {
+          "daysAgo": 7,
+          "by": "Sam"
+        }
+      ]
+    },
+    "thirsty": {
+      "waterings": [
+        {
+          "daysAgo": 9,
+          "by": "Sam"
+        }
+      ]
+    }
+  },
+  "look": "// The plant's name, filled in when the template is added.\nconst PLANT = {{plant}};\n// The backdrop turns terracotta once the last watering is this many days old.\nconst THIRSTY = 7;\nconst LEAF_GREEN = '#1f3d2b';\nconst TERRACOTTA = '#9a4a2c';\nconst MINT = '#d9f7e3';\nconst SPROUT = '#7fdc9a';\nconst LEAF = 'M20.5 3.5C12 3.5 5 7.6 5 14.2c0 1.8.6 3.4 1.6 4.6L4 21.4l1.4 1.4 2.6-2.6c1.2 1 2.8 1.6 4.6 1.6 6.6 0 '\n  + '7.9-9.8 7.9-18.3zM9 18.4c1.7-4.6 4.6-7.8 8.4-9.9-3 2.8-5.4 6-6.8 10.5z';\n// The key: a disc with the check cut out, so the check still shows in tinted and clear mode.\nconst KEY = 'M24 0A24 24 0 1 0 24 48A24 24 0 1 0 24 0Z M17.77 23.23L21.44 26.89L30.17 17.29A1.8 1.8 0 0 1 32.83 '\n  + '19.71L22.83 30.71A1.8 1.8 0 0 1 20.23 30.77L15.23 25.77A1.8 1.8 0 0 1 17.77 23.23Z';\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall. Bricolage's line is 1.2 times its size, so\n  // the gaps around the count are 0.1 of its size shorter than the prototype's.\n  const u = ctx.height / 170;\n  const last = ctx.data.last;\n  const days = last ? last.daysAgo : 0;\n  const who = last && (last.by.me ? 'you' : last.by.name || 'someone');\n  const big = !last ? 'Not yet' : days === 0 ? 'Watered' : days === 1 ? '1 day' : days + ' days';\n  const small = !last ? 'tap after watering' : days === 0 ? 'today, by ' + who : 'since watering, last by ' + who;\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: last && days >= THIRSTY ? TERRACOTTA : LEAF_GREEN,\n    children: [\n      { type: 'vstack', align: 'leading', spacing: 0,\n        padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: LEAF, viewBox: [0, 0, 24, 24], fill: SPROUT, frame: { width: 15 * u, height: 15 * u } },\n            { type: 'text', value: PLANT, size: 13 * u, weight: 'bold', color: SPROUT, lineLimit: 1, minScale: 0.6 } ] },\n          { type: 'text', value: big, fontName: 'Bricolage Grotesque Display', size: 36 * u, kerning: -1.08 * u,\n            color: MINT, accent: true, lineLimit: 1, minScale: 0.5, padding: { top: 4.4 * u } },\n          { type: 'text', value: small, size: 12.5 * u, weight: 'semibold', color: MINT, opacity: 0.8, lineLimit: 3,\n            minScale: 0.7, padding: { top: 1.4 * u },\n            frame: { maxWidth: ctx.family === 'small' ? (ctx.width - 32 * u) * 0.6 : 200 * u, alignment: 'leading' } },\n        ] },\n      last && last.by.me && last.minutesAgo < 60 && { type: 'zstack', padding: { top: 8 * u, trailing: 10 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topTrailing' },\n        children: [\n          { type: 'button', action: 'undo', rowId: last.id, children: [\n            { type: 'symbol', name: 'arrow.uturn.backward', size: 12, weight: 'bold', color: MINT,\n              frame: { width: 30, height: 30 }, background: '#d9f7e322', clip: 'circle' } ] },\n        ] },\n      { type: 'zstack', padding: 13 * u,\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomTrailing' },\n        children: [\n          { type: 'button', action: 'water', children: [\n            { type: 'path', d: KEY, viewBox: [0, 0, 48, 48], fill: SPROUT, accent: true,\n              frame: { width: 46 * u, height: 46 * u }, shadow: { color: '#0000004D', radius: 5 * u, y: 4 * u } } ] },\n        ] },\n    ],\n  };\n}\n"
+}
