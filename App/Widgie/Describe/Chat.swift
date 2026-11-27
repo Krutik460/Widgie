@@ -31,9 +31,10 @@ final class Chat: Identifiable {
     private(set) var ideas: [Template.Suggestion] = []
     private(set) var question: Question?
     /// Nil in the Make tab, which never closes.
-    let close: (() -> Void)?
+    private let onClose: (() -> Void)?
+    private var closed = false
 
-    var editing: Bool { close != nil }
+    var editing: Bool { onClose != nil }
 
     /// A template to change in chat, waiting for the person's answer or for a save to land.
     private var chosen: (source: WidgetSource, name: String)?
@@ -45,7 +46,7 @@ final class Chat: Identifiable {
         catalog: [Template] = Template.catalog(),
         start: @escaping (DescribeSession.Origin) -> DescribeSession = { DescribeSession($0) }
     ) {
-        self.close = close
+        onClose = close
         self.catalog = catalog
         self.start = start
         session = start(origin)
@@ -74,9 +75,7 @@ final class Chat: Identifiable {
         chosen = nil
     }
 
-    /// Not while a save is under way: it cannot be stopped, and would land in a session nobody watches.
     func replace() {
-        guard session.replacement != .waits else { return }
         switch question {
         case .startOver: begin(.nothing)
         case .swap: begin(waiting)
@@ -112,12 +111,10 @@ final class Chat: Identifiable {
         weigh()
     }
 
-    /// Runs `work`, and once it starts a turn or a save, drops the question as Keep editing would, as the prototype
-    /// does: the person carried on with the draft instead of answering.
-    private func going(_ work: () -> Void) {
-        let was = session.phase
-        work()
-        if session.phase != was { keepEditing() }
+    /// Runs `work`, and once it goes ahead, drops the question as Keep editing would, as the prototype does: the
+    /// person carried on with the draft instead of answering. So no question is up while a save is under way.
+    private func going(_ work: () -> Bool) {
+        if work() { keepEditing() }
     }
 
     private var waiting: DescribeSession.Origin {
@@ -133,13 +130,16 @@ final class Chat: Identifiable {
         }
     }
 
+    /// Closes the edit cover, once, so a late call from a chat whose cover is gone leaves the next cover open.
+    func close() {
+        guard let onClose, !closed else { return }
+        closed = true
+        session.cancel()
+        onClose()
+    }
+
     private func end() {
-        if let close {
-            session.cancel()
-            close()
-        } else {
-            begin(.nothing)
-        }
+        if editing { close() } else { begin(.nothing) }
     }
 
     private func begin(_ origin: DescribeSession.Origin) {

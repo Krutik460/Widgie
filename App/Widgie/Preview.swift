@@ -48,9 +48,11 @@ final class Preview {
     /// Shows a draft the scratch engine holds, loading its data afresh: no rows, or its first sample so it does not
     /// look empty. Nothing on show changes until its faces are drawn, and then all of it changes at once. Returns
     /// true once the draft is on show. Returns false, with nothing on show changed, when the data did not load
-    /// (logged), the task was cancelled, or another drawing started before then; the draft's rows may already hold
-    /// the new data.
+    /// (logged), the task was cancelled, or a later `show` started before then; the draft's rows may already hold
+    /// the new data. A tap or a redraw of the face on show meanwhile makes it draw again, so it shows the newest rows.
     func show(_ widget: WidgetID) async -> Bool {
+        shows += 1
+        let showing = shows
         let name: String?
         do {
             let sample = startsEmpty ? nil : try engine.samples(of: widget).first
@@ -60,12 +62,16 @@ final class Preview {
             log.error("show: \(error.message, privacy: .public)")
             return false
         }
-        guard let drawn = await draw(widget), !Task.isCancelled else { return false }
-        self.widget = widget
-        self.name = name
-        faces = drawn.faces
-        redraws.schedule(drawn.changes)
-        return true
+        while !Task.isCancelled, showing == shows {
+            guard let drawn = await draw(widget) else { continue }
+            guard !Task.isCancelled, showing == shows else { break }
+            self.widget = widget
+            self.name = name
+            faces = drawn.faces
+            redraws.schedule(drawn.changes)
+            return true
+        }
+        return false
     }
 
     /// Puts the draft back as `checkpoint` recorded it, rows included, and draws it again.
@@ -135,6 +141,7 @@ final class Preview {
     }
 
     private var drawings = 0
+    private var shows = 0
 
     private func redraw() async {
         guard let widget, let drawn = await draw(widget) else { return }
