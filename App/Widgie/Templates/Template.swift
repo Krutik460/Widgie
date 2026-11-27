@@ -30,6 +30,19 @@ struct Template: Identifiable, Sendable {
         }
     }
 
+    /// What Make offers as a first message on its empty page: the words it sends, a line on what they make, and an
+    /// SF Symbol on a soft tint.
+    struct Suggestion: Decodable, Sendable, Equatable {
+        enum Tint: String, Decodable, Sendable {
+            case amber, coral, pink, mint, sky, lilac
+        }
+
+        let title: String
+        let subtitle: String
+        let icon: String
+        let tint: Tint
+    }
+
     /// The gallery's shelves, in the order its category row shows them.
     enum Category: String, Decodable, CaseIterable, Sendable {
         case forTwo = "for-two"
@@ -47,6 +60,8 @@ struct Template: Identifiable, Sendable {
     let family: Family
     /// What Widgie says first when the template opens: what to try on it.
     let hint: String
+    /// Nil for a template Make does not offer.
+    let suggestion: Suggestion?
     let blanks: [Blank]
     let folder: URL
 
@@ -57,6 +72,7 @@ struct Template: Identifiable, Sendable {
         let order: Int
         let family: Family
         let hint: String
+        let suggestion: Suggestion?
         let blanks: [Blank]
     }
 
@@ -73,9 +89,22 @@ struct Template: Identifiable, Sendable {
             else { return nil }
             return Template(
                 id: folder.lastPathComponent, name: info.name, line: info.line, category: info.category,
-                order: info.order, family: info.family, hint: info.hint, blanks: info.blanks, folder: folder)
+                order: info.order, family: info.family, hint: info.hint, suggestion: info.suggestion,
+                blanks: info.blanks, folder: folder)
         }
         .sorted { ($0.order, $0.id) < ($1.order, $1.id) }
+    }
+
+    /// `count` suggestions from `catalog`, each from a different category while there are categories left, in a
+    /// random order, so Make's empty page changes from one chat to the next.
+    static func ideas(
+        from catalog: [Template], count: Int = 3, using generator: inout some RandomNumberGenerator
+    ) -> [Suggestion] {
+        let offered = catalog.filter { $0.suggestion != nil }.shuffled(using: &generator)
+        var categories: Set<Category> = []
+        let spread = offered.filter { categories.insert($0.category).inserted }
+        let rest = offered.filter { template in !spread.contains { $0.id == template.id } }
+        return (spread + rest).prefix(count).compactMap(\.suggestion)
     }
 
     /// The template's source with each blank filled: a trimmed value cut to the blank's length, or the blank's

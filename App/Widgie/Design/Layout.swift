@@ -2,13 +2,6 @@ import SwiftUI
 import WidgetEngine
 import WidgetHosting
 
-/// The describe flow's column: the medium widget's width, centered on the screen. The feed's empty state uses its
-/// margin.
-enum Column {
-    static let width = Family.medium.standardSize.width
-    static let margin: CGFloat = 32
-}
-
 extension FaceHost {
     /// Taps run in the app, form buttons open its form sheet, and the background is drawn under the content,
     /// clipped like a widget.

@@ -7,7 +7,7 @@ struct WidgetDetail: View {
     let library: Library
     let id: WidgetID
 
-    @State private var session: DescribeSession?
+    @State private var changing: WidgetsFeed.Shown?
     @State private var confirmDelete = false
     @Environment(\.dismiss) private var dismiss
 
@@ -61,11 +61,8 @@ struct WidgetDetail: View {
         } message: {
             Text(Self.deleteMessage(placed: !placed.isEmpty))
         }
-        .fullScreenCover(item: $session) { session in
-            DescribeView(session: session) { _ in
-                self.session = nil
-                library.refresh()
-            }
+        .fullScreenCover(item: $changing) { shown in
+            EditChat(library: library, editing: shown.id) { changing = nil }
         }
         .sheet(item: Bindable(library).form) { form in
             FormSheet(form: form.form) { input in
@@ -94,7 +91,7 @@ struct WidgetDetail: View {
         HStack(spacing: 10) {
             Button("Delete") { confirmDelete = true }
                 .buttonStyle(KeyButtonStyle(prominent: false))
-            Button("Change it") { session = DescribeSession(editing: id) }
+            Button("Change it") { changing = WidgetsFeed.Shown(id: id) }
                 .buttonStyle(KeyButtonStyle())
         }
         .padding(.horizontal, WidgetsFeed.margin)

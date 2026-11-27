@@ -11,8 +11,8 @@ import WidgetHosting
 /// Each build's steps and timing, for the perf numbers: `log stream --predicate 'category == "describe"'`.
 private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describe")
 
-/// One describe flow: the person's latest turn, the build loop it starts on the preview's scratch engine, and Save.
-/// A failed or cancelled turn never replaces the draft, so the person always keeps the last widget that worked.
+/// One Make chat: every turn the person sends, the build loop each one starts on the preview's scratch engine, and
+/// Save. A failed or cancelled turn never replaces the draft, so the person always keeps the last widget that worked.
 @MainActor @Observable
 final class DescribeSession: Identifiable {
     enum Phase: Equatable {
@@ -22,8 +22,14 @@ final class DescribeSession: Identifiable {
         case building(BuildStep)
         /// Proving the draft against the shared store.
         case saving
-        case failed(Failure)
+        /// The work it interrupted decides where the chat shows it and what Try again runs.
+        case failed(Failure, Work)
         case saved(WidgetID)
+    }
+
+    /// What a failure interrupted: putting the starting widget into the preview, the latest turn, or Save.
+    enum Work: Equatable {
+        case open, turn, save
     }
 
     /// Why a turn or a save did not finish, in the words the person sees. Never a verdict line.
@@ -44,6 +50,15 @@ final class DescribeSession: Identifiable {
         /// This build names no model service.
         case unavailable
 
+        /// Whether running the same work again can help. Rewording, a store that refused the draft, or a build without
+        /// a model service cannot.
+        var retryable: Bool {
+            switch self {
+            case .unreachable, .refused, .interrupted, .broken: true
+            case .gaveUp, .unsaved, .unopened, .unavailable: false
+            }
+        }
+
         var title: String {
             switch self {
             case .unreachable: "Couldn’t reach the widget builder."
@@ -59,26 +74,23 @@ final class DescribeSession: Identifiable {
     }
 
     /// What the person asked, and how it went.
-    struct Turn {
+    struct Turn: Identifiable {
+        let id: Int
         let words: String
         let image: Picture?
         var result: TurnResult
     }
 
     enum TurnResult: Equatable {
-        case pending, accepted
+        case pending
+        /// The draft changed, and Widgie says so in `note`.
+        case accepted(note: String)
         case failed(Failure)
         case cancelled
     }
 
-    /// The work the last failure interrupted, for Try again: the latest turn, or Save.
-    private enum Job {
-        case turn
-        case save
-    }
-
     /// What the session starts from.
-    private enum Origin {
+    enum Origin {
         case nothing
         /// A library widget to refine, which Save replaces.
         case library(WidgetID)
@@ -89,12 +101,18 @@ final class DescribeSession: Identifiable {
     private let origin: Origin
     let preview: Preview
     private(set) var phase: Phase
-    /// The only exchange the screen shows.
-    private(set) var latest: Turn?
-    /// What the person asked for in the last accepted turn, which the repair on Save asks again. Nil until
-    /// a turn is accepted.
-    private(set) var acceptedWords: String?
+    /// Every turn the person sent, oldest first.
+    private(set) var turns: [Turn] = []
+    /// Widgie's first line about the widget the session opened on, nil when it starts from nothing.
+    private(set) var opening: String?
     private(set) var buildStarted = Date.now
+
+    var latest: Turn? { turns.last }
+
+    /// What the person asked for in the last accepted turn, which the repair on Save asks again.
+    private var acceptedWords: String? {
+        turns.last { if case .accepted = $0.result { true } else { false } }?.words
+    }
 
     var words = ""
     var picture: Picture?
@@ -112,31 +130,15 @@ final class DescribeSession: Identifiable {
     private let model: (any WidgetModel)?
     /// Returns once the shared store takes writes.
     private let sharedWritesOpen: @MainActor () async -> Void
-    private var work: Task<Void, Never>?
-    private var failedJob: Job?
+    private var running: Task<Void, Never>?
     private var background = UIBackgroundTaskIdentifier.invalid
     private var expired = false
 
-    convenience init(
-        editing: WidgetID? = nil, model: (any WidgetModel)? = BridgeModel.configured, preview: Preview = Preview(),
+    /// A draft starts on its empty data, as the saved widget will, so a new pet tracker says "Not fed".
+    init(
+        _ origin: Origin = .nothing, model: (any WidgetModel)? = BridgeModel.configured,
+        preview: Preview = Preview(startsEmpty: true),
         sharedWritesOpen: @escaping @MainActor () async -> Void = SharedWrites.open
-    ) {
-        self.init(
-            origin: editing.map(Origin.library) ?? .nothing, model: model, preview: preview,
-            sharedWritesOpen: sharedWritesOpen)
-    }
-
-    /// Starts on `draft` as if a turn had just made it, so the person's first message refines it.
-    convenience init(
-        draft: WidgetSource, model: (any WidgetModel)? = BridgeModel.configured, preview: Preview = Preview(),
-        sharedWritesOpen: @escaping @MainActor () async -> Void = SharedWrites.open
-    ) {
-        self.init(origin: .unsaved(draft), model: model, preview: preview, sharedWritesOpen: sharedWritesOpen)
-    }
-
-    private init(
-        origin: Origin, model: (any WidgetModel)?, preview: Preview,
-        sharedWritesOpen: @escaping @MainActor () async -> Void
     ) {
         self.origin = origin
         self.model = model
@@ -160,12 +162,32 @@ final class DescribeSession: Identifiable {
         case .saved: .free
         case .saving: .waits
         case .opening, .building: .discards
-        case .composing, .failed: draft == nil ? .free : .discards
+        case .composing, .failed: changed ? .discards : .free
+        }
+    }
+
+    /// Whether there is work to lose: any draft of a new widget, or an accepted change to a library widget.
+    private var changed: Bool {
+        if case .library = origin { acceptedWords != nil } else { draft != nil }
+    }
+
+    /// Nothing sent yet and nothing to start from, which the chat shows as its empty page.
+    var blank: Bool {
+        if case .nothing = origin { turns.isEmpty } else { false }
+    }
+
+    /// Waiting on the person: a new message or Save may go. A failure counts, so the person can say something else
+    /// instead of acting on it, except one that left nothing to chat about.
+    var ready: Bool {
+        switch phase {
+        case .composing: true
+        case .failed(_, let work): work != .open
+        case .opening, .building, .saving, .saved: false
         }
     }
 
     var canSend: Bool {
-        phase == .composing && pendingPhoto == nil
+        ready && pendingPhoto == nil
             && (!words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || picture != nil)
     }
 
@@ -178,8 +200,9 @@ final class DescribeSession: Identifiable {
         case .unsaved(let source): shown = await preview.adopt(source)
         }
         if shown == nil {
-            fail(.unopened, job: nil)
+            fail(.unopened, .open)
         } else {
+            opening = "What should we change about \(preview.name ?? "this widget")?"
             phase = .composing
         }
     }
@@ -188,10 +211,13 @@ final class DescribeSession: Identifiable {
     func send(_ suggestion: String? = nil) {
         let typed = (suggestion ?? words).trimmingCharacters(in: .whitespacesAndNewlines)
         let image = suggestion == nil ? picture : nil
-        guard phase == .composing, suggestion != nil || pendingPhoto == nil, !typed.isEmpty || image != nil else {
+        guard ready, suggestion != nil || pendingPhoto == nil, !typed.isEmpty || image != nil else {
             return
         }
-        latest = Turn(words: typed.isEmpty ? "Make it look like this picture" : typed, image: image, result: .pending)
+        turns.append(
+            Turn(
+                id: turns.count, words: typed.isEmpty ? "Make it look like this picture" : typed, image: image,
+                result: .pending))
         if suggestion == nil {
             words = ""
             picture = nil
@@ -200,65 +226,84 @@ final class DescribeSession: Identifiable {
     }
 
     func save() {
-        guard draft != nil, phase == .composing else { return }
+        guard draft != nil, ready else { return }
         start(.save)
     }
 
     /// Stops the build. The draft stays as it was before the turn.
     func cancel() {
-        work?.cancel()
+        running?.cancel()
     }
 
     /// Runs again whatever the failure interrupted.
     func retry() {
-        guard case .failed = phase, let job = failedJob else { return }
-        start(job)
+        guard case .failed(let failure, let work) = phase, failure.retryable, work != .open else { return }
+        start(work)
     }
 
-    /// Leaves the failure screen. After a give-up the words go back in the composer to say another way.
+    /// Takes the failure as read. After a give-up the words go back in the composer to say another way.
     func dismissFailure() {
-        guard case .failed(let failure) = phase else { return }
-        if failure == .gaveUp, failedJob == .turn, words.isEmpty, let latest {
+        guard case .failed(let failure, let work) = phase, work != .open else { return }
+        if failure == .gaveUp, work == .turn, words.isEmpty, let latest {
             words = latest.words
             picture = latest.image
         }
-        failedJob = nil
         phase = .composing
     }
 
     /// Leaves `composing` or `failed` before it returns, so a second tap finds the guards closed.
-    private func start(_ job: Job) {
+    private func start(_ job: Work) {
         guard let model else {
-            if job == .turn { latest?.result = .failed(.unavailable) }
-            fail(.unavailable, job: nil)
+            if job == .turn { setLatest(.failed(.unavailable)) }
+            fail(.unavailable, job)
             return
         }
-        failedJob = nil
         switch job {
+        case .open: return
         case .turn:
-            latest?.result = .pending
+            setLatest(.pending)
             begin(.writing(attempt: 1))
         case .save:
             phase = .saving
         }
-        work = Task {
+        running = Task {
             switch job {
+            case .open: return
             case .turn: await runTurn(model: model)
             case .save: await runSave(model: model)
             }
         }
     }
 
+    private func setLatest(_ result: TurnResult) {
+        guard !turns.isEmpty else { return }
+        turns[turns.count - 1].result = result
+    }
+
     private func runTurn(model: some WidgetModel) async {
         guard let turn = latest else { return }
+        let first = draft == nil
         let result = await loop(turn.words, image: turn.image?.attachment, replacing: draft, model: model)
-        latest?.result = result
-        if result == .accepted { acceptedWords = turn.words }
-        if case .failed(let failure) = result {
-            fail(failure, job: .turn)
-        } else {
+        switch result {
+        case .accepted:
+            setLatest(.accepted(note: note(first: first)))
+            phase = .composing
+        case .failed(let failure):
+            setLatest(.failed(failure))
+            fail(failure, .turn)
+        case .cancelled:
+            setLatest(.cancelled)
             phase = .composing
         }
+    }
+
+    /// Widgie's words on an accepted turn. The app cannot read meaning from an AI-made widget, so they name it and
+    /// say what to do with it, never what it shows.
+    private func note(first: Bool) -> String {
+        guard first else { return "Done. Anything else?" }
+        let name = preview.name ?? "your widget"
+        return preview.faces[.medium]?.hasButtons == true
+            ? "Here’s \(name). Give it a tap." : "Here’s \(name), ready to go."
     }
 
     /// Proves the draft against the shared store. A line only that store can give (a widget sharing the data,
@@ -278,16 +323,16 @@ final class DescribeSession: Identifiable {
                 phase = .saving
                 outcome = await saveToLibrary()
             case .failed(let failure):
-                return fail(failure, job: .save)
-            case .cancelled, .pending:
+                return fail(failure, .save)
+            case .cancelled:
                 phase = .composing
                 return
             }
         }
         switch outcome {
         case .saved(let id)?: phase = .saved(id)
-        case .rejected?: fail(.unsaved, job: nil)
-        case nil: fail(.broken, job: .save)
+        case .rejected?: fail(.unsaved, .save)
+        case nil: fail(.broken, .save)
         }
     }
 
@@ -308,11 +353,16 @@ final class DescribeSession: Identifiable {
         }
     }
 
+    private enum Run {
+        case accepted, cancelled
+        case failed(Failure)
+    }
+
     /// One run of the build loop on the scratch engine, shown on the draft when it is accepted.
     private func loop(
         _ words: String, image: Attachment? = nil, replacing: WidgetID?, repairing line: String? = nil,
         model: some WidgetModel
-    ) async -> TurnResult {
+    ) async -> Run {
         beginBackground()
         defer { endBackground() }
         var checkpoint: Checkpoint?
@@ -376,9 +426,8 @@ final class DescribeSession: Identifiable {
         phase = .building(step)
     }
 
-    private func fail(_ failure: Failure, job: Job?) {
-        failedJob = job
-        phase = .failed(failure)
+    private func fail(_ failure: Failure, _ work: Work) {
+        phase = .failed(failure, work)
     }
 
     /// The build keeps going in the background for as long as iOS allows. One build runs at a time, so one
@@ -392,7 +441,7 @@ final class DescribeSession: Identifiable {
 
     private func expire() {
         expired = true
-        work?.cancel()
+        running?.cancel()
         endBackground()
     }
 
@@ -404,7 +453,7 @@ final class DescribeSession: Identifiable {
 }
 
 extension BuildStep {
-    /// The line the build screen shows for this step.
+    /// The line Widgie says while the build is at this step.
     var title: String {
         switch self {
         case .writing: "Writing your widget"

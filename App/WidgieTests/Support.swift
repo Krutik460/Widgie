@@ -93,6 +93,12 @@ struct Unexpected: Error {}
     throw Unexpected()
 }
 
+extension DescribeSession.Turn {
+    var accepted: Bool {
+        if case .accepted = result { true } else { false }
+    }
+}
+
 extension DescribeSession {
     /// Whether the session is waiting on the person, after a turn or a save finished.
     var settled: Bool {
@@ -158,5 +164,40 @@ final class TestClock: Sendable {
             }
             sleeper?.wake.resume(throwing: CancellationError())
         }
+    }
+}
+
+/// Stands in for `SharedWrites.open`. The first call lets the save through and then the app goes to the
+/// background, so the shared store refuses the write as suspended. The app comes back either when the test
+/// releases the second call, or as the second call starts, so the retry never waits.
+@MainActor final class SuspendingGate {
+    enum ComesBack {
+        case whenReleased
+        case asTheRetryStarts
+    }
+
+    let comesBack: ComesBack
+    private(set) var waiting = false
+    private var calls = 0
+    private var resume: CheckedContinuation<Void, Never>?
+
+    init(comesBack: ComesBack) { self.comesBack = comesBack }
+
+    func open() async {
+        calls += 1
+        guard calls > 1 else {
+            Engine.suspend()
+            return
+        }
+        if comesBack == .whenReleased {
+            waiting = true
+            await withCheckedContinuation { resume = $0 }
+        }
+        Engine.resume()
+    }
+
+    func release() {
+        resume?.resume()
+        resume = nil
     }
 }

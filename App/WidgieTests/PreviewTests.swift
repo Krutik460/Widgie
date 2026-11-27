@@ -20,7 +20,7 @@ import WidgetHosting
 
         #expect(await show.value == false)
         #expect(preview.widget == nil)
-        #expect(preview.states.isEmpty)
+        #expect(preview.name == nil)
         #expect(preview.faces.isEmpty)
     }
 }
