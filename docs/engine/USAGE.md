@@ -320,7 +320,7 @@ The server runs each widget's automations and writes their rows a period ahead. 
 ```swift
 // Upload after any change that can move the payload (save, refine, restore, roll back, delete, bind), and on
 // foreground when the digest differs from the last one the server acknowledged. A time zone change moves it too.
-let payload = try Hosting.engine.automationPayload()
+let payload = try Hosting.engine.automationPayload()   // throws while a live widget cannot be read here
 if payload.digest != acknowledged { try await api.put("/v1/automations", body: payload.json) }
 
 // Pull: the extension before a render when one is due, the app on foreground and after an upload.
@@ -330,7 +330,7 @@ try Hosting.engine.receive(page)               // one transaction; onCommit only
 nextPull = page.nextWrite                      // when the server next expects to write
 ```
 
-`receive` hides: decoding every change strictly, holding back the first change stamped more than 10 minutes ahead and everything after it for the next pull, refusing cells over the limits a tap obeys, merging the rest by the one LWW rule, adding the page's automation replica to `mine` so its rows count as the person's own, moving the watermark forward only, all in one transaction, and logging what it held or refused. A replayed page changes nothing and reloads nothing. `automationPayload()` hides: walking every live widget's drawn revision, resolving each automation's `writes` table to its dataset, encoding canonically with the phone's current time zone, and hashing.
+`receive` hides: decoding every change strictly, holding back the first change stamped more than 10 minutes ahead and everything after it for the next pull, refusing cells over the limits a tap obeys, merging the rest by the one LWW rule, adding the page's automation replica to `mine` so its rows count as the person's own, moving the watermark forward only, all in one transaction, and logging what it held or refused. A replayed page changes nothing and reloads nothing. `automationPayload()` hides: walking every live widget's drawn revision, resolving each automation's `writes` table to its dataset, encoding canonically with the phone's current time zone, and hashing. It throws instead of leaving out a widget whose drawn revision this build cannot read, because the upload replaces every automation and the server would delete that widget's future rows; skip the upload and try again later.
 
 ## 4. The render tool
 

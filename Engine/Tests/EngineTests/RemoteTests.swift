@@ -127,6 +127,128 @@ func dataset(of widget: WidgetID, in engine: Engine) throws -> String {
         #expect(picture(revealed).looksLike(picture(await tapped.face(other, at: fed))))
         #expect(!picture(revealed).looksLike(picture(faces.current)))
     }
+
+    /// The dataset a table of a built widget is bound to, which the server writes for it.
+    func bound(_ table: String, of id: WidgetID, in scratch: Scratch) throws -> String {
+        let key = try #require(WidgetKey(parsing: id.rawValue))
+        return try #require(try scratch.engine.store().bindings(of: key)[table]).raw
+    }
+
+    /// Two rows written ahead: the first gets its entry, and the timeline ends at the second, whose reload draws
+    /// it. The midnight entry stays even past that end.
+    @Test @MainActor func twoRevealsDrawTheFirstAndEndAtTheSecond() async throws {
+        let scratch = Scratch()
+        let source = try fixture("water")
+        let id = try await scratch.build(source)
+        let glasses = try bound("glasses", of: id, in: scratch)
+        let first = instant("2026-11-18T14:00:00Z")
+        let second = instant("2026-11-18T16:00:00Z")
+        let written = instant("2026-11-18T08:00:00Z")
+        let changes =
+            Run(dataset: glasses, at: first, written: written).changes(from: 1)
+            + Run(dataset: glasses, at: second, written: written).changes(from: 2)
+        try scratch.engine.receive(try page(changes), at: morning)
+
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: morning)
+        #expect(faces.entries.map(\.date) == [morning, first, instant("2026-11-19T00:00:00Z")])
+        #expect(faces.reloadAt == second)
+        #expect(picture(faces.entries[0]).looksLike(try await expected(source, rows: "{}", at: morning)))
+        #expect(
+            picture(faces.entries[1])
+                .looksLike(try await expected(source, rows: #"{"glasses": [{"daysAgo": 0}]}"#, at: first)))
+    }
+
+    /// A look that reads the clock steps every 15 minutes, but no step is drawn after the timeline's end, here
+    /// the second reveal: the reload there draws it again.
+    @Test @MainActor func noClockStepIsDrawnAfterTheTimelinesEnd() async throws {
+        let scratch = Scratch()
+        let id = try await scratch.build(try fixture("dogfed"))
+        let fed = instant("2026-11-18T14:00:00Z")
+        try scratch.engine.perform(try button("feed", on: await scratch.face(id, at: fed)).tap, at: fed)
+        let feeds = try bound("feeds", of: id, in: scratch)
+        let changes =
+            Run(dataset: feeds, at: instant("2026-11-18T14:30:00Z"), written: fed).changes(from: 1)
+            + Run(dataset: feeds, at: instant("2026-11-18T14:50:00Z"), written: fed).changes(from: 2)
+        try scratch.engine.receive(try page(changes), at: fed)
+
+        let from = instant("2026-11-18T14:10:00Z")
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: from)
+        #expect(
+            faces.entries.map(\.date)
+                == ["14:10", "14:25", "14:30", "14:40"].map { instant("2026-11-18T\($0):00Z") }
+                + [instant("2026-11-19T00:00:00Z")],
+            "the steps at 14:55 and later are past the second reveal")
+        #expect(faces.reloadAt == instant("2026-11-18T14:50:00Z"))
+    }
+
+    /// The image budget covers the reveal too. A clock photo fits five faces, so a reveal that would be the
+    /// sixth cuts the timeline at its instant, and the call WidgetKit makes then draws it with a fresh budget.
+    @Test @MainActor func aRevealPastTheImageBudgetCutsTheTimelineAtItsInstant() async throws {
+        let scratch = Scratch()
+        let crop =
+            "{ type: 'image', asset: 'photo', crop: [((Number(ctx.now.slice(0, 2)) * 4 + Number(ctx.now.slice(3, 5)) / 15) % 8) * 0.05, 0, 0.5, 1], frame: { width: 40, height: 40 } },"
+        let source = document(
+            look: counterLook(extra: crop), assets: ["photo": ["about": "a sunset"]],
+            images: ["photo": photo(1200, 800)])
+        let id = try await scratch.build(source)
+        let reveal = instant("2026-11-18T10:10:00Z")
+        try scratch.engine.receive(
+            try page(
+                Run(dataset: try bound("taps", of: id, in: scratch), at: reveal, written: morning).changes(from: 1)),
+            at: morning)
+
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: morning)
+        #expect(
+            faces.entries.map(\.date)
+                == ["09:00", "09:15", "09:30", "09:45", "10:00"].map { instant("2026-11-18T\($0):00Z") })
+        #expect(faces.reloadAt == reveal)
+        let next = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: reveal)
+        guard case .drawing = next.current.content else { throw Unexpected() }
+        #expect(next.entries.first?.date == reveal)
+    }
+
+    /// A reveal at the same instant as a clock step replaces the step, and is kept even when nothing changed.
+    @Test @MainActor func aRevealOnAClockStepIsOneEntryThatShowsTheRow() async throws {
+        let scratch = Scratch()
+        let source = try fixture("dogfed")
+        let id = try await scratch.build(source)
+        let fed = instant("2026-11-18T14:00:00Z")
+        try scratch.engine.perform(try button("feed", on: await scratch.face(id, at: fed)).tap, at: fed)
+        let step = instant("2026-11-18T14:40:00Z")
+        try scratch.engine.receive(
+            try page(Run(dataset: try bound("feeds", of: id, in: scratch), at: step, written: fed).changes(from: 1)),
+            at: fed)
+
+        let from = instant("2026-11-18T14:10:00Z")
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: from)
+        let quarters = (0...8).map { from.addingTimeInterval(Double($0) * 15 * 60) }
+        #expect(faces.entries.map(\.date) == quarters + [instant("2026-11-19T00:00:00Z")])
+        let revealed = try #require(faces.entries.first { $0.date == step })
+        let tapped = Scratch()
+        let other = try await tapped.build(source)
+        try tapped.engine.perform(try button("feed", on: await tapped.face(other, at: step)).tap, at: step)
+        #expect(picture(revealed).looksLike(picture(await tapped.face(other, at: step))), "fed just now")
+    }
+
+    /// A reveal at midnight is the midnight entry, which shows the row on its new day.
+    @Test @MainActor func aRevealAtMidnightIsTheMidnightEntry() async throws {
+        let scratch = Scratch()
+        let source = try fixture("water")
+        let id = try await scratch.build(source)
+        let midnight = instant("2026-11-19T00:00:00Z")
+        try scratch.engine.receive(
+            try page(
+                Run(dataset: try bound("glasses", of: id, in: scratch), at: midnight, written: morning).changes(
+                    from: 1)),
+            at: morning)
+
+        let faces = await scratch.engine.faces(for: id, family: .small, size: Family.small.standardSize, from: morning)
+        #expect(faces.entries.map(\.date) == [morning, midnight])
+        #expect(faces.reloadAt == instant("2026-11-20T00:00:00Z"))
+        #expect(
+            picture(faces.entries[1])
+                .looksLike(try await expected(source, rows: #"{"glasses": [{"daysAgo": 0}]}"#, at: midnight)))
+    }
 }
 
 @Suite struct PullTests {

@@ -4,7 +4,8 @@ import Spec
 // The wire format of docs/engine/WIRE.md: one JSON object per row change, and the page a pull returns.
 // Decoding is strict, so the Swift and TypeScript readers of Engine/Vectors/wire.json agree on every case: each
 // object has exactly its keys, ids are lowercase, integers have no fraction, and a page decodes whole or not at
-// all. Limits that merging enforces (text length, finite numbers, clock skew) are not decoding errors.
+// all. Limits that merging enforces (text length, clock skew) are not decoding errors. A number is always finite
+// here: `JSONValue.parse` refuses one too large for a Double, and a key twice in one object, as invalid JSON.
 
 /// A page of the account's changes, as `GET /v1/changes` returns it.
 package struct Page: Sendable, Equatable {

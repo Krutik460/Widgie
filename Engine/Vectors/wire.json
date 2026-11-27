@@ -1,5 +1,5 @@
 {
-  "about": "Shared vectors for the wire format in docs/engine/WIRE.md. Engine/Tests/RowsTests/WireTests.swift and the Worker's tests check every case. Times are milliseconds since 1970-01-01T00:00:00Z, and days are Day indexes, the days since 1970-01-01.",
+  "about": "Shared vectors for the wire format in docs/engine/WIRE.md. Engine/Tests/RowsTests/WireTests.swift and the Worker's tests check every case. Times are milliseconds since 1970-01-01T00:00:00Z, and days are Day indexes, the days since 1970-01-01. Every reader must refuse every bad case; its error is a fragment of the line the Swift reader refuses it with. A bad page given as text is the raw bytes, for a case that a parsed JSON value cannot hold. A receive row's mine says whether it counts as the person's: written by a replica a page named.",
   "format": 1,
   "stamps": [
     {
@@ -36,43 +36,53 @@
   "badStamps": [
     {
       "name": "negative",
-      "stamp": "-1"
+      "stamp": "-1",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "a leading zero",
-      "stamp": "01"
+      "stamp": "01",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "past 64 bits",
-      "stamp": "9223372036854775808"
+      "stamp": "9223372036854775808",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "empty",
-      "stamp": ""
+      "stamp": "",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "a fraction",
-      "stamp": "1.0"
+      "stamp": "1.0",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "a space",
-      "stamp": " 1"
+      "stamp": " 1",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "hex",
-      "stamp": "0x10"
+      "stamp": "0x10",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "a plus sign",
-      "stamp": "+1"
+      "stamp": "+1",
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "a number",
-      "stamp": 1794978000000
+      "stamp": 1794978000000,
+      "error": "\"stamp\" must be a string"
     },
     {
       "name": "null",
-      "stamp": null
+      "stamp": null,
+      "error": "\"stamp\" must be a string"
     }
   ],
   "days": [
@@ -209,35 +219,43 @@
   "badKeys": [
     {
       "name": "uppercase",
-      "key": "01A1E7E0-5080-7005-A17C-3E9D2B04F6A8"
+      "key": "01A1E7E0-5080-7005-A17C-3E9D2B04F6A8",
+      "error": "\"row\" must be a lowercase UUID"
     },
     {
       "name": "version 4",
-      "key": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f"
+      "key": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+      "error": "\"row\" must be a UUIDv7"
     },
     {
       "name": "variant 11",
-      "key": "00000000-0000-7000-c000-000000000000"
+      "key": "00000000-0000-7000-c000-000000000000",
+      "error": "\"row\" must be a UUIDv7"
     },
     {
       "name": "no hyphens",
-      "key": "01a1e7e050807005a17c3e9d2b04f6a8"
+      "key": "01a1e7e050807005a17c3e9d2b04f6a8",
+      "error": "\"row\" must be a lowercase UUID"
     },
     {
       "name": "braces",
-      "key": "{01a1e7e0-5080-7005-a17c-3e9d2b04f6a8}"
+      "key": "{01a1e7e0-5080-7005-a17c-3e9d2b04f6a8}",
+      "error": "\"row\" must be a lowercase UUID"
     },
     {
       "name": "one digit short",
-      "key": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a"
+      "key": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a",
+      "error": "\"row\" must be a lowercase UUID"
     },
     {
       "name": "empty",
-      "key": ""
+      "key": "",
+      "error": "\"row\" must be a lowercase UUID"
     },
     {
       "name": "a number",
-      "key": 7
+      "key": 7,
+      "error": "\"row\" must be a string"
     }
   ],
   "changes": [
@@ -580,7 +598,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"op\" must be insertRow, setCell, or deleteRow"
     },
     {
       "name": "a missing key",
@@ -591,7 +610,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "needs \"day\""
     },
     {
       "name": "an unknown key",
@@ -604,7 +624,8 @@
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
         "extra": 1
-      }
+      },
+      "error": "unknown key \"extra\""
     },
     {
       "name": "insertRow with a setCell key",
@@ -617,7 +638,8 @@
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
         "field": "word"
-      }
+      },
+      "error": "unknown key \"field\""
     },
     {
       "name": "the stamp as a number",
@@ -629,7 +651,8 @@
         "at": 1795086000000,
         "stamp": 1794978000000,
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"stamp\" must be a string"
     },
     {
       "name": "the stamp with a leading zero",
@@ -641,7 +664,8 @@
         "at": 1795086000000,
         "stamp": "0117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "the stamp past 64 bits",
@@ -653,7 +677,8 @@
         "at": 1795086000000,
         "stamp": "9223372036854775808",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "a negative stamp",
@@ -665,7 +690,8 @@
         "at": 1795086000000,
         "stamp": "-1",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"stamp\" must be a 64-bit stamp in decimal digits with no leading zero"
     },
     {
       "name": "an uppercase row key",
@@ -677,7 +703,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"row\" must be a lowercase UUID"
     },
     {
       "name": "a row key that is a UUIDv4",
@@ -689,7 +716,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"row\" must be a UUIDv7"
     },
     {
       "name": "a row key without hyphens",
@@ -701,7 +729,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"row\" must be a lowercase UUID"
     },
     {
       "name": "a dataset that is not a UUID",
@@ -713,7 +742,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"dataset\" must be a lowercase UUID"
     },
     {
       "name": "an uppercase dataset",
@@ -725,7 +755,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"dataset\" must be a lowercase UUID"
     },
     {
       "name": "a replica that is not a UUID",
@@ -737,7 +768,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "sample:Sam"
-      }
+      },
+      "error": "\"replica\" must be a lowercase UUID"
     },
     {
       "name": "an uppercase replica",
@@ -749,7 +781,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7D9E4C1A-2B3F-4A5D-8E6F-1C2D3E4F5A6B"
-      }
+      },
+      "error": "\"replica\" must be a lowercase UUID"
     },
     {
       "name": "a day with a fraction",
@@ -761,7 +794,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"day\" must be a whole number from -719162 through 2932896"
     },
     {
       "name": "a day as an ISO date",
@@ -773,7 +807,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"day\" must be a whole number from -719162 through 2932896"
     },
     {
       "name": "a day after 9999-12-31",
@@ -785,7 +820,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"day\" must be a whole number from -719162 through 2932896"
     },
     {
       "name": "a day before 0001-01-01",
@@ -797,7 +833,8 @@
         "at": 1795086000000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"day\" must be a whole number from -719162 through 2932896"
     },
     {
       "name": "a negative at",
@@ -809,7 +846,8 @@
         "at": -1,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"at\" must be a whole number from 0 through 253402300799999"
     },
     {
       "name": "an at after 9999",
@@ -821,7 +859,8 @@
         "at": 253402300800000,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"at\" must be a whole number from 0 through 253402300799999"
     },
     {
       "name": "an at with a fraction",
@@ -833,7 +872,8 @@
         "at": 1795086000000.5,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"at\" must be a whole number from 0 through 253402300799999"
     },
     {
       "name": "an unknown kind",
@@ -846,7 +886,8 @@
         "value": "x",
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"kind\" must be text, number, bool, or date"
     },
     {
       "name": "a text kind with a number value",
@@ -859,7 +900,8 @@
         "value": 3,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "a text cell's \"value\" must be a string"
     },
     {
       "name": "a number kind with a string value",
@@ -872,7 +914,8 @@
         "value": "3.5",
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "a number cell's \"value\" must be a number"
     },
     {
       "name": "a bool kind with 1",
@@ -885,7 +928,8 @@
         "value": 1,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "a bool cell's \"value\" must be true or false"
     },
     {
       "name": "a date kind with an ISO date",
@@ -898,7 +942,8 @@
         "value": "2026-11-20",
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"value\" must be a whole number from -719162 through 2932896"
     },
     {
       "name": "a date kind with a fraction",
@@ -911,7 +956,8 @@
         "value": 20777.5,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"value\" must be a whole number from -719162 through 2932896"
     },
     {
       "name": "a field id that starts with a capital",
@@ -924,7 +970,8 @@
         "value": "x",
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"field\" must be a field id (a lowercase letter, then letters and digits, at most 32)"
     },
     {
       "name": "a field id longer than 32",
@@ -937,7 +984,8 @@
         "value": "x",
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "\"field\" must be a field id (a lowercase letter, then letters and digits, at most 32)"
     },
     {
       "name": "a null value",
@@ -950,7 +998,8 @@
         "value": null,
         "stamp": "117635678208000000",
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
-      }
+      },
+      "error": "a text cell's \"value\" must be a string"
     },
     {
       "name": "not an object",
@@ -964,7 +1013,8 @@
           "stamp": "117635678208000000",
           "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
         }
-      ]
+      ],
+      "error": "a change must be an object with an \"op\""
     }
   ],
   "pages": [
@@ -1117,7 +1167,8 @@
           }
         ],
         "nextWrite": 1795064400000
-      }
+      },
+      "error": "changes[1]: id 1 does not follow id 2"
     },
     {
       "name": "a repeated id",
@@ -1151,7 +1202,8 @@
           }
         ],
         "nextWrite": 1795064400000
-      }
+      },
+      "error": "changes[1]: id 1 does not follow id 1"
     },
     {
       "name": "id zero",
@@ -1172,7 +1224,8 @@
           }
         ],
         "nextWrite": 1795064400000
-      }
+      },
+      "error": "changes[0]: \"id\" must be a whole number from 1 through 9007199254740991"
     },
     {
       "name": "an id with a fraction",
@@ -1193,7 +1246,8 @@
           }
         ],
         "nextWrite": 1795064400000
-      }
+      },
+      "error": "changes[0]: \"id\" must be a whole number from 1 through 9007199254740991"
     },
     {
       "name": "one change that does not decode refuses the whole page",
@@ -1227,14 +1281,16 @@
           }
         ],
         "nextWrite": 1795064400000
-      }
+      },
+      "error": "changes[1]: \"kind\" must be text, number, bool, or date"
     },
     {
       "name": "a missing nextWrite",
       "wire": {
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
         "changes": []
-      }
+      },
+      "error": "needs \"nextWrite\""
     },
     {
       "name": "a nextWrite with a fraction",
@@ -1242,7 +1298,8 @@
         "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
         "changes": [],
         "nextWrite": 1795064400000.5
-      }
+      },
+      "error": "\"nextWrite\" must be a whole number from 0 through 253402300799999"
     },
     {
       "name": "a replica that is not a UUID",
@@ -1250,7 +1307,8 @@
         "replica": "automations",
         "changes": [],
         "nextWrite": 1795064400000
-      }
+      },
+      "error": "\"replica\" must be a lowercase UUID"
     },
     {
       "name": "an unknown key",
@@ -1259,7 +1317,8 @@
         "changes": [],
         "nextWrite": 1795064400000,
         "more": true
-      }
+      },
+      "error": "unknown key \"more\""
     },
     {
       "name": "an entry with an unknown key",
@@ -1281,7 +1340,8 @@
           }
         ],
         "nextWrite": null
-      }
+      },
+      "error": "changes[0]: unknown key \"at\""
     },
     {
       "name": "not an object",
@@ -1291,7 +1351,18 @@
           "changes": [],
           "nextWrite": 1795064400000
         }
-      ]
+      ],
+      "error": "a page must be an object"
+    },
+    {
+      "name": "a number too large for a 64-bit float, which JSON.parse reads as Infinity",
+      "text": "{\"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\", \"changes\": [{\"id\": 1, \"change\": {\"op\": \"setCell\", \"row\": \"01a1e7e0-5080-7005-a17c-3e9d2b04f6a8\", \"dataset\": \"3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f\", \"field\": \"rank\", \"kind\": \"number\", \"value\": 1e400, \"stamp\": \"117635678208000000\", \"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\"}}], \"nextWrite\": null}",
+      "error": "the number 1e400 is too large"
+    },
+    {
+      "name": "a key twice in one object, which JSON.parse resolves to the last",
+      "text": "{\"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\", \"changes\": [{\"id\": 1, \"change\": {\"op\": \"insertRow\", \"row\": \"01a1e7e0-5080-7005-a17c-3e9d2b04f6a8\", \"dataset\": \"3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f\", \"day\": 20776, \"at\": 1795086000000, \"stamp\": \"117635678208000000\", \"stamp\": \"117635678208000001\", \"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\"}}], \"nextWrite\": null}",
+      "error": "the key \"stamp\" appears twice in one object"
     }
   ],
   "receive": [
@@ -1425,6 +1496,7 @@
           "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
           "day": "2026-11-19",
           "at": 1795086000000,
+          "mine": true,
           "cells": {
             "word": "serendipity",
             "rank": 3.5,
@@ -1604,6 +1676,7 @@
           "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
           "day": "2026-11-19",
           "at": 1795086000000,
+          "mine": true,
           "cells": {
             "word": "serendipity",
             "rank": 3.5,
@@ -1757,6 +1830,7 @@
           "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
           "day": "2026-11-19",
           "at": 1795086000000,
+          "mine": true,
           "cells": {
             "word": "early",
             "rank": 1,
@@ -1830,6 +1904,7 @@
           "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
           "day": "2026-11-19",
           "at": 1795086000000,
+          "mine": true,
           "cells": {
             "note": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀"
           }
@@ -2051,6 +2126,7 @@
           "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
           "day": "2026-11-19",
           "at": 1795086000000,
+          "mine": true,
           "cells": {
             "word": "kept",
             "rank": 2
@@ -2150,10 +2226,76 @@
           "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
           "day": "2026-11-19",
           "at": 1795086000000,
+          "mine": true,
           "cells": {
             "word": "serendipity",
             "rank": 4
           }
+        }
+      ]
+    },
+    {
+      "name": "rows of the replica a page names are the person's, and another replica's are not",
+      "fields": {
+        "word": "text",
+        "rank": "number",
+        "learned": "bool",
+        "due": "date"
+      },
+      "readAt": 1795086000000,
+      "steps": [
+        {
+          "now": 1795010400000,
+          "page": {
+            "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b",
+            "changes": [
+              {
+                "id": 1,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795086000000,
+                  "stamp": "117635678208000000",
+                  "replica": "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+                }
+              },
+              {
+                "id": 2,
+                "change": {
+                  "op": "insertRow",
+                  "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a9",
+                  "dataset": "3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f",
+                  "day": 20776,
+                  "at": 1795082400000,
+                  "stamp": "117635678208000000",
+                  "replica": "2b8f6a3c-9d4e-4f1a-8b7c-5e6d7f8a9b0c"
+                }
+              }
+            ],
+            "nextWrite": null
+          },
+          "watermark": 2,
+          "changed": true,
+          "held": 0,
+          "refused": 0
+        }
+      ],
+      "rows": [
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a9",
+          "day": "2026-11-19",
+          "at": 1795082400000,
+          "mine": false,
+          "cells": {}
+        },
+        {
+          "row": "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+          "day": "2026-11-19",
+          "at": 1795086000000,
+          "mine": true,
+          "cells": {}
         }
       ]
     }
