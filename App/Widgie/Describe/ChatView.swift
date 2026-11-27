@@ -206,8 +206,9 @@ private struct Conversation: View {
             }
         }
         .padding(.horizontal, Self.margin)
-        .padding(.top, 4)
-        .padding(.bottom, 8)
+        // The prototype's bar row starts 60 points down the screen, 2 above the safe area.
+        .padding(.top, -2)
+        .padding(.bottom, 10)
         .onGeometryChange(for: CGFloat.self) {
             $0.frame(in: .global).maxY
         } action: { [track] bottom in
@@ -266,7 +267,8 @@ private struct Conversation: View {
             // Room to scroll, so a draft can stay where it is while the messages of a change go in above it.
             if session.draft != nil { Color.clear.frame(height: 120) }
         }
-        .padding(.top, 12)
+        // The prototype's 8 under the bar and the thread's own 20.
+        .padding(.top, 28)
         .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.45, bounce: 0.25), value: reply)
         .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.4, bounce: 0.2), value: chat.question)
     }

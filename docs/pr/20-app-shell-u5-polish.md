@@ -114,11 +114,12 @@ flowchart TD
   HEADS --> CHIPS["Templates chips, Make's stage"]
 ```
 
-Files: [Theme.swift](../../App/Widgie/Design/Theme.swift), [WidgetsFeed.swift](../../App/Widgie/Widgets/WidgetsFeed.swift), [TemplateBanner.swift](../../App/Widgie/Templates/TemplateBanner.swift).
+Files: [Theme.swift](../../App/Widgie/Design/Theme.swift), [WidgetsFeed.swift](../../App/Widgie/Widgets/WidgetsFeed.swift), [TemplateBanner.swift](../../App/Widgie/Templates/TemplateBanner.swift), [ChatView.swift](../../App/Widgie/Describe/ChatView.swift).
 
 Key decisions:
 
 - **Fixed in the style, not per page.** Every display title is set on the prototype's line, so the pages and the sheets need no offsets of their own. Measured by the ink in day screenshots of both, against the prototype (before, then after): on Widgets the title +3.2 to +0.6, the count line +6.3 to -0.1, Widgie +6.3 to +0.6, the bubble +6.1 to -0.2, the first card +7.7 to +1.4; on Make and Templates the title +5.8 to +1.5 and the chips +10.2 to +1.5. What is left is SF's line under the eyebrow, 17.5 points to the browser's 16.25.
+- **Make's chat bar and thread start where the prototype's do.** The bar's row sat 6 points low (4 under the safe area where the prototype starts it 2 above) and the first message 18 points high (20 under the row where the prototype has 38: its bar's 10, the 8 under it and the thread's 20). Both now match within 1 point.
 - **Padding, not `lineHeight(.exact)`.** iOS 26's exact line height sets the box but moves the glyphs down by an amount that does not follow the font's metrics, so it would need a measured correction. Padding is exact for one line. A wrapped title keeps iOS's 1.2 between lines, since negative line spacing is ignored; the banner's second line sits 3.6 points low.
 - **Dynamic Type** scales the size and the trim together, so the largest text sizes keep the same rhythm.
 
