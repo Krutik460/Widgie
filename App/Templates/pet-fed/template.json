@@ -9,7 +9,8 @@
     {
       "key": "pet",
       "label": "Your pet's name",
-      "placeholder": "Luna"
+      "placeholder": "Luna",
+      "maxLength": 20
     }
   ]
 }

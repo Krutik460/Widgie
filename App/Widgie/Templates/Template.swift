@@ -12,7 +12,22 @@ struct Template: Identifiable, Sendable {
         let label: String
         /// Used when the field is left empty, so every template adds as it looks in the gallery.
         let placeholder: String
+        /// The most UTF-16 units a value keeps, the unit of the engine's member names; a character takes at least
+        /// one, so the count also bounds the widget's name. Few enough that the filled name and sample fit the
+        /// engine's limits and the face fits the value as one word of wide letters, which an app test checks by
+        /// building every template with each blank this long.
+        let maxLength: Int
         var id: String { key }
+
+        /// The characters of `text` that fit in `maxLength` UTF-16 units, never splitting one.
+        func clamped(_ text: String) -> String {
+            var units = 0
+            return String(
+                text.prefix { character in
+                    units += character.utf16.count
+                    return units <= maxLength
+                })
+        }
     }
 
     /// The gallery's shelves, in the order its category row shows them.
@@ -63,12 +78,14 @@ struct Template: Identifiable, Sendable {
         .sorted { ($0.order, $0.id) < ($1.order, $1.id) }
     }
 
-    /// The template's source with each blank filled: a trimmed value, or the blank's placeholder when it is empty.
+    /// The template's source with each blank filled: a trimmed value cut to the blank's length, or the blank's
+    /// placeholder when it is empty.
     func source(filling values: [String: String] = [:]) throws -> WidgetSource {
         var source = try WidgetSource(directory: folder)
         let filled = Dictionary(
             uniqueKeysWithValues: blanks.map { blank in
-                let value = values[blank.key]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let typed = values[blank.key]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let value = blank.clamped(typed).trimmingCharacters(in: .whitespacesAndNewlines)
                 return (blank.key, value.isEmpty ? blank.placeholder : value)
             })
         source.json = try Self.fill(source.json, with: filled)

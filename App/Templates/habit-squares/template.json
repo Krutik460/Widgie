@@ -9,17 +9,20 @@
     {
       "key": "first",
       "label": "First habit",
-      "placeholder": "Gym"
+      "placeholder": "Gym",
+      "maxLength": 12
     },
     {
       "key": "second",
       "label": "Second habit",
-      "placeholder": "Read"
+      "placeholder": "Read",
+      "maxLength": 12
     },
     {
       "key": "third",
       "label": "Third habit",
-      "placeholder": "No sugar"
+      "placeholder": "No sugar",
+      "maxLength": 12
     }
   ]
 }
