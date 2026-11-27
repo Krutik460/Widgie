@@ -151,7 +151,7 @@ Text that shows live data must stay readable at its longest. A count can reach t
 
 ### Named fonts
 
-`fontName` sets a font family from this list and replaces `design`. `weight` and `italic` then pick the nearest face the family has; some families have one face. A named font can be wider or taller than the system font at the same `size`, so leave room. Any other name is an error.
+`fontName` sets a font family from this list and replaces `design`. `weight` and `italic` then pick the nearest face the family has; some families have one face. The two Bricolage Grotesque families are one face each and ignore `weight`, so pick the family for the weight you want. A named font can be wider or taller than the system font at the same `size`, so leave room. Any other name is an error.
 
 | `fontName` | Style |
 |---|---|
