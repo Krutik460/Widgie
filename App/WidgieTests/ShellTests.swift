@@ -133,6 +133,22 @@ import WidgetEngine
     }
 }
 
+@MainActor @Suite struct FlightsTests {
+    @Test func settlingEndsTheConfettiAndLeavesTheTileFlying() async {
+        let flights = Flights()
+        flights.burst(from: CGRect(x: 20, y: 300, width: 170, height: 170))
+        let flying = Task {
+            await flights.fly(Launch(name: "Water", face: nil, from: CGRect(x: 20, y: 300, width: 170, height: 170)))
+        }
+        await Task.yield()
+        #expect(flights.bursts.count == 1 && flights.flight != nil)
+        flights.settle()
+        #expect(flights.bursts.isEmpty, "the confetti leaves with the page")
+        #expect(flights.flight != nil, "the tile still lands in the tab bar")
+        await flying.value
+    }
+}
+
 @MainActor @Suite struct FeedWidgieTests {
     private let greeting = "Morning! Here’s Water."
 

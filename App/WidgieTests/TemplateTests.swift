@@ -369,6 +369,8 @@ import WidgetEngine
         trial.values["pet"] = "Mochi"
         await trial.fill()
         #expect(trial.said == "Mochi it is.")
+        let renamed = try #require(await hue())
+        #expect(abs(renamed - fed) < abs(renamed - unfed), "a typed name keeps the feed tried on the face")
         #expect(try trial.preview.engine.widgets().first { $0.id == draft }?.name == "Mochi fed")
         #expect(try trial.choice().name == "Mochi fed")
         #expect(try shared.engine.widgets().isEmpty, "practice never reaches the shared store")
