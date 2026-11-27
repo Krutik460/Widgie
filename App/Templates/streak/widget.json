@@ -1,0 +1,114 @@
+{
+  "format": 1,
+  "name": "Meditate",
+  "tables": {
+    "sessions": {
+      "fields": {}
+    }
+  },
+  "queries": {
+    "streak": {
+      "streak": "sessions"
+    },
+    "today": {
+      "latest": "sessions",
+      "window": "today"
+    }
+  },
+  "actions": {
+    "done": {
+      "insert": "sessions"
+    },
+    "undo": {
+      "delete": "sessions"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "done today": {
+      "sessions": [
+        {
+          "daysAgo": 12
+        },
+        {
+          "daysAgo": 11
+        },
+        {
+          "daysAgo": 10
+        },
+        {
+          "daysAgo": 9
+        },
+        {
+          "daysAgo": 8
+        },
+        {
+          "daysAgo": 7
+        },
+        {
+          "daysAgo": 6
+        },
+        {
+          "daysAgo": 5
+        },
+        {
+          "daysAgo": 4
+        },
+        {
+          "daysAgo": 3
+        },
+        {
+          "daysAgo": 2
+        },
+        {
+          "daysAgo": 1
+        },
+        {
+          "daysAgo": 0
+        }
+      ]
+    },
+    "a twelve day streak": {
+      "sessions": [
+        {
+          "daysAgo": 12
+        },
+        {
+          "daysAgo": 11
+        },
+        {
+          "daysAgo": 10
+        },
+        {
+          "daysAgo": 9
+        },
+        {
+          "daysAgo": 8
+        },
+        {
+          "daysAgo": 7
+        },
+        {
+          "daysAgo": 6
+        },
+        {
+          "daysAgo": 5
+        },
+        {
+          "daysAgo": 4
+        },
+        {
+          "daysAgo": 3
+        },
+        {
+          "daysAgo": 2
+        },
+        {
+          "daysAgo": 1
+        }
+      ]
+    }
+  },
+  "look": "const LAVENDER = { light: '#e8dcff', dark: '#2b214d' };\nconst WORDS = { light: '#121a2e', dark: '#ece6ff' };\nconst VIOLET = { light: '#5a3fc0', dark: '#c4b0ff' };\nconst KEY_FILL = { light: '#5a3fc0', dark: '#7b5ee0' };\nconst GOLD = '#e8a400';\nconst SUN = '#ffd23c';\nconst LOTUS = 'M12 4c2 2.2 3 4.6 3 7.2 0 1.8-1.1 3.6-3 4.8-1.9-1.2-3-3-3-4.8C9 8.6 10 6.2 12 4zM3 10.5c2.6-.3 5 .5 6.8 '\n  + '2.3.4 1.6.2 3.1-.5 4.3-2.6-.4-4.8-1.9-5.6-4.1L3 10.5zm18 0l-.7 2.5c-.8 2.2-3 3.7-5.6 4.1-.7-1.2-.9-2.7-.5-4.3 '\n  + '1.8-1.8 4.2-2.6 6.8-2.3zM4 18h16v2H4z';\n// The key: a disc with the check cut out, so the check still shows in tinted and clear mode.\nconst KEY = 'M24 0A24 24 0 1 0 24 48A24 24 0 1 0 24 0Z M17.77 23.23L21.44 26.89L30.17 17.29A1.8 1.8 0 0 1 32.83 '\n  + '19.71L22.83 30.71A1.8 1.8 0 0 1 20.23 30.77L15.23 25.77A1.8 1.8 0 0 1 17.77 23.23Z';\n\n// A lotus in two soft rings, as the prototype breathes it; gold once today is done.\nfunction breathe(done, u) {\n  const ring = done ? SUN : { light: '#5a3fc0', dark: '#c4b0ff' };\n  return { type: 'zstack', frame: { width: 60 * u, height: 60 * u }, children: [\n    { type: 'circle', fill: ring, opacity: done ? 0.35 : 0.12 },\n    { type: 'circle', fill: ring, opacity: done ? 0.35 : 0.2, padding: 10 * u },\n    { type: 'path', d: LOTUS, viewBox: [0, 0, 24, 24], fill: done ? GOLD : VIOLET, frame: { width: 26 * u, height: 26 * u } },\n  ] };\n}\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall. Bricolage's line is 1.2 times its size, so\n  // the gaps around the count are 0.1 of its size shorter than the prototype's.\n  const u = ctx.height / 170;\n  const d = ctx.data;\n  const done = !!d.today;\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    // The check is cut out of the key, so a white disc under it in the backdrop shows through the cut in full\n    // color; tinted and clear mode remove the backdrop and the cut still shows.\n    widgetBackground: { type: 'zstack', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, background: LAVENDER,\n      children: [{ type: 'zstack', padding: 13 * u,\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomTrailing' },\n        children: [{ type: 'circle', fill: '#FFFFFF', padding: 10 * u, frame: { width: 46 * u, height: 46 * u } }] }] },\n    children: [\n      { type: 'zstack', padding: { top: 12 * u, trailing: 12 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topTrailing' },\n        children: [breathe(done, u)] },\n      { type: 'vstack', align: 'leading', spacing: 0,\n        padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: LOTUS, viewBox: [0, 0, 24, 24], fill: VIOLET, frame: { width: 15 * u, height: 15 * u } },\n            { type: 'text', value: 'Meditate', size: 13 * u, weight: 'bold', color: VIOLET, lineLimit: 1 } ] },\n          { type: 'text', value: d.streak, fontName: 'Bricolage Grotesque Display', size: 44 * u, kerning: -1.32 * u,\n            color: WORDS, accent: true, lineLimit: 1, minScale: 0.5, padding: { top: 3.6 * u },\n            frame: { maxWidth: ctx.width - 100 * u, alignment: 'leading' } },\n          { type: 'text', value: done ? 'day streak,' : 'day streak', size: 12.5 * u, weight: 'semibold',\n            color: WORDS, opacity: 0.8, padding: { top: 0.6 * u } },\n          done && { type: 'text', value: 'done today', size: 12.5 * u, weight: 'semibold', color: WORDS, opacity: 0.8 },\n        ] },\n      { type: 'zstack', padding: 13 * u,\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomTrailing' },\n        children: [\n          { type: 'button', action: done ? 'undo' : 'done', rowId: done ? d.today.id : null, children: [\n            { type: 'path', d: KEY, viewBox: [0, 0, 48, 48], fill: KEY_FILL, accent: true,\n              frame: { width: 46 * u, height: 46 * u }, shadow: { color: '#0000004D', radius: 5 * u, y: 4 * u } } ] },\n        ] },\n    ],\n  };\n}\n"
+}

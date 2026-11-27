@@ -1,0 +1,9 @@
+{
+  "name": "Days free",
+  "line": "Count alcohol-free days",
+  "category": "goals",
+  "order": 20,
+  "family": "small",
+  "hint": "Tap it to set the day you started.",
+  "blanks": []
+}

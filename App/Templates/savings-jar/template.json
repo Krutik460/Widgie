@@ -1,0 +1,16 @@
+{
+  "name": "Savings jar",
+  "line": "Every $50 counts",
+  "category": "goals",
+  "order": 10,
+  "family": "medium",
+  "hint": "Tap when you save $50.",
+  "blanks": [
+    {
+      "key": "fund",
+      "label": "What's the fund called?",
+      "placeholder": "Japan fund",
+      "maxLength": 24
+    }
+  ]
+}

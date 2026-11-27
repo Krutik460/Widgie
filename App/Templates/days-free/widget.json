@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "name": "Alcohol-free",
+  "tables": {
+    "starts": {
+      "fields": {
+        "since": "date"
+      }
+    }
+  },
+  "queries": {
+    "start": {
+      "latest": "starts",
+      "window": "all"
+    }
+  },
+  "actions": {
+    "start": {
+      "form": "starts",
+      "fields": [
+        "since"
+      ],
+      "prompt": "Alcohol-free since"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "forty-seven days": {
+      "starts": [
+        {
+          "since": {
+            "daysFromToday": -47
+          }
+        }
+      ]
+    },
+    "past a year": {
+      "starts": [
+        {
+          "since": {
+            "daysFromToday": -400
+          }
+        },
+        {
+          "since": {
+            "daysFromToday": -366
+          }
+        }
+      ]
+    }
+  },
+  "look": "const NAVY = '#1d2b53';\nconst FROST = '#e3ecff';\nconst SKY = '#9cc3f5';\nconst GOLD = '#ffd23c';\nconst DEEP_GOLD = '#e8a400';\nconst SPARK = 'M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z';\nconst MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\n// Days that earn a medal; after a year, every year does.\nconst MEDALS = [1, 7, 14, 30, 60, 90, 180, 365];\n\n// Clockwise when `hole`, so inside a counterclockwise shape it cuts a hole under the nonzero rule.\nfunction ellipse(cx, cy, rx, ry, hole) {\n  const arc = 'A' + rx + ' ' + ry + ' 0 1 ' + (hole ? 1 : 0) + ' ';\n  return 'M' + (cx - rx) + ' ' + cy + arc + (cx + rx) + ' ' + cy + arc + (cx - rx) + ' ' + cy + 'Z';\n}\n\n// The medal's ring and star are cut out of its disc. In full color the cuts show a deeper gold disc drawn in the\n// backdrop under it; in tinted and clear mode, which remove the backdrop, they still show.\nconst STAR = 'M22 30.5l2.3 4.8 5.2.6-3.9 3.6 1.1 5.1-4.7-2.7-4.7 2.7 1.1-5.1-3.9-3.6 5.2-.6z';\nconst DISC = ellipse(22, 38, 17, 17) + ellipse(22, 38, 12.5, 12.5, true) + ellipse(22, 38, 10.5, 10.5) + STAR;\n\nfunction medal(u, under) {\n  const part = (d, fill) => ({ type: 'path', d, viewBox: [0, 0, 44, 58], fill });\n  return { type: 'zstack', padding: { trailing: 10 * u, bottom: 8 * u },\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomTrailing' },\n    children: [\n      { type: 'zstack', frame: { width: 46 * u, height: 46 * u * 58 / 44 }, children: under\n        ? [part(ellipse(22, 38, 14, 14), DEEP_GOLD)]\n        : [part('M8 2h11l6 18h-11z', '#ff6b5c'), part('M36 2H25l-6 18h11z', SKY), part(DISC, GOLD)] },\n    ] };\n}\n\nfunction nextMedal(days) {\n  return MEDALS.find((m) => m > days) || (Math.floor(days / 365) + 1) * 365;\n}\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall. Bricolage's line is 1.2 times its size, so\n  // the gaps around the count are 0.1 of its size shorter than the prototype's.\n  const u = ctx.height / 170;\n  const start = ctx.data.start;\n  const since = start && (start.since || start.day);\n  const days = since ? Math.max(0, Math.round((new Date(ctx.today.date) - new Date(since)) / 86400000)) : 0;\n  const date = since && MONTHS[Number(since.slice(5, 7)) - 1] + ' ' + Number(since.slice(8, 10));\n  const line = (value) => ({ type: 'text', value, size: 12.5 * u, weight: 'semibold', color: FROST, opacity: 0.8,\n    lineLimit: 1, minScale: 0.8 });\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: { type: 'zstack', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, background: NAVY,\n      children: [medal(u, true)] },\n    children: [\n      medal(u, false),\n      { type: 'button', action: 'start', rowId: start ? start.id : null, children: [\n        { type: 'vstack', align: 'leading', spacing: 0,\n          padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n          frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n          children: [\n            { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n              { type: 'path', d: SPARK, viewBox: [0, 0, 24, 24], fill: SKY, frame: { width: 15 * u, height: 15 * u } },\n              { type: 'text', value: 'Alcohol-free', size: 13 * u, weight: 'bold', color: SKY, lineLimit: 1 } ] },\n            { type: 'text', value: !since ? 'Day one' : days === 1 ? '1 day' : days + ' days',\n              fontName: 'Bricolage Grotesque Display', size: 36 * u, kerning: -1.08 * u, color: FROST, accent: true,\n              lineLimit: 1, minScale: 0.5, padding: { top: 4.4 * u } },\n            { type: 'vstack', align: 'leading', spacing: 0, padding: { top: 1.4 * u },\n              frame: { maxWidth: ctx.width - 80 * u, alignment: 'leading' },\n              children: since ? [line('since ' + date), line('next medal: ' + nextMedal(days))]\n                : [line('tap to set the day'), line('you started')] },\n          ] } ] },\n    ],\n  };\n}\n"
+}
