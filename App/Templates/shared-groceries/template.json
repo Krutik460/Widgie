@@ -5,5 +5,11 @@
   "order": 30,
   "family": "medium",
   "hint": "Tap an item to cross it off.",
+  "suggestion": {
+    "title": "Our grocery list",
+    "subtitle": "Cross things off as you shop",
+    "icon": "cart.fill",
+    "tint": "mint"
+  },
   "blanks": []
 }

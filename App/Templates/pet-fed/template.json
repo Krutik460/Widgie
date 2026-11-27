@@ -5,6 +5,12 @@
   "order": 10,
   "family": "small",
   "hint": "Tap the check after a meal.",
+  "suggestion": {
+    "title": "When was the dog fed?",
+    "subtitle": "Who fed them, and how long ago",
+    "icon": "pawprint.fill",
+    "tint": "amber"
+  },
   "blanks": [
     {
       "key": "pet",

@@ -20,51 +20,49 @@ final class Preview {
 
     /// The draft on show, nil before the first one.
     private(set) var widget: WidgetID?
-    /// The data the face is drawn from: `.empty`, then each sample.
-    private(set) var states: [DataState] = []
-    private(set) var state: DataState = .empty
+    /// The name the draft on show gives itself.
+    private(set) var name: String?
     private(set) var faces: [Family: Face] = [:]
     /// The sizes the faces are drawn at. Set it before the first draft goes on show.
     var sizes = FaceSizes.standard
     var form: ShownForm?
     var message: String?
 
+    /// Whether a draft is drawn from no rows, as a saved widget starts, rather than from its first sample.
+    private let startsEmpty: Bool
     @ObservationIgnored private let redraws: Redraws
 
     init(
-        library: Engine = Hosting.engine, engine: Engine = .scratch(), clock: FaceClock = .system,
-        center: NotificationCenter = .default
+        library: Engine = Hosting.engine, engine: Engine = .scratch(), startsEmpty: Bool = false,
+        clock: FaceClock = .system, center: NotificationCenter = .default
     ) {
         self.library = library
         self.engine = engine
+        self.startsEmpty = startsEmpty
         redraws = Redraws(clock: clock, center: center)
         redraws.redraw = { [weak self] in
             Task { await self?.redraw() }
         }
     }
 
-    /// Shows a draft the scratch engine holds. A new draft starts on its first sample, so it does not look
-    /// empty. Showing the same draft again after a refinement keeps the chosen state when the new revision
-    /// still has it, and loads it afresh. Nothing on show changes until its faces are drawn, and then all of it
-    /// changes at once. Returns true once the draft is on show. Returns false, with nothing on show changed,
-    /// when the state did not load (logged), the task was cancelled, or another drawing started before then;
-    /// the draft's rows may already hold the new state.
+    /// Shows a draft the scratch engine holds, loading its data afresh: no rows, or its first sample so it does not
+    /// look empty. Nothing on show changes until its faces are drawn, and then all of it changes at once. Returns
+    /// true once the draft is on show. Returns false, with nothing on show changed, when the data did not load
+    /// (logged), the task was cancelled, or another drawing started before then; the draft's rows may already hold
+    /// the new data.
     func show(_ widget: WidgetID) async -> Bool {
-        let states: [DataState]
-        let state: DataState
+        let name: String?
         do {
-            states = [.empty] + (try engine.samples(of: widget)).map(DataState.sample)
-            let kept = self.widget == widget && states.contains(self.state)
-            state = kept ? self.state : states.dropFirst().first ?? .empty
-            try engine.load(state, into: widget, at: redraws.clock.now())
+            let sample = startsEmpty ? nil : try engine.samples(of: widget).first
+            try engine.load(sample.map(DataState.sample) ?? .empty, into: widget, at: redraws.clock.now())
+            name = try engine.widgets().first { $0.id == widget }?.name
         } catch {
             log.error("show: \(error.message, privacy: .public)")
             return false
         }
         guard let drawn = await draw(widget), !Task.isCancelled else { return false }
         self.widget = widget
-        self.states = states
-        self.state = state
+        self.name = name
         faces = drawn.faces
         redraws.schedule(drawn.changes)
         return true
@@ -73,17 +71,6 @@ final class Preview {
     /// Puts the draft back as `checkpoint` recorded it, rows included, and draws it again.
     func rollBack(to checkpoint: Checkpoint) async throws(EngineError) {
         try engine.rollBack(to: checkpoint)
-        await redraw()
-    }
-
-    func select(_ state: DataState) async {
-        guard let widget else { return }
-        do {
-            try engine.load(state, into: widget, at: redraws.clock.now())
-            self.state = state
-        } catch {
-            message = error.message
-        }
         await redraw()
     }
 

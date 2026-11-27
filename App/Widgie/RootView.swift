@@ -1,5 +1,4 @@
 import SwiftUI
-import WidgetBuilder
 
 /// The app's tabs over the sky: your widgets, the chat that makes a new one, and the templates. Each page is built
 /// on its first visit and then stays alive, so it keeps its scroll and its work when you switch away.
@@ -13,13 +12,9 @@ struct RootView: View {
     @State private var skyCovers = SkyCovers()
     /// The keyboard is up in Make, so the tab bar steps aside as the system's does.
     @State private var typing = false
-    /// The Make tab's session. It outlives a tab switch, so a draft is never lost by looking at your widgets.
-    @State private var making = DescribeSession()
+    /// The Make tab's chat. It outlives a tab switch, so a draft is never lost by looking at your widgets.
+    @State private var chat = Chat()
     @State private var gallery = TemplateGallery()
-    /// A template to change in chat while Make holds work of its own: waiting for a save to land, or for the
-    /// person's choice.
-    @State private var chosen: (source: WidgetSource, name: String)?
-    @State private var asking = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -70,30 +65,7 @@ struct RootView: View {
         } action: { width in
             gallery.fit(column: width - 2 * TemplatesView.margin)
         }
-        .confirmationDialog(
-            "Swap your draft for \(chosen?.name ?? "this template")?",
-            isPresented: Binding(
-                get: { asking },
-                set: { shown in
-                    asking = shown
-                    if !shown, making.replacement != .waits { chosen = nil }
-                }),
-            titleVisibility: .visible, presenting: chosen
-        ) { choice in
-            Button("Replace draft", role: .destructive) { replace(with: choice.source) }
-            Button("Keep editing", role: .cancel) { chosen = nil }
-        }
-        .onChange(of: making.phase) { _, phase in
-            // A save shows in Widgets at once, even when you switch tabs instead of tapping Done.
-            if case .saved(let id) = phase {
-                library.refresh()
-                if making.editing == nil { tabs.arrive(id) }
-            }
-            handOver()
-        }
-        .onChange(of: tabs.page) { _, page in
-            // Leaving Make after a save starts a fresh session, so Make never reopens on the Saved screen.
-            if page != .make, case .saved = making.phase { making = DescribeSession() }
+        .onChange(of: tabs.page) {
             // Once the switch has applied, VoiceOver moves to the new page, as it does for a system tab bar.
             Task {
                 await Task.yield()
@@ -120,12 +92,17 @@ struct RootView: View {
                 tabs.arrive(id)
             }
         case .make:
-            DescribeView(session: making, inTab: true) { saved in
-                making = DescribeSession()
+            ChatView(chat: chat, pastMoon: pastMoon(.make)) { id, launch in
                 library.refresh()
-                if saved != nil { tabs.go(.widgets) }
+                Task {
+                    await tabs.take(id, named: launch.name) {
+                        if !reduceMotion { await flights.fly(launch) }
+                    }
+                    // The outline the tile left stays a moment with Widgie on it, as the prototype draws it.
+                    if !reduceMotion { try? await Task.sleep(for: .milliseconds(320)) }
+                    chat.saved()
+                }
             }
-            .id(ObjectIdentifier(making))
         case .templates:
             TemplatesView(gallery: gallery, library: library, pastMoon: pastMoon(.templates)) { id, launch in
                 Task {
@@ -135,8 +112,7 @@ struct RootView: View {
                 }
             } chat: { source, name in
                 tabs.go(.make)
-                chosen = (source, name)
-                handOver()
+                chat.change(source, named: name)
             }
         }
     }
@@ -148,32 +124,12 @@ struct RootView: View {
                 if past { pastMoon.insert(shown) } else { pastMoon.remove(shown) }
             })
     }
-
-    /// Puts the chosen template into Make once that loses nothing, asks first while it would discard a draft,
-    /// and waits out a save, which then lands and shows in Widgets before the template takes its place.
-    private func handOver() {
-        guard let chosen else { return }
-        switch making.replacement {
-        case .free: replace(with: chosen.source)
-        case .discards: asking = true
-        case .waits: asking = false
-        }
-    }
-
-    /// Opens Make on a filled template as the draft, so the person's first message refines it.
-    private func replace(with source: WidgetSource) {
-        guard making.replacement != .waits else { return }
-        chosen = nil
-        asking = false
-        making.cancel()
-        making = DescribeSession(draft: source)
-    }
 }
 
 extension EnvironmentValues {
     /// Whether the tab page holding this view has faded out. What a scroll view puts in its safe area inset
     /// escapes the page's `accessibilityHidden`, its own too, so Make leaves its composer out once hidden;
-    /// otherwise VoiceOver reached Build it from another tab.
+    /// otherwise VoiceOver reached Send from another tab.
     @Entry var pageHidden = false
 }
 

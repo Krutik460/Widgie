@@ -17,7 +17,7 @@ import WidgetEngine
     @Test func aSaveTheSharedStoreRejectsRunsOneRepairTurnAndThenSaves() async throws {
         let library = try await shared.build(counterDocument())
         let model = ScriptedModel([counter(background: "#1B3A8C", fields: ["note": "text"])])
-        let session = DescribeSession(editing: library, model: model, preview: Preview(library: shared.engine))
+        let session = DescribeSession(.library(library), model: model, preview: Preview(library: shared.engine))
         await session.open()
         #expect(session.phase == .composing)
         _ = try await shared.build(counterDocument(fields: ["note": "text"]), replacing: library)
@@ -38,7 +38,7 @@ import WidgetEngine
     @Test func aSessionStartedOnAnUnsavedDraftRefinesItAndSavesItAsANewWidget() async throws {
         let model = ScriptedModel([counter(background: "#1B3A8C")])
         let session = DescribeSession(
-            draft: WidgetSource(json: Data(counterDocument().utf8)), model: model,
+            .unsaved(WidgetSource(json: Data(counterDocument().utf8))), model: model,
             preview: Preview(library: shared.engine))
         #expect(session.phase == .opening)
         await session.open()
@@ -49,7 +49,7 @@ import WidgetEngine
 
         session.send("make it blue")
         try await until({ session.settled }, "the refine never finished")
-        #expect(session.latest?.result == .accepted)
+        #expect(session.latest?.accepted == true)
         let request = try #require(model.requests.first)
         #expect(request.current?.contains("#102030") == true, "the first message refines the draft")
         #expect(session.draft == draft)
@@ -65,10 +65,10 @@ import WidgetEngine
 
     @Test func aDraftThatDoesNotBuildCannotBeOpened() async throws {
         let session = DescribeSession(
-            draft: WidgetSource(json: Data(#"{"name": "Counter"}"#.utf8)), model: ScriptedModel([]),
+            .unsaved(WidgetSource(json: Data(#"{"name": "Counter"}"#.utf8))), model: ScriptedModel([]),
             preview: Preview(library: shared.engine))
         await session.open()
-        #expect(session.phase == .failed(.unopened))
+        #expect(session.phase == .failed(.unopened, .open))
         #expect(session.draft == nil)
     }
 
@@ -128,7 +128,7 @@ import WidgetEngine
         session.send()
         try await until({ session.settled }, "the turn never finished")
 
-        #expect(session.phase == .failed(.broken))
+        #expect(session.phase == .failed(.broken, .turn))
         #expect(session.latest?.result == .failed(.broken))
         #expect(session.draft == nil)
     }
@@ -140,7 +140,7 @@ import WidgetEngine
         session.send()
         #expect(session.words.isEmpty)
         try await until({ session.settled }, "the turn never finished")
-        #expect(session.phase == .failed(.gaveUp))
+        #expect(session.phase == .failed(.gaveUp, .turn))
 
         session.dismissFailure()
         #expect(session.phase == .composing)
@@ -241,41 +241,6 @@ import WidgetEngine
                 MainActor.assumeIsolated { session.cancel() }
             }
         }
-    }
-}
-
-/// Stands in for `SharedWrites.open`. The first call lets the save through and then the app goes to the
-/// background, so the shared store refuses the write as suspended. The app comes back either when the test
-/// releases the second call, or as the second call starts, so the retry never waits.
-@MainActor private final class SuspendingGate {
-    enum ComesBack {
-        case whenReleased
-        case asTheRetryStarts
-    }
-
-    let comesBack: ComesBack
-    private(set) var waiting = false
-    private var calls = 0
-    private var resume: CheckedContinuation<Void, Never>?
-
-    init(comesBack: ComesBack) { self.comesBack = comesBack }
-
-    func open() async {
-        calls += 1
-        guard calls > 1 else {
-            Engine.suspend()
-            return
-        }
-        if comesBack == .whenReleased {
-            waiting = true
-            await withCheckedContinuation { resume = $0 }
-        }
-        Engine.resume()
-    }
-
-    func release() {
-        resume?.resume()
-        resume = nil
     }
 }
 

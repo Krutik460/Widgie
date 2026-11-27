@@ -20,7 +20,8 @@ struct WidgetsFeed: View {
     let added: (WidgetID) -> Void
 
     @State private var shown: Shown?
-    @State private var session: DescribeSession?
+    /// The widget changing in Make's chat over the feed.
+    @State private var changing: Shown?
     @State private var deleting: WidgetID?
     @State private var widgie = FeedWidgie()
     @State private var activity = Activity()
@@ -121,11 +122,8 @@ struct WidgetsFeed: View {
         .sheet(item: $shown) { shown in
             WidgetDetail(library: library, id: shown.id)
         }
-        .fullScreenCover(item: $session) { session in
-            DescribeView(session: session) { _ in
-                self.session = nil
-                library.refresh()
-            }
+        .fullScreenCover(item: $changing) { shown in
+            EditChat(library: library, editing: shown.id) { changing = nil }
         }
         // The detail sheet shows the form and the message itself while it is up.
         .sheet(item: Binding(get: { shown == nil ? library.form : nil }, set: { library.form = $0 })) { form in
@@ -270,7 +268,7 @@ struct WidgetsFeed: View {
             guard !Task.isCancelled else { return }
             let quiet =
                 Date.now.timeIntervalSince(activity.touched) > 4 && activity.offset < 140 && shown == nil
-                && session == nil
+                && changing == nil
             guard quiet, perch != nil else { continue }
             widgie.play([HeroAct.Kind.blink, .glance, .smallHop][beat % 3])
             beat += 1
@@ -326,12 +324,12 @@ struct WidgetsFeed: View {
                 activity.touched = .now
                 shown = Shown(id: id)
             } change: {
-                session = DescribeSession(editing: id)
+                changing = Shown(id: id)
             }
             .scaleEffect(waiting(id) ? 0.94 : 1)
             .opacity(waiting(id) ? 0 : 1)
             .contextMenu {
-                Button("Change it", systemImage: "pencil") { session = DescribeSession(editing: id) }
+                Button("Change it", systemImage: "pencil") { changing = Shown(id: id) }
                 Button("Delete", systemImage: "trash", role: .destructive) { deleting = id }
             }
         }

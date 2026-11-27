@@ -71,7 +71,7 @@ import WidgetEngine
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try document().write(to: folder.appending(path: "widget.json"))
         let template = Template(
-            id: "pet", name: "Pet fed", line: "", category: .home, order: 0, family: .small, hint: "",
+            id: "pet", name: "Pet fed", line: "", category: .home, order: 0, family: .small, hint: "", suggestion: nil,
             blanks: [.init(key: "pet", label: "Your pet's name", placeholder: "Luna", maxLength: maxLength)],
             folder: folder)
         return (template, folder)
@@ -289,14 +289,14 @@ import WidgetEngine
     }
 
     @Test func aTapIsPracticeOnScratchRowsAndATypedNameRebuildsTheFace() async throws {
-        let trial = try petFed()
+        let template = try #require(Template.catalog().first { $0.id == "pet-fed" })
+        let trial = TemplateTrial(template: template, preview: Preview(library: shared.engine, startsEmpty: true))
         await trial.fill()
         let draft = try #require(trial.preview.widget)
         trial.greet()
         #expect(trial.said == trial.template.hint)
 
         // Pet fed paints red until the first feed and amber after it.
-        await trial.preview.select(.empty)
         func hue() async -> Double? {
             await trial.preview.engine.faces(for: draft, family: .small, size: Family.small.standardSize, from: .now)
                 .current.traits.hue

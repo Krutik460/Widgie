@@ -17,16 +17,12 @@ enum Palette {
     static let caretShadow = Color(.widgieCaretShadow)
     static let text = Color(.widgieTextPrimary)
     static let secondary = Color(.widgieTextSecondary)
-    static let buttonFill = Color(.widgieButtonFill)
-    static let buttonLabel = Color(.widgieButtonLabel)
-    static let outline = Color(.widgieOutline)
     static let disabled = Color(.widgieFillDisabled)
     static let widgetShadow = Color(.widgieWidgetShadow)
     static let widgetShadowNear = Color(.widgieWidgetShadowNear)
     /// A hairline that lifts a face off the dusk at night. Clear by day.
     static let faceEdge = Color(.widgieFaceEdge)
     static let liftShadow = Color(.widgieLiftShadow)
-    static let chipLabel = Color(.widgieChipLabel)
     /// A soft control resting on the ground: an unchosen category, a quiet key.
     static let surface = Color(.widgieSurface)
     static let chosenFill = Color(.widgieChosenFill)
@@ -42,6 +38,8 @@ enum Palette {
     static let sheetBottom = Color(.widgieSheetBottom)
     static let spotGlow = Color(.widgieSpotGlow)
     static let bubble = Color(.widgieBubble)
+    static let youFill = Color(.widgieYouFill)
+    static let composer = Color(.widgieComposer)
     static let restShadow = Color(.widgieRestShadow)
     static let sun = Color(.widgieSun)
     /// The tab bar's frosted fill, its hairline, the chosen tab's highlight, and an unchosen tab's ink.
@@ -57,27 +55,6 @@ enum Palette {
     static let failureText = Color(.widgieFailureText)
     static let failureButtonFill = Color(.widgieFailureButtonFill)
     static let failureButtonLabel = Color(.widgieFailureButtonLabel)
-
-    /// The confetti on Saved: bright versions of the chip hues.
-    static let pops = [
-        Color(.widgiePopMint), Color(.widgiePopButter), Color(.widgiePopPink), Color(.widgiePopLilac),
-        Color(.widgiePopPeach),
-    ]
-}
-
-/// The soft fill of a chip. Color on a chip always means "tap to use this"; outlined controls stay neutral.
-enum ChipColor {
-    case mint, butter, pink, lilac, peach
-
-    var fill: Color {
-        switch self {
-        case .mint: Color(.widgieChipMint)
-        case .butter: Color(.widgieChipButter)
-        case .pink: Color(.widgieChipPink)
-        case .lilac: Color(.widgieChipLilac)
-        case .peach: Color(.widgieChipPeach)
-        }
-    }
 }
 
 extension View {
@@ -188,138 +165,6 @@ struct CursorBar: View {
                 .opacity(on ? 1 : 0)
         }
         .accessibilityHidden(true)
-    }
-}
-
-/// The main action: an ink slab with its label and a blinking bar, so it reads as "type here, go". Pressing
-/// stops the blink and nudges it down. Disabled, it goes flat with no bar.
-struct PrimaryButtonStyle: ButtonStyle {
-    var fill = Palette.buttonFill
-    var label = Palette.buttonLabel
-
-    func makeBody(configuration: Configuration) -> some View {
-        PrimaryButton(configuration: configuration, style: self)
-    }
-}
-
-private struct PrimaryButton: View {
-    let configuration: ButtonStyleConfiguration
-    let style: PrimaryButtonStyle
-
-    @Environment(\.isEnabled) private var isEnabled
-
-    var body: some View {
-        let pressed = configuration.isPressed && isEnabled
-        HStack(spacing: 5) {
-            configuration.label
-            if isEnabled {
-                CursorBar(color: style.label, blinking: !pressed)
-            }
-        }
-        .font(size: 18, weight: .bold)
-        .tracking(-0.3)
-        .lineLimit(1)
-        .foregroundStyle(isEnabled ? style.label : Palette.secondary)
-        .padding(.horizontal, 18)
-        .frame(maxWidth: .infinity, minHeight: 60)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(isEnabled ? style.fill : Palette.disabled)
-        )
-        .offset(y: pressed ? 2 : 0)
-        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .animation(.easeOut(duration: 0.08), value: pressed)
-        .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
-    }
-}
-
-/// A small filled button for a top bar, such as Save.
-struct CompactButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        CompactButton(configuration: configuration)
-    }
-}
-
-private struct CompactButton: View {
-    let configuration: ButtonStyleConfiguration
-
-    @Environment(\.isEnabled) private var isEnabled
-
-    var body: some View {
-        let pressed = configuration.isPressed && isEnabled
-        configuration.label
-            .font(size: 17, weight: .bold)
-            .lineLimit(1)
-            .foregroundStyle(isEnabled ? Palette.buttonLabel : Palette.secondary)
-            .padding(.horizontal, 20)
-            .frame(minWidth: 84, minHeight: 40)
-            .background(
-                RoundedRectangle(cornerRadius: 11, style: .continuous).fill(
-                    isEnabled ? Palette.buttonFill : Palette.disabled)
-            )
-            .offset(y: pressed ? 1.5 : 0)
-            .animation(.easeOut(duration: 0.08), value: pressed)
-            .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
-    }
-}
-
-/// A suggestion in its own soft color, with an ink label.
-struct ChipButtonStyle: ButtonStyle {
-    let color: ChipColor
-
-    func makeBody(configuration: Configuration) -> some View {
-        ChipButton(configuration: configuration, color: color)
-    }
-}
-
-private struct ChipButton: View {
-    let configuration: ButtonStyleConfiguration
-    let color: ChipColor
-
-    @Environment(\.isEnabled) private var isEnabled
-
-    var body: some View {
-        let pressed = configuration.isPressed && isEnabled
-        configuration.label
-            .font(size: 16, weight: .semibold)
-            .tracking(-0.2)
-            .lineLimit(1)
-            .foregroundStyle(Palette.chipLabel)
-            .padding(.horizontal, 14)
-            .frame(minHeight: 44)
-            .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(color.fill))
-            .scaleEffect(pressed ? 0.96 : 1)
-            .opacity(isEnabled ? 1 : 0.5)
-            .animation(.easeOut(duration: 0.08), value: pressed)
-            .sensoryFeedback(.impact(weight: .light), trigger: pressed) { _, now in now }
-    }
-}
-
-/// The neutral 2-point outline that marks a control which is not the main action: the photo button, the
-/// composer, the sample menu.
-struct Outline: View {
-    var corner: CGFloat = 14
-    var color = Palette.outline
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: corner, style: .continuous).strokeBorder(color, lineWidth: 2)
-    }
-}
-
-/// The close button at the top left of every describe screen.
-struct CloseButton: View {
-    var color = Palette.text
-    var label = "Close"
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "xmark")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(color)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
-        }
-        .accessibilityLabel(label)
     }
 }
 

@@ -5,6 +5,12 @@
   "order": 10,
   "family": "medium",
   "hint": "Tap today's square when it's done.",
+  "suggestion": {
+    "title": "Did I stretch today?",
+    "subtitle": "Two weeks of habits at a glance",
+    "icon": "square.grid.3x3.fill",
+    "tint": "lilac"
+  },
   "blanks": [
     {
       "key": "first",

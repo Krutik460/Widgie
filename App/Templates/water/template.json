@@ -5,5 +5,11 @@
   "order": 30,
   "family": "small",
   "hint": "Tap for each glass.",
+  "suggestion": {
+    "title": "How much water today?",
+    "subtitle": "A glass at a time, toward a goal",
+    "icon": "drop.fill",
+    "tint": "sky"
+  },
   "blanks": []
 }

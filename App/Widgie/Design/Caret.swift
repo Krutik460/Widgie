@@ -340,21 +340,3 @@ struct HoppingCaret: View {
         }
     }
 }
-
-/// The wordmark: "widgie" ending in the caret, the cursor after the last letter.
-struct Wordmark: View {
-    @ScaledMetric(relativeTo: .title2) private var bar: CGFloat = 38
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 0) {
-            Text("widgie")
-                .font(size: 26, weight: .heavy, relativeTo: .title2)
-                .tracking(-1)
-            Caret(size: bar, alive: false, grounded: false)
-                .padding(.leading, -bar * 0.29)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Widgie")
-        .accessibilityAddTraits(.isHeader)
-    }
-}

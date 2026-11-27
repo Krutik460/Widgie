@@ -5,6 +5,12 @@
   "order": 10,
   "family": "small",
   "hint": "Tap to send a heart. For now they stay on this phone.",
+  "suggestion": {
+    "title": "A heart button for Alex",
+    "subtitle": "One tap sends a heart",
+    "icon": "heart.fill",
+    "tint": "pink"
+  },
   "blanks": [
     {
       "key": "who",
