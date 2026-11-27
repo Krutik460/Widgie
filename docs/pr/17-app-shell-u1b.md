@@ -6,7 +6,7 @@ Branch `app-shell-u1b` into `main`. This is U1b of [tasks/app-shell.md](../../ta
 
 - **The sky.** [Sky.swift](../../App/Widgie/Design/Sky.swift) is the ground of every screen: the day gradient with two drifting clouds, and in dark mode the dusk with 26 twinkling stars and a crescent moon that fades once the page scrolls past 24 points. It stops animating under a full screen cover. The colors are tokens in `WidgieColors.xcassets`.
 - **Type.** `display(size:)` and the keys in [Theme.swift](../../App/Widgie/Design/Theme.swift) use the Bricolage Display and Key faces that PR 16 bundled in the engine, scaled with Dynamic Type.
-- **The tab bar.** [RootView.swift](../../App/Widgie/RootView.swift) holds the three pages in a container of its own instead of `TabView`, each built on its first visit and kept alive. [TabBar.swift](../../App/Widgie/TabBar.swift) draws the frosted bar, the springing highlight, the Make key with Widgie in it, the coral count from [Arrivals.swift](../../App/Widgie/Widgets/Arrivals.swift), and the Widgets glyph's squish as a widget flies in.
+- **The tab bar.** [RootView.swift](../../App/Widgie/RootView.swift) holds the three pages in a container of its own instead of `TabView`, each built on its first visit and kept alive. [Tabs.swift](../../App/Widgie/Tabs.swift) is the model behind it: the page, the pages visited, the arrivals, the catch count, and the toast. [TabBar.swift](../../App/Widgie/TabBar.swift) draws the frosted bar, the springing highlight, the Make key with Widgie in it, the coral count from [Arrivals.swift](../../App/Widgie/Widgets/Arrivals.swift), and the Widgets glyph's squish as a widget flies in.
 - **The feed.** [WidgetsFeed.swift](../../App/Widgie/Widgets/WidgetsFeed.swift) has the date, a greeting from the clock, and the count line. Widgie ([FeedHero.swift](../../App/Widgie/Widgets/FeedHero.swift)) stands on the first row with a bubble; its state is `FeedWidgie`, read only by `FeedStage` and `EmptyHero`. [Speech.swift](../../App/Widgie/Widgets/Speech.swift) holds every line. [FeedCard.swift](../../App/Widgie/Widgets/FeedCard.swift) has the soft cards, the squish on the tap that opens one, the New tag, and the phone mark. `FeedRow.rows` gains `fresh:`, and `FeedRow.singles` lays out one widget a row at the accessibility text sizes.
 - **Add widget.** [Flight.swift](../../App/Widgie/Flight.swift) draws the confetti and the tile's flight into the Widgets tab in a pass-through window above the sheets. [Toast.swift](../../App/Widgie/Toast.swift) is "<name> is in your widgets." The person stays on Templates.
 - **The detail sheet** uses the shared `sheetStyle()` with Template's sheet, a soft close button, and Delete and Change it as keys.
@@ -17,23 +17,23 @@ Branch `app-shell-u1b` into `main`. This is U1b of [tasks/app-shell.md](../../ta
 ```mermaid
 flowchart TD
   APP["WidgieApp"] --> ROOT["RootView: Sky, then the visited pages in a ZStack"]
-  ROOT --> SWITCH["PageSwitch: out fades 120 ms; in fades and slides 14 pt after 40 ms; hidden pages take no taps, are hidden from VoiceOver, and get pageHidden"]
+  ROOT --> SWITCH["PageSwitch: out fades 120 ms; in fades and slides 14 pt after 40 ms; hidden pages take no taps and are hidden from VoiceOver; pageHidden once the fade out ends"]
   SWITCH --> HIDE["DescribeView and TryItView leave their composer out while pageHidden"]
   ROOT --> BAR["TabBar in the bottom safe area inset"]
-  BAR -->|"tap"| GO["RootView.go: visit, page = next, Widgets clears the count"]
-  GO --> CHANGE["onChange(of: page): drop the toast on Widgets, then after Task.yield, AccessibilityNotification.LayoutChanged"]
+  BAR -->|"tap"| GO["Tabs.go: visit, page = next; Widgets clears the count and the toast"]
+  GO --> CHANGE["onChange(of: tabs.page): after Task.yield, AccessibilityNotification.LayoutChanged"]
   ROOT -->|"each page passes up one Bool"| MOON["pastMoon: Set of Page; the moon fades past 24 pt"]
-  ROOT -->|"coverSky from a full screen DescribeView"| STILL["Sky(still:) stops drifting and twinkling"]
+  ROOT -->|"SkyCovers count from a full screen DescribeView"| STILL["Sky(still:) stops drifting and twinkling"]
 ```
 
-Files: [RootView.swift](../../App/Widgie/RootView.swift), [TabBar.swift](../../App/Widgie/TabBar.swift), [Sky.swift](../../App/Widgie/Design/Sky.swift), [DescribeView.swift](../../App/Widgie/Describe/DescribeView.swift), [TryItView.swift](../../App/Widgie/Describe/TryItView.swift), [ShellTests.swift](../../App/WidgieTests/ShellTests.swift).
+Files: [RootView.swift](../../App/Widgie/RootView.swift), [Tabs.swift](../../App/Widgie/Tabs.swift), [TabBar.swift](../../App/Widgie/TabBar.swift), [Sky.swift](../../App/Widgie/Design/Sky.swift), [DescribeView.swift](../../App/Widgie/Describe/DescribeView.swift), [TryItView.swift](../../App/Widgie/Describe/TryItView.swift), [ShellTests.swift](../../App/WidgieTests/ShellTests.swift).
 
 Key decisions:
 
-- **One sky behind all pages,** not one per page, so the cross-fade between tabs never shows the window behind a half-faded ground. Make's describe flow draws its own sky only in a full screen cover, and that cover tells the app's sky to hold still: a cover never sends `onDisappear` to the views under it. Measured with a frame probe: 20 frames a second under a cover before, none after.
+- **One sky behind all pages,** not one per page, so the cross-fade between tabs never shows the window behind a half-faded ground. Make's describe flow draws its own sky only in a full screen cover, and that cover counts itself in the app's `SkyCovers` so the sky holds still: a cover never sends `onDisappear` to the views under it. The count is an observable object in the environment, not a closure, which SwiftUI cannot compare and warned would invalidate every reader on each update. Measured with a frame probe: 20 frames a second under a cover before, none after.
 - **Scrolling rebuilds nothing.** A page reports only whether it is past the moon (`onScrollGeometryChange(for: Bool.self)`), so `RootView.body` changes twice per scroll at most, not every frame.
 - **Pages are built on their first visit and then stay alive,** as `TabView` did, so Templates draws its faces only when you open it and Make keeps its session across switches.
-- **Make's composer leaves the tree while Make is hidden.** Content in a scroll view's safe area inset escaped the page's `accessibilityHidden`, and also an `accessibilityHidden` on itself, and `axe describe-ui` showed Build it and the photo button on Widgets and Templates long after a switch. The old 350 ms layout post did not change that. Now the layout post waits only for the switch to apply.
+- **Make's composer leaves the tree once Make has faded out.** Content in a scroll view's safe area inset escaped the page's `accessibilityHidden`, and also an `accessibilityHidden` on itself, and `axe describe-ui` showed Build it and the photo button on Widgets and Templates long after a switch. `pageHidden` turns on when the page's 120 ms fade ends, so the composer fades with its page instead of vanishing at the tap, and `axe describe-ui` on Templates right after the switch shows neither. The layout post waits only for the switch to apply.
 - **The tab labels keep their size** at the accessibility text sizes, as the system tab bar's do, with the large content viewer on a long press.
 - **The bar is a tab bar to VoiceOver:** each tab is one element, the chosen one carries the selected trait, and Widgets reads "Widgets, 2 new" while it has a count. The badge exists only while there is a count, since one scaled to nothing still reached VoiceOver as "0".
 - **Tapping the status bar** scrolls the visible page to the top with all three pages alive, checked on the simulator.
@@ -59,9 +59,9 @@ Files: [WidgetsFeed.swift](../../App/Widgie/Widgets/WidgetsFeed.swift), [FeedHer
 Key decisions:
 
 - **Lines name the widget and what happened, never its data,** as the plan's decision says. The greeting follows the clock: morning from 5, afternoon from 12, and "I'll keep an eye on Water tonight." from 17.
-- **Only Widgie redraws for Widgie.** `FeedWidgie` is an observable model the feed drives but never reads in `body`; `FeedStage` and `EmptyHero` read it. The feed's scroll offset and last touch live in a plain box (`Activity`) that taps, the landing and the idle loop read. The clock's `TimelineView` wraps only the header and the bubble.
+- **Only Widgie redraws for Widgie.** `FeedWidgie` is an observable model the feed drives but never reads in `body`; `FeedStage` and `EmptyHero` read it. The feed's scroll offset and last touch live in a plain box (`Activity`) that taps, the landing and the idle loop read. The clock's `TimelineView` wraps only the header and the bubble. `FeedWidgieTests` cover its behavior: quiet until it wakes, a hop only between two different perches and never with Reduce Motion, quiet during a hop and speaking once it lands, a wake during a hop leaving the voice to the hop, a line in place of the greeting for a while, and VoiceOver silent from a hidden page, polite for the greeting, and prompt for a reply.
 - **A size rhythm counted from the oldest widget,** so adding a widget never resizes the others and a new small can take the first row's right side under Widgie. Deleting an older unplaced widget shifts the rhythm for the unplaced ones after it; the plan records that.
-- **The card opens on a tap gesture, not a button around the face.** A button folds the face's buttons into itself for VoiceOver: Undo became a custom action of the card and unlabeled buttons vanished. Three ways of tracking the press each broke something on the simulator: a SwiftUI long press froze scrolling of the whole feed or blocked the context menu, and a UIKit recognizer swallowed the tap. So the face squishes on the tap that opens it, and a hold gets the context menu's own lift. `axe describe-ui` shows each face button as its own element and the caption as one button reading the name, "new" and "on your home screen", with Change it as an action.
+- **The card opens on a tap gesture, not a button around the face.** A button folds the face's buttons into itself for VoiceOver: Undo became a custom action of the card and unlabeled buttons vanished. Three ways of tracking the press each broke something on the simulator: a SwiftUI long press froze scrolling of the whole feed or blocked the context menu, and a UIKit recognizer swallowed the tap. So the face squishes on the tap that opens it, and a hold gets the context menu's own lift. `axe describe-ui` shows each face button as its own element and the caption as one button reading the name, "new" and "on your home screen", with Change it as an action. The caption has the higher sort priority, so VoiceOver reads a card's name before its face.
 - **A third perch for a lone small at the top,** with Widgie talking toward the empty half of the row.
 - **At the accessibility text sizes** each widget takes its own row, newest first, so a new small is the first row and Widgie names the widget it stands on. Splitting the fresh pair had put its older partner first.
 - **Widgie speaks only from the page that shows.** The hidden feed's greeting changed when a save landed or the clock passed 12:00 or 17:00, and VoiceOver read it from another tab.
@@ -74,27 +74,31 @@ Key decisions:
 flowchart TD
   ADD["TemplateSheet: Add widget"] --> BUILD["Library.add builds through engine.build"]
   BUILD --> CHEER["Flights.burst from the tile, the sheet's Widgie hops, success haptic"]
-  CHEER -->|"200 ms"| LAUNCH["added(id, Launch(face, tile frame)): the sheet closes, the tile hides"]
-  LAUNCH --> FLY["RootView.take: Flights.fly, 480 ms on an arc into the Widgets glyph, above the closing sheet"]
-  FLY --> CATCH["caught += 1: the glyph squishes; Arrivals.arrive(id, onWidgets: page == .widgets)"]
-  CATCH -->|"not on Widgets"| TOAST["Toast: '<name> is in your widgets.' for 2.4 s, announced"]
-  MAKE["Make: phase .saved(id), not an edit"] --> ARR["Arrivals.arrive(id, onWidgets: page == .widgets)"]
+  CHEER -->|"200 ms"| LAUNCH["added(id, Launch(name, face, tile frame)): the sheet closes, the tile hides"]
+  LAUNCH --> HOLD["Tabs.take: Arrivals.add(id): the New tag, and the feed holds the card hidden"]
+  HOLD --> FLY["Flights.fly, 480 ms on an arc into the Widgets glyph, in a window made for the flight and released after"]
+  FLY --> CATCH["caught += 1: the glyph squishes; Tabs.arrive(id) by the page showing now"]
+  CATCH -->|"not on Widgets"| TOAST["Toast: '<Launch.name> is in your widgets.' for 2.4 s, announced, its id from a counter"]
+  CATCH -->|"switched to Widgets mid-flight"| LAND
+  MAKE["Make: phase .saved(id), not an edit"] --> ARR["Tabs.arrive(id)"]
   CATCH --> BADGE
   ARR -->|"away from Widgets"| BADGE["unseen += id: the coral count; the hidden feed holds the card back"]
   BADGE -->|"open Widgets"| OPEN["Arrivals.openWidgets: count clears, toast goes, landing = newest"]
-  OPEN --> LAND["WidgetsFeed.land: scroll to top, the card settles in from 94 percent over 260 ms"]
+  OPEN --> LAND["WidgetsFeed.land in task(id: landing): scroll to top, the card settles in from 94 percent over 260 ms"]
   LAND --> REACT["Widgie hops to the new perch, or a small hop on the same one"]
   REACT --> SAY["Speech.landed: 'Give it a tap.' when Face.hasButtons, else 'ready to go.' for 3.2 s"]
 ```
 
-Files: [TemplateSheet.swift](../../App/Widgie/Templates/TemplateSheet.swift), [TemplateTrial.swift](../../App/Widgie/Templates/TemplateTrial.swift), [TemplatesView.swift](../../App/Widgie/Templates/TemplatesView.swift), [Flight.swift](../../App/Widgie/Flight.swift), [Toast.swift](../../App/Widgie/Toast.swift), [RootView.swift](../../App/Widgie/RootView.swift), [TabBar.swift](../../App/Widgie/TabBar.swift), [Arrivals.swift](../../App/Widgie/Widgets/Arrivals.swift), [WidgetsFeed.swift](../../App/Widgie/Widgets/WidgetsFeed.swift), [Library.swift](../../App/Widgie/Library.swift), [Public.swift](../../Engine/Sources/WidgetEngine/Public.swift).
+Files: [TemplateSheet.swift](../../App/Widgie/Templates/TemplateSheet.swift), [TemplateTrial.swift](../../App/Widgie/Templates/TemplateTrial.swift), [TemplatesView.swift](../../App/Widgie/Templates/TemplatesView.swift), [Flight.swift](../../App/Widgie/Flight.swift), [Toast.swift](../../App/Widgie/Toast.swift), [RootView.swift](../../App/Widgie/RootView.swift), [Tabs.swift](../../App/Widgie/Tabs.swift), [TabBar.swift](../../App/Widgie/TabBar.swift), [Arrivals.swift](../../App/Widgie/Widgets/Arrivals.swift), [WidgetsFeed.swift](../../App/Widgie/Widgets/WidgetsFeed.swift), [Library.swift](../../App/Widgie/Library.swift), [Public.swift](../../Engine/Sources/WidgetEngine/Public.swift).
 
 Key decisions:
 
 - **Add widget follows the prototype's `#s-add`,** superseding U3's switch to Widgets: burst and hop, the flight while the sheet closes, the glyph's squish, the count, and the toast, with the person left on Templates. With Reduce Motion there is no burst or flight; the tile dims as the sheet closes and the toast fades in.
-- **The flight draws in a window of its own.** A sheet covers everything in the app's window while it closes, so a flyer drawn there would spend the flight under the sheet. The window sits one level above, takes no touches, is hidden from VoiceOver, and shows only while something flies. Frames come from `.global`, which is window space in both windows.
-- **`Arrivals` is one value type** holding the New tag, the unseen ids, and the widget landing now. Tests: a save while away counts, a save on Widgets lands at once, opening Widgets clears the count and lands the newest, opening it with nothing new changes nothing, and a template added from Templates badges and lands only when Widgets opens.
-- **A card arriving on the hidden page waits hidden,** so it never shows at full strength and then blinks out as its landing starts.
+- **The flight draws in a window of its own.** A sheet covers everything in the app's window while it closes, so a flyer drawn there would spend the flight under the sheet. The window sits one level above, takes no touches, is hidden from VoiceOver, and exists only while something flies: it is made for the first burst or flight and released once nothing moves, which also frees its hosting controller and the reference that controller holds back to `Flights`. Its scene is the active one from `connectedScenes`, which on an iPhone-only app with one scene is the view's own. Frames come from `.global`, which is window space in both windows.
+- **`Arrivals` is one value type** holding the New tag, the unseen ids, and the widget landing now. `add` marks a widget on its way; `arrive` counts it or lands it. Tests: a save while away counts, a save on Widgets lands at once, opening Widgets clears the count and lands the newest, opening it with nothing new changes nothing, and a widget on its way wears the New tag before it counts or lands.
+- **`Tabs` owns the order of an add,** so it is tested through `take` with the flight as a closure: the card is hidden and tagged before the flight, the count, the glyph's catch and the landing come only after it, by the page showing then, and a switch to Widgets mid-flight lands the widget with no count and no toast. The toast names the widget from `Launch`, so a reload that lost or failed never drops it, and each toast takes a new id from a counter, so an older toast's timer never dismisses a newer one with the same words.
+- **The newest card waits hidden from the moment it is added until its landing settles it,** read from `Arrivals.fresh` in the same update, not set from an `onChange`. So switching to Widgets mid-flight shows an empty slot until the card settles in, never a card that blinks out and comes back. Checked on the simulator from a recording of a switch made while the tile was still in the air.
+- **One landing at a time.** The landing runs in `task(id: arrivals.landing)`, so a newer landing cancels an older one, which then stops at its next step.
 - **The landing owns Widgie's hop.** While a landing is under way, a changed first row does not start a hop of its own.
 - **The New tag and the count last while the app runs;** nothing is stored.
 

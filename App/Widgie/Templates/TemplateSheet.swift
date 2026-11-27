@@ -311,7 +311,7 @@ struct TemplateSheet: View {
                         try? await Task.sleep(for: .milliseconds(200))
                     }
                     leaving = .flying
-                    added(id, Launch(face: preview.faces[template.family], from: tile))
+                    added(id, Launch(name: choice.name, face: preview.faces[template.family], from: tile))
                 case .failure(let unsaved):
                     message = unsaved.line
                     adding = false

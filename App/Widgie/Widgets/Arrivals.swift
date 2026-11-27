@@ -1,7 +1,8 @@
 import WidgetEngine
 
-/// The widgets added while the app runs. The newest wears the New tag until the next one arrives. One saved while
-/// you are away from Widgets counts on the tab until you open it, and then lands in the feed.
+/// The widgets added while the app runs. The newest wears the New tag until the next one arrives, and its card
+/// waits hidden until it lands. One saved while you are away from Widgets counts on the tab until you open it, and
+/// then lands in the feed.
 struct Arrivals: Equatable {
     private(set) var fresh: WidgetID?
     /// Saved while away from Widgets, newest first.
@@ -11,8 +12,14 @@ struct Arrivals: Equatable {
 
     var badge: Int { unseen.count }
 
-    mutating func arrive(_ id: WidgetID, onWidgets: Bool) {
+    /// A widget is in the library but not yet in Widgets, as while it flies there.
+    mutating func add(_ id: WidgetID) {
         fresh = id
+    }
+
+    /// A widget reaches Widgets: it lands at once there, or counts on the tab.
+    mutating func arrive(_ id: WidgetID, onWidgets: Bool) {
+        add(id)
         if onWidgets {
             landing = id
         } else {

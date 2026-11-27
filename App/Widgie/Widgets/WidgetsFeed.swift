@@ -26,9 +26,9 @@ struct WidgetsFeed: View {
     @State private var activity = Activity()
     /// The last widget that finished landing. Until `arrivals.landing` matches it, the landing owns Widgie's hop.
     @State private var landed: WidgetID?
-    /// The card waiting to settle in. It waits hidden from the moment it arrives on a hidden page, so it never
-    /// shows before it lands.
-    @State private var settling: WidgetID?
+    /// The last widget whose card settled in. The newest card waits hidden until then, from the moment it is
+    /// added, so it never shows before it lands.
+    @State private var settled: WidgetID?
     @State private var risen = false
     @State private var column: CGFloat = 0
     /// The visible height of the scroll view and of the header, so the empty state fills the screen.
@@ -95,9 +95,8 @@ struct WidgetsFeed: View {
             .onScrollPhaseChange { [activity] _, phase in
                 if phase != .idle { activity.touched = .now }
             }
-            .onChange(of: arrivals.landing, initial: true) { _, landing in
-                guard let landing else { return }
-                Task { await land(landing, scroller: scroller) }
+            .task(id: arrivals.landing) {
+                if let landing = arrivals.landing { await land(landing, scroller: scroller) }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -118,9 +117,6 @@ struct WidgetsFeed: View {
         }
         .onChange(of: active) { _, active in
             if active && arrivals.landing == landed { widgie.hop(to: perchPoint, reduceMotion: reduceMotion) }
-        }
-        .onChange(of: arrivals.fresh) { _, fresh in
-            if !active, let fresh { settling = fresh }
         }
         .sheet(item: $shown) { shown in
             WidgetDetail(library: library, id: shown.id)
@@ -233,31 +229,35 @@ struct WidgetsFeed: View {
     }
 
     /// The new card settles in where you can see it, under Widgie, and Widgie points it out as it touches down.
+    /// A newer landing cancels this one, so only one ever runs.
     private func land(_ id: WidgetID, scroller: ScrollViewProxy) async {
-        settling = id
-        defer { landed = id }
         for _ in 0..<40 where item(id) == nil {
             try? await Task.sleep(for: .milliseconds(50))
         }
+        guard !Task.isCancelled else { return }
         guard let arrived = item(id) else {
-            settling = nil
+            settled = id
+            landed = id
             return
         }
         let scrolled = activity.offset
         if scrolled > 4 {
             withAnimation(reduceMotion ? nil : .smooth(duration: 0.4)) { scroller.scrollTo(Self.top, anchor: .top) }
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 0 : min(480, 160 + Int(scrolled * 0.5))))
+            guard !Task.isCancelled else { return }
         }
         withAnimation(reduceMotion ? .linear(duration: 0.15) : .timingCurve(0.22, 0.8, 0.26, 1, duration: 0.26)) {
-            settling = nil
+            settled = id
         }
         let moved = widgie.hop(to: perchPoint, reduceMotion: reduceMotion)
         if !reduceMotion {
             try? await Task.sleep(for: .milliseconds(moved ? 560 : 200))
+            guard !Task.isCancelled else { return }
             if !moved, perch?.id == id { widgie.play(.smallHop) }
         }
         widgie.say(
             Speech.landed(arrived.summary.name, buttons: arrived.faces.values.contains { $0.hasButtons }), for: 3.2)
+        landed = id
     }
 
     /// Now and then, while you are not busy with something, Widgie blinks twice, glances at your widgets, or
@@ -275,6 +275,11 @@ struct WidgetsFeed: View {
             widgie.play([HeroAct.Kind.blink, .glance, .smallHop][beat % 3])
             beat += 1
         }
+    }
+
+    /// Whether this is the newest card, hidden until its landing settles it in.
+    private func waiting(_ id: WidgetID) -> Bool {
+        arrivals.fresh == id && settled != id
     }
 
     private func item(_ id: WidgetID) -> Library.Item? {
@@ -323,8 +328,8 @@ struct WidgetsFeed: View {
             } change: {
                 session = DescribeSession(editing: id)
             }
-            .scaleEffect(settling == id ? 0.94 : 1)
-            .opacity(settling == id ? 0 : 1)
+            .scaleEffect(waiting(id) ? 0.94 : 1)
+            .opacity(waiting(id) ? 0 : 1)
             .contextMenu {
                 Button("Change it", systemImage: "pencil") { session = DescribeSession(editing: id) }
                 Button("Delete", systemImage: "trash", role: .destructive) { deleting = id }
