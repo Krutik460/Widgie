@@ -11,15 +11,6 @@ extension Template.Category {
         }
     }
 
-    var symbol: String {
-        switch self {
-        case .forTwo: "heart.fill"
-        case .home: "house.fill"
-        case .habits: "leaf.fill"
-        case .goals: "star.fill"
-        }
-    }
-
     var line: String {
         switch self {
         case .forTwo: "Little signals for the two of you"
@@ -36,6 +27,55 @@ extension Template.Category {
         case .habits: Palette.bannerHabits
         case .goals: Palette.bannerGoals
         }
+    }
+}
+
+/// A category's glyph on its chip, filled on a 24 unit grid: a heart, a house, a leaf with its vein cut out, and a
+/// star.
+struct CategoryGlyph: Shape {
+    let category: Template.Category
+
+    func path(in rect: CGRect) -> Path {
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x, y: y) }
+        var path = Path()
+        switch category {
+        case .forTwo:
+            path.move(to: point(12, 21))
+            path.addCurve(to: point(2.4, 11.7), control1: point(12, 21), control2: point(4.5, 16.4))
+            path.addCurve(to: point(6.6, 4.5), control1: point(0.9, 8.2), control2: point(3, 4.5))
+            path.addCurve(to: point(12, 7.7), control1: point(8.7, 4.5), control2: point(10.2, 5.7))
+            path.addCurve(to: point(17.4, 4.5), control1: point(13.8, 5.7), control2: point(15.3, 4.5))
+            path.addCurve(to: point(21.6, 11.7), control1: point(21, 4.5), control2: point(23.1, 8.2))
+            path.addCurve(to: point(12, 21), control1: point(19.5, 16.4), control2: point(12, 21))
+        case .home:
+            path.addLines(
+                [
+                    point(12, 3.2), point(2.8, 11), point(5.5, 11), point(5.5, 20.3), point(10.5, 20.3),
+                    point(10.5, 15), point(13.5, 15), point(13.5, 20.3), point(18.5, 20.3), point(18.5, 11),
+                    point(21.2, 11),
+                ])
+        case .habits:
+            path.move(to: point(20.5, 3.5))
+            path.addCurve(to: point(5, 14.2), control1: point(12, 3.5), control2: point(5, 7.6))
+            path.addCurve(to: point(6.6, 18.8), control1: point(5, 16), control2: point(5.6, 17.6))
+            for corner in [point(4, 21.4), point(5.4, 22.8), point(8, 20.2)] { path.addLine(to: corner) }
+            path.addCurve(to: point(12.6, 21.8), control1: point(9.2, 21.2), control2: point(10.8, 21.8))
+            path.addCurve(to: point(20.5, 3.5), control1: point(19.2, 21.8), control2: point(20.5, 12))
+            path.closeSubpath()
+            // The vein winds the other way from the leaf, so the nonzero fill cuts it out.
+            path.move(to: point(9, 18.4))
+            path.addCurve(to: point(17.4, 8.5), control1: point(10.7, 13.8), control2: point(13.6, 10.6))
+            path.addCurve(to: point(10.6, 19), control1: point(14.4, 11.3), control2: point(12, 14.5))
+        case .goals:
+            path.addLines(
+                [
+                    point(12, 2.8), point(14.7, 8.8), point(21.2, 9.4), point(16.3, 13.7), point(17.8, 20.1),
+                    point(12, 16.8), point(6.2, 20.1), point(7.7, 13.7), point(2.8, 9.4), point(9.3, 8.8),
+                ])
+        }
+        path.closeSubpath()
+        return path.applying(
+            CGAffineTransform(translationX: rect.minX, y: rect.minY).scaledBy(x: rect.width / 24, y: rect.height / 24))
     }
 }
 

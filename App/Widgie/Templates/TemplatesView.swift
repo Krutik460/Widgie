@@ -140,6 +140,8 @@ private struct CategoryRow: View {
     let chosen: Template.Category
     let pick: (Template.Category) -> Void
 
+    @ScaledMetric(relativeTo: .subheadline) private var glyph: CGFloat = 15
+
     var body: some View {
         ViewThatFits(in: .horizontal) {
             FillRow(spacing: 7) { chips }
@@ -164,8 +166,8 @@ private struct CategoryRow: View {
                 pick(category)
             } label: {
                 HStack(spacing: 5) {
-                    Image(systemName: category.symbol)
-                        .font(size: 13, weight: .bold, relativeTo: .subheadline)
+                    CategoryGlyph(category: category)
+                        .frame(width: glyph, height: glyph)
                         .accessibilityHidden(true)
                     Text(category.title)
                         .font(size: 13.5, weight: .semibold, relativeTo: .subheadline)
