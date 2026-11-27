@@ -50,6 +50,7 @@ public final class Engine: Sendable {
     }
 
     private init(directory: URL, calendar: Calendar, onCommit: (@Sendable () -> Void)?, isScratch: Bool) {
+        BundledFonts.register()
         self.directory = directory
         self.calendar = calendar
         self.onCommit = onCommit

@@ -42,7 +42,7 @@ for dir in Sources/*/; do
         continue
     fi
     allowed="$(printf '%s\n' "$row" | awk -F'|' '{ print $4 }' | tr -d ' `')"
-    imports="$(grep -rhoE '^[[:space:]]*(@[A-Za-z_]+[[:space:]]+)*((public|package|internal|private|fileprivate)[[:space:]]+)?import[[:space:]]+((struct|class|enum|protocol|typealias|func|var|let)[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*' "$dir" | awk '{ print $NF }' | sort -u || true)"
+    imports="$(grep -rhoE --include='*.swift' '^[[:space:]]*(@[A-Za-z_]+[[:space:]]+)*((public|package|internal|private|fileprivate)[[:space:]]+)?import[[:space:]]+((struct|class|enum|protocol|typealias|func|var|let)[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*' "$dir" | awk '{ print $NF }' | sort -u || true)"
     for module in $imports; do
         case ",$allowed," in
         *",$module,"*) ;;
@@ -54,7 +54,7 @@ for dir in Sources/*/; do
     done
     if printf '%s\n' "$row" | awk -F'|' '{ print $5 }' | grep -q '`package` only'; then
         internal="$internal $target"
-        if grep -rnE '^[^/"]*(^|[^A-Za-z0-9_])public([^A-Za-z0-9_]|$)' "$dir" >&2; then
+        if grep -rnE --include='*.swift' '^[^/"]*(^|[^A-Za-z0-9_])public([^A-Za-z0-9_]|$)' "$dir" >&2; then
             echo "$target is package-internal, so it must not declare anything public (lines above)" >&2
             failed=1
         fi

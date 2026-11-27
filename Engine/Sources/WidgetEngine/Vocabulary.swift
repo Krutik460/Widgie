@@ -7,7 +7,8 @@ import Spec
 /// beyond the grammar. Unknown types and props fail with the allowed lists drawn from here, and
 /// Reference/look.md teaches the same lists; a test fails if its tables and this registry disagree.
 package enum Vocabulary {
-    /// The named fonts. iOS and macOS both ship every family on this list; `namedFontShipsHere` checks it.
+    /// The named fonts. iOS and macOS both ship every family on this list but the last two, which the engine
+    /// bundles (`BundledFonts`); `namedFontShipsHere` checks that each one draws.
     package static let fonts: [(name: String, style: String)] = [
         ("Bradley Hand", "handwriting, a quick pen"), ("Noteworthy", "handwriting, neat notes"),
         ("Marker Felt", "handwriting, felt marker"), ("Chalkduster", "display, chalk on a blackboard"),
@@ -15,6 +16,8 @@ package enum Vocabulary {
         ("Rockwell", "slab serif"), ("DIN Condensed", "condensed bold signage"),
         ("Avenir Next Condensed", "condensed, clean"), ("Futura", "geometric poster type"),
         ("Copperplate", "engraved small capitals"), ("Didot", "high contrast fashion serif"),
+        ("Bricolage Grotesque Display", "chunky condensed grotesque for big numbers and titles"),
+        ("Bricolage Grotesque Key", "bold grotesque for labels and buttons"),
     ]
 
     static let nodes: [NodeType] = [
@@ -198,6 +201,8 @@ package enum Vocabulary {
             throw Diagnostic(
                 "\"\(name)\" must be one of \(fonts.map(\.name).joined(separator: ", ")), not \(Value.describe(value))")
         }
+        // A static proof draws without an engine, so a look that names a bundled font registers it here.
+        if BundledFonts.families.contains(raw) { BundledFonts.register() }
         return raw
     }
 

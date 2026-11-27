@@ -173,10 +173,12 @@ struct LookExample: Sendable, CustomTestStringConvertible {
         #expect(names == Vocabulary.fonts.map(\.name))
     }
 
-    /// Every allowlisted family is installed on the platform the tests run on. A missing family would not
-    /// fail a render: SwiftUI would quietly draw the system font. `scripts/check` runs this on macOS, and
-    /// `xcodebuild test` on an iOS simulator runs it against the fonts iOS ships.
+    /// Every allowlisted family is installed on the platform the tests run on, or bundled and registered by the
+    /// engine. A missing family would not fail a render: SwiftUI would quietly draw the system font.
+    /// `scripts/check` runs this on macOS, and `xcodebuild test` on an iOS simulator runs it against the fonts iOS
+    /// ships.
     @Test(arguments: Vocabulary.fonts.map(\.name)) func namedFontShipsHere(_ family: String) {
+        BundledFonts.register()
         let wanted = CTFontDescriptorCreateWithAttributes([kCTFontFamilyNameAttribute: family] as CFDictionary)
         let found = CTFontDescriptorCreateMatchingFontDescriptor(wanted, nil)
         #expect(found.flatMap { CTFontDescriptorCopyAttribute($0, kCTFontFamilyNameAttribute) as? String } == family)

@@ -634,6 +634,8 @@ Text that shows live data must stay readable at its longest. A count can reach t
 | `Futura` | geometric poster type |
 | `Copperplate` | engraved small capitals |
 | `Didot` | high contrast fashion serif |
+| `Bricolage Grotesque Display` | chunky condensed grotesque for big numbers and titles |
+| `Bricolage Grotesque Key` | bold grotesque for labels and buttons |
 
 ```js
 function render(ctx) {

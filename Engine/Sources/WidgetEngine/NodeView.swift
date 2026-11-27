@@ -217,6 +217,8 @@ extension TextRun {
         let font: Font =
             switch self.font {
             case .system(let design): .system(size: points, weight: weight.font, design: design.font)
+            // Each bundled family is one face, and SwiftUI logs a failure for every weight it cannot find.
+            case .named(let family) where BundledFonts.families.contains(family): .custom(family, fixedSize: points)
             case .named(let family): .custom(family, fixedSize: points).weight(weight.font)
             }
         return Text(string ?? value).font(font).italic(italic).strikethrough(strikethrough)
