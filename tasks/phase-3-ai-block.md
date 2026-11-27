@@ -112,12 +112,25 @@ Starts with the wire format doc and the vectors file, which P2 also builds on.
 
 ### P2. Worker: accounts, automations, and the pull
 
-- [ ] The D1 database per environment with migrations for the four tables and their indexes (`tasks(due_at)`, `changes(account, id)`).
-- [ ] Routes: `POST /v1/account`, `PUT /v1/automations` (replace all, validated against the same limits as `Automations.swift`, refused over 60 runs a day), `GET /v1/changes?after=` (at most 500 changes a page, the automation replica id, and the next expected write time).
-- [ ] TypeScript stamps and the wire format, checked against the P1 vectors.
-- [ ] Versions, tasks for new and changed automations, tombstones for unrevealed rows on change or removal.
-- [ ] Token, one account per attest key, idle parking and deletion, the spend row.
-- [ ] Vitest: auth, replace-all, tasks and tombstones, paging and `after`, limits, registering twice, `production` refusing the dev secret.
+- [x] The D1 database per environment with migrations for the four tables and their indexes (`tasks(due_at)`, `changes(account, id)`).
+- [x] Routes: `POST /v1/account`, `PUT /v1/automations` (replace all, validated against the same limits as `Automations.swift`, refused over 60 runs a day), `GET /v1/changes?after=` (at most 500 changes a page, the automation replica id, and the next expected write time).
+- [x] TypeScript stamps and the wire format, checked against the P1 vectors.
+- [x] Versions, tasks for new and changed automations, tombstones for unrevealed rows on change or removal.
+- [x] Token, one account per attest key, idle parking and deletion, the spend row.
+- [x] Vitest: auth, replace-all, tasks and tombstones, paging and `after`, limits, registering twice, `production` refusing the dev secret.
+
+**P2 results (2026-11-27).** Branch `phase-3-p2-worker`, from `phase-2b-b2` with the wire format commit of P1 merged in. Nothing is deployed and no real D1 database exists yet.
+
+- **Schema** (`Backend/migrations/0001_automations.sql`): `accounts`, `automations`, `tasks`, `changes`, and `spend`. A task carries `version`, `once` (1 for a run now, deleted after it runs; 0 for the schedule, which moves to its next run), `run_at` (the row's `at`), `row_key` (the UUIDv7, minted with the task), `due_at`, `claimed_until`, and `attempts`, with at most one of each kind per automation. `changes` uses `AUTOINCREMENT`, so an id is never reused after cleanup, and repeats `op`, `dataset`, `row_key`, `widget`, `automation`, and `at` beside the wire JSON so tombstones and P3's repeat check can find an automation's rows. Foreign keys cascade, so deleting an account deletes the rest.
+- **Token**: `<account id>.<secret>`, the secret 32 random bytes as base64url. The id finds the row, and the stored SHA-256 is compared with `crypto.subtle.timingSafeEqual`, which is the only way the comparison can be constant time. A refusal is 401 `bad-token`.
+- **Registration**: the request has an empty body, signed as `/v1/reply` is (`POST\n/v1/account\n<hex SHA-256 of nothing>`). `AttestedKey.verify` checks and stores the counter without the quota. One `INSERT ... ON CONFLICT (attest_key)` statement, so two registrations of one key never make two accounts. The dev path is an `X-Widgie-Dev-Secret` header, accepted only when `ENVIRONMENT` is `dev` and `DEV_REGISTRATION_SECRET` is set; the test configuration is production's with the secret set, and it is refused. A dev registration makes a new account each time, since the simulator has no key to name one by.
+- **Replace-all** is one D1 batch. Tombstones are an `INSERT ... SELECT` inside it, under a stamp the same batch takes with `max(last_stamp + 1, ms * 65536)` in SQL, so a runner's write lands either before them (and is deleted) or after (and finds its version gone). `PUT` answers `{digest}`, the SHA-256 of the bytes received.
+- **Validation** follows Spec.swift: 16 automations per account and 4 per widget, prompts of 1 to 2,000 grapheme clusters (Swift's `count`), ids, 16 fields, reserved field ids, and an IANA zone. The cadence takes only the canonical spellings the engine writes (`"06:00"`, `":15"`); Swift's reader also takes `"+6:00"`, which no payload carries. The run limit counts 24 for hourly and 1 for daily or weekly; over 60 is 422 `daily-runs` with the line "These automations would run 72 times a day, and the limit is 60."
+- **`nextWrite`** is the earliest `due_at` of the account's tasks, the time the server expects to write, as WIRE.md defines it, not the earliest `run_at`. It can be in the past while a due task waits for the cron, which makes the extension pull at its next render.
+- **`nextRun`** (`Backend/src/schedule.ts`) matches Foundation on every case printed from `Calendar.nextDate(... .nextTime)` across DST in New York, London, Santiago, Havana, Kolkata, and Lord Howe, except two where Foundation skips a run: a weekly time the clocks skip (Foundation moves to the next week) and a time inside Lord Howe's half-hour gap (Foundation moves to the next day). The Worker runs at the moment the clocks change in both, the plan's rule. P3's exported vectors should include these, and `Automations.swift` should adopt the same rule or the vectors record the difference; the phone only uses its `nextRun` for its reload time, so the server's answer is what decides when a row shows.
+- **Idle parking, deletion, and spend** are plain functions in `Backend/src/upkeep.ts` for P3's daily cron. A pull re-arms a parked account; an upload does not touch parking, since the app pulls on foreground first.
+- **Before the first deploy**: `npx wrangler d1 create widgie` and `npx wrangler d1 create widgie-dev`, the printed ids in `wrangler.jsonc` in place of the placeholders, `npx wrangler d1 migrations apply widgie-dev --env dev --remote` and `npx wrangler d1 migrations apply widgie --remote`, and `npx wrangler secret put DEV_REGISTRATION_SECRET --env dev`.
+- 280 Worker tests (201 new), including every case in `Engine/Vectors/wire.json`, read through a relative import.
 
 ### P3. Worker: the cron and the runner
 
