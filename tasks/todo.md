@@ -467,15 +467,18 @@ Every request was typed into the app with AXe. Attempts and the total come from 
 
 ### Phase 3. AI block
 
+Plan: `tasks/phase-3-ai-block.md` (approved 2026-11-27): a D1 task table, a cron that claims due tasks into a Queue, rows written a period ahead and revealed at their time, and a rationed pull in the widget.
+
 - [ ] Server scheduler that runs a block, writes the row, and sends a widget push. Every automation is personal: it runs its own widget's prompt, so one person's word of the day can be medical terms for a nursing exam and another's Spanish cooking words (user, 2026-11-22). Nothing is shared or computed once for everyone
 - [ ] Send each run the widget's recent rows, so a narrow topic does not repeat a word within weeks
 - [ ] Eval cases for topic-specific daily content, such as "a word of the day from medical terms for my nursing exam", and a refine that changes the topic
-- [ ] Extension push handler and a timeline fallback for when a push is dropped
+- [ ] A timeline fallback: rows written a period ahead and revealed at their time, so the change needs no push (the push handler moved to phase 4, user 2026-11-27)
 - [ ] Check: word of the day changes overnight on a device with the app closed
 
 ### Phase 4. Sync and sharing
 
 - [ ] Anonymous account per install, Sign in with Apple when the user first shares
+- [ ] WidgetKit push (moved from phase 3, user 2026-11-27): spike APNs from a deployed Worker, the APNs key, the extension push handler and token upload, one shared JWT signer, and a cap per account
 - [ ] Row sync through the backend
 - [ ] Invite link that survives a fresh install
 - [ ] Report and block, required by guideline 1.2
