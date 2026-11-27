@@ -1,0 +1,49 @@
+{
+  "format": 1,
+  "name": "Together",
+  "tables": {
+    "dates": {
+      "fields": {
+        "since": "date"
+      }
+    }
+  },
+  "queries": {
+    "first": {
+      "latest": "dates",
+      "window": "all"
+    }
+  },
+  "actions": {
+    "set": {
+      "form": "dates",
+      "fields": [
+        "since"
+      ],
+      "prompt": "When was your first date?"
+    }
+  },
+  "automations": {},
+  "assets": {},
+  "samples": {
+    "three years in": {
+      "dates": [
+        {
+          "since": {
+            "daysFromToday": -1204
+          }
+        }
+      ]
+    },
+    "under a month": {
+      "dates": [
+        {
+          "since": {
+            "daysFromToday": -23
+          }
+        }
+      ]
+    }
+  },
+  "look": "const CREAM = '#fff6ef';\nconst SUNSET = { gradient: 'linear', from: [0.33, 0], to: [0.67, 1],\n  stops: [{ light: '#ff9a5c', dark: '#b8562e' }, { light: '#ff6b4a', dark: '#9c3826' }] };\nconst INFINITY = 'M12 12c-2-2.7-3.7-4-5.5-4a4 4 0 0 0 0 8c1.8 0 3.5-1.3 5.5-4zm0 0c2 2.7 3.7 4 5.5 4a4 4 0 0 0 0-8c-1.8 '\n  + '0-3.5 1.3-5.5 4z';\n\nfunction grouped(n) {\n  return String(n).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');\n}\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall. Bricolage's line is 1.2 times its size, so\n  // the gaps around the count are 0.1 of its size shorter than the prototype's.\n  const u = ctx.height / 170;\n  const first = ctx.data.first;\n  const days = first && first.since\n    ? Math.max(0, Math.round((new Date(ctx.today.date) - new Date(first.since)) / 86400000)) : null;\n  const line = (value) => ({ type: 'text', value, size: 12.5 * u, weight: 'semibold', color: CREAM, opacity: 0.8,\n    lineLimit: 1, minScale: 0.8 });\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: SUNSET,\n    children: [\n      { type: 'button', action: 'set', rowId: first ? first.id : null, children: [\n        { type: 'vstack', align: 'leading', spacing: 0,\n          padding: { top: 13.5 * u, leading: 16 * u, trailing: 16 * u },\n          frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n          children: [\n            { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n              { type: 'path', d: INFINITY, viewBox: [0, 0, 24, 24], frame: { width: 15 * u, height: 15 * u },\n                stroke: { color: CREAM, width: 2.6 * 15 * u / 24, cap: 'round' } },\n              { type: 'text', value: 'Together', size: 13 * u, weight: 'bold', color: CREAM, lineLimit: 1 } ] },\n            { type: 'text', value: days === null ? 'Day one' : grouped(days), fontName: 'Bricolage Grotesque Display',\n              size: 40 * u, kerning: -1.2 * u, color: CREAM, accent: true, lineLimit: 1, minScale: 0.5,\n              padding: { top: 4 * u } },\n            { type: 'vstack', align: 'leading', spacing: 0, padding: { top: 1 * u },\n              children: days === null ? [line('tap to set the day'), line('of your first date')]\n                : [line(days === 1 ? 'day since' : 'days since'), line('our first date')] },\n          ] } ] },\n    ],\n  };\n}\n"
+}
