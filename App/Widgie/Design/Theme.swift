@@ -49,6 +49,22 @@ enum Palette {
     static let tabIdle = Color(.widgieTabIdle)
     static let makeKeyFill = Color(.widgieMakeKeyFill)
     static let badge = Color(.widgieBadge)
+    /// The toast, its words, its hairline (clear by day, as `faceEdge`), and the sky behind Widgie in it.
+    static let toast = Color(.widgieToast)
+    static let toastText = Color(.widgieToastText)
+    static let toastEdge = Color(.widgieToastEdge)
+    static let toastSkyTop = Color(.widgieToastSkyTop)
+    static let toastSkyBottom = Color(.widgieToastSkyBottom)
+
+    /// Each template category's banner, the ink on it, the heart over the two Widgies, and the habit squares.
+    static let bannerForTwo = Color(.widgieBannerForTwo)
+    static let bannerHome = Color(.widgieBannerHome)
+    static let bannerHabits = Color(.widgieBannerHabits)
+    static let bannerGoals = Color(.widgieBannerGoals)
+    static let bannerText = Color(.widgieBannerText)
+    static let bannerHeart = Color(.widgieBannerHeart)
+    static let squareOn = Color(.widgieSquareOn)
+    static let squareOff = Color(.widgieSquareOff)
 
     static let failureGround = Color(.widgieFailureGround)
     static let failureCaret = Color(.widgieFailureCaret)

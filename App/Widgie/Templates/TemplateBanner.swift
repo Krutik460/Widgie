@@ -31,10 +31,10 @@ extension Template.Category {
 
     var banner: Color {
         switch self {
-        case .forTwo: Color(.widgieBannerForTwo)
-        case .home: Color(.widgieBannerHome)
-        case .habits: Color(.widgieBannerHabits)
-        case .goals: Color(.widgieBannerGoals)
+        case .forTwo: Palette.bannerForTwo
+        case .home: Palette.bannerHome
+        case .habits: Palette.bannerHabits
+        case .goals: Palette.bannerGoals
         }
     }
 }
@@ -105,7 +105,7 @@ struct TemplateBanner: View {
     private var line: some View {
         Text(shown.line)
             .display(size: 27, relativeTo: .title, lineHeight: 1.02)
-            .foregroundStyle(Color(.widgieBannerText))
+            .foregroundStyle(Palette.bannerText)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 22)
             .padding(.vertical, 18)
@@ -185,7 +185,7 @@ private struct Heartbeat: View {
             Image(systemName: "heart.fill")
                 .resizable()
                 .scaledToFit()
-                .foregroundStyle(Color(.widgieBannerHeart))
+                .foregroundStyle(Palette.bannerHeart)
                 .scaleEffect(1 + 0.18 * beat)
         }
     }
@@ -247,7 +247,7 @@ private struct Squares: View {
                     let on = index == 5 ? filled : index % 4 != 1
                     let square = Path(
                         roundedRect: CGRect(x: column * 15, y: row * 15, width: 12, height: 12), cornerRadius: 3.5)
-                    context.fill(square, with: .color(Color(on ? .widgieSquareOn : .widgieSquareOff)))
+                    context.fill(square, with: .color(on ? Palette.squareOn : Palette.squareOff))
                 }
             }
         }

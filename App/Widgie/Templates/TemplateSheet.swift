@@ -63,10 +63,13 @@ struct TemplateSheet: View {
     /// The face's sizes in the sheet: a small face a little bigger than in the pile, and a wide one the width of
     /// the sheet's column.
     static func sizes(width: CGFloat) -> FaceSizes {
-        let side = min(184, ((width - 44) * 0.52).rounded(.down))
-        return FaceSizes(
-            small: CGSize(width: side, height: side), medium: FaceSizes(column: width - 44).medium)
+        let column = width - 2 * inset
+        let side = min(184, (column * 0.52).rounded(.down))
+        return FaceSizes(small: CGSize(width: side, height: side), medium: FaceSizes(column: column).medium)
     }
+
+    /// The space between the sheet's content and its sides.
+    static let inset: CGFloat = 22
 
     /// What the sheet holds. Its bottom padding and the home indicator's inset under it make the prototype's
     /// 40 points below the keys.
@@ -103,7 +106,7 @@ struct TemplateSheet: View {
                 }
                 keys.padding(.top, 16)
             }
-            .padding(.horizontal, 22)
+            .padding(.horizontal, TemplateSheet.inset)
             .padding(.top, 30)
             .padding(.bottom, 6)
         }
