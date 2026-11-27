@@ -242,9 +242,9 @@ Asked for on 2026-11-27: once the five units merged, clean up the code and merge
 
 **Make (pass B)**
 
-- [ ] Split `ChatView.swift` (1,333 lines) by responsibility: `Changes.swift` (a model type used by the session and tests), `ChatHello.swift`, `ChatMessages.swift`, `DraftCard.swift`, `Composer.swift`, `Unopened.swift`.
-- [ ] `action(for:)` uses `Failure.retryable`; the first note uses `Speech.landed`; one draft headroom constant; one message shape and text style; `react(to:)` without its unused parameter; clearer names (`results`, `openingLine`); `Picture` visibility and default.
-- [ ] Tests: shared `savedID()`, `send(_:in:)`, `paintsRed`, `noted` and repair setup in `Support.swift`; catalog checks move to `TemplateTests`; a stale comment.
+- [x] Split `ChatView.swift` (1,333 lines) by responsibility: `Changes.swift` (a model type used by the session and tests), `ChatHello.swift`, `ChatMessages.swift`, `DraftCard.swift`, `Composer.swift`, `Unopened.swift`.
+- [x] `action(for:)` uses `Failure.retryable`; the first note uses `Speech.landed`; one draft headroom constant; one message shape and text style; `react(to:)` without its unused parameter; clearer names (`results`, `openingLine`); `Picture` visibility and default. The idea colors go through `Palette`.
+- [x] Tests: shared `savedID()`, `send(_:in:)`, `paintsRed`, `noted` and repair setup in `Support.swift` (`addNote(to:)`, with the chat suite's three library edits in one `blueEdit`); catalog checks move to `TemplateTests`; a stale comment. The form test in `FeedTests` keeps its own `note` field, since it names the field again in the form.
 
 **Templates and the engine (pass C)**
 
