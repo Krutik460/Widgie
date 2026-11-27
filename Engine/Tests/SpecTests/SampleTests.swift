@@ -78,7 +78,8 @@ private func rows(
 
     @Test func aRowThatStaysTodayIsPlacedByMinutesAndSurvivesTheCanonicalDocument() throws {
         let spec = try parse(
-            withTables(#""samples": {"just": {"glasses": [{"minutesAgo": 30, "staysToday": true}, {"minutesAgo": 5}]}}"#))
+            withTables(
+                #""samples": {"just": {"glasses": [{"minutesAgo": 30, "staysToday": true}, {"minutesAgo": 5}]}}"#))
         let rows = try #require(spec.sample(named: "just")).rows
         #expect(rows.map(\.minutesAgo) == [30, 5])
         #expect(rows.map(\.staysToday) == [true, false])
@@ -95,7 +96,8 @@ private func rows(
             #expect(rejection(withTables(#""samples": {"just": {"glasses": [\#(row)]}}"#)) == rule, "\(row)")
         }
         #expect(
-            rejection(document(#""tables": {"t": {"fields": {"staysToday": "bool"}}}"#))?.contains("is reserved") == true,
+            rejection(document(#""tables": {"t": {"fields": {"staysToday": "bool"}}}"#))?.contains("is reserved")
+                == true,
             "a field cannot take the key's name")
     }
 
