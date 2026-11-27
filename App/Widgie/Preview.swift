@@ -158,14 +158,7 @@ final class Preview {
     private func draw(_ widget: WidgetID) async -> (faces: [Family: Face], changes: Date)? {
         drawings += 1
         let drawing = drawings
-        let now = redraws.clock.now()
-        var faces: [Family: Face] = [:]
-        var changes = Date.distantFuture
-        for family in Family.allCases {
-            let drawn = await engine.face(for: widget, family: family, size: sizes[family], at: now)
-            faces[family] = drawn.current
-            changes = min(changes, drawn.reloadAt)
-        }
-        return drawing == drawings ? (faces, changes) : nil
+        let drawn = await engine.faces(of: widget, sizes: sizes, at: redraws.clock.now())
+        return drawing == drawings ? drawn : nil
     }
 }
