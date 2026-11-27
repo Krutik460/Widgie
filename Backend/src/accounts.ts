@@ -4,11 +4,13 @@
 
 import { insertTask, type Stored, scheduleTask } from "./automations";
 import { fromBase64, sha256, toBase64Url, toHex } from "./bytes";
-import { HOUR } from "./schedule";
+import { HOUR, MINUTE } from "./schedule";
 import { encodePage, isUuid, mintUuid } from "./wire";
 
 /// The most changes one pull returns. The phone asks again from the page's last id.
 export const PAGE_SIZE = 500;
+/// The soonest `nextWrite` a pull names, so a task waiting for the cron does not make the extension pull at every render.
+export const NEXT_WRITE_GAP = 5 * MINUTE;
 
 export interface Account {
     id: string;
@@ -60,7 +62,8 @@ export async function authenticate(db: D1Database, header: string | null): Promi
 }
 
 /// The page of the account's changes after `after`, as WIRE.md writes it, and how many it holds. A pull records that
-/// the phone is alive (at most once an hour, to spare writes) and re-arms a parked account first.
+/// the phone is alive (at most once an hour, to spare writes) and its watermark (when it moved), and re-arms a parked
+/// account first.
 export async function pull(
     db: D1Database,
     account: Account,
@@ -75,11 +78,16 @@ export async function pull(
         // When the server next expects to write: the earliest time a task of the account is due.
         db.prepare("SELECT min(due_at) AS next FROM tasks WHERE account = ?").bind(account.id),
         db
-            .prepare("UPDATE accounts SET pulled_at = ?1 WHERE id = ?2 AND pulled_at <= ?1 - ?3")
-            .bind(now, account.id, HOUR),
+            .prepare(
+                `UPDATE accounts SET pulled_at = CASE WHEN pulled_at <= ?1 - ?3 THEN ?1 ELSE pulled_at END,
+                     pulled_after = ?4
+                 WHERE id = ?2 AND (pulled_at <= ?1 - ?3 OR pulled_after != ?4)`,
+            )
+            .bind(now, account.id, HOUR, after),
     ]);
     const entries = (page?.results ?? []) as { id: number; change: string }[];
-    const nextWrite = (next?.results[0] as { next: number | null } | undefined)?.next ?? null;
+    const due = (next?.results[0] as { next: number | null } | undefined)?.next ?? null;
+    const nextWrite = due === null ? null : Math.max(due, now + NEXT_WRITE_GAP);
     return { body: encodePage(account.replica, entries, nextWrite), count: entries.length };
 }
 

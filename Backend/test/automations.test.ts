@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { leadSeed } from "../src/automations";
+import { ATTEMPTS, leadSeed, TOMBSTONES } from "../src/automations";
 import { sha256, toHex } from "../src/bytes";
-import { MAX_AUTOMATIONS_BODY } from "../src/index";
+import { type Env, MAX_AUTOMATIONS_BODY } from "../src/index";
 import { DAY, HOUR, LEADS, leadMs, MINUTE } from "../src/schedule";
 import { encodeChange, isRowKey, mintRowKey, rowKeyMs, stampOf, stampParts } from "../src/wire";
 import { automation, DATASET, NOW, newAccount, payload, send, upload, WIDGET } from "./helpers/accounts";
@@ -295,8 +295,6 @@ describe("the payload", () => {
         ["an automation with an unknown key", payload([{ ...automation(), timeZone: "UTC" }])],
         ["a missing prompt", payload([{ ...automation(), prompt: undefined }])],
         ["an empty prompt", payload([automation({ prompt: "" })])],
-        ["a prompt of 2001 characters", payload([automation({ prompt: "a".repeat(2001) })])],
-        ["a prompt of 2001 emoji", payload([automation({ prompt: longEmoji(2001) })])],
         ["an uppercase widget key", payload([automation({ widget: WIDGET.toUpperCase() })])],
         ["a widget key that is not a UUID", payload([automation({ widget: "widget" })])],
         ["an automation id with a capital first", payload([automation({ automation: "Daily" })])],
@@ -317,24 +315,8 @@ describe("the payload", () => {
         ["a field of an unknown kind", payload([automation({ fields: { word: "string" } })])],
         ["a reserved field id", payload([automation({ fields: { day: "date" } })])],
         ["a field id with a capital first", payload([automation({ fields: { Word: "text" } })])],
-        [
-            "17 fields",
-            payload([automation({ fields: Object.fromEntries([...Array(17).keys()].map((i) => [`f${i}`, "text"])) })]),
-        ],
         ["a null at", payload([{ ...automation(), at: null }])],
         ["an automation twice", payload([automation(), automation({ prompt: "again" })])],
-        [
-            "five automations on one widget",
-            payload([...Array(5).keys()].map((i) => automation({ automation: `a${i}` }))),
-        ],
-        [
-            "17 automations",
-            payload(
-                [...Array(17).keys()].map((i) =>
-                    automation({ automation: `a${i}`, widget: WIDGETS[i % 4], every: "week", on: "monday" }),
-                ),
-            ),
-        ],
     ];
 
     it.each(cases)("refuses %s, and keeps what the account had", async (_, body) => {
@@ -347,7 +329,46 @@ describe("the payload", () => {
         expect(await tasks(id)).toEqual(before);
     });
 
-    it("takes the limits themselves: 16 automations, 2000 characters, 16 fields", async () => {
+    const limits: [string, unknown, string, string][] = [
+        [
+            "a prompt of 2001 characters",
+            payload([automation({ prompt: "a".repeat(2001) })]),
+            "prompt-too-long",
+            'The prompt of "daily" is 2001 characters, and the limit is 2000.',
+        ],
+        [
+            "a prompt of 2001 emoji, counted as Swift counts them",
+            payload([automation({ prompt: longEmoji(2001) })]),
+            "prompt-too-long",
+            'The prompt of "daily" is 2001 characters, and the limit is 2000.',
+        ],
+        [
+            "17 fields",
+            payload([automation({ fields: Object.fromEntries([...Array(17).keys()].map((i) => [`f${i}`, "text"])) })]),
+            "too-many-fields",
+            '"daily" writes 17 fields, and the limit is 16.',
+        ],
+        [
+            "five automations on one widget",
+            payload([...Array(5).keys()].map((i) => automation({ automation: `a${i}` }))),
+            "too-many-on-widget",
+            "A widget has 5 automations, and the limit is 4 a widget.",
+        ],
+    ];
+
+    it.each(limits)(
+        "refuses %s with a code and a sentence, and keeps what the account had",
+        async (_, body, code, error) => {
+            const { id, token } = await newAccount();
+            await send(upload(token, payload([automation()])));
+            const before = await tasks(id);
+            const answer = await send(upload(token, body), { now: NOW + MINUTE });
+            expect(answer).toMatchObject({ status: 422, body: { error, code } });
+            expect(await tasks(id)).toEqual(before);
+        },
+    );
+
+    it("takes the limits themselves: 4 automations a widget, 2000 characters, 16 fields", async () => {
         const { id, token } = await newAccount();
         const sixteen = [...Array(16).keys()].map((i) =>
             automation({
@@ -362,27 +383,24 @@ describe("the payload", () => {
         expect(await tasks(id)).toHaveLength(32);
     });
 
-    it("names the length in characters as Swift counts them", async () => {
-        const { token } = await newAccount();
-        const { body } = await send(upload(token, payload([automation({ prompt: longEmoji(2001) })])));
-        expect(body?.error).toBe('bad request: automations[0]: "prompt" is 2001 characters; keep it to 2000 or fewer');
+    // The usage limits (automations an account, runs a day) were removed for now; tasks/phase-3-ai-block.md says why.
+    it("has no usage limits: any number of widgets, and hourly schedules past 60 runs a day", async () => {
+        const { id, token } = await newAccount();
+        const widgets = [...WIDGETS, "41111111-2222-4333-8444-555555555555"];
+        const twenty = [...Array(20).keys()].map((i) =>
+            automation({ automation: `h${i}`, widget: widgets[i % 5], every: "hour", at: ":00" }),
+        );
+        expect((await send(upload(token, payload(twenty)))).status).toBe(200);
+        expect(await tasks(id)).toHaveLength(40);
     });
 
-    it("refuses schedules over 60 runs a day with a line the app shows, and takes exactly 60", async () => {
+    it("keeps the time zone's canonical name, so every spelling of one zone is one version", async () => {
         const { id, token } = await newAccount();
-        const hourly = (i: number) => automation({ automation: `h${i}`, widget: WIDGETS[i], every: "hour", at: ":00" });
-        const { status, body } = await send(upload(token, payload([hourly(0), hourly(1), hourly(2)])));
-        expect(status).toBe(422);
-        expect(body).toEqual({
-            error: "These automations would run 72 times a day, and the limit is 60.",
-            code: "daily-runs",
-        });
-        expect(await tasks(id)).toEqual([]);
-
-        // Two hourly and twelve daily, at most four on a widget: 2 * 24 + 12 = 60.
-        const daily = [...Array(12).keys()].map((i) => automation({ automation: `d${i}`, widget: WIDGETS[i % 4] }));
-        expect((await send(upload(token, payload([hourly(0), hourly(1), ...daily])))).status).toBe(200);
-        expect(await tasks(id)).toHaveLength(28);
+        await send(upload(token, payload([automation()], "america/new_york")));
+        expect((await accountRow(id))?.time_zone).toBe("America/New_York");
+        const before = { version: await versionOf(id), tasks: await tasks(id) };
+        await send(upload(token, payload([automation()])), { now: NOW + MINUTE });
+        expect({ version: await versionOf(id), tasks: await tasks(id) }).toEqual(before);
     });
 
     it("refuses a body that is not JSON, too large, or without a token", async () => {
@@ -404,5 +422,106 @@ describe("the payload", () => {
         expect((await send(anonymous)).body).toMatchObject({ code: "bad-token" });
         const post = new Request("https://widgie.test/v1/automations", { method: "POST" });
         expect((await send(post)).status).toBe(405);
+    });
+});
+
+/// The database with `between` run before every `nth` batch it is given. An upload reads in one batch and writes in
+/// the next, so with `nth` 2, `between` commits another upload after this one's read and before its write.
+function overtaken(between: () => Promise<unknown>, times = 1): { db: D1Database; batches: () => number } {
+    let batches = 0;
+    let left = times;
+    const db = new Proxy(env.DB, {
+        get(target, key) {
+            if (key === "batch") {
+                return async (statements: D1PreparedStatement[]) => {
+                    batches++;
+                    if (batches % 2 === 0 && left > 0) {
+                        left--;
+                        await between();
+                    }
+                    return target.batch(statements);
+                };
+            }
+            const value = Reflect.get(target, key);
+            return typeof value === "function" ? value.bind(target) : value;
+        },
+    });
+    return { db, batches: () => batches };
+}
+
+describe("concurrent uploads", () => {
+    it("never acknowledge a payload the server does not hold: one overtaken between its read and write plans again", async () => {
+        const { id, token } = await newAccount();
+        const s0 = JSON.stringify(payload([automation()]));
+        const s1 = JSON.stringify(payload([automation({ prompt: "Overtaking words." })]));
+        await send(upload(token, s0));
+        // B sends S0 again and reads S0; A commits S1; B's write, planned from S0, must not land as a no-op.
+        const { db, batches } = overtaken(async () => {
+            expect((await send(upload(token, s1), { now: NOW + MINUTE })).body).toEqual({
+                digest: toHex(await sha256(s1)),
+            });
+        });
+        const b = await send(upload(token, s0), { now: NOW + 2 * MINUTE, environment: { ...env, DB: db } as Env });
+        expect(batches()).toBe(4);
+        expect(b.body).toEqual({ digest: toHex(await sha256(s0)) });
+        const stored = await env.DB.prepare("SELECT prompt FROM automations WHERE account = ?").bind(id).first();
+        expect(stored).toEqual({ prompt: "Pick an interesting, real English word." });
+        // B planned again from S1, so S0's prompt came back as a content change with a fresh run now.
+        expect((await tasks(id)).find((task) => task.once === 1)).toMatchObject({ run_at: NOW + 2 * MINUTE });
+    });
+
+    it("give up with 409 conflict when overtaken on every attempt, and the failed batches write nothing", async () => {
+        const { id, token } = await newAccount();
+        await send(upload(token, payload([automation()])));
+        let round = 0;
+        const { db, batches } = overtaken(async () => {
+            round++;
+            await send(upload(token, payload([automation({ prompt: `Round ${round}.` })])), { now: NOW + MINUTE });
+        }, ATTEMPTS);
+        const extra = automation({ automation: "extra", at: "08:00" });
+        const b = await send(upload(token, payload([automation(), extra])), {
+            now: NOW + 2 * MINUTE,
+            environment: { ...env, DB: db } as Env,
+        });
+        expect(batches()).toBe(2 * ATTEMPTS);
+        expect(b).toMatchObject({
+            status: 409,
+            body: { error: "the automations changed during this upload, send them again", code: "conflict" },
+        });
+        // Each batch's later statements rolled back with its failed revision check: nothing of B's is stored.
+        expect(await versionOf(id, "extra")).toBeUndefined();
+        expect((await tasks(id)).map((task) => task.automation)).toEqual(["daily", "daily"]);
+        const stored = await env.DB.prepare("SELECT prompt FROM automations WHERE account = ?").bind(id).first();
+        expect(stored).toEqual({ prompt: `Round ${ATTEMPTS}.` });
+        const revision = await env.DB.prepare("SELECT revision FROM accounts WHERE id = ?").bind(id).first();
+        expect(revision).toEqual({ revision: 1 + ATTEMPTS });
+    });
+});
+
+describe("the changes indexes", () => {
+    async function plan(sql: string, ...values: unknown[]): Promise<string> {
+        const { results } = await env.DB.prepare(`EXPLAIN QUERY PLAN ${sql}`)
+            .bind(...values)
+            .all<{ detail: string }>();
+        return results.map((row) => row.detail).join("\n");
+    }
+
+    it("serve the tombstones: an automation's rows ahead, and the check for a row already deleted", async () => {
+        const detail = await plan(TOMBSTONES, "account", "replica", NOW, WIDGET, "daily");
+        expect(detail).toMatch(
+            /SEARCH inserted USING INDEX changes_inserted \(account=\? AND widget=\? AND automation=\? AND at>\?\)/,
+        );
+        expect(detail).toMatch(/SEARCH changes USING (COVERING )?INDEX changes_deleted \(account=\? AND row_key=\?\)/);
+        expect(detail).not.toMatch(/SCAN changes|SCAN inserted/);
+    });
+
+    it("serve P3's read-back of a dataset's recent rows", async () => {
+        const detail = await plan(
+            "SELECT change FROM changes WHERE account = ? AND dataset = ? ORDER BY id DESC LIMIT 60",
+            "account",
+            DATASET,
+        );
+        expect(detail).toMatch(/SEARCH changes USING INDEX changes_dataset \(account=\? AND dataset=\?\)/);
+        expect(detail).not.toMatch(/TEMP B-TREE/);
     });
 });

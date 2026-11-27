@@ -11,26 +11,38 @@
 //   account's automation replica, since a tombstone wins the merge. The version guard in the runner drops any run of
 //   the old version still in flight.
 // The tombstones are selected inside the batch's transaction, so a runner's write either lands before them and is
-// deleted, or after them and finds its version gone.
+// deleted, or after them and finds its version gone. The batch's first statement checks the account's revision, so an
+// upload that another one overtook between its read and its write writes nothing, reads again, and plans again.
 
 import { sha256, toHex } from "./bytes";
 import { BadRequest } from "./request";
-import { type Cadence, isTimeZone, leadMs, nextRun, runsPerDay, WEEKDAYS, type Weekday } from "./schedule";
+import { type Cadence, canonicalZone, leadMs, nextRun, WEEKDAYS, type Weekday } from "./schedule";
 import { isName, isObject, isUuid, KINDS, type Kind, mintRowKey } from "./wire";
 
-/// The caps of Spec.Limits that an upload carries, and the account's.
+/// The caps of Spec.Limits that an upload carries: the document's own rules, which the engine enforces too. There are no
+/// usage limits for now (runs a day, automations an account); tasks/phase-3-ai-block.md records why.
 export const LIMITS = {
-    /// Per account: four automations on each of four widgets.
-    automations: 16,
     /// Spec.Limits.automations: per widget, since each widget's document has its own.
     perWidget: 4,
     /// Spec.Limits.promptLength, in characters as Swift counts them (grapheme clusters).
     prompt: 2000,
     /// Spec.Limits.fieldsPerTable.
     fields: 16,
-    /// The schedules' runs in one day, over every automation of the account.
-    runsPerDay: 60,
 } as const;
+
+/// The limit refusals, each a stable code the app acts on.
+export type LimitCode = "too-many-on-widget" | "prompt-too-long" | "too-many-fields";
+
+/// A payload over one of LIMITS: its code, a sentence the app can show, and the number that went over.
+export class OverLimit extends Error {
+    constructor(
+        readonly code: LimitCode,
+        sentence: string,
+        readonly found: number,
+    ) {
+        super(sentence);
+    }
+}
 
 /// Spec.reservedFieldIDs: a table never declares these, so a payload never carries them.
 const RESERVED_FIELDS = [
@@ -66,17 +78,14 @@ export interface Payload {
 
 const ENTRY_KEYS = ["at", "automation", "dataset", "every", "fields", "on", "prompt", "widget"];
 
-/// The payload, or a BadRequest naming the first thing wrong with it.
+/// The payload with its time zone's canonical name, or a BadRequest naming the first thing wrong with it, or the
+/// first limit it goes over as an OverLimit.
 export function parsePayload(value: unknown): Payload {
     if (!isObject(value)) throw new BadRequest("the body must be a JSON object");
     only(value, ["automations", "timeZone"], "the body");
-    if (!isTimeZone(value.timeZone)) {
-        throw new BadRequest(`"timeZone" must be a time zone name like "America/Los_Angeles"`);
-    }
+    const timeZone = canonicalZone(value.timeZone);
+    if (timeZone === null) throw new BadRequest(`"timeZone" must be a time zone name like "America/Los_Angeles"`);
     if (!Array.isArray(value.automations)) throw new BadRequest('"automations" must be a list');
-    if (value.automations.length > LIMITS.automations) {
-        throw new BadRequest(`at most ${LIMITS.automations} automations, found ${value.automations.length}`);
-    }
     const automations = value.automations.map((entry, index) => {
         try {
             return automation(entry);
@@ -91,18 +100,17 @@ export function parsePayload(value: unknown): Payload {
         const key = `${widget}/${automation}`;
         if (seen.has(key)) throw new BadRequest(`automation "${automation}" of widget ${widget} appears twice`);
         seen.add(key);
-        const count = (perWidget.get(widget) ?? 0) + 1;
-        if (count > LIMITS.perWidget) {
-            throw new BadRequest(`at most ${LIMITS.perWidget} automations per widget, found more for ${widget}`);
-        }
-        perWidget.set(widget, count);
+        perWidget.set(widget, (perWidget.get(widget) ?? 0) + 1);
     }
-    return { timeZone: value.timeZone, automations };
-}
-
-/// The runs the payload's schedules make in a day at most.
-export function dailyRuns(payload: Payload): number {
-    return payload.automations.reduce((total, automation) => total + runsPerDay(automation.cadence), 0);
+    const crowded = Math.max(0, ...perWidget.values());
+    if (crowded > LIMITS.perWidget) {
+        throw new OverLimit(
+            "too-many-on-widget",
+            `A widget has ${crowded} automations, and the limit is ${LIMITS.perWidget} a widget.`,
+            crowded,
+        );
+    }
+    return { timeZone, automations };
 }
 
 function automation(value: unknown): Automation {
@@ -120,7 +128,11 @@ function automation(value: unknown): Automation {
     // A string of n UTF-16 units has at most n characters, so only a long one needs counting.
     const length = prompt.length > LIMITS.prompt ? characters(prompt) : 0;
     if (length > LIMITS.prompt) {
-        throw new BadRequest(`"prompt" is ${length} characters; keep it to ${LIMITS.prompt} or fewer`);
+        throw new OverLimit(
+            "prompt-too-long",
+            `The prompt of "${value.automation}" is ${length} characters, and the limit is ${LIMITS.prompt}.`,
+            length,
+        );
     }
     if (!isUuid(dataset)) throw new BadRequest('"dataset" must be a lowercase UUID');
     return {
@@ -129,7 +141,7 @@ function automation(value: unknown): Automation {
         prompt,
         cadence: cadence(value),
         dataset,
-        fields: fieldKinds(fields),
+        fields: fieldKinds(fields, value.automation),
     };
 }
 
@@ -159,10 +171,16 @@ function cadence(value: Record<string, unknown>): Cadence {
     return { every, on: on as Weekday, hour, minute };
 }
 
-function fieldKinds(value: unknown): Record<string, Kind> {
+function fieldKinds(value: unknown, automation: string): Record<string, Kind> {
     if (!isObject(value)) throw new BadRequest('"fields" must map field ids to kinds, like {"word": "text"}');
     const ids = Object.keys(value).sort();
-    if (ids.length > LIMITS.fields) throw new BadRequest(`at most ${LIMITS.fields} fields, found ${ids.length}`);
+    if (ids.length > LIMITS.fields) {
+        throw new OverLimit(
+            "too-many-fields",
+            `"${automation}" writes ${ids.length} fields, and the limit is ${LIMITS.fields}.`,
+            ids.length,
+        );
+    }
     const fields: Record<string, Kind> = {};
     for (const id of ids) {
         if (RESERVED_FIELDS.includes(id)) throw new BadRequest(`field id "${id}" is reserved`);
@@ -281,24 +299,89 @@ export function insertTask(
 
 type Plan = "new" | "content" | "schedule" | "same";
 
-/// Replaces the account's automations with the payload's, in one batch.
+/// How many times an upload reads and plans when other uploads of the account keep committing in between.
+export const ATTEMPTS = 3;
+
+/// Other uploads of the account committed between this one's read and its write on every attempt.
+export class Conflict extends Error {}
+
+/// What an upload plans from: the account's revision and its automations, read in one batch.
+interface State {
+    revision: number;
+    automations: Stored[];
+}
+
+/// The deleteRow for each row of one automation still ahead with no deleteRow yet, under the stamp the batch took.
+/// The partial indexes `changes_inserted` and `changes_deleted` serve it, so it reads only that automation's rows.
+export const TOMBSTONES = `INSERT INTO changes (account, op, dataset, row_key, widget, automation, at, change, written_at)
+    SELECT account, 'deleteRow', dataset, row_key, widget, automation, NULL,
+        json_object('op', 'deleteRow', 'row', row_key, 'dataset', dataset,
+            'stamp', (SELECT CAST(last_stamp AS TEXT) FROM accounts WHERE id = ?1), 'replica', ?2),
+        ?3
+    FROM changes AS inserted
+    WHERE account = ?1 AND widget = ?4 AND automation = ?5 AND op = 'insertRow' AND at > ?3
+        AND NOT EXISTS (SELECT 1 FROM changes
+            WHERE account = ?1 AND op = 'deleteRow' AND row_key = inserted.row_key)
+    ORDER BY id`;
+
+/// Replaces the account's automations with the payload's, in one batch that writes only if the account's revision is
+/// still the one it planned from; otherwise it reads and plans again, up to ATTEMPTS times, then throws Conflict. An
+/// upload counts as the phone being alive and re-arms a parked account.
 export async function replaceAutomations(
     db: D1Database,
     account: { id: string; replica: string },
     payload: Payload,
     now: number,
 ): Promise<void> {
-    const { results: before } = await db
-        .prepare(
-            "SELECT widget, automation, version, prompt, every, at, weekday, dataset, fields FROM automations WHERE account = ?",
-        )
-        .bind(account.id)
-        .all<Stored>();
-    const old = new Map(before.map((row) => [`${row.widget}/${row.automation}`, row]));
+    const rows = await Promise.all(
+        payload.automations.map(async (automation) =>
+            stored(automation, await versionOf(automation, payload.timeZone)),
+        ),
+    );
+    for (let attempt = 1; ; attempt++) {
+        const state = await readState(db, account.id);
+        try {
+            await db.batch(replaceStatements(db, account, payload.timeZone, rows, state, now));
+            return;
+        } catch (error) {
+            // A revision that moved is another upload's commit; anything else is this batch's own failure.
+            const revision = await db
+                .prepare("SELECT revision FROM accounts WHERE id = ?")
+                .bind(account.id)
+                .first<number>("revision");
+            if (revision === state.revision) throw error;
+            if (attempt === ATTEMPTS) throw new Conflict();
+        }
+    }
+}
 
+async function readState(db: D1Database, id: string): Promise<State> {
+    const [account, automations] = await db.batch([
+        db.prepare("SELECT revision FROM accounts WHERE id = ?").bind(id),
+        db
+            .prepare(
+                "SELECT widget, automation, version, prompt, every, at, weekday, dataset, fields FROM automations WHERE account = ?",
+            )
+            .bind(id),
+    ]);
+    const row = account?.results[0] as { revision: number } | undefined;
+    if (!row) throw new Error("the account is gone");
+    return { revision: row.revision, automations: (automations?.results ?? []) as Stored[] };
+}
+
+/// The batch that turns `state` into `rows`. Its first statement is the revision check: on a mismatch it sets revision
+/// to NULL, which the NOT NULL constraint refuses, and D1 rolls the whole batch back.
+function replaceStatements(
+    db: D1Database,
+    account: { id: string; replica: string },
+    timeZone: string,
+    rows: Stored[],
+    state: State,
+    now: number,
+): D1PreparedStatement[] {
+    const old = new Map(state.automations.map((row) => [`${row.widget}/${row.automation}`, row]));
     const plans: { row: Stored; plan: Plan }[] = [];
-    for (const automation of payload.automations) {
-        const row = stored(automation, await versionOf(automation, payload.timeZone));
+    for (const row of rows) {
         const was = old.get(`${row.widget}/${row.automation}`);
         old.delete(`${row.widget}/${row.automation}`);
         let plan: Plan = "new";
@@ -316,34 +399,19 @@ export async function replaceAutomations(
     ];
 
     const id = account.id;
-    const statements: D1PreparedStatement[] = [];
-    // One stamp for this write, taken only when it writes changes, in SQL so two writers never take the same one.
-    statements.push(
-        tombstoned.length > 0
-            ? db
-                  .prepare(
-                      "UPDATE accounts SET time_zone = ?1, last_stamp = max(last_stamp + 1, CAST(?2 AS INTEGER) * 65536) WHERE id = ?3",
-                  )
-                  .bind(payload.timeZone, now, id)
-            : db.prepare("UPDATE accounts SET time_zone = ? WHERE id = ?").bind(payload.timeZone, id),
-    );
+    const statements: D1PreparedStatement[] = [
+        // The revision check, and one stamp taken only when it writes changes, in SQL so two writers never share one.
+        db
+            .prepare(
+                `UPDATE accounts SET revision = CASE WHEN revision = ?1 THEN revision + 1 END, time_zone = ?2,
+                     last_stamp = CASE WHEN ?3 THEN max(last_stamp + 1, CAST(?4 AS INTEGER) * 65536) ELSE last_stamp END,
+                     pulled_at = max(pulled_at, ?4), parked_at = NULL
+                 WHERE id = ?5`,
+            )
+            .bind(state.revision, timeZone, tombstoned.length > 0 ? 1 : 0, now, id),
+    ];
     for (const row of tombstoned) {
-        statements.push(
-            db
-                .prepare(
-                    `INSERT INTO changes (account, op, dataset, row_key, widget, automation, at, change, written_at)
-                     SELECT account, 'deleteRow', dataset, row_key, widget, automation, NULL,
-                         json_object('op', 'deleteRow', 'row', row_key, 'dataset', dataset,
-                             'stamp', (SELECT CAST(last_stamp AS TEXT) FROM accounts WHERE id = ?1), 'replica', ?2),
-                         ?3
-                     FROM changes AS inserted
-                     WHERE account = ?1 AND widget = ?4 AND automation = ?5 AND op = 'insertRow' AND at > ?3
-                         AND NOT EXISTS (SELECT 1 FROM changes
-                             WHERE account = ?1 AND op = 'deleteRow' AND row_key = inserted.row_key)
-                     ORDER BY id`,
-                )
-                .bind(id, account.replica, now, row.widget, row.automation),
-        );
+        statements.push(db.prepare(TOMBSTONES).bind(id, account.replica, now, row.widget, row.automation));
     }
     for (const row of removed) {
         statements.push(
@@ -353,7 +421,11 @@ export async function replaceAutomations(
         );
     }
     for (const { row, plan } of plans) {
-        if (plan === "same") continue;
+        // An unchanged automation keeps its tasks, or gets its schedule back if parking took it.
+        if (plan === "same") {
+            statements.push(insertTask(db, id, row, scheduleTask(id, row, timeZone, now), true));
+            continue;
+        }
         statements.push(
             db
                 .prepare(
@@ -390,7 +462,7 @@ export async function replaceAutomations(
             statements.push(db.prepare(tasks).bind(id, row.widget, row.automation));
             statements.push(insertTask(db, id, row, { once: 1, runAt: now, dueAt: now, rowKey: mintRowKey(now) }));
         }
-        statements.push(insertTask(db, id, row, scheduleTask(id, row, payload.timeZone, now)));
+        statements.push(insertTask(db, id, row, scheduleTask(id, row, timeZone, now)));
     }
-    await db.batch(statements);
+    return statements;
 }
