@@ -110,6 +110,15 @@ extension View {
         }
     }
 
+    /// "Something went wrong" with `message` while there is one and `shown` holds. OK clears it.
+    func failureAlert(_ message: Binding<String?>, when shown: Bool = true) -> some View {
+        alert(
+            "Something went wrong", isPresented: .constant(shown && message.wrappedValue != nil),
+            actions: { Button("OK") { message.wrappedValue = nil } },
+            message: { Text(message.wrappedValue ?? "") }
+        )
+    }
+
     /// A sheet in the prototype's style: 36-point corners over the light gradient by day and the dusk at night,
     /// with the grabber.
     func sheetStyle() -> some View {

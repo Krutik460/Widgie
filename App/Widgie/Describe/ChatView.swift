@@ -30,17 +30,8 @@ struct ChatView: View {
         .animation(.easeOut(duration: 0.28), value: ObjectIdentifier(session))
         .task(id: ObjectIdentifier(session)) { await session.open() }
         .onChange(of: session.phase) { chat.resume() }
-        .sheet(item: Bindable(session.preview).form) { shown in
-            FormSheet(form: shown.form) { input in
-                session.preview.perform(shown.form.tap, input: input)
-                session.preview.form = nil
-            }
-        }
-        .alert(
-            "Something went wrong", isPresented: .constant(session.preview.message != nil),
-            actions: { Button("OK") { session.preview.message = nil } },
-            message: { Text(session.preview.message ?? "") }
-        )
+        .previewForms(session.preview)
+        .failureAlert(Bindable(session.preview).message)
         .foregroundStyle(Palette.text)
         .tint(Palette.caret)
     }

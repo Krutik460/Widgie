@@ -8,7 +8,7 @@ struct WidgetDetail: View {
     let id: WidgetID
 
     @State private var changing: Chat?
-    @State private var confirmDelete = false
+    @State private var deleting: WidgetID?
     @Environment(\.dismiss) private var dismiss
 
     private var item: Library.Item? { library.items.first { $0.id == id } }
@@ -52,15 +52,7 @@ struct WidgetDetail: View {
         }
         .foregroundStyle(Palette.text)
         .sheetStyle()
-        .confirmationDialog("Delete this widget?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
-                library.delete(id)
-                dismiss()
-            }
-            Button("Keep it", role: .cancel) {}
-        } message: {
-            Text(Self.deleteMessage(placed: !placed.isEmpty))
-        }
+        .confirmsDelete($deleting, in: library) { dismiss() }
         .fullScreenCover(item: $changing) { chat in
             EditChat(library: library, chat: chat)
         }
@@ -70,11 +62,7 @@ struct WidgetDetail: View {
                 library.form = nil
             }
         }
-        .alert(
-            "Something went wrong", isPresented: .constant(library.message != nil),
-            actions: { Button("OK") { library.message = nil } },
-            message: { Text(library.message ?? "") }
-        )
+        .failureAlert(Bindable(library).message)
     }
 
     private var status: String {
@@ -89,7 +77,7 @@ struct WidgetDetail: View {
     /// Delete beside Change it, over a fade so what scrolls under them never collides with them.
     private var keys: some View {
         HStack(spacing: 10) {
-            Button("Delete") { confirmDelete = true }
+            Button("Delete") { deleting = id }
                 .buttonStyle(KeyButtonStyle(prominent: false))
             Button("Change it") { changing = Chat(.library(id), close: { changing = nil }) }
                 .buttonStyle(KeyButtonStyle())
@@ -156,16 +144,37 @@ struct WidgetDetail: View {
         }
     }
 
-    /// What deleting takes with it. A home screen widget showing this one moves on to another or goes blank.
-    static func deleteMessage(placed: Bool) -> String {
-        placed ? "Its data goes with it, and your home screen stops showing it." : "Its data goes with it."
-    }
-
     private func perform(_ tap: Tap) {
         library.perform(tap)
     }
 
     private func showForm(_ tap: Tap) {
         library.showForm(for: tap)
+    }
+}
+
+extension View {
+    /// Asks before deleting the widget in `deleting` from `library`, saying what goes with it, and calls `deleted`
+    /// once it is gone.
+    func confirmsDelete(
+        _ deleting: Binding<WidgetID?>, in library: Library, deleted: @escaping () -> Void = {}
+    ) -> some View {
+        confirmationDialog(
+            "Delete this widget?",
+            isPresented: Binding(
+                get: { deleting.wrappedValue != nil }, set: { if !$0 { deleting.wrappedValue = nil } }),
+            titleVisibility: .visible, presenting: deleting.wrappedValue
+        ) { id in
+            Button("Delete", role: .destructive) {
+                library.delete(id)
+                deleted()
+            }
+            Button("Keep it", role: .cancel) {}
+        } message: { id in
+            // A home screen widget showing this one moves on to another or goes blank.
+            Text(
+                library.placed[id] != nil
+                    ? "Its data goes with it, and your home screen stops showing it." : "Its data goes with it.")
+        }
     }
 }
