@@ -1,0 +1,15 @@
+{
+  "name": "Thinking of you",
+  "line": "A heart in one tap",
+  "category": "for-two",
+  "order": 10,
+  "family": "small",
+  "hint": "Tap to send a heart.",
+  "blanks": [
+    {
+      "key": "who",
+      "label": "Who gets the hearts?",
+      "placeholder": "Sam"
+    }
+  ]
+}

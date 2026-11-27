@@ -50,7 +50,7 @@ import WidgetEngine
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try document().write(to: folder.appending(path: "widget.json"))
         let template = Template(
-            id: "pet", name: "Pet fed", line: "", category: .home, order: 0,
+            id: "pet", name: "Pet fed", line: "", category: .home, order: 0, family: .small, hint: "",
             blanks: [.init(key: "pet", label: "Your pet's name", placeholder: "Luna")], folder: folder)
         for value in [nil, "", "   "] {
             let json = try template.source(filling: value.map { ["pet": $0] } ?? [:]).json
@@ -83,5 +83,60 @@ import WidgetEngine
                 }
             }
         }
+    }
+}
+
+@MainActor @Suite struct TemplateGalleryTests {
+    private let gallery = TemplateGallery()
+
+    @Test func theSixTemplatesSitOnTheirShelvesInGalleryOrder() {
+        let shelves = Template.Category.allCases.map { gallery.templates(in: $0).map(\.id) }
+        #expect(
+            shelves == [
+                ["thinking-of-you"], ["pet-fed", "to-do-list"], ["habit-squares", "water"], ["word-of-the-day"],
+            ])
+    }
+
+    @Test func aTypedNameNamesTheAddedWidget() async throws {
+        let names = ["thinking-of-you": "Hearts for Alex", "pet-fed": "Alex fed", "habit-squares": "Alex"]
+        for (id, expected) in names {
+            let template = try #require(gallery.catalog.first { $0.id == id })
+            let values = Dictionary(uniqueKeysWithValues: template.blanks.map { ($0.key, "  Alex ") })
+            let shared = SharedStore()
+            guard case .saved(let widget) = try await shared.engine.build(template.source(filling: values)) else {
+                Issue.record("\(id) did not build")
+                continue
+            }
+            #expect(try shared.engine.widgets().first { $0.id == widget }?.name == expected)
+        }
+    }
+
+    @Test func everyTemplateDrawsAFaceFromItsSampleInThePile() async throws {
+        gallery.fit(column: 362)
+        for template in gallery.catalog {
+            await gallery.draw(template)
+            #expect(gallery.faces[template.id] != nil, "\(template.id) drew no face")
+        }
+    }
+}
+
+@MainActor @Suite struct TemplateTrialTests {
+    @Test func aTapIsPracticeAndATypedNameRebuildsTheFace() async throws {
+        let template = try #require(Template.catalog().first { $0.id == "pet-fed" })
+        let trial = TemplateTrial(template: template, preview: Preview(library: SharedStore().engine))
+        await trial.open()
+        let draft = try #require(trial.preview.widget)
+        trial.greet()
+        #expect(trial.said == template.hint)
+
+        let revision = try #require(try trial.preview.engine.history(of: draft).first).id
+        trial.tap(Tap(widget: draft.rawValue, revision: revision, action: "feed", row: nil))
+        #expect(trial.said == "Just practice. Yours starts fresh.")
+
+        trial.values["pet"] = "Mochi"
+        await trial.refill()
+        #expect(trial.said == "Mochi it is.")
+        #expect(try trial.preview.engine.widgets().first { $0.id == draft }?.name == "Mochi fed")
+        #expect(try trial.choice().name == "Mochi fed")
     }
 }

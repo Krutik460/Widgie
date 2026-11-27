@@ -5,12 +5,19 @@ import WidgetEngine
 /// pairs. A face's buttons work as on the home screen; a tap anywhere else opens the widget.
 struct WidgetsFeed: View {
     let library: Library
+    /// A widget that just arrived from Templates, which the feed scrolls to and highlights for a moment.
+    var arrived: WidgetID?
     /// Switches to the Make tab.
     let make: () -> Void
+    /// Switches to the Templates tab.
+    let browse: () -> Void
 
     @State private var shown: Shown?
     @State private var session: DescribeSession?
     @State private var deleting: WidgetID?
+    @State private var glowing: WidgetID?
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     struct Shown: Identifiable {
         let id: WidgetID
@@ -67,28 +74,45 @@ struct WidgetsFeed: View {
     }
 
     private var feed: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                header
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    ForEach(rows) { row in
-                        switch row {
-                        case .wide(let id):
-                            card(id, .medium)
-                        case .pair(let first, let second):
-                            HStack(alignment: .top, spacing: FaceSizes.gap) {
-                                card(first, .small)
-                                if let second { card(second, .small) }
+        ScrollViewReader { scroller in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    header.id(Self.top)
+                    LazyVStack(alignment: .leading, spacing: 20) {
+                        ForEach(rows) { row in
+                            switch row {
+                            case .wide(let id):
+                                card(id, .medium)
+                            case .pair(let first, let second):
+                                HStack(alignment: .top, spacing: FaceSizes.gap) {
+                                    card(first, .small)
+                                    if let second { card(second, .small) }
+                                }
                             }
                         }
                     }
+                    .padding(.top, 8)
                 }
-                .padding(.top, 8)
+                .padding(.horizontal, Self.margin)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, Self.margin)
-            .padding(.bottom, 24)
+            .refreshable { await library.reload() }
+            .onChange(of: arrived, initial: true) { _, arrived in
+                guard let arrived else { return }
+                scroller.scrollTo(Self.top, anchor: .top)
+                Task { await highlight(arrived) }
+            }
         }
-        .refreshable { await library.reload() }
+    }
+
+    private static let top = "top"
+
+    /// The new card swells with a warm glow, then settles.
+    private func highlight(_ id: WidgetID) async {
+        try? await Task.sleep(for: .milliseconds(250))
+        withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.5, bounce: 0.45)) { glowing = id }
+        try? await Task.sleep(for: .milliseconds(1400))
+        withAnimation(.easeOut(duration: 0.5)) { if glowing == id { glowing = nil } }
     }
 
     private var rows: [FeedRow<WidgetID>] {
@@ -142,6 +166,8 @@ struct WidgetsFeed: View {
             } form: {
                 library.showForm(for: $0)
             }
+            .scaleEffect(glowing == id && !reduceMotion ? 1.04 : 1)
+            .shadow(color: Palette.sun.opacity(glowing == id ? 0.75 : 0), radius: 22)
             .onTapGesture { shown = Shown(id: id) }
             .contextMenu {
                 Button("Change it", systemImage: "pencil") { session = DescribeSession(editing: id) }
@@ -177,7 +203,13 @@ struct WidgetsFeed: View {
             Spacer(minLength: 24)
             Button("Make one", action: make)
                 .buttonStyle(PrimaryButtonStyle())
-                .padding(.bottom, 16)
+            Button("Browse templates", action: browse)
+                .font(size: 17, weight: .semibold)
+                .foregroundStyle(Palette.text)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+                .padding(.top, 8)
+                .padding(.bottom, 8)
         }
         .padding(.horizontal, Column.margin - 8)
     }

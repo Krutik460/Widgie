@@ -1,0 +1,76 @@
+{
+  "format": 1,
+  "name": "Hearts for {{who}}",
+  "tables": {
+    "hearts": {
+      "fields": {}
+    }
+  },
+  "queries": {
+    "sent": {
+      "count": "hearts",
+      "where": {
+        "by": "me"
+      },
+      "window": "today"
+    },
+    "received": {
+      "count": "hearts",
+      "where": {
+        "by": "others"
+      },
+      "window": "today"
+    },
+    "lastIn": {
+      "latest": "hearts",
+      "where": {
+        "by": "others"
+      },
+      "window": {
+        "days": 7
+      }
+    }
+  },
+  "actions": {
+    "send": {
+      "insert": "hearts"
+    }
+  },
+  "automations": {},
+  "assets": {
+    "photo": {
+      "about": "the couple's own photo, two people at the beach at sunset"
+    }
+  },
+  "samples": {
+    "both ways": {
+      "hearts": [
+        {
+          "minutesAgo": 300,
+          "by": "{{who}}",
+          "repeat": 2
+        },
+        {
+          "minutesAgo": 120,
+          "repeat": 3
+        },
+        {
+          "minutesAgo": 12,
+          "by": "{{who}}"
+        }
+      ]
+    },
+    "only mine": {
+      "hearts": [
+        {
+          "minutesAgo": 45
+        },
+        {
+          "daysAgo": 2,
+          "by": "{{who}}"
+        }
+      ]
+    }
+  },
+  "look": "// Who gets the hearts, filled in when the template is added.\nconst WHO = {{who}};\nconst PINK = '#FF4F8B';\n\nfunction ago(minutes) {\n  if (minutes < 1) return 'just now';\n  if (minutes < 60) return minutes + ' min ago';\n  const hours = Math.floor(minutes / 60);\n  if (hours < 24) return hours + ' h ago';\n  return Math.floor(hours / 24) + ' d ago';\n}\n\nfunction tally(symbol, value, label) {\n  return { type: 'hstack', spacing: 4, children: [\n    { type: 'symbol', name: symbol, size: 11, weight: 'semibold', color: '#FFFFFFCC' },\n    { type: 'text', value: value, size: 15, weight: 'bold', design: 'rounded', color: '#FFFFFF', lineLimit: 1,\n      minScale: 0.6 },\n    label && { type: 'text', value: label, size: 11, weight: 'medium', color: '#FFFFFFB3', lineLimit: 1,\n      minScale: 0.7 },\n  ] };\n}\n\nfunction render(ctx) {\n  const d = ctx.data;\n  const medium = ctx.family === 'medium';\n  const them = d.lastIn && (d.lastIn.by.name || WHO);\n  const note = d.lastIn\n    ? them + ' sent a heart ' + ago(d.lastIn.minutesAgo)\n    : 'Send ' + WHO + ' a heart today';\n\n  // The heart is cut out of the disc, so it shows in tinted and clear mode.\n  const send = { type: 'button', action: 'send', children: [\n    { type: 'symbol', name: 'heart.circle.fill', size: medium ? 56 : 42, color: PINK, accent: true,\n      shadow: { color: '#00000066', radius: 6, y: 2 } } ] };\n\n  const tallies = { type: 'hstack', spacing: 10, children: [\n    tally('arrow.up.heart.fill', d.sent, medium ? 'sent' : null),\n    tally('arrow.down.heart.fill', d.received, medium ? 'received' : null),\n  ], shadow: { color: '#00000080', radius: 3 } };\n\n  // The photo fades out toward the bottom instead of sitting under a dark scrim, so the text stays readable in\n  // tinted and clear mode, where a scrim would turn into a white sheet and the backdrop shows through instead.\n  const photo = { type: 'image', asset: 'photo', crop: medium ? null : [0.2, 0, 0.6, 1],\n    mask: { gradient: 'linear', stops: ['#000000FF', '#000000FF', '#00000040'], from: 'top', to: 'bottom' } };\n\n  const noteText = { type: 'text', value: note, size: medium ? 12 : 11, weight: 'medium', color: '#FFFFFFE6',\n    lineLimit: medium ? 2 : 3, minScale: 0.7, shadow: { color: '#00000080', radius: 3 } };\n\n  if (medium) {\n    return {\n      type: 'zstack',\n      frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n      widgetBackground: '#1E0D17',\n      children: [\n        photo,\n        { type: 'hstack', align: 'bottom', spacing: 8, padding: 14,\n          frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottom' },\n          children: [\n            { type: 'vstack', align: 'leading', spacing: 4, frame: { maxWidth: 'infinity', alignment: 'leading' },\n              children: [\n                { type: 'text', value: 'Thinking of you', size: 17, weight: 'bold', color: '#FFFFFF', lineLimit: 1,\n                  minScale: 0.6, shadow: { color: '#00000080', radius: 3 } },\n                noteText,\n                tallies,\n              ] },\n            send,\n          ] },\n      ],\n    };\n  }\n\n  return {\n    type: 'zstack',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: '#1E0D17',\n    children: [\n      photo,\n      { type: 'vstack', align: 'leading', spacing: 0, padding: 12,\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          tallies,\n          { type: 'spacer', minLength: 0 },\n          { type: 'hstack', align: 'bottom', spacing: 6, children: [\n            { type: 'vstack', frame: { maxWidth: 'infinity', alignment: 'bottomLeading' }, children: [noteText] },\n            send ] },\n        ] },\n    ],\n  };\n}\n"
+}

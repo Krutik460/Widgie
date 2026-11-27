@@ -1,8 +1,10 @@
 {
   "name": "Pet fed",
-  "line": "Who fed them, and how long ago",
+  "line": "Who fed them, and when",
   "category": "home",
   "order": 10,
+  "family": "small",
+  "hint": "Tap the paw after a meal.",
   "blanks": [
     {
       "key": "pet",
