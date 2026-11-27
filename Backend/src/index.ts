@@ -2,8 +2,8 @@
 // {reply, seconds, model, usage}, the same contract as Engine/Evals/bridge.py plus the optional usage. A key is
 // attested once per install through POST /v1/attest/challenge and POST /v1/attest. The wire protocol is in
 // tasks/phase-2b-backend.md under "B2 wire protocol". Errors are {error: "<one line>"}, plus a `code` for the App
-// Attest refusals the app acts on. There are no usage limits for now (removed 2026-11-27, they come back later): only
-// the body caps and the signature stand between a caller and the model.
+// Attest and payload limit refusals the app acts on. There are no usage limits for now (removed 2026-11-27, they come
+// back later): only the body caps and the signature stand between a caller and the model.
 //
 // Phase 3 (tasks/phase-3-ai-block.md): POST /v1/account registers with an App Attest assertion and answers {token};
 // PUT /v1/automations replaces the account's automations (the payload in docs/engine/WIRE.md) and answers {digest};
@@ -12,7 +12,7 @@
 import { authenticate, pull, register } from "./accounts";
 import { APPLE_ROOT } from "./apple-root";
 import { environmentOf, verifyAttestation } from "./attestation";
-import { dailyRuns, LIMITS, parsePayload, replaceAutomations } from "./automations";
+import { Conflict, OverLimit, parsePayload, replaceAutomations } from "./automations";
 import { readCapped, TooLarge } from "./body";
 import prompt from "./build-prompt.txt";
 import { fromBase64, sha256, toBase64, toHex } from "./bytes";
@@ -38,7 +38,8 @@ export const MAX_BODY = 8 * 1024 * 1024;
 export const MAX_ATTEST_BODY = 32 * 1024;
 /// Far above an assertion in base64 (a DER signature and 37 bytes of authenticator data, under 200 characters).
 const MAX_ASSERTION = 1024;
-/// Far above 16 automations with 2,000-character prompts and 16 fields each.
+/// Far above what a phone's automations take (16 with 2,000-character prompts and 16 fields each is under 64 KB): a
+/// guard on the Worker's memory, not a usage limit.
 export const MAX_AUTOMATIONS_BODY = 256 * 1024;
 
 export type Code = keyof typeof REFUSALS;
@@ -50,6 +51,7 @@ const REFUSALS = {
     attested: [409, "this key is already attested"],
     "bad-token": [401, "the account token is not valid"],
     "bad-dev-secret": [401, "dev registration is not accepted here"],
+    conflict: [409, "the automations changed during this upload, send them again"],
 } as const satisfies Record<string, readonly [number, string]>;
 
 export default {
@@ -254,8 +256,9 @@ async function isEmpty(request: Request): Promise<boolean> {
 }
 
 /// PUT /v1/automations replaces the account's automations with the payload's and answers {digest}, the payload's
-/// SHA-256 as lowercase hex, which the phone keeps as the last one the server acknowledged. Schedules over 60 runs a
-/// day are refused with 422 `daily-runs` and a line the app shows.
+/// SHA-256 as lowercase hex, which the phone keeps as the last one the server acknowledged. A payload over one of the
+/// document's limits is refused with 422, its code, and a sentence the app shows. There are no usage limits for now
+/// (runs a day, automations an account): tasks/phase-3-ai-block.md records why.
 async function automations(request: Request, env: Env, deps: Dependencies): Promise<Response> {
     let count = 0;
     const out = responder("automations", () => ({ count }));
@@ -263,20 +266,18 @@ async function automations(request: Request, env: Env, deps: Dependencies): Prom
     if (!account) return out.refuse("bad-token");
     const body = await jsonBody(request, out, MAX_AUTOMATIONS_BODY);
     if (body instanceof Response) return body;
-    let payload: ReturnType<typeof parsePayload>;
     try {
-        payload = parsePayload(body.value);
+        const payload = parsePayload(body.value);
+        count = payload.automations.length;
+        await replaceAutomations(env.DB, account, payload, (deps.now?.() ?? new Date()).getTime());
     } catch (error) {
         if (error instanceof BadRequest) return badRequest(out, error.message);
+        if (error instanceof OverLimit) {
+            return out.json(422, { error: error.message, code: error.code }, { code: error.code, found: error.found });
+        }
+        if (error instanceof Conflict) return out.refuse("conflict");
         throw error;
     }
-    count = payload.automations.length;
-    const runs = dailyRuns(payload);
-    if (runs > LIMITS.runsPerDay) {
-        const error = `These automations would run ${runs} times a day, and the limit is ${LIMITS.runsPerDay}.`;
-        return out.json(422, { error, code: "daily-runs" }, { runs });
-    }
-    await replaceAutomations(env.DB, account, payload, (deps.now?.() ?? new Date()).getTime());
     return out.json(200, { digest: toHex(await sha256(body.bytes)) });
 }
 

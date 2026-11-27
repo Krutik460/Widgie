@@ -1,21 +1,11 @@
 // nextRun against what Foundation's `Calendar.nextDate(after:matching:matchingPolicy: .nextTime)` answers, the call
 // behind `Schedule.nextRun(after:)` in Automations.swift. Every expected instant here was printed by Foundation on
-// macOS, except the two cases marked where Foundation skips a run and the server keeps the plan's rule. P3 adds
-// vectors exported from the Swift tests.
+// macOS, except the cases marked where the server keeps its own rule: two where Foundation skips a run, and a repeated
+// time asked from between its two instants, where Foundation takes the second and the server has already run. P3 adds
+// vectors exported from the Swift tests and aligns the engine.
 
 import { describe, expect, it } from "vitest";
-import {
-    type Cadence,
-    DAY,
-    dayOf,
-    HOUR,
-    isTimeZone,
-    LEADS,
-    leadMs,
-    MINUTE,
-    nextRun,
-    runsPerDay,
-} from "../src/schedule";
+import { type Cadence, canonicalZone, DAY, dayOf, HOUR, LEADS, leadMs, MINUTE, nextRun } from "../src/schedule";
 
 const at = (iso: string) => Date.parse(iso);
 const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
@@ -85,11 +75,17 @@ describe("a daily run", () => {
         ]);
     });
 
-    it("takes the second of a repeated time only when asked from between the two, as Foundation does", () => {
+    // Foundation answers the second instant (06:30Z) when asked from between the two. The server's rule: a day whose
+    // first instant is at or before `after` has had its run, so the next is the following day and the time runs once.
+    it("never takes the second of a repeated time, even asked from between the two (Foundation does)", () => {
         const zone = "America/New_York";
-        expect(iso(nextRun(daily(1, 30), zone, at("2026-11-01T05:31:00Z")))).toBe("2026-11-01T06:30:00Z");
-        expect(iso(nextRun(daily(1, 30), zone, at("2026-11-01T06:00:00Z")))).toBe("2026-11-01T06:30:00Z");
+        expect(iso(nextRun(daily(1, 30), zone, at("2026-11-01T05:29:00Z")))).toBe("2026-11-01T05:30:00Z");
+        expect(iso(nextRun(daily(1, 30), zone, at("2026-11-01T05:30:00Z")))).toBe("2026-11-02T06:30:00Z");
+        expect(iso(nextRun(daily(1, 30), zone, at("2026-11-01T05:31:00Z")))).toBe("2026-11-02T06:30:00Z");
+        expect(iso(nextRun(daily(1, 30), zone, at("2026-11-01T06:00:00Z")))).toBe("2026-11-02T06:30:00Z");
         expect(iso(nextRun(daily(1, 30), zone, at("2026-11-01T06:30:00Z")))).toBe("2026-11-02T06:30:00Z");
+        const sunday: Cadence = { every: "week", on: "sunday", hour: 1, minute: 30 };
+        expect(iso(nextRun(sunday, zone, at("2026-11-01T06:00:00Z")))).toBe("2026-11-08T06:30:00Z");
         expect(iso(nextRun(daily(2, 30), zone, at("2026-03-08T06:59:00Z")))).toBe("2026-03-08T07:00:00Z");
         expect(iso(nextRun(daily(2, 30), zone, at("2026-03-08T07:00:00Z")))).toBe("2026-03-09T06:30:00Z");
     });
@@ -209,19 +205,26 @@ describe("leads", () => {
     });
 });
 
-it("counts the runs a schedule makes in a day", () => {
-    expect(runsPerDay(hourly(0))).toBe(24);
-    expect(runsPerDay(daily(6, 0))).toBe(1);
-    expect(runsPerDay({ every: "week", on: "friday", hour: 6, minute: 0 })).toBe(1);
-});
-
 it("knows IANA time zone names and nothing else", () => {
     for (const zone of ["America/New_York", "UTC", "Asia/Kolkata", "Etc/GMT+5", "America/Argentina/Buenos_Aires"]) {
-        expect(isTimeZone(zone), zone).toBe(true);
+        expect(canonicalZone(zone), zone).not.toBeNull();
     }
     for (const zone of ["+05:30", "-08:00", "Mars/Olympus_Mons", "", "America/New York", "UTC ", 5, null]) {
-        expect(isTimeZone(zone), String(zone)).toBe(false);
+        expect(canonicalZone(zone), String(zone)).toBeNull();
     }
+});
+
+it("answers one canonical name for every spelling of a zone", () => {
+    expect(canonicalZone("America/New_York")).toBe("America/New_York");
+    expect(canonicalZone("america/new_york")).toBe("America/New_York");
+    expect(canonicalZone("AMERICA/NEW_YORK")).toBe("America/New_York");
+    expect(canonicalZone("utc")).toBe("UTC");
+    // Links resolve too: the phone sends "Asia/Kolkata", so its spelling cannot be the one required.
+    const kolkata = canonicalZone("Asia/Kolkata");
+    expect(kolkata).not.toBeNull();
+    expect(canonicalZone("asia/kolkata")).toBe(kolkata);
+    expect(canonicalZone(kolkata)).toBe(kolkata);
+    expect(canonicalZone("US/Eastern")).toBe("America/New_York");
 });
 
 it("reads the day of an instant in a zone", () => {

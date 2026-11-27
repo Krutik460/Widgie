@@ -1,5 +1,5 @@
-// The daily upkeep the phase 3 cron runs, and the spend row that stops claims on a bad day. Plain functions over D1,
-// so the cron only calls them.
+// The daily upkeep the phase 3 cron runs: parking and deleting idle accounts. Plain functions over D1, so the cron only
+// calls them.
 
 import { DAY } from "./schedule";
 
@@ -8,7 +8,8 @@ export const PARK_AFTER = 30 * DAY;
 /// An account with no pull for this long is deleted, with its automations, tasks, and changes.
 export const DELETE_AFTER = 90 * DAY;
 
-/// Parks every account idle for `PARK_AFTER`: marks it and deletes its tasks. Answers how many it parked.
+/// Parks every account idle for `PARK_AFTER`: marks it and deletes its tasks. Answers how many it parked. A pull or an
+/// upload unparks the account in the same statement that records it alive, so neither loses tasks to a parking.
 export async function parkIdle(db: D1Database, now: number): Promise<number> {
     const [parked] = await db.batch([
         db
@@ -23,25 +24,4 @@ export async function parkIdle(db: D1Database, now: number): Promise<number> {
 export async function deleteIdle(db: D1Database, now: number): Promise<number> {
     const result = await db.prepare("DELETE FROM accounts WHERE pulled_at < ? - ?").bind(now, DELETE_AFTER).run();
     return result.meta.changes;
-}
-
-/// The UTC day a spend counts toward, as `YYYY-MM-DD`.
-export function spendDay(now: number): string {
-    return new Date(now).toISOString().slice(0, 10);
-}
-
-/// Whether today's model spend is still under `limit` US dollars, so claims may go on.
-export async function spendAllows(db: D1Database, now: number, limit: number): Promise<boolean> {
-    const row = await db.prepare("SELECT cost FROM spend WHERE day = ?").bind(spendDay(now)).first<{ cost: number }>();
-    return (row?.cost ?? 0) < limit;
-}
-
-/// Adds a run's cost to today's spend.
-export async function addSpend(db: D1Database, now: number, cost: number): Promise<void> {
-    await db
-        .prepare(
-            "INSERT INTO spend (day, cost) VALUES (?, ?) ON CONFLICT (day) DO UPDATE SET cost = cost + excluded.cost",
-        )
-        .bind(spendDay(now), cost)
-        .run();
 }

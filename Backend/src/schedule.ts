@@ -1,7 +1,8 @@
 // When an automation runs, in the phone's time zone, by the rules of `Schedule.nextRun(after:)` in
 // Engine/Sources/Spec/Automations.swift: the Gregorian calendar, Foundation's `.nextTime` matching. A daily or weekly
-// time that a daylight saving change skips runs at the moment the clocks change (02:30 runs at 03:00), a time that
-// happens twice runs at the first one, and once a run is at one of them the next is the following day. An hourly run
+// time that a daylight saving change skips runs at the moment the clocks change (02:30 runs at 03:00). A time that
+// happens twice runs once, at the first: a day whose first instant is at or before `after` has had its run. Foundation
+// differs there, taking the second when asked from between the two; P3 aligns the engine to the server. An hourly run
 // is at every instant whose wall clock shows its minute, so the repeated hour runs twice and a skipped hour not at all.
 // Time zones come from Intl, which carries the same tz database Foundation reads.
 
@@ -18,11 +19,6 @@ export type Cadence =
     | { every: "hour"; minute: number }
     | { every: "day"; hour: number; minute: number }
     | { every: "week"; on: Weekday; hour: number; minute: number };
-
-/// The most runs a cadence makes in one calendar day, the figure the 60-a-day limit adds up.
-export function runsPerDay(cadence: Cadence): number {
-    return cadence.every === "hour" ? 24 : 1;
-}
 
 /// How far ahead of its run a task is due: one period plus room, so the row is on the phone a full period early.
 export const LEADS = {
@@ -50,38 +46,50 @@ function fraction(seed: string): number {
 
 // --- Time zones ---
 
+/// Formatters by zone name. The Worker passes only names `canonicalZone` answered, so the cache holds at most one per
+/// zone the runtime knows, however many spellings uploads use.
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
+function newFormatter(zone: string): Intl.DateTimeFormat {
+    return new Intl.DateTimeFormat("en-US", {
+        timeZone: zone,
+        hourCycle: "h23",
+        era: "short",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric",
+    });
+}
+
+/// The formatter of a zone name, as `canonicalZone` answers it.
 function formatter(zone: string): Intl.DateTimeFormat {
     let found = formatters.get(zone);
     if (!found) {
-        found = new Intl.DateTimeFormat("en-US", {
-            timeZone: zone,
-            hourCycle: "h23",
-            era: "short",
-            year: "numeric",
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "numeric",
-        });
+        found = newFormatter(zone);
         formatters.set(zone, found);
     }
     return found;
 }
 
-/// Whether `name` is an IANA time zone name this runtime knows, like "America/New_York" or "UTC". Offsets such as
-/// "+05:30", which Intl also takes, are refused: the phone sends `TimeZone.current.identifier`.
-export function isTimeZone(name: unknown): name is string {
+/// The canonical name of an IANA time zone this runtime knows, like "America/New_York" or "UTC", or null. Intl reads a
+/// name in any case and resolves links, so every spelling of one zone comes back as one name: "america/new_york" as
+/// "America/New_York", and with this runtime's tz data "Asia/Kolkata" as "Asia/Calcutta" and "GMT" as "UTC". The
+/// phone's own spelling cannot be required, since `TimeZone.current.identifier` sends "Asia/Kolkata". Offsets such as
+/// "+05:30", which Intl also takes, are refused. A runtime whose Intl stops resolving links changes the canonical name
+/// of a linked zone, and so the version of its automations, once.
+export function canonicalZone(name: unknown): string | null {
     if (typeof name !== "string" || name.length > 64 || !/^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)*$/.test(name)) {
-        return false;
+        return null;
     }
     try {
-        formatter(name);
-        return true;
+        const canonical = newFormatter(name).resolvedOptions().timeZone;
+        formatter(canonical);
+        return canonical;
     } catch {
-        return false;
+        return null;
     }
 }
 
@@ -127,11 +135,9 @@ export function nextRun(cadence: Cadence, zone: string, after: number): number {
     const first = wall(after, zone).day - 1;
     for (let day = first; day <= first + 9; day++) {
         if (weekday !== null && weekdayOf(day) !== weekday) continue;
-        const runs = instantsAt(zone, day, cadence.hour, cadence.minute);
-        // A run at one of a repeated time's instants is that day's run: the next is another day.
-        if (runs.includes(after)) continue;
-        const later = runs.find((run) => run > after);
-        if (later !== undefined) return later;
+        // A day whose first instant is not after `after` has had its run, even when a repeated time's second is ahead.
+        const run = firstInstant(zone, day, cadence.hour, cadence.minute);
+        if (run > after) return run;
     }
     throw new Error("no run within ten days");
 }
@@ -141,16 +147,15 @@ function weekdayOf(day: number): number {
     return (((day + 3) % 7) + 7) % 7;
 }
 
-/// The instants whose wall clock in `zone` reads `hour:minute` on `day`, earliest first: one, two where the clocks go
+/// The first instant whose wall clock in `zone` reads `hour:minute` on `day`: the earlier of two where the clocks go
 /// back, or, where they skip it, the moment they change.
-function instantsAt(zone: string, day: number, hour: number, minute: number): number[] {
+function firstInstant(zone: string, day: number, hour: number, minute: number): number {
     const local = day * DAY + hour * HOUR + minute * MINUTE;
     const offsets = [...new Set([offset(local - DAY, zone), offset(local, zone), offset(local + DAY, zone)])];
     const runs = offsets
         .map((minutes) => local - minutes * MINUTE)
-        .filter((run) => offset(run, zone) * MINUTE === local - run)
-        .sort((a, b) => a - b);
-    if (runs.length > 0) return [...new Set(runs)];
+        .filter((run) => offset(run, zone) * MINUTE === local - run);
+    if (runs.length > 0) return Math.min(...runs);
 
     // Skipped: before the change the zone is behind this wall time, after it ahead. Find the change to the minute.
     const after = Math.max(...offsets);
@@ -161,7 +166,7 @@ function instantsAt(zone: string, day: number, hour: number, minute: number): nu
         if (offset(middle, zone) === after) changed = middle;
         else skipped = middle;
     }
-    return [changed];
+    return changed;
 }
 
 /// The first instant after `after` whose wall clock in `zone` shows `minute` and second 0.

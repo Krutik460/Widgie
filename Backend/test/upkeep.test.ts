@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { DAY } from "../src/schedule";
-import { addSpend, DELETE_AFTER, deleteIdle, PARK_AFTER, parkIdle, spendAllows } from "../src/upkeep";
+import { DELETE_AFTER, deleteIdle, PARK_AFTER, parkIdle } from "../src/upkeep";
 import { automation, changes, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
 
 /// An account with an automation, its tasks, and a change, last pulled `idle` before NOW.
@@ -55,6 +55,33 @@ describe("idle accounts", () => {
         expect((await counts(idle.id)).tasks).toBe(1);
     });
 
+    it("are unparked by an upload, which gives every automation its tasks back and keeps the next parking off", async () => {
+        const idle = await idleAccount(PARK_AFTER + 1);
+        await parkIdle(env.DB, NOW);
+        expect((await counts(idle.id)).tasks).toBe(0);
+        // The same automation, which gets its schedule back, and a new one, with its run now and schedule.
+        const later = NOW + DAY;
+        const both = payload([automation(), automation({ automation: "evening", at: "20:00" })]);
+        expect((await send(upload(idle.token, both), { now: later })).status).toBe(200);
+        const { results } = await env.DB.prepare(
+            "SELECT automation, once FROM tasks WHERE account = ? ORDER BY automation, once",
+        )
+            .bind(idle.id)
+            .all();
+        expect(results).toEqual([
+            { automation: "daily", once: 0 },
+            { automation: "evening", once: 0 },
+            { automation: "evening", once: 1 },
+        ]);
+        const row = await env.DB.prepare("SELECT parked_at, pulled_at FROM accounts WHERE id = ?")
+            .bind(idle.id)
+            .first();
+        expect(row).toEqual({ parked_at: null, pulled_at: later });
+        // The upload counts as the phone being alive, so the next parking leaves the run now it just made.
+        await parkIdle(env.DB, later + DAY);
+        expect((await counts(idle.id)).tasks).toBe(3);
+    });
+
     it("are deleted after 90 days without a pull, with their automations, tasks, and changes", async () => {
         expect(DELETE_AFTER).toBe(90 * DAY);
         const gone = await idleAccount(DELETE_AFTER + 1);
@@ -63,20 +90,5 @@ describe("idle accounts", () => {
         expect(await counts(gone.id)).toEqual({ accounts: 0, automations: 0, tasks: 0, changes: 0 });
         expect(await counts(kept.id)).toEqual({ accounts: 1, automations: 1, tasks: 2, changes: 1 });
         expect((await send(changes(gone.token))).body).toMatchObject({ code: "bad-token" });
-    });
-});
-
-describe("the spend row", () => {
-    it("allows claims until the day's spend reaches its figure, and starts again the next UTC day", async () => {
-        const day = Date.parse("2031-05-01T08:00:00Z");
-        expect(await spendAllows(env.DB, day, 5)).toBe(true);
-        await addSpend(env.DB, day, 2.5);
-        await addSpend(env.DB, day + 3600_000, 2.4);
-        expect(await spendAllows(env.DB, day, 5)).toBe(true);
-        await addSpend(env.DB, day, 0.1);
-        expect(await spendAllows(env.DB, day, 5)).toBe(false);
-        expect(await spendAllows(env.DB, Date.parse("2031-05-02T00:00:00Z"), 5)).toBe(true);
-        const row = await env.DB.prepare("SELECT cost FROM spend WHERE day = '2031-05-01'").first<{ cost: number }>();
-        expect(row?.cost).toBeCloseTo(5);
     });
 });

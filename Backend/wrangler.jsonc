@@ -10,7 +10,7 @@
 // Release builds. ATTESTED_KEY is one SQLite-backed Durable Object per App Attest key (public key, counter, pending
 // challenge). The class was created SQLite-backed (migration v1) and can never change backend. There are no usage
 // limits for now (no attest rate limit, no daily quota); they come back later.
-// DB is the environment's D1 database (accounts, automations, tasks, changes, spend), its schema in migrations/.
+// DB is the environment's D1 database (accounts, automations, tasks, changes), its schema in migrations/.
 // PLACEHOLDER database ids: create each database with `npx wrangler d1 create widgie` and
 // `npx wrangler d1 create widgie-dev`, and put the ids they print here before the first deploy.
 {

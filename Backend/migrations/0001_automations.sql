@@ -3,16 +3,21 @@
 
 -- One per App Attest key, or per dev registration (attest_key NULL). The token is `<id>.<secret>`; only the SHA-256
 -- of the secret's 32 bytes is kept, as hex. replica is the automation replica every server change is written under,
--- and last_stamp the last stamp it issued, a 64-bit integer that leaves SQL only as text.
+-- and last_stamp the last stamp it issued, a 64-bit integer that leaves SQL only as text. revision rises with every
+-- upload, which writes only if it still holds the revision it read. pulled_at is when the phone was last heard from
+-- (a pull, at most hourly, or an upload), and pulled_after the watermark of its last pull: it has every change up to
+-- that id, which the cleanup reads.
 CREATE TABLE accounts (
     id TEXT PRIMARY KEY,
     token_hash TEXT NOT NULL,
     attest_key TEXT UNIQUE,
     replica TEXT NOT NULL UNIQUE,
     last_stamp INTEGER NOT NULL DEFAULT 0,
+    revision INTEGER NOT NULL DEFAULT 0,
     time_zone TEXT,
     created_at INTEGER NOT NULL,
     pulled_at INTEGER NOT NULL,
+    pulled_after INTEGER NOT NULL DEFAULT 0,
     parked_at INTEGER
 ) STRICT;
 
@@ -70,10 +75,9 @@ CREATE TABLE changes (
     written_at INTEGER NOT NULL
 ) STRICT;
 
+-- The pull's page; the tombstones' rows still ahead of an automation and the check for a row already deleted (partial,
+-- so each holds only its op); and P3's read-back of a dataset's recent rows.
 CREATE INDEX changes_account ON changes (account, id);
-
--- The environment's model spend per UTC day, in US dollars. Claims stop once a day passes its figure.
-CREATE TABLE spend (
-    day TEXT PRIMARY KEY,
-    cost REAL NOT NULL DEFAULT 0
-) STRICT;
+CREATE INDEX changes_inserted ON changes (account, widget, automation, at) WHERE op = 'insertRow';
+CREATE INDEX changes_deleted ON changes (account, row_key) WHERE op = 'deleteRow';
+CREATE INDEX changes_dataset ON changes (account, dataset, id);
