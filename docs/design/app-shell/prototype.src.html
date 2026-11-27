@@ -9,6 +9,7 @@
  --surface:rgba(255,255,255,.88);--surface-text:#121a2e;--bubble:#fff;--bar:rgba(244,249,255,.9);
  --rest:0 1px 2px rgba(20,45,90,.06),0 4px 14px -4px rgba(20,45,90,.14);
  --lift:0 2px 6px rgba(20,45,90,.06),0 18px 36px -14px rgba(20,45,90,.38);
+ --quiet:0 1px 3px rgba(20,45,90,.06),0 6px 14px -6px rgba(20,45,90,.24);
  --spring-ui:cubic-bezier(.22,1.06,.36,1);--spring-play:cubic-bezier(.32,1.38,.48,1);--soft:cubic-bezier(.22,.8,.26,1);
  --display:"Bricolage",-apple-system,system-ui,sans-serif;--text:-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
  --unit:1px;--u:1px;--m:20px}
@@ -50,6 +51,15 @@ button:focus-visible,input:focus-visible,.namefield:focus-within{outline:2px sol
 .night .bins .w{background:#333c18;color:#eaf6a8}
 .night .mood .w{background:#1f3557;color:#e6f0ff}
 .night .count .ticket{background:#dce8fb}
+.night .chores .bar{background:rgba(255,235,216,.16)}
+.night .chores .bar b,.night .chores .did{background:#ffbe85;color:#2b1a10}
+.night .bins .pass{background:#d8f36b;color:#1f260c}
+.night .streak .breathe i{background:#c4b0ff;opacity:.18}
+.night .streak .breathe svg{color:#c4b0ff}
+.night .groc li .crossed{opacity:.56}
+.night .savings .w-label .aside{color:#ff7a7f}
+.night .savings .fuji path:first-of-type{fill:#5e78a8}
+#actors .medal [stroke="#0b1430"]{stroke:rgba(18,26,46,.55)}
 /* ---------- stage ---------- */
 .stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:4px 0 8px}
 .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
@@ -114,9 +124,10 @@ svg.i{width:15px;height:15px;flex:none}
 .fadeswap{animation:fadeswap .32s var(--soft)}
 @keyframes fadeswap{0%{opacity:0}100%{opacity:1}}
 .shadow{position:absolute;height:12px;border-radius:50%;background:radial-gradient(closest-side,rgba(18,26,46,.3),transparent);pointer-events:none}
+.shadow.onface{height:6px;width:44px;background:radial-gradient(closest-side,rgba(0,0,0,.32),transparent)}
 .night .shadow{background:radial-gradient(closest-side,rgba(0,6,20,.5),transparent)}
 /* ---------- speech ---------- */
-.bubble{position:absolute;background:var(--bubble);color:#121a2e;border-radius:20px;padding:11px 15px;font:600 15px/1.32 var(--text);letter-spacing:-.15px;box-shadow:var(--lift);transform-origin:100% 30%;transition:transform .4s var(--spring-play),opacity .2s}
+.bubble{position:absolute;background:var(--bubble);color:#121a2e;border-radius:20px;padding:11px 15px;font:600 15px/1.32 var(--text);letter-spacing:-.15px;box-shadow:var(--quiet),0 0 0 .5px rgba(18,26,46,.06);transform-origin:100% 30%;transition:transform .4s var(--spring-play),opacity .2s}
 .bubble.right::after,.bubble.down::after,.bubble.left::after{content:"";position:absolute;width:13px;height:13px;background:inherit;transform:rotate(45deg)}
 .bubble.right::after{right:-5px;top:11px;border-radius:0 3px 0 0}
 .bubble.left::after{left:-5px;top:11px;border-radius:0 0 0 3px}
@@ -147,7 +158,9 @@ svg.i{width:15px;height:15px;flex:none}
 .cap{display:flex;align-items:center;gap:6px;padding:0 4px;min-height:22px}
 .cap .name{font:600 14px var(--text);letter-spacing:-.15px}
 .cap .home{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font:600 12px var(--text);color:var(--ink-3)}
-.cap .home svg{width:12px;height:12px}
+.cap .home svg{width:15px;height:15px}
+.cap .home{color:var(--ink-2)}
+.top .sub svg{width:13px;height:13px;vertical-align:-2px;margin:0 2px 0 1px}
 .tag{font:700 11px var(--text);color:#121a2e;background:var(--sun);padding:2px 6px;border-radius:6px}
 .rise{animation:rise .42s var(--spring-ui) both}
 @keyframes rise{0%{opacity:0;transform:translateY(18px) scale(.98)}100%{opacity:1;transform:none}}
@@ -162,13 +175,13 @@ svg.i{width:15px;height:15px;flex:none}
 .tab .glyph{height:28px;display:grid;place-items:center}
 .tab .glyph > svg{width:24px;height:24px;transition:transform .32s var(--spring-play)}
 .tab:active .glyph > *{transform:scale(.86)}
-.tabpill{position:absolute;top:6px;height:56px;border-radius:20px;background:#fff;box-shadow:0 2px 8px rgba(20,45,90,.14);transition:left .32s var(--spring-ui),width .32s var(--spring-ui)}
+.tabpill{position:absolute;top:6px;height:56px;border-radius:20px;background:#fff;box-shadow:0 1px 4px rgba(20,45,90,.1);transition:left .32s var(--spring-ui),width .32s var(--spring-ui)}
 .night .tabpill{background:rgba(255,255,255,.14);box-shadow:none}
 .makekey{position:relative;width:40px;height:26px;border-radius:10px;background:#fff0bd;overflow:hidden;transition:transform .32s var(--spring-play),box-shadow .2s,filter .2s}
 .tab.on .makekey{transform:scale(1.04);background:linear-gradient(165deg,#ffe479,#ffc532);box-shadow:0 5px 12px -4px rgba(214,150,0,.6),inset 0 1px 0 rgba(255,255,255,.7)}
 .night .makekey{background:rgba(255,255,255,.14)}
 .night .tab.on .makekey{background:linear-gradient(165deg,#ffe479,#ffc532)}
-.makekey .widgie{width:96px;height:96px;left:-28px;top:-1px}
+.makekey .widgie{width:58px;height:58px;left:-4px;top:-5px}
 .badge{position:absolute;top:2px;left:calc(50% + 7px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--coral-shade);color:#fff;font:700 11px var(--text);display:grid;place-items:center;box-shadow:0 3px 8px rgba(224,74,61,.45);transform:scale(0);transition:transform .45s var(--spring-play)}
 .badge.show{transform:scale(1)}
 /* ---------- controls ---------- */
@@ -180,7 +193,7 @@ svg.i{width:15px;height:15px;flex:none}
 .key:active{border:0;transform:scale(.97);box-shadow:0 6px 14px -6px rgba(18,26,46,.5)}
 .key:disabled{opacity:.5;pointer-events:none}
 .key.quiet{background:rgba(18,26,46,.07);color:var(--ink);box-shadow:none}
-.night .key:not(.quiet){background:#fff;color:#121a2e}
+.night .key:not(.quiet){background:#ffd23c;color:#121a2e;box-shadow:0 12px 24px -10px rgba(255,200,40,.35)}
 .night .key.quiet{background:rgba(255,255,255,.12);color:#fff}
 .mini{height:36px;padding:0 12px;border-radius:12px;display:inline-flex;align-items:center;gap:6px;font:600 14px var(--text);color:var(--ink);background:var(--surface);box-shadow:var(--rest);transition:transform .3s var(--spring-play)}
 .night .mini{color:#fff}
@@ -193,10 +206,10 @@ svg.i{width:15px;height:15px;flex:none}
 .night .bar::after{background:linear-gradient(#172e57,rgba(23,46,87,0))}
 .bar h2{font-size:28px}
 /* ---------- Make ---------- */
-#p-make{display:flex;flex-direction:column;padding-bottom:178px;scroll-padding-bottom:190px}
+#p-make{display:flex;flex-direction:column;padding-bottom:204px;scroll-padding-bottom:216px}
 .hello{flex:1;display:flex;flex-direction:column;transition:opacity .22s ease-out}
 .hello.entering{opacity:0}
-.make-hello{position:relative;height:224px;margin:4px 0 0}
+.make-hello{position:relative;height:224px;margin:0 0 6px}
 .make-hello .shadow{left:240px;top:200px;width:100px;height:13px}
 #m-widgie{transition:rotate .22s var(--soft)}
 #m-widgie.lean{rotate:-6deg}
@@ -206,7 +219,8 @@ svg.i{width:15px;height:15px;flex:none}
 .ideas .eyebrow{margin:0 4px 2px}
 .idea{display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:18px;background:var(--surface);color:var(--surface-text);box-shadow:var(--rest);transition:transform .3s var(--spring-play);text-align:left;width:100%}
 .idea:active{transform:scale(.97)}
-.idea .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+.idea .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--ib);color:var(--if)}
+.night .idea .ic{background:var(--nb);color:var(--nf)}
 .idea .ic svg{width:20px;height:20px}
 .idea .t{font:600 16px var(--text);letter-spacing:-.2px}
 .idea .s{font:500 13px var(--text);color:var(--ink-2);margin-top:1px}
@@ -221,7 +235,7 @@ svg.i{width:15px;height:15px;flex:none}
 .composer input{width:100%;height:44px;padding-left:14px;font:500 17px var(--text);letter-spacing:-.2px;color:var(--ink);caret-color:var(--ink);cursor:text}
 .night .composer input{color:#fff;caret-color:#fff}
 .composer input::placeholder{color:var(--ink-3)}
-.composer .idlecaret{position:absolute;left:7px;top:12px;width:2.5px;height:20px;border-radius:2px;background:var(--ink);opacity:.55;animation:blink 1.06s steps(1) infinite;pointer-events:none}
+.composer .idlecaret{position:absolute;left:13px;top:12px;width:2.5px;height:20px;border-radius:2px;background:var(--ink);opacity:.4;animation:blink 1.06s steps(1) infinite;pointer-events:none}
 .night .composer .idlecaret{background:#fff}
 .composer:focus-within .idlecaret,.composer.typed .idlecaret,.composer.busy .idlecaret{display:none}
 .composer .send{width:44px;height:44px;border-radius:14px;background:rgba(18,26,46,.1);color:rgba(18,26,46,.35);display:grid;place-items:center;flex:none;transition:background .2s,color .2s,transform .3s var(--spring-play)}
@@ -237,14 +251,18 @@ svg.i{width:15px;height:15px;flex:none}
 .them{align-self:flex-start;animation:slidein .45s var(--spring-ui) both}
 .them .bubble{position:relative;display:block;max-width:262px;border-bottom-left-radius:6px;transform-origin:0 100%}
 .studio{position:relative;align-self:center;margin:70px 0 4px}
-.studio.wide{margin-top:150px}
+.studio.wide{margin-top:132px}
+.studio .ghost{position:absolute;inset:0;overflow:visible;pointer-events:none}
+.studio .ghost path{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;opacity:.35}
+.night .studio .ghost path{stroke:#e9f2ff}
 .thread.narrow .them .bubble{max-width:178px}
 .studio svg.sk{position:absolute;inset:0;overflow:visible;transition:opacity .2s ease-out}
 .studio .edge{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:trace 1.85s linear forwards}
-.studio .part{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:4 5;opacity:.4;animation:solid .4s var(--soft) forwards}
+.studio .part{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:4 5;opacity:0;animation:solid .38s var(--soft) both}
 .night .studio .edge,.night .studio .part{stroke:#e9f2ff}
 @keyframes trace{to{stroke-dashoffset:0}}
-@keyframes solid{to{fill:currentColor;stroke-dasharray:none;opacity:.22}}
+@keyframes solid{0%{opacity:0;transform:scale(.94)}100%{fill:currentColor;stroke-dasharray:none;opacity:.22;transform:none}}
+.studio .part{transform-box:fill-box;transform-origin:center}
 .studio .art{color:var(--ink)}
 .night .studio .art{color:#e9f2ff}
 .studio .pen{position:absolute;left:0;top:0;width:116px;z-index:3;offset-anchor:22% 99.3%;offset-rotate:0deg;animation:ride 1.85s linear forwards}
@@ -255,7 +273,8 @@ svg.i{width:15px;height:15px;flex:none}
 .studio .shadow{width:64px;height:10px;z-index:2;opacity:0;transition:opacity .2s}
 .fadein{animation:fadein .22s ease-out both}
 @keyframes fadein{0%{opacity:0}100%{opacity:1}}
-.after{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:22px;animation:rise .42s var(--spring-ui) both}
+.after{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:16px;animation:rise .42s var(--spring-ui) both;transition:opacity .18s var(--soft),transform .18s var(--soft)}
+.after.going{opacity:0;transform:translateY(6px);pointer-events:none}
 .after .key{min-width:220px}
 .refine{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .confetti{position:absolute;inset:0;pointer-events:none;z-index:60;overflow:hidden}
@@ -270,7 +289,8 @@ svg.i{width:15px;height:15px;flex:none}
 .cat svg{width:15px;height:15px}
 .cat.on{background:var(--ink);color:#fff;box-shadow:0 10px 18px -10px rgba(18,26,46,.7)}
 .night .cat.on{background:#fff;color:#121a2e}
-.banner{position:relative;height:136px;display:flex;align-items:center;border-radius:28px;margin-bottom:22px;overflow:hidden;color:#fff;padding:0 22px;box-shadow:var(--lift);transition:background .4s var(--soft)}
+.banner{position:relative;height:136px;display:flex;align-items:center;border-radius:28px;margin-bottom:22px;overflow:hidden;color:#fff;padding:0 22px;box-shadow:var(--quiet);transition:background .4s var(--soft)}
+.banner.ink{color:#121a2e}
 .banner::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 90% at 85% 100%,rgba(255,255,255,.14),transparent 60%);pointer-events:none}
 .banner h2{position:relative;font-size:27px;line-height:1.02;max-width:190px;text-wrap:balance;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .banner .actors{position:absolute;right:6px;bottom:0;width:196px;height:136px;transition:opacity .16s ease-out,transform .16s ease-out}
@@ -280,12 +300,14 @@ svg.i{width:15px;height:15px;flex:none}
 @keyframes beat{0%,100%{transform:scale(1)}20%{transform:scale(1.18)}40%{transform:scale(1)}}
 .pile{display:grid;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:28px}
 .pile .item{display:flex;flex-direction:column;gap:12px;text-align:left;border-radius:26px}
+.pile.leaving{pointer-events:none}
 .pile .item.wide{grid-column:span 2}
 .pile .blk{position:relative;transform:rotate(var(--rot,0deg)) scale(.97);transition:transform .16s ease-out;pointer-events:none}
 .pile .item:active .blk{transform:rotate(0deg) scale(.95)}
-.tmeta{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 4px;min-height:44px}
+.tmeta{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 4px;min-height:44px;width:100%}
 .tname{font:600 15px var(--text);letter-spacing:-.2px;display:flex;align-items:center;gap:5px}
 .tname svg{width:7px;height:12px;color:var(--ink-3)}
+.tname .try{margin-left:auto;font:600 13px var(--text);color:var(--ink-3);display:inline-flex;align-items:center;gap:4px}
 .tsub{font:500 13px var(--text);color:var(--ink-2)}
 .pop-out{animation:popout .18s var(--soft) forwards}
 @keyframes popout{to{opacity:0;transform:translateY(10px) scale(.97)}}
@@ -305,11 +327,12 @@ svg.i{width:15px;height:15px;flex:none}
 .sheet .line{font:500 15px/1.35 var(--text);color:rgba(18,26,46,.72);margin-top:6px}
 .night .sheet .line{color:rgba(233,242,255,.76)}
 .spot{position:relative;height:214px;display:flex;align-items:flex-end;justify-content:center;margin:8px -22px 0;padding-bottom:22px}
-.spot::before{content:"";position:absolute;left:50%;bottom:0;width:300px;height:210px;margin-left:-150px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.75),transparent)}
+.spot::before{content:"";position:absolute;left:50%;bottom:0;width:300px;height:210px;margin-left:-150px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.45),transparent)}
 .night .spot::before{background:radial-gradient(closest-side,rgba(156,195,245,.16),transparent)}
-.spot.wide{height:280px}
+.spot.wide{height:262px}
 .spot .stagebox{position:relative}
-.spot .bubble.down{white-space:nowrap}
+.spot .bubble.down{white-space:normal;width:max-content;max-width:150px;text-align:center}
+.spot .bubble{box-shadow:0 2px 6px rgba(20,45,90,.08),0 12px 24px -10px rgba(20,45,90,.28),0 0 0 1px rgba(18,26,46,.07)}
 .spot .bubble{position:absolute;z-index:4}
 .hint[hidden]{display:none}
 .hint{text-align:center;font:500 13px var(--text);color:rgba(18,26,46,.72)}
@@ -478,7 +501,7 @@ function live(root, onTap) {
 const svg = (s, cls = "i") => s.replace("<svg", `<svg class="${cls}"`);
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.7 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8 6.2 20.1l1.5-6.4-4.9-4.3 6.5-.6z"/></svg>';
 const HOUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.8 11h2.7v9.3h5V15h3v5.3h5V11h2.7z"/></svg>';
-const PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="6.5" y="2.5" width="11" height="19" rx="3"/><path d="M10.5 18.5h3" stroke-linecap="round"/></svg>';
+const PHONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="6" y="2" width="12" height="20" rx="3.2"/><rect x="9.5" y="6.5" width="5" height="5" rx="1.2" fill="currentColor" stroke="none"/></svg>';
 const CHEV = '<svg viewBox="0 0 7 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l5 5-5 5"/></svg>';
 const SQUARES = '<svg viewBox="0 0 44 44"><g>' + [0, 1, 2].map((r) => [0, 1, 2].map((c) => `<rect x="${c * 15}" y="${r * 15}" width="12" height="12" rx="3.5" fill="${(r * 3 + c) % 4 === 1 ? "rgba(255,255,255,.28)" : "#c7b6ff"}"/>`).join("")).join("") + "</g></svg>";
 // The empty state a new pet widget starts in, until its first feed.
@@ -521,8 +544,13 @@ function pinEl(it) {
 // What Widgie says when you use a widget, in the widget's own words.
 const NOTES = { luna: (n) => `${n}'s fed. I'll tell everyone.`, hearts: (n, it) => `Heart sent. ${it.who || "Sam"} will see it.`, groc: () => "Crossed off, for both of you.", water: () => "One more glass. Nice.", streak: () => "Another day. Keep it going!", plant: (n) => `Watered. ${n} says thanks.`, savings: () => "$50 closer. Nice.", bins: () => "Passed on. Your turn's done.", baby: () => "Feed logged. Rest a bit.", mood: () => "Mood shared.", quest: () => "Answered. New one tomorrow.", chores: () => "Point to you!", grid: () => "Today's square is in.", pushups: () => "Ten more. Strong.", word: () => "One more word learned." };
 let lunaFed = false;
-const greet = () => night ? "I'll keep an eye on them tonight." : lunaFed ? "Luna's had breakfast. Good start!" : "Morning! Luna's waiting on breakfast.";
-function subline() { $("#w-sub").innerHTML = `<b>${items.length} widgets</b>, ${items.filter((i) => i.placed).length} on your home screen`; }
+function greet() {
+  if (night) return "I'll keep an eye on them tonight.";
+  const hungry = items.find((it) => it.w === "luna" && it.words && !it.fedOnce);
+  if (hungry) return `${hungry.words[0][1]} hasn't been fed yet.`;
+  return lunaFed ? "Luna's had breakfast. Good start!" : "Morning! Sam fed Luna 2h ago.";
+}
+function subline() { $("#w-sub").innerHTML = `<b>${items.length} widgets</b>, ${PHONE}${items.filter((i) => i.placed).length} on Home Screen`; }
 // Builds the feed from pins it already has, so a widget keeps its state when the feed changes around it, and the
 // cards that move slide to their new place.
 const pins = new Map();
@@ -542,6 +570,7 @@ function layoutFeed({ first = false, arriving = null } = {}) {
   live(feed, (el) => {
     const it = el._item, note = NOTES[it.w];
     if (it.w === "luna" && it.name === "Luna") lunaFed = true;
+    if (it.w === "luna") it.fedOnce = true;
     if ($("#p-widgets").scrollTop > 140 || !note) return;
     hop($("#w-widgie")); say($("#w-bubble"), note(it.words ? it.words[0][1] : it.name, it));
     clearTimeout(backTimer);
@@ -560,12 +589,14 @@ function layoutFeed({ first = false, arriving = null } = {}) {
 let heroSide = null;
 function placeHero() {
   const first = rows(items)[0] || [], wide = first.length === 1 && MEDIUM.has(first[0].w);
-  const w = $("#w-widgie"), b = $("#w-bubble"), sh = $(".top .shadow"), x = wide ? 150 : 275, size = wide ? 96 : 132;
+  const w = $("#w-widgie"), b = $("#w-bubble"), sh = $(".top .shadow"), x = wide ? 150 : 275, y = wide ? 222 : 200, size = 116;
+  $(".top").style.height = y + "px";
   if (heroSide !== wide) { heroSide = wide; drawWidgie(w, "lean", wide ? {} : { mirror: "1" }); }
-  stand(w, size, "lean", !wide, x, 200);
-  Object.assign(sh.style, { left: x - 35 + "px", top: "195px" });
+  stand(w, size, "lean", !wide, x, y);
+  sh.classList.add("onface");
+  Object.assign(sh.style, { left: x - 22 + "px", top: y + "px", width: "", height: "" });
   b.classList.toggle("right", !wide); b.classList.toggle("left", wide);
-  Object.assign(b.style, wide ? { left: "176px", width: "186px", top: "112px" } : { left: "0", width: "206px", top: "106px" });
+  Object.assign(b.style, wide ? { left: "188px", width: "174px", top: y - 104 + "px" } : { left: "0", width: "236px", top: "110px" });
 }
 let pending = null;
 function addToFeed(it) {
@@ -585,20 +616,22 @@ function land(it) {
 
 // ---------- Make: Widgie draws your widget with its tip ----------
 const IDEAS = [
-  { icon: svg(icon.paw), bg: "#ffe7c2", fg: "#9a5500", t: "When was the dog fed?", s: "Who fed them, and how long ago", w: "luna", name: "Biscuit", words: [["Luna", "Biscuit"], ...UNFED], reply: "Here's Biscuit's. Tap the check after a meal.", refine: [["Make it greener", { bg: "linear-gradient(160deg,#245b3c,#163a27)" }, "Greener it is."], ["Make it red", { bg: "linear-gradient(160deg,#a8322a,#6e1c16)" }, "Red, done."]] },
-  { icon: svg(icon.plane), bg: "#ffd8d2", fg: "#b83226", t: "Days until our trip", s: "A countdown with the date", w: "count", name: "Kyoto trip", words: [["Lisbon", "Kyoto"], ["LIS", "KIX"]], reply: "Counting down to Kyoto. Want another date?", refine: [["Make it purple", { bg: "linear-gradient(160deg,#6b3fc4,#4a2a96)" }, "Purple, done."], ["Bigger number", { big: 1 }, "Bigger, done."]] },
-  { icon: svg(icon.heart), bg: "#ffd6e0", fg: "#b82552", t: "A heart button for Alex", s: "One tap sends a heart", w: "hearts", name: "Hearts for Alex", who: "Alex", words: [["Sam", "Alex"]], reply: "One tap sends Alex a heart. Try it!", refine: [["Make it blue", { bg: "linear-gradient(160deg,#23407a,#152a55)" }, "Blue, done."], ["Softer pink", { bg: "linear-gradient(160deg,#a8566f,#7d3a52)" }, "Softer, done."]] },
+  { icon: svg(icon.paw), bg: "#ffe7c2", fg: "#9a5500", nbg: "rgba(255,190,80,.22)", nfg: "#ffd27d", t: "When was the dog fed?", s: "Who fed them, and how long ago", w: "luna", name: "Biscuit", words: [["Luna", "Biscuit"], ...UNFED], reply: "Here's Biscuit's. Tap the check after a meal.", refine: [["Make it greener", { bg: "linear-gradient(160deg,#245b3c,#163a27)" }, "Greener it is."], ["Make it red", { bg: "linear-gradient(160deg,#a8322a,#6e1c16)" }, "Red, done."]] },
+  { icon: svg(icon.plane), bg: "#ffd8d2", fg: "#b83226", nbg: "rgba(255,110,95,.22)", nfg: "#ff9b90", t: "Days until our trip", s: "A countdown with the date", w: "count", name: "Kyoto trip", words: [["Lisbon", "Kyoto"], ["LIS", "KIX"]], reply: "Kyoto's countdown is ready.", refine: [["Make it purple", { bg: "linear-gradient(160deg,#6b3fc4,#4a2a96)" }, "Purple, done."], ["Bigger number", { big: 1 }, "Bigger, done."]] },
+  { icon: svg(icon.heart), bg: "#ffd6e0", fg: "#b82552", nbg: "rgba(255,115,155,.22)", nfg: "#ff9ab8", t: "A heart button for Alex", s: "One tap sends a heart", w: "hearts", name: "Hearts for Alex", who: "Alex", words: [["Sam", "Alex"]], reply: "One tap sends Alex a heart. Try it!", refine: [["Make it blue", { bg: "linear-gradient(160deg,#23407a,#152a55)" }, "Blue, done."], ["Softer pink", { bg: "linear-gradient(160deg,#a8566f,#7d3a52)" }, "Softer, done."]] },
 ];
 const GENERIC = [["Change the colors", { bg: "linear-gradient(160deg,#2c5e8f,#1c3f63)" }, "New colors. How's that?"], ["Bigger text", { big: 1 }, "Bigger, done."]];
 const say_ = $("#say");
 function composerMode() {
-  $("#composer").classList.toggle("busy", !!(draft || building));
+  $("#composer").classList.toggle("busy", !!(draft || building || saving));
+  $("#send").disabled = building || saving;
+  const n = $("#p-make [data-new]"); if (n) n.disabled = building || saving;
   say_.placeholder = draft ? "Ask for a change" : "Describe a widget";
 }
 function makeReset() {
   draft = null;
-  $("#p-make").innerHTML = `<div class="hello entering"><div class="head"><div class="eyebrow">Say it in your own words</div><h1 class="display">Make</h1></div><div class="make-hello"><div class="shadow"></div><div class="widgie sway" id="m-widgie"></div><div class="bubble right pop" id="m-bubble">Hi! What should we make today?</div></div><div class="grow"></div>
-   <div class="ideas"><div class="eyebrow">Or start from one of these</div>${IDEAS.map((d, i) => `<button class="idea rise" data-i="${i}" style="animation-delay:${.08 + i * .05}s"><span class="ic" style="background:${d.bg};color:${d.fg}">${d.icon}</span><span><div class="t">${d.t}</div><div class="s">${d.s}</div></span><svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></button>`).join("")}</div></div>`;
+  $("#p-make").innerHTML = `<div class="hello entering"><div class="head"><div class="eyebrow">Say it in your own words</div><h1 class="display">Make</h1></div><div class="grow"></div><div class="make-hello"><div class="shadow"></div><div class="widgie sway" id="m-widgie"></div><div class="bubble right pop" id="m-bubble">Hi! What should we make today?</div></div>
+   <div class="ideas"><div class="eyebrow">Or start from one of these</div>${IDEAS.map((d, i) => `<button class="idea rise" data-i="${i}" style="animation-delay:${.08 + i * .05}s"><span class="ic" style="--ib:${d.bg};--if:${d.fg};--nb:${d.nbg};--nf:${d.nfg}">${d.icon}</span><span><div class="t">${d.t}</div><div class="s">${d.s}</div></span><svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l6 6-6 6"/></svg></button>`).join("")}</div></div>`;
   requestAnimationFrame(() => $("#p-make .hello")?.classList.remove("entering"));
   drawWidgie($("#m-widgie"), "lean", { mirror: "1" });
   stand($("#m-widgie"), 192, "lean", true, 290, 206);
@@ -610,7 +643,7 @@ function pick(text) {
   const t = text.toLowerCase();
   if (/trip|days|until|countdown|holiday/.test(t)) {
     const place = (text.match(/\bto ([A-Z][a-z]+)/) || [])[1];
-    return place ? { ...IDEAS[1], name: `${place} trip`, words: [["Lisbon", place], ["LIS", code(place)]], reply: `Counting down to ${place}. Want another date?` } : IDEAS[1];
+    return place ? { ...IDEAS[1], name: `${place} trip`, words: [["Lisbon", place], ["LIS", code(place)]], reply: `${place}'s countdown is ready.` } : IDEAS[1];
   }
   if (/heart|love|miss|partner/.test(t)) {
     const who = (text.match(/\bfor ([A-Z][a-z]+)/) || [])[1];
@@ -625,7 +658,7 @@ say_.addEventListener("blur", () => $("#m-widgie")?.classList.remove("lean"));
 $("#composer").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = say_.value.trim();
-  if (!text) return;
+  if (!text || building || saving) return;
   say_.value = ""; $("#send").classList.remove("ready"); $("#composer").classList.remove("typed");
   if (draft && !building) return refine(text, null);
   ask(pick(text), text);
@@ -636,14 +669,14 @@ function outline(w, h, x = w - 60, r = 24) {
 }
 const threadBar = () => `<div class="bar"><h2 class="display">Make</h2><button class="mini" type="button" data-new><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New</button></div>`;
 // Where Widgie stands on a tile: near the top right of a small one, on the left of a wide one, clear of its art.
-const perchAt = (wide, W) => ({ x: wide ? 150 : W - 60, y: 0 });
+const perchAt = (wide, W) => ({ x: wide ? 150 : W - 42, y: 0 });
 // The parts that fill in behind the pen, timed for when the pen passes them on its clockwise ride from the perch.
 function sketchParts(w, W, H) {
   if (w === "count") return [[18, 22, 70, 12, 6, .7], [18, 46, 92, 60, 12, .6], [W - 172, 18, 150, 116, 12, .12]];
   return [[18, 22, 64, 12, 6, .7], [18, 50, MEDIUM.has(w) ? 118 : 96, 40, 10, .62], [18, H - 52, 34, 34, 17, .48], [W - 60, H - 60, 42, 42, 21, .2]];
 }
-let building = false, draft = null;
-function bindBar(page) { page.querySelector("[data-new]").onclick = () => { if (building) return; const t = page.querySelector(".thread"); t.classList.add("leaving"); setTimeout(makeReset, calm ? 0 : 260); }; }
+let building = false, draft = null, saving = false;
+function bindBar(page) { page.querySelector("[data-new]").onclick = () => { if (building || saving) return; const t = page.querySelector(".thread"); t.classList.add("leaving"); setTimeout(makeReset, calm ? 0 : 260); }; }
 async function ask(idea, text) {
   if (building) return;
   building = true; draft = null; composerMode();
@@ -662,7 +695,7 @@ async function ask(idea, text) {
   list.insertAdjacentHTML("beforeend", `<div class="studio ${wide ? "wide" : ""}" style="width:${W}px;height:${H}px"><svg class="sk" viewBox="0 0 ${W} ${H}"><path class="edge" d="${d}" pathLength="1"/><g class="art">${parts.map(([x, y, pw, ph, rr, delay]) => `<rect class="part" x="${x}" y="${y}" width="${pw}" height="${ph}" rx="${rr}" style="animation-delay:${delay}s"/>`).join("")}</g></svg><div class="widgie pen" style="offset-path:path('${d}')"></div><div class="shadow"></div></div>`);
   const studio = list.lastChild, pen = studio.querySelector(".pen"), sk = studio.querySelector("svg"), shadow = studio.querySelector(".shadow");
   drawWidgie(pen, "draw");
-  await wait(1880);
+  await wait(1850);
   // The real tile fades in under the outline; the outline fades away on top once the tile is solid.
   studio.insertAdjacentHTML("afterbegin", tile(idea.w));
   const blk = studio.firstChild;
@@ -679,18 +712,19 @@ async function ask(idea, text) {
   hop(perch);
   await wait(440);
   // Touchdown: the shadow lands with the foot, and Save is there to tap while Widgie settles.
-  Object.assign(shadow.style, { left: foot.x - 32 + "px", top: "-5px", opacity: "1" });
-  const chips = idea.refine || GENERIC;
+  shadow.classList.add("onface");
+  Object.assign(shadow.style, { left: foot.x - 22 + "px", top: "0px", opacity: "1" });
+  const chips = (idea.refine || GENERIC).slice();
+  draft = { idea, blk, perch, list, shadow, look: {}, chips, outline: d };
   list.insertAdjacentHTML("beforeend", `<div class="after"><div class="refine">${chips.map((r, i) => `<button class="chip" data-r="${i}">${r[0]}</button>`).join("")}</div><button class="key">Save widget</button></div>`);
   const after = list.lastChild;
-  for (const b of after.querySelectorAll(".chip")) b.onclick = () => refine(chips[b.dataset.r][0], chips[b.dataset.r]);
+  bindChips(after);
   after.querySelector(".key").onclick = (e) => { e.currentTarget.disabled = true; saved(); };
-  page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
   await wait(300);
   drawWidgie(perch, "lean", { mirror: "1", eyes: "happy" });
   stand(perch, size, "lean", true, foot.x, foot.y);
   bubble.textContent = idea.reply; bubble.classList.remove("pop"); void bubble.offsetWidth; bubble.classList.add("pop");
-  draft = { idea, blk, perch, list, shadow, look: {}, chips };
+  page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
   building = false; composerMode();
 }
 // What this prototype can do with typed words: a color or a size. Anything else gets an honest answer.
@@ -700,6 +734,11 @@ function understood(text) {
   if (c) return [text, { bg: COLORS[c] }, `${c[0].toUpperCase() + c.slice(1)}, done.`];
   if (/bigger|larger|huge|size/.test(t)) return [text, { big: 1 }, "Bigger, done."];
   return null;
+}
+function bindChips(after) {
+  const { chips } = draft;
+  after.querySelector(".refine").innerHTML = chips.slice(0, 2).map((r, i) => `<button class="chip" data-r="${i}">${r[0]}</button>`).join("");
+  for (const b of after.querySelectorAll(".chip")) b.onclick = () => refine(chips[b.dataset.r][0], chips[b.dataset.r]);
 }
 // A change to the draft: your words and Widgie's answer, scrolled into view, then the same tile changed in place.
 async function refine(text, change) {
@@ -723,18 +762,27 @@ async function refine(text, change) {
     hop(perch, true);
   } else play(perch, "glance", 900);
   row.querySelector(".bubble").textContent = done;
-  if (change) after.querySelector(`[data-r="${chips.indexOf(change)}"]`)?.remove();
+  if (change) {
+    chips.splice(chips.indexOf(change), 1);
+    (draft.used ||= []).push(change[0]);
+    const spare = GENERIC.find((g) => !chips.includes(g) && !draft.used.includes(g[0]));
+    if (spare && chips.length < 2) chips.push(spare);
+    bindChips(after);
+  }
+  page.scrollTo({ top: page.scrollHeight, behavior: calm ? "auto" : "smooth" });
   building = false; composerMode();
 }
 async function saved() {
-  const { idea, blk, perch, list, shadow, look } = draft;
-  draft = null; composerMode();
-  // Widgie cheers, the confetti goes up, the tile flies into Widgets; only then does Widgie hop down after it.
+  const { idea, blk, perch, list, shadow, look, outline: d } = draft;
+  draft = null; saving = true; composerMode();
+  list.querySelector(".after")?.classList.add("going");
   const fx = parseFloat(perch.style.left) + .58 * 116, fy = parseFloat(perch.style.top) + .989 * 116;
   drawWidgie(perch, "jump", { eyes: "happy" }); stand(perch, 116, "jump", false, fx, fy);
   hop(perch);
   burst(blk);
   await wait(240);
+  const studio = blk.parentElement, W = blk.offsetWidth, H = blk.offsetHeight;
+  if (d) studio.insertAdjacentHTML("afterbegin", `<svg class="ghost" viewBox="0 0 ${W} ${H}"><path d="${d}"/></svg>`);
   await flyToTab(blk);
   $("#badge").classList.add("show"); squishGlyph();
   addToFeed({ w: idea.w, name: idea.name, words: idea.words, look: { ...look }, who: idea.who });
@@ -744,6 +792,7 @@ async function saved() {
   await wait(100);
   list.classList.add("leaving");
   await wait(280);
+  saving = false;
   makeReset();
 }
 // "Change in chat" from a template: Make opens with that widget as the draft, ready for words.
@@ -761,14 +810,15 @@ function adopt(w, title, pairs, look, who) {
   live(studio);
   const foot = perchAt(wide, W);
   stand(perch, 116, "lean", true, foot.x, foot.y);
-  Object.assign(shadow.style, { left: foot.x - 32 + "px", top: "-5px" });
+  shadow.classList.add("onface");
+  Object.assign(shadow.style, { left: foot.x - 22 + "px", top: "0px" });
   drawWidgie(perch, "lean", { mirror: "1", eyes: "happy" });
-  const chips = idea.refine;
-  list.insertAdjacentHTML("beforeend", `<div class="after"><div class="refine">${chips.map((r, i) => `<button class="chip" data-r="${i}">${r[0]}</button>`).join("")}</div><button class="key">Save widget</button></div>`);
+  const chips = idea.refine.slice();
+  draft = { idea, blk, perch, list, shadow, look: { ...(look || {}) }, chips, outline: outline(W, 174, foot.x) };
+  list.insertAdjacentHTML("beforeend", `<div class="after"><div class="refine"></div><button class="key">Save widget</button></div>`);
   const after = list.lastChild;
-  for (const b of after.querySelectorAll(".chip")) b.onclick = () => refine(chips[b.dataset.r][0], chips[b.dataset.r]);
+  bindChips(after);
   after.querySelector(".key").onclick = (e) => { e.currentTarget.disabled = true; saved(); };
-  draft = { idea, blk, perch, list, shadow, look: { ...(look || {}) }, chips };
   composerMode();
 }
 
@@ -793,8 +843,16 @@ function flyToTab(el) {
   phone.appendChild(copy);
   el.style.visibility = "hidden";
   const dx = t.x + t.w / 2 - r.x - r.w / 2, dy = t.y + t.h / 2 - r.y - r.h / 2, end = 22 / Math.max(r.w, r.h);
-  const frames = Array.from({ length: 32 }, (_, i) => { const k = i / 31, e = k * k * (3 - 2 * k); const s = k < .7 ? 1 - .1 * (k / .7) : .9 - (.9 - end) * ((k - .7) / .3); return { transform: `translate(${dx * e}px,${dy * e - 90 * 4 * k * (1 - k)}px) scale(${s})`, opacity: k < .75 ? 1 : 1 - (k - .75) / .25 * .7, offset: k }; });
-  return copy.animate(frames, { duration: 560, easing: "linear", fill: "forwards" }).finished.then(() => copy.remove());
+  const frames = Array.from({ length: 32 }, (_, i) => {
+    const k = i / 31, e = k < .3 ? .06 * (k / .3) : .06 + .94 * ((q) => q * q * (3 - 2 * q))((k - .3) / .7);
+    const s = k < .3 ? 1 - .15 * (k / .3) : k < .5 ? .85 - .15 * ((k - .3) / .2) : .7 - (.7 - end) * ((k - .5) / .5);
+    let tx = dx * e; const ty = dy * e - 70 * 4 * k * (1 - k);
+    const half = (r.w * s) / 2, cx = r.x + r.w / 2 + tx;
+    if (cx - half < 8) tx += 8 - (cx - half);
+    if (cx + half > 394) tx -= cx + half - 394;
+    return { transform: `translate(${tx}px,${ty}px) scale(${s})`, opacity: k < .8 ? 1 : 1 - (k - .8) / .2 * .7, offset: k };
+  });
+  return copy.animate(frames, { duration: 600, easing: "linear", fill: "forwards" }).finished.then(() => copy.remove());
 }
 // The Widgets icon takes the tile in with a squish.
 function squishGlyph() { if (!calm) document.querySelector('[data-tab="widgets"] .glyph').animate([{ scale: 1 }, { scale: .8, offset: .3 }, { scale: 1.08, offset: .7 }, { scale: 1 }], { duration: 380, easing: "ease-out" }); }
@@ -802,43 +860,54 @@ function toast(text) { $("#t-text").textContent = text; drawWidgie($("#t-widgie"
 
 // ---------- Templates: the landing page's widgets, by category ----------
 const CATS = {
-  two: { name: "For two", icon: icon.heart, bg: "linear-gradient(150deg,#d4436a,#b82c53)", line: "Little signals for the two of you", actors: () => couple(), items: [["hearts", "Thinking of you", "A heart in one tap"], ["mood", "Our moods", "Swap faces all day"], ["count", "Trip countdown", "Days until the big one"], ["days", "Days together", "Since your first date"], ["quest", "Today's question", "One a day, both answer"]] },
-  home: { name: "Home", icon: HOUSE, bg: "linear-gradient(150deg,#bc4734,#a93225)", line: "The jobs you share at home", actors: () => single("lean", { mirror: "1", moon: "1" }, `<div class="shadow" style="left:40px;bottom:4px;width:64px"></div><div style="position:absolute;left:40px;bottom:8px;width:64px">${puppy(false)}</div>`), items: [["luna", "Pet fed", "Who fed them, and when"], ["bins", "Bins night", "Pass the turn along"], ["groc", "Shared groceries", "Cross it off for both"], ["plant", "Plant care", "Goes red when thirsty"], ["baby", "Baby feeds", "Red after three hours"], ["chores", "Chores scoreboard", "Winner picks the movie"]] },
-  habits: { name: "Habits", icon: icon.leaf, bg: "linear-gradient(150deg,#5a3c98,#38206a)", line: "See your weeks fill up", actors: () => single("lean", { moon: "1" }, `<div class="shadow" style="left:148px;bottom:4px;width:44px"></div><div style="position:absolute;left:150px;bottom:12px;width:40px;transform:rotate(6deg)">${SQUARES}</div>`, -14), items: [["grid", "Habit squares", "Two weeks at a glance"], ["streak", "Streak", "Don't break the chain"], ["water", "Water", "Glasses toward a goal"], ["pushups", "Pushups", "A ring that fills up"]] },
-  goals: { name: "Goals", icon: STAR, bg: "linear-gradient(150deg,#ffd95a,#f6b820)", dark: 1, line: "Watch the jar fill up", actors: () => single("jump", { eyes: "happy", moon: "0" }, `<div class="shadow" style="left:142px;bottom:4px;width:44px"></div><div style="position:absolute;left:146px;bottom:10px;width:38px;transform:rotate(8deg)">${MEDAL}</div>`, -18), items: [["savings", "Savings jar", "Every $50 counts"], ["sober", "Days free", "A medal at 60"], ["word", "Word of the day", "A new one each morning"]] },
+  two: { name: "For two", icon: icon.heart, bg: "linear-gradient(150deg,#d4436a,#b82c53)", day: "linear-gradient(150deg,#ffb3c6,#f58aa6)", line: "Little signals for the two of you", actors: () => couple(), items: [["hearts", "Thinking of you", "A heart in one tap"], ["mood", "Our moods", "Swap faces all day"], ["count", "Trip countdown", "Days until the big one"], ["days", "Days together", "Since your first date"], ["quest", "Today's question", "One a day, both answer"]] },
+  home: { name: "Home", icon: HOUSE, bg: "linear-gradient(150deg,#bc4734,#a93225)", day: "linear-gradient(150deg,#ffad94,#f5876b)", line: "The jobs you share at home", actors: () => single("lean", { mirror: "1" }, `<div class="shadow" style="left:40px;top:122px;width:64px"></div><div style="position:absolute;left:40px;top:76px;width:64px">${puppy(false)}</div>`, 150), items: [["luna", "Pet fed", "Who fed them, and when"], ["bins", "Bins night", "Pass the turn along"], ["groc", "Shared groceries", "Cross it off for both"], ["plant", "Plant care", "Goes red when thirsty"], ["baby", "Baby feeds", "Red after three hours"], ["chores", "Chores scoreboard", "Winner picks the movie"]] },
+  habits: { name: "Habits", icon: icon.leaf, bg: "linear-gradient(150deg,#5a3c98,#38206a)", day: "linear-gradient(150deg,#c7b4f7,#a58aea)", line: "See your weeks fill up", actors: () => single("lean", {}, `<div class="shadow" style="left:148px;top:122px;width:44px"></div><div style="position:absolute;left:150px;top:84px;width:40px;transform:rotate(6deg)">${SQUARES}</div>`, 104), items: [["grid", "Habit squares", "Two weeks at a glance"], ["streak", "Streak", "Don't break the chain"], ["water", "Water", "Glasses toward a goal"], ["pushups", "Pushups", "A ring that fills up"]] },
+  goals: { name: "Goals", icon: STAR, bg: "linear-gradient(150deg,#ffd95a,#f6b820)", dark: 1, line: "Watch the jar fill up", actors: () => single("jump", { eyes: "happy" }, `<div class="shadow" style="left:142px;top:122px;width:44px"></div><div style="position:absolute;left:146px;top:72px;width:38px;transform:rotate(8deg)">${MEDAL}</div>`, 100), items: [["savings", "Savings jar", "Every $50 counts"], ["sober", "Days free", "A medal at 60"], ["word", "Word of the day", "A new one each morning"]] },
 };
 let cat = "two";
-const couple = () => `<div class="shadow" style="left:62px;bottom:4px;width:104px"></div><div class="widgie sway" style="left:40px;bottom:8px;width:112px" data-a="lean" data-eyes="happy" data-moon="1"></div><div class="widgie sway" style="left:84px;bottom:8px;width:112px" data-a="lean" data-mirror="1" data-moon="1"></div><div class="beat" style="position:absolute;left:111px;top:12px;width:20px;height:20px;color:#fff">${icon.heart}</div>`;
-// Widgie's foot on the banner's floor, beside its prop.
-const single = (pose, extra, prop = "", dx = 0) => `<div class="shadow" style="left:${100 + dx}px;bottom:4px;width:60px"></div><div class="widgie sway" style="left:${74 + dx}px;bottom:8px;width:112px" data-a="${pose}" ${Object.entries(extra).map(([k, v]) => `data-${k}="${v}"`).join(" ")}></div>${prop}`;
+// A banner actor: a Widgie whose foot stands at x on the banner floor, with its shadow under the foot.
+const actor = (pose, x, extra = {}, size = 112) => `<div class="shadow" style="left:${x - 26}px;top:122px;width:52px"></div><div class="widgie sway" data-a="${pose}" data-x="${x}" data-size="${size}" ${Object.entries(extra).map(([k, v]) => `data-${k}="${v}"`).join(" ")}></div>`;
+const couple = () => actor("lean", 74, { eyes: "happy" }, 100) + actor("lean", 150, { mirror: "1" }, 100) + `<div class="beat" style="position:absolute;left:101px;top:6px;width:20px;height:20px;color:var(--heart)">${icon.heart}</div>`;
+const single = (pose, extra, prop = "", x = 130) => actor(pose, x, extra) + prop;
 function renderCats() {
   $("#cats").innerHTML = Object.entries(CATS).map(([k, c]) => `<button class="chip cat ${k === cat ? "on" : ""}" role="tab" aria-selected="${k === cat}" data-cat="${k}">${svg(c.icon)}${c.name}</button>`).join("");
   for (const el of document.querySelectorAll(".cat")) el.onclick = () => { if (el.dataset.cat !== cat) { cat = el.dataset.cat; renderCats(); renderPile(true); } };
 }
 function castBanner(c) {
   $("#actors").innerHTML = c.actors();
-  for (const w of document.querySelectorAll("#actors .widgie")) { const extra = {}; for (const k of ["eyes", "mirror", "moon"]) if (w.dataset[k]) extra[k] = w.dataset[k]; drawWidgie(w, w.dataset.a, extra); }
+  for (const w of document.querySelectorAll("#actors .widgie")) {
+    const extra = {}; for (const k of ["eyes", "mirror"]) if (w.dataset[k]) extra[k] = w.dataset[k];
+    extra.moon = night && !c.dark ? "1" : "0";
+    drawWidgie(w, w.dataset.a, extra);
+    stand(w, +w.dataset.size, w.dataset.a, extra.mirror === "1", +w.dataset.x, 128);
+  }
 }
 function renderPile(swap) {
   const c = CATS[cat];
   const fill = () => {
     const banner = $("#banner");
-    banner.style.background = c.bg;
-    banner.style.color = c.dark ? "#121a2e" : "#fff";
+    const ink = !night || c.dark;
+    banner.style.background = night ? c.bg : c.day || c.bg;
+    banner.classList.toggle("ink", ink);
+    banner.style.color = ink ? "#121a2e" : "#fff";
+    banner.style.setProperty("--heart", night ? "#ffadc2" : "#d4436a");
     $("#b-line").textContent = c.line;
     castBanner(c);
     $("#actors").classList.remove("out");
     if (swap) for (const w of document.querySelectorAll("#actors .widgie")) hop(w, true);
     // Small tiles lean up to 2.5 degrees, wide ones 1, alternating, so the pile reads as handled but stays in the gutters.
-    $("#pile").innerHTML = c.items.map(([w, n, sub], i) => { const rot = (i % 2 ? 1 : -1) * (MEDIUM.has(w) ? 1 : [2.5, 2, 1.5][i % 3]); return `<button class="item ${MEDIUM.has(w) ? "wide" : ""} rise" style="animation-delay:${i * .05}s" data-i="${i}" aria-label="${n}: ${sub}">${tile(w, rot)}<div class="tmeta" aria-hidden="true"><div class="tname">${n}${CHEV}</div><div class="tsub">${sub}</div></div></button>`; }).join("");
+    $("#pile").innerHTML = c.items.map(([w, n, sub], i) => { const rot = (i % 2 ? 1 : -1) * (MEDIUM.has(w) ? 1 : [2.5, 2, 1.5][i % 3]); return `<button class="item ${MEDIUM.has(w) ? "wide" : ""} rise" style="animation-delay:${i * .05}s" data-i="${i}" aria-label="${n}: ${sub}">${tile(w, rot)}<div class="tmeta" aria-hidden="true"><div class="tname">${n}<span class="try">Try${CHEV}</span></div><div class="tsub">${sub}</div></div></button>`; }).join("");
     live($("#pile"));
     for (const b of document.querySelectorAll("#pile .blk button")) { b.tabIndex = -1; b.setAttribute("aria-hidden", "true"); }
     for (const it of document.querySelectorAll("#pile .item")) it.onclick = () => openSheet(c.items[it.dataset.i], it);
   };
   if (!swap) return fill();
   $("#actors").classList.add("out");
+  $("#pile").classList.add("leaving");
   for (const it of document.querySelectorAll("#pile .item")) it.classList.add("pop-out");
-  setTimeout(fill, 170);
+  clearTimeout(renderPile._t);
+  renderPile._t = setTimeout(() => { fill(); $("#pile").classList.remove("leaving"); }, 140);
 }
 // Each template's blank: the question, the word it starts with here, and every word on the tile that follows it.
 const BLANKS = {
@@ -873,20 +942,20 @@ function openSheet(item, from) {
   const hint = WIDGETS[w].tap ? "It works. Tap it!" : "Make it yours below.";
   if (wide) {
     // A wide tile: Widgie perches on its left, clear of the art on the right, and talks to its right.
-    const size = 90, x = 48;
+    const size = 100, x = 48;
     drawWidgie(spotWidgie, "lean", {});
     stand(spotWidgie, size, "lean", false, x, 0);
-    Object.assign(shadow.style, { left: x - 26 + "px", top: "-5px", width: "52px", height: "10px" });
-    b.className = "bubble left gone"; Object.assign(b.style, { left: "100px", top: "-56px" });
+    shadow.className = "shadow onface"; Object.assign(shadow.style, { left: x - 22 + "px", top: "0px" });
+    b.className = "bubble left gone"; Object.assign(b.style, { left: "88px", top: "-62px" });
     box.style.transform = "none";
   } else {
     // A small tile: Widgie stands beside it on the spotlight floor, the pair centred, and talks from above.
-    const size = 112, x = W + 48;
+    const size = 116, x = W + 50;
     drawWidgie(spotWidgie, "lean", { mirror: "1" });
     stand(spotWidgie, size, "lean", true, x, H);
     Object.assign(shadow.style, { left: x - 32 + "px", top: H - 5 + "px", width: "64px" });
-    b.className = "bubble down gone"; Object.assign(b.style, { left: W + "px", top: "18px" }); b.style.setProperty("--tx", "22%");
-    box.style.transform = "translateX(-52px)";
+    b.className = "bubble down gone"; Object.assign(b.style, { left: W + 12 + "px", bottom: "121px", top: "auto" }); b.style.setProperty("--tx", "30%");
+    box.style.transform = "translateX(-58px)";
   }
   $("#s-hint").textContent = hint;
   $("#s-hint").hidden = true;
@@ -961,7 +1030,7 @@ function go(next, quiet = false) {
 }
 for (const t of document.querySelectorAll("[data-tab]")) t.onclick = () => go(t.dataset.tab);
 for (const b of document.querySelectorAll("[data-go]")) b.onclick = () => go(b.dataset.go);
-function keyFace() { drawWidgie($("#tab-widgie"), "idle", { moon: night && tab !== "make" ? "1" : "0" }); }
+function keyFace() { drawWidgie($("#tab-widgie"), "lean", { mirror: "1", moon: night && tab !== "make" ? "1" : "0" }); }
 function redrawCast() {
   for (const el of document.querySelectorAll(".widgie")) {
     if (!el._pose) continue;
@@ -975,6 +1044,7 @@ for (const b of document.querySelectorAll("[data-time]")) b.onclick = () => {
   phone.classList.toggle("night", night);
   $("#w-hello").textContent = night ? "Good evening" : "Good morning";
   redrawCast(); keyFace();
+  castBanner(CATS[cat]); renderPile(false);
   say($("#w-bubble"), greet(), { swap: true });
 };
 
