@@ -8,7 +8,7 @@ import WidgetBuilder
 /// that image decoded once for the thumbnails.
 struct Picture {
     /// The longest side of a picture the model takes as input, in pixels.
-    static let modelSide = 1080
+    private static let modelSide = 1080
 
     let attachment: Attachment
     let image: UIImage
@@ -48,7 +48,7 @@ struct Picture {
 /// The attached photo as a small rounded thumbnail.
 struct Thumbnail: View {
     let picture: Picture
-    var size: CGFloat = 44
+    let size: CGFloat
 
     var body: some View {
         Image(uiImage: picture.image)
