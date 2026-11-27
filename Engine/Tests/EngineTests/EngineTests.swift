@@ -18,6 +18,7 @@ import WidgetEngine
         let three = picture(await scratch.face(id))
         #expect(three.looksLike(try await expected(source, rows: #"{"glasses": [{"daysAgo": 0, "repeat": 3}]}"#)))
         #expect(!three.looksLike(try await expected(source, rows: #"{"glasses": [{"daysAgo": 0, "repeat": 2}]}"#)))
+        #expect(!(await scratch.face(id)).isFallback)
         let medium = picture(await scratch.face(id, .medium), .medium)
         #expect(
             medium.looksLike(
@@ -366,6 +367,7 @@ import WidgetEngine
         for _ in 0..<3 { try scratch.engine.perform(try button("add", on: await scratch.face(id)).tap, at: morning) }
         let face = await scratch.face(id)
         #expect(picture(face).looksLike(picture(.placeholder)))
+        #expect(face.isFallback)
         guard case .fallback(_, let reason) = face.content else { throw Unexpected() }
         #expect(reason.contains("images decode to more than 1.5 megapixels"), "\(reason)")
     }
@@ -377,6 +379,7 @@ import WidgetEngine
         #expect(faces.entries.count == 1)
         #expect(faces.reloadAt == instant("2026-11-19T00:00:00Z"))
         #expect(picture(faces.current).looksLike(picture(.placeholder)))
+        #expect(faces.current.isFallback)
     }
 
     @Test @MainActor func aStoreThatCannotOpenFallsBackAndRetriesSoon() async throws {

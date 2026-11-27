@@ -109,6 +109,11 @@ public struct Face: Sendable {
 
     /// For `TimelineProvider.placeholder`, which must return synchronously without touching the store.
     public static let placeholder = Face(date: .distantPast, content: .fallback(name: nil, reason: "placeholder"))
+
+    /// Whether this is the calm face shown instead of the look, for a host that checks a look really drew.
+    public var isFallback: Bool {
+        if case .fallback = content { true } else { false }
+    }
 }
 
 public struct EngineError: Error, Sendable {

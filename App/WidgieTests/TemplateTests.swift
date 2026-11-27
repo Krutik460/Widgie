@@ -163,7 +163,25 @@ import WidgetEngine
         gallery.fit(column: 362)
         for template in gallery.catalog {
             await gallery.draw(template)
-            #expect(gallery.faces[template.id] != nil, "\(template.id) drew no face")
+            let face = try #require(gallery.faces[template.id], "\(template.id) drew no face")
+            #expect(!face.isFallback, "\(template.id) fell back instead of drawing its look")
+        }
+    }
+
+    /// A value typed into any blank changes what the face draws, in both sizes, so it reaches the face and not
+    /// only the widget's name.
+    @Test func everyBlankReachesTheFace() async throws {
+        let date = Date(timeIntervalSince1970: 1_795_000_000)
+        for template in gallery.catalog {
+            for family in Family.allCases {
+                let placeholders = try await Engine.proof(template.source(), family: family, at: date).png
+                for blank in template.blanks {
+                    let typed = try template.source(filling: [blank.key: "Zed"])
+                    #expect(
+                        try await Engine.proof(typed, family: family, at: date).png != placeholders,
+                        "\(template.id), \(family): \(blank.label) does not reach the face")
+                }
+            }
         }
     }
 }
