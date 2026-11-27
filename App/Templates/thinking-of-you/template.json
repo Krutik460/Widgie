@@ -9,7 +9,8 @@
     {
       "key": "who",
       "label": "Who gets the hearts?",
-      "placeholder": "Sam"
+      "placeholder": "Sam",
+      "maxLength": 20
     }
   ]
 }

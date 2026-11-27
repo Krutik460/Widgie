@@ -65,33 +65,60 @@ import WidgetEngine
         #expect(try shared.engine.widgets().first { $0.id == id }?.name == #"Lu"na's \ dog fed"#)
     }
 
-    @Test func anEmptyOrBlankValueFallsBackToThePlaceholder() throws {
+    /// A pet fed template over the counter document, whose one blank keeps at most `maxLength` characters.
+    private func petFed(maxLength: Int = 36) throws -> (template: Template, folder: URL) {
         let folder = FileManager.default.temporaryDirectory.appending(path: "template-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: folder) }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try document().write(to: folder.appending(path: "widget.json"))
         let template = Template(
             id: "pet", name: "Pet fed", line: "", category: .home, order: 0, family: .small, hint: "",
-            blanks: [.init(key: "pet", label: "Your pet's name", placeholder: "Luna")], folder: folder)
+            blanks: [.init(key: "pet", label: "Your pet's name", placeholder: "Luna", maxLength: maxLength)],
+            folder: folder)
+        return (template, folder)
+    }
+
+    private func name(of source: WidgetSource) throws -> String? {
+        (try JSONSerialization.jsonObject(with: source.json) as? [String: Any])?["name"] as? String
+    }
+
+    @Test func anEmptyOrBlankValueFallsBackToThePlaceholder() throws {
+        let (template, folder) = try petFed()
+        defer { try? FileManager.default.removeItem(at: folder) }
         for value in [nil, "", "   "] {
-            let json = try template.source(filling: value.map { ["pet": $0] } ?? [:]).json
-            let name = (try JSONSerialization.jsonObject(with: json) as! [String: Any])["name"] as? String
-            #expect(name == "Luna fed")
+            #expect(try name(of: template.source(filling: value.map { ["pet": $0] } ?? [:])) == "Luna fed")
         }
+    }
+
+    @Test func aValuePastTheBlanksLengthIsCutToItWithoutATrailingSpace() throws {
+        let (template, folder) = try petFed(maxLength: 6)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        #expect(try name(of: template.source(filling: ["pet": "  Mochi the Great"])) == "Mochi fed")
+        #expect(try name(of: template.source(filling: ["pet": "Biscuit"])) == "Biscui fed")
+        #expect(try name(of: template.source(filling: ["pet": "🐶🐶🐶🐶"])) == "🐶🐶🐶 fed", "an emoji is two units")
+        #expect(try name(of: template.source(filling: ["pet": "Bo🐶🐶🐶"])) == "Bo🐶🐶 fed", "never half an emoji")
     }
 }
 
 @Suite struct TemplateCatalogTests {
     /// Every bundled template reads, has every blank its document uses, and builds through `engine.build`, with
-    /// its placeholders and with awkward values.
-    @Test func everyBundledTemplateBuildsWithItsPlaceholdersAndWithAwkwardValues() async throws {
+    /// its placeholders, with awkward values, and with every blank at its longest, which also proves the face.
+    @Test func everyBundledTemplateBuildsWithItsPlaceholdersAwkwardValuesAndTheLongestValues() async throws {
         let root = try #require(Bundle.main.url(forResource: "Templates", withExtension: nil))
         let folders = try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
             .filter { !$0.hasPrefix(".") }
         let catalog = Template.catalog(in: root)
         #expect(catalog.count == folders.count, "a template.json did not read")
         for template in catalog {
-            for values in [[:], Dictionary(uniqueKeysWithValues: template.blanks.map { ($0.key, #"Mo"chi \ 🐶"#) })] {
+            let awkward = Dictionary(uniqueKeysWithValues: template.blanks.map { ($0.key, #"Mo"chi \ 🐶"#) })
+            // Past each blank's length, so the source cuts every value to the longest a person can type, in the
+            // widest letter and in emoji, which count two units each.
+            let longest = ["W", "🐶"].map { glyph in
+                Dictionary(
+                    uniqueKeysWithValues: template.blanks.map {
+                        ($0.key, String(repeating: glyph, count: $0.maxLength + 5))
+                    })
+            }
+            for values in [[:], awkward] + longest {
                 let source = try template.source(filling: values)
                 #expect(
                     !String(decoding: source.json, as: UTF8.self).contains("{{"), "\(template.id) has an unfilled blank"
