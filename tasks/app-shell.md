@@ -74,46 +74,57 @@ The Widgets tab and the tab bar as drawn in the prototype, on the current app's 
 
 **Ground and type**
 
-- [ ] `Sky`: the ground for every screen, replacing the flat color and the dot grid. Day is the prototype's gradient (`#B4D4FB` to `#9CC3F5` to `#8AB6F0`) with two soft clouds drifting high up; night (dark mode) is the dusk gradient (`#14284F` to `#223F72` to `#2B4E82`) with 26 twinkling stars and a crescent moon top right. The moon fades out when the page scrolls past 24 pt. Clouds drift and stars twinkle only without Reduce Motion. Tokens go in `WidgieColors.xcassets` so day and night stay one edit each.
-- [ ] Bricolage Grotesque (OFL) for titles and big numbers. The site ships a 268-glyph Latin subset as woff2, which iOS cannot load and which lacks accented letters, so U3 bundled static faces cut from the full variable font (google/fonts) in the engine, which registers them for the whole process: `Bricolage Grotesque Display` (weight 800, 82 percent width, optical size 36, for titles and big numbers) and `Bricolage Grotesque Key` (weight 700, 92 percent width, optical size 18, for keys and bold labels). The app uses those. A `display(size:)` font helper scales with Dynamic Type like `font(size:weight:)`.
+- [x] `Sky`: the ground for every screen, replacing the flat color and the dot grid. Day is the prototype's gradient (`#B4D4FB` to `#9CC3F5` to `#8AB6F0`) with two soft clouds drifting high up; night (dark mode) is the dusk gradient (`#14284F` to `#223F72` to `#2B4E82`) with 26 twinkling stars and a crescent moon top right. The moon fades out when the page scrolls past 24 pt. Clouds drift and stars twinkle only without Reduce Motion. Tokens go in `WidgieColors.xcassets` so day and night stay one edit each.
+- [x] Bricolage Grotesque (OFL) for titles and big numbers. The site ships a 268-glyph Latin subset as woff2, which iOS cannot load and which lacks accented letters, so U3 bundled static faces cut from the full variable font (google/fonts) in the engine, which registers them for the whole process: `Bricolage Grotesque Display` (weight 800, 82 percent width, optical size 36, for titles and big numbers) and `Bricolage Grotesque Key` (weight 700, 92 percent width, optical size 18, for keys and bold labels). The app uses those. A `display(size:)` font helper scales with Dynamic Type like `font(size:weight:)`.
 
 **The Widgets header and Widgie**
 
-- [ ] Header: the date as an eyebrow, "Good morning / afternoon / evening" from the clock in Bricolage, and the count line "9 widgets · [phone mark] 6 on Home Screen" with the prototype's phone-with-two-widgets mark.
-- [ ] Widgie stands on the first row: on the right card of a pair (leaning left, toward its bubble), or on a wide card clear of the count line. Its foot plants 2 pt into the face with a small contact shadow. The bubble sits to its left and fits its words.
-- [ ] What Widgie says. The app does not know what an AI-made widget means, so lines are about the widget, never invented data:
+- [x] Header: the date as an eyebrow, "Good morning / afternoon / evening" from the clock in Bricolage, and the count line "9 widgets · [phone mark] 6 on Home Screen" with the prototype's phone-with-two-widgets mark.
+- [x] Widgie stands on the first row: on the right card of a pair (leaning left, toward its bubble), or on a wide card clear of the count line. Its foot plants 2 pt into the face with a small contact shadow. The bubble sits to its left and fits its words.
+- [x] What Widgie says. The app does not know what an AI-made widget means, so lines are about the widget, never invented data:
   - greeting by day: "Morning! Here's Water." style lines naming the widget under it, or "Tell me a widget." with none; at night, "I'll keep an eye on Water tonight."
   - after a tap on a live face: a hop and a short line naming the widget ("Water, updated."), then back to the greeting after 2.4 s;
   - when a new widget lands: "Here's Biscuit. Give it a tap." if it has buttons, "Here's Biscuit, ready to go." if not.
-- [ ] Motion: Widgie hops from the old perch to the new one when the first row changes (lift 40 pt, squash on touchdown, shadow out and back, bubble after touchdown, 560 ms); idle life every 8 to 11 s (double blink, glance, small hop) only while the page is at the top and untouched for 4 s; all of it off with Reduce Motion.
+- [x] Motion: Widgie hops from the old perch to the new one when the first row changes (lift 40 pt, squash on touchdown, shadow out and back, bubble after touchdown, 560 ms); idle life every 8 to 11 s (double blink, glance, small hop) only while the page is at the top and untouched for 4 s; all of it off with Reduce Motion.
 
 **The feed**
 
-- [ ] Cards: soft lifted shadows (no outlines), a springy press, and captions in 15 pt semibold with the phone mark when placed. The newest widget wears a yellow New tag until the next one arrives.
-- [ ] A new small widget joins the first row on the right, under Widgie, paired with the next small one (`FeedRow.rows` gains `fresh:`; tests extended).
-- [ ] Arrival: the feed scrolls to the top, the new card settles in from 94 percent over 260 ms, and Widgie reacts on contact.
-- [ ] Empty state on the sky: the big Widgie with its bubble "Tell me a widget." and Make one.
-- [ ] The detail sheet in the prototype's sheet style: rounded 36 pt top, the light sheet gradient by day and dusk by night, a 34 pt soft square close button, and the same keys. Behaviour unchanged.
+- [x] Cards: soft lifted shadows (no outlines), a springy press, and captions in 15 pt semibold with the phone mark when placed. The newest widget wears a yellow New tag until the next one arrives.
+- [x] A new small widget joins the first row on the right, under Widgie, paired with the next small one (`FeedRow.rows` gains `fresh:`; tests extended).
+- [x] Arrival: the feed scrolls to the top, the new card settles in from 94 percent over 260 ms, and Widgie reacts on contact.
+- [x] Empty state on the sky: the big Widgie with its bubble "Tell me a widget." and Make one.
+- [x] The detail sheet in the prototype's sheet style: rounded 36 pt top, the light sheet gradient by day and dusk by night, a 34 pt soft square close button, and the same keys. Behaviour unchanged.
 
 **The tab bar**
 
-- [ ] A custom tab container replaces `TabView`: both pages stay alive, the outgoing page fades in 120 ms and the incoming one fades and slides 14 pt after 40 ms.
-- [ ] The bar: frosted glass floating over the sky with a white pill that springs to the chosen tab, glyphs at 2.4 pt stroke when chosen, and 60 percent ink when not. Widgets, Make in the middle, and Templates (built in U3 first).
-- [ ] The Make key: Widgie in a small rounded key, quiet when unchosen and sun yellow when chosen, hopping as you switch to it.
-- [ ] The badge: a coral count of widgets saved while you were not on Widgets, cleared when you open it, with "Widgets, 2 new" as its accessibility label. A save while you are on Widgets badges nothing.
-- [ ] Accessibility: the bar exposes the chosen tab as selected, decorative glyphs are hidden, Widgie's bubble is announced politely, and every control keeps a 44 pt target.
+- [x] A custom tab container replaces `TabView`: both pages stay alive, the outgoing page fades in 120 ms and the incoming one fades and slides 14 pt after 40 ms.
+- [x] The bar: frosted glass floating over the sky with a white pill that springs to the chosen tab, glyphs at 2.4 pt stroke when chosen, and 60 percent ink when not. Widgets, Make in the middle, and Templates (built in U3 first).
+- [x] The Make key: Widgie in a small rounded key, quiet when unchosen and sun yellow when chosen, hopping as you switch to it.
+- [x] The badge: a coral count of widgets saved while you were not on Widgets, cleared when you open it, with "Widgets, 2 new" as its accessibility label. A save while you are on Widgets badges nothing.
+- [x] Accessibility: the bar exposes the chosen tab as selected, decorative glyphs are hidden, Widgie's bubble is announced politely, and every control keeps a 44 pt target.
 
 **Checks**
 
-- [ ] App tests: `FeedRow.rows` with `fresh`, the greeting and tap lines, the unseen count, and the moon's scroll rule.
-- [ ] Simulator screenshots side by side with the prototype, light and dark: the feed at the top and scrolled, the empty state, a new widget landing, the detail sheet, and the Make tab.
-- [ ] Largest Dynamic Type size and Reduce Motion pass on the feed and the bar.
-- [ ] `scripts/check` green, a review guide in `docs/pr/`, a fresh review, then merge.
+- [x] App tests: `FeedRow.rows` with `fresh`, the greeting and tap lines, the unseen count, and the moon's scroll rule.
+- [x] Simulator screenshots side by side with the prototype, light and dark: the feed at the top and scrolled, the empty state, a new widget landing, the detail sheet, and the Make tab.
+- [x] Largest Dynamic Type size and Reduce Motion pass on the feed and the bar.
+- [x] `scripts/check` green and a review guide in `docs/pr/`.
+- [ ] A fresh review, then merge.
 
 Decisions (2026-11-26, from the user):
 
 - Widgie's lines are about the widget's name and what just happened, not its data, because the app cannot read meaning from an AI-made widget. The prototype's "12 days until Lisbon!" style needs widgets to declare a glance line, which belongs to a later phase.
 - Templates comes first: U3 (and the content it needs) lands before U1b, so the new tab bar ships with all three tabs and Make in the middle. The order is U3, U1b, U2, U4, U5.
+
+Decisions made while building U1b (2026-11-27):
+
+- The title and Widgie's greeting follow the clock: morning from 5, afternoon from 12, evening from 17. "I'll keep an eye on Water tonight." is the evening line, so the words always match the time. The night look follows dark mode.
+- An unplaced widget's size is counted from the oldest widget, not the newest, so a new widget never changes the size of the ones already in the feed. Every third one is wide, as before.
+- A lone small at the top of the feed is a third perch: Widgie stands on it and talks toward the empty half of the row.
+- At the accessibility text sizes each small takes its own row, so its name can wrap, and Widgie stands near the edge so its bubble has the most room. The tab bar's labels stay their size, as the system tab bar's do, and a long press shows them large.
+- The New tag and the unseen count last while the app runs. A template's Add widget still switches to Widgets, as U3 built it, so it lands at once and badges nothing; a Make save badges until you open Widgets.
+- The engine's `Face` gains `hasButtons`, so Widgie can say "Give it a tap." only when there is something to tap.
+- The feed shows nothing below the header until the library's first load, so the empty state never flashes at launch.
 
 ### U2. Make as a chat
 
