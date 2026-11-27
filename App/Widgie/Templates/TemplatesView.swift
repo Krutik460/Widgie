@@ -230,10 +230,8 @@ private struct Pile: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        // At the accessibility text sizes every card takes a row of its own, so its words have the column's width.
-        let rows =
-            typeSize.isAccessibilitySize
-            ? templates.map { FeedRow.wide($0.id) } : FeedRow.rows(templates.map { ($0.id, $0.family) })
+        let shown = templates.map { ($0.id, $0.family) }
+        let rows = typeSize.isAccessibilitySize ? FeedRow.singles(shown) : FeedRow.rows(shown)
         LazyVStack(spacing: 28) {
             ForEach(rows) { row in
                 switch row {
