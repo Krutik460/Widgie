@@ -4,14 +4,21 @@
 // tasks/phase-2b-backend.md under "B2 wire protocol". Errors are {error: "<one line>"}, plus a `code` for the App
 // Attest refusals the app acts on. There are no usage limits for now (removed 2026-11-27, they come back later): only
 // the body caps and the signature stand between a caller and the model.
+//
+// Phase 3 (tasks/phase-3-ai-block.md): POST /v1/account registers with an App Attest assertion and answers {token};
+// PUT /v1/automations replaces the account's automations (the payload in docs/engine/WIRE.md) and answers {digest};
+// GET /v1/changes?after=<id> answers a page in the wire format. Those two take `Authorization: Bearer <token>`.
 
+import { authenticate, pull, register } from "./accounts";
 import { APPLE_ROOT } from "./apple-root";
 import { environmentOf, verifyAttestation } from "./attestation";
+import { dailyRuns, LIMITS, parsePayload, replaceAutomations } from "./automations";
 import { readCapped, TooLarge } from "./body";
 import prompt from "./build-prompt.txt";
 import { fromBase64, sha256, toBase64, toHex } from "./bytes";
 import { callModel, ModelFailure } from "./model";
 import { BadRequest, kindOf, userTurn } from "./request";
+import { LARGEST_ID } from "./wire";
 
 export { AttestedKey } from "./attested-key";
 
@@ -31,6 +38,8 @@ export const MAX_BODY = 8 * 1024 * 1024;
 export const MAX_ATTEST_BODY = 32 * 1024;
 /// Far above an assertion in base64 (a DER signature and 37 bytes of authenticator data, under 200 characters).
 const MAX_ASSERTION = 1024;
+/// Far above 16 automations with 2,000-character prompts and 16 fields each.
+export const MAX_AUTOMATIONS_BODY = 256 * 1024;
 
 export type Code = keyof typeof REFUSALS;
 
@@ -39,6 +48,8 @@ const REFUSALS = {
     "bad-assertion": [401, "the request's signature is not valid"],
     "bad-attestation": [401, "the attestation is not valid"],
     attested: [409, "this key is already attested"],
+    "bad-token": [401, "the account token is not valid"],
+    "bad-dev-secret": [401, "dev registration is not accepted here"],
 } as const satisfies Record<string, readonly [number, string]>;
 
 export default {
@@ -49,19 +60,22 @@ export default {
 
 type Route = (request: Request, env: Env, deps: Dependencies) => Promise<Response>;
 
-const ROUTES = new Map<string, Route>([
-    ["/v1/reply", reply],
-    ["/v1/attest/challenge", challenge],
-    ["/v1/attest", attest],
+const ROUTES = new Map<string, { method: string; route: Route }>([
+    ["/v1/reply", { method: "POST", route: reply }],
+    ["/v1/attest/challenge", { method: "POST", route: challenge }],
+    ["/v1/attest", { method: "POST", route: attest }],
+    ["/v1/account", { method: "POST", route: account }],
+    ["/v1/automations", { method: "PUT", route: automations }],
+    ["/v1/changes", { method: "GET", route: changes }],
 ]);
 
 export async function handle(request: Request, env: Env, deps: Dependencies): Promise<Response> {
     const { pathname } = new URL(request.url);
     if (pathname === "/health" && request.method === "GET") return new Response("ok\n");
-    const route = ROUTES.get(pathname);
-    if (!route) return new Response("not found\n", { status: 404 });
-    if (request.method !== "POST") return new Response("method not allowed\n", { status: 405 });
-    return route(request, env, deps);
+    const found = ROUTES.get(pathname);
+    if (!found) return new Response("not found\n", { status: 404 });
+    if (request.method !== found.method) return new Response("method not allowed\n", { status: 405 });
+    return found.route(request, env, deps);
 }
 
 /// Answers and logs one line per request: the route, its status and time, and what `fields` adds. Never the words,
@@ -74,6 +88,11 @@ function responder(route: string, fields: () => Record<string, unknown> = () => 
         json(status: number, body: object, extra: Record<string, unknown> = {}) {
             log(status, extra);
             return Response.json(body, { status });
+        },
+        /// JSON already encoded, such as a page of changes.
+        encoded(body: string, extra: Record<string, unknown> = {}) {
+            log(200, extra);
+            return new Response(body, { headers: { "Content-Type": "application/json" } });
         },
         refuse(code: Code, extra: Record<string, unknown> = {}) {
             const [status, line] = REFUSALS[code];
@@ -189,26 +208,121 @@ async function attest(request: Request, env: Env, deps: Dependencies): Promise<R
     return out.empty(204);
 }
 
+/// POST /v1/account answers {token}, a new token for the account of the App Attest key that signed the request, with
+/// an empty body signed as /v1/reply's is, and checked by the same `verifyAndAdvance`, which stores its counter.
+/// In `dev` only, an `X-Widgie-Dev-Secret` header carrying DEV_REGISTRATION_SECRET registers a new account instead, for
+/// the simulator, which cannot attest; `production` refuses it whatever its secrets hold.
+async function account(request: Request, env: Env, deps: Dependencies): Promise<Response> {
+    let via = "-";
+    const out = responder("account", () => ({ via }));
+    const now = (deps.now?.() ?? new Date()).getTime();
+    const devSecret = request.headers.get("X-Widgie-Dev-Secret");
+    if (devSecret !== null) {
+        via = "dev";
+        if (!(await devRegistration(env, devSecret))) return out.refuse("bad-dev-secret");
+        if (!(await isEmpty(request))) return out.json(413, { error: "the body must be empty" });
+        return out.json(200, { token: await register(env.DB, null, now) });
+    }
+
+    via = "attest";
+    const keyId = request.headers.get("X-Widgie-Key") ?? "";
+    const assertionText = request.headers.get("X-Widgie-Assertion") ?? "";
+    const assertion = assertionText.length <= MAX_ASSERTION ? fromBase64(assertionText) : null;
+    if (!keyIdBytes(keyId) || !assertion) return out.refuse("bad-assertion", { reason: "unsigned" });
+    if (!(await isEmpty(request))) return out.json(413, { error: "the body must be empty" });
+    const clientData = `POST\n/v1/account\n${toHex(await sha256(new Uint8Array()))}`;
+    const refused = await env.ATTESTED_KEY.getByName(keyId).verifyAndAdvance(await sha256(clientData), assertion);
+    if (refused) return out.refuse(refused);
+    return out.json(200, { token: await register(env.DB, keyId, now) });
+}
+
+/// Whether this environment takes dev registrations and `given` is its secret, compared in constant time.
+async function devRegistration(env: Env, given: string): Promise<boolean> {
+    const secret = env.DEV_REGISTRATION_SECRET ?? "";
+    if (env.ENVIRONMENT !== "dev" || secret === "") return false;
+    return crypto.subtle.timingSafeEqual(await sha256(given), await sha256(secret));
+}
+
+async function isEmpty(request: Request): Promise<boolean> {
+    try {
+        await readCapped(request, 0);
+        return true;
+    } catch (error) {
+        if (error instanceof TooLarge) return false;
+        throw error;
+    }
+}
+
+/// PUT /v1/automations replaces the account's automations with the payload's and answers {digest}, the payload's
+/// SHA-256 as lowercase hex, which the phone keeps as the last one the server acknowledged. Schedules over 60 runs a
+/// day are refused with 422 `daily-runs` and a line the app shows.
+async function automations(request: Request, env: Env, deps: Dependencies): Promise<Response> {
+    let count = 0;
+    const out = responder("automations", () => ({ count }));
+    const account = await authenticate(env.DB, request.headers.get("Authorization"));
+    if (!account) return out.refuse("bad-token");
+    const body = await jsonBody(request, out, MAX_AUTOMATIONS_BODY);
+    if (body instanceof Response) return body;
+    let payload: ReturnType<typeof parsePayload>;
+    try {
+        payload = parsePayload(body.value);
+    } catch (error) {
+        if (error instanceof BadRequest) return badRequest(out, error.message);
+        throw error;
+    }
+    count = payload.automations.length;
+    const runs = dailyRuns(payload);
+    if (runs > LIMITS.runsPerDay) {
+        const error = `These automations would run ${runs} times a day, and the limit is ${LIMITS.runsPerDay}.`;
+        return out.json(422, { error, code: "daily-runs" }, { runs });
+    }
+    await replaceAutomations(env.DB, account, payload, (deps.now?.() ?? new Date()).getTime());
+    return out.json(200, { digest: toHex(await sha256(body.bytes)) });
+}
+
+/// GET /v1/changes?after=<id> answers the account's changes with ids above `after`, at most PAGE_SIZE, as a page in
+/// the wire format.
+async function changes(request: Request, env: Env, deps: Dependencies): Promise<Response> {
+    const out = responder("changes");
+    const account = await authenticate(env.DB, request.headers.get("Authorization"));
+    if (!account) return out.refuse("bad-token");
+    const after = new URL(request.url).searchParams.get("after") ?? "";
+    const id = /^(0|[1-9][0-9]{0,15})$/.test(after) ? Number(after) : -1;
+    if (id < 0 || id > LARGEST_ID) return badRequest(out, '"after" must be a change id, 0 or more');
+    const page = await pull(env.DB, account, id, (deps.now?.() ?? new Date()).getTime());
+    return out.encoded(page.body, { count: page.count });
+}
+
+/// A JSON body of at most `limit` bytes, with its bytes, or the refusal.
+async function jsonBody(
+    request: Request,
+    out: Responder,
+    limit: number,
+): Promise<{ value: unknown; bytes: Uint8Array } | Response> {
+    if (!isJson(request)) return out.json(415, { error: "send the body as application/json" });
+    let bytes: Uint8Array;
+    try {
+        bytes = await readCapped(request, limit);
+    } catch (error) {
+        if (error instanceof TooLarge) return out.json(413, { error: `the body is over ${limit} bytes` });
+        throw error;
+    }
+    try {
+        return { value: JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes)), bytes };
+    } catch {
+        return badRequest(out, "the body must be a JSON object");
+    }
+}
+
 /// The attest routes' JSON body with exactly `fields`, or the refusal.
 async function attestBody(
     request: Request,
     out: Responder,
     fields: string[],
 ): Promise<Record<string, unknown> | Response> {
-    if (!isJson(request)) return out.json(415, { error: "send the body as application/json" });
-    let bytes: Uint8Array;
-    try {
-        bytes = await readCapped(request, MAX_ATTEST_BODY);
-    } catch (error) {
-        if (error instanceof TooLarge) return out.json(413, { error: `the body is over ${MAX_ATTEST_BODY} bytes` });
-        throw error;
-    }
-    let body: unknown;
-    try {
-        body = JSON.parse(new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes));
-    } catch {
-        return badRequest(out, "the body must be a JSON object");
-    }
+    const parsed = await jsonBody(request, out, MAX_ATTEST_BODY);
+    if (parsed instanceof Response) return parsed;
+    const body = parsed.value;
     if (typeof body !== "object" || body === null || Array.isArray(body)) {
         return badRequest(out, "the body must be a JSON object");
     }
