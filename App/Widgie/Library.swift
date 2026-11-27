@@ -91,13 +91,9 @@ final class Library {
             var items: [Item] = []
             var changes: Date?
             for summary in try engine.widgets() {
-                var faces: [Family: Face] = [:]
-                for family in Family.allCases {
-                    let drawn = await engine.face(for: summary.id, family: family, size: sizes[family], at: now)
-                    faces[family] = drawn.current
-                    changes = min(changes ?? drawn.reloadAt, drawn.reloadAt)
-                }
-                items.append(Item(summary: summary, faces: faces))
+                let drawn = await engine.faces(of: summary.id, sizes: sizes, at: now)
+                items.append(Item(summary: summary, faces: drawn.faces))
+                changes = min(changes ?? drawn.changes, drawn.changes)
             }
             let placed = await Self.placements(latest: items.first?.id)
             if reload == reloads {
@@ -210,6 +206,21 @@ final class Library {
             message = error.message
         }
         refresh()
+    }
+}
+
+extension Engine {
+    /// The widget's faces in both families at `now`, each drawn at its size in `sizes`, and when the first of
+    /// them changes.
+    func faces(of widget: WidgetID, sizes: FaceSizes, at now: Date) async -> (faces: [Family: Face], changes: Date) {
+        var faces: [Family: Face] = [:]
+        var changes = Date.distantFuture
+        for family in Family.allCases {
+            let drawn = await face(for: widget, family: family, size: sizes[family], at: now)
+            faces[family] = drawn.current
+            changes = min(changes, drawn.reloadAt)
+        }
+        return (faces, changes)
     }
 }
 
