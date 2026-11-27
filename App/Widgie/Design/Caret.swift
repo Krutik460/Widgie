@@ -33,6 +33,8 @@ struct Caret: View {
     /// Points above the ground, and the vertical scale about the foot, for the jump on Saved.
     var lift: CGFloat = 0
     var squash: CGFloat = 1
+    /// Happy eyes and fuller cheeks in any pose, as the jump has.
+    var happy = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -46,7 +48,8 @@ struct Caret: View {
         TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion || !alive)) { timeline in
             let time = reduceMotion || !alive ? 0 : timeline.date.timeIntervalSinceReferenceDate
             Figure(
-                curve: Curve(pose), cheeks: pose.cheeks, eyes: pose.eyes, blink: blink(at: time),
+                curve: Curve(pose), cheeks: happy ? Caret.Pose.jump.cheeks : pose.cheeks, eyes: eyes,
+                blink: blink(at: time),
                 turn: turn(at: time), size: size, color: color, eye: eye, grounded: grounded, lift: lift, squash: squash
             )
         }
@@ -55,11 +58,14 @@ struct Caret: View {
         .accessibilityHidden(true)
     }
 
-    /// How open the eyes are: shut for 140 ms every 3.6 seconds.
+    private var eyes: Pose.Eyes { happy ? .happy : pose.eyes }
+
+    /// How open the eyes are: shut for the last 140 ms of every 3.6 seconds, so a still caret, whose time is
+    /// zero, has them open.
     private func blink(at time: TimeInterval) -> CGFloat {
-        guard pose.eyes == .open else { return 1 }
+        guard eyes == .open else { return 1 }
         let phase = time.truncatingRemainder(dividingBy: 3.6)
-        return phase < 0.14 ? 0.15 : 1
+        return phase > 3.6 - 0.14 ? 0.15 : 1
     }
 
     /// A small turn about the foot: the scribble while drawing, a slow sway otherwise.
@@ -271,6 +277,50 @@ private struct Figure: View, Animatable {
 
 extension CGPoint {
     fileprivate func scaled(_ factor: CGFloat) -> CGPoint { CGPoint(x: x * factor, y: y * factor) }
+}
+
+/// The caret hopping once each time `cue` changes: a squash, a lift of `height` points, a squash on touchdown,
+/// and a turn of `turn` degrees about its foot toward something beside it. Still with Reduce Motion.
+struct HoppingCaret: View {
+    var pose: Caret.Pose = .idle
+    let size: CGFloat
+    var happy = false
+    var height: CGFloat = 16
+    var turn: Double = 0
+    let cue: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private struct Motion {
+        var lift: CGFloat = 0
+        var squash: CGFloat = 1
+        var turn: Double = 0
+    }
+
+    var body: some View {
+        let give = height / 250
+        KeyframeAnimator(initialValue: Motion(), trigger: reduceMotion ? 0 : cue) { motion in
+            Caret(pose: pose, size: size, lift: motion.lift, squash: motion.squash, happy: happy)
+                .rotationEffect(.degrees(motion.turn), anchor: Caret.foot(pose))
+        } keyframes: { _ in
+            KeyframeTrack(\.squash) {
+                CubicKeyframe(1 - give, duration: 0.09)
+                CubicKeyframe(1 + 0.7 * give, duration: 0.2)
+                CubicKeyframe(1 - 0.5 * give, duration: 0.16)
+                SpringKeyframe(1, duration: 0.27)
+            }
+            KeyframeTrack(\.lift) {
+                CubicKeyframe(0, duration: 0.09)
+                CubicKeyframe(height, duration: 0.2)
+                CubicKeyframe(0, duration: 0.16)
+            }
+            KeyframeTrack(\.turn) {
+                CubicKeyframe(0, duration: 0.3)
+                CubicKeyframe(turn, duration: 0.2)
+                CubicKeyframe(0, duration: 0.24)
+            }
+        }
+    }
 }
 
 /// The wordmark: "widgie" ending in the caret, the cursor after the last letter.
