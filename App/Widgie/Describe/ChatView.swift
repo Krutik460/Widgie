@@ -108,7 +108,6 @@ private struct Conversation: View {
         var target: CGFloat { aim ?? offset }
     }
 
-    static let margin: CGFloat = 20
     nonisolated private static let thread = "thread"
 
     var body: some View {
@@ -121,7 +120,7 @@ private struct Conversation: View {
                     thread
                 }
             }
-            .padding(.horizontal, Self.margin)
+            .padding(.horizontal, Page.margin)
             .padding(.bottom, 12)
             .coordinateSpace(.named(Self.thread))
         }
@@ -161,7 +160,7 @@ private struct Conversation: View {
             $0.size.width
         } action: { width in
             // The faces are drawn at the column's size, which a draft keeps once it is on show.
-            if session.draft == nil { session.preview.sizes = FaceSizes(column: width - 2 * Self.margin) }
+            if session.draft == nil { session.preview.sizes = FaceSizes(column: width - 2 * Page.margin) }
         }
         .onChange(of: scrolled || !session.blank, initial: true) { _, past in pastMoon = past }
         .onChange(of: session.latest?.result) { was, now in react(was: was, now: now) }
@@ -205,7 +204,7 @@ private struct Conversation: View {
                 .accessibilityLabel("New widget")
             }
         }
-        .padding(.horizontal, Self.margin)
+        .padding(.horizontal, Page.margin)
         // The prototype's bar row starts 60 points down the screen, 2 above the safe area.
         .padding(.top, -2)
         .padding(.bottom, 10)
@@ -388,11 +387,11 @@ private struct Conversation: View {
                             .buttonStyle(ChangeChipStyle())
                         }
                     }
-                    .padding(.horizontal, Self.margin)
+                    .padding(.horizontal, Page.margin)
                     .padding(.vertical, 4)
                 }
                 .scrollIndicators(.hidden)
-                .padding(.horizontal, -Self.margin)
+                .padding(.horizontal, -Page.margin)
                 .disabled(!session.ready)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Suggested changes")
@@ -408,7 +407,7 @@ private struct Conversation: View {
         } action: { [track] top in
             track.bottom = top
         }
-        .padding(.horizontal, Self.margin)
+        .padding(.horizontal, Page.margin)
         .padding(.top, 8)
         .padding(.bottom, 8)
         .animation(.easeOut(duration: 0.2), value: chips)
@@ -889,9 +888,7 @@ private struct DraftCard: View {
         let dropped = flown && !reduceMotion
         VStack(spacing: 0) {
             Color.clear.frame(width: size.width, height: Self.headroom)
-            FaceView(face, host: .app(tap: tap, form: form))
-                .frame(width: size.width, height: size.height)
-                .faceShadow()
+            FaceTile(face: face, size: size, host: .app(tap: tap, form: form))
                 .opacity(flown ? (reduceMotion ? 0.4 : 0) : 1)
                 .background {
                     if flown && !reduceMotion {

@@ -81,7 +81,7 @@ struct FeedCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            LiveFace(face: item.faces[family], size: size, tap: tap, form: form)
+            FaceTile(face: item.faces[family], size: size, host: .app(tap: tap, form: form))
                 .keyframeAnimator(initialValue: 1.0, trigger: reduceMotion ? 0 : opens) { face, scale in
                     face.scaleEffect(scale)
                 } keyframes: { _ in
@@ -137,25 +137,5 @@ struct FeedCard: View {
     private var label: String {
         let parts: [String?] = [item.summary.name, fresh ? "new" : nil, placed ? "on your home screen" : nil]
         return parts.compactMap(\.self).joined(separator: ", ")
-    }
-}
-
-/// A face drawn at `size`, its buttons live, lifted off the ground like a widget. A grey tile until it draws.
-struct LiveFace: View {
-    let face: Face?
-    let size: CGSize
-    let tap: @MainActor @Sendable (Tap) -> Void
-    let form: @MainActor @Sendable (Tap) -> Void
-
-    var body: some View {
-        Group {
-            if let face {
-                FaceView(face, host: .app(tap: tap, form: form))
-            } else {
-                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.disabled.opacity(0.4))
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        .faceShadow()
     }
 }

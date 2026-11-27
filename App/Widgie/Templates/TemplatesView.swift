@@ -26,8 +26,6 @@ struct TemplatesView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    static let margin: CGFloat = 20
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -48,7 +46,7 @@ struct TemplatesView: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel(shown.title)
             }
-            .padding(.horizontal, Self.margin)
+            .padding(.horizontal, Page.margin)
             .padding(.bottom, 28)
         }
         .scrollEdgeEffectStyle(.soft, for: .all)
@@ -147,11 +145,11 @@ private struct CategoryRow: View {
             FillRow(spacing: 7) { chips }
             ScrollView(.horizontal) {
                 HStack(spacing: 7) { chips }
-                    .padding(.horizontal, TemplatesView.margin)
+                    .padding(.horizontal, Page.margin)
                     .padding(.vertical, 12)
             }
             .scrollIndicators(.hidden)
-            .padding(.horizontal, -TemplatesView.margin)
+            .padding(.horizontal, -Page.margin)
             .padding(.vertical, -12)
         }
         .accessibilityElement(children: .contain)
@@ -341,18 +339,10 @@ private struct PileFace: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Group {
-            if let face = card.face {
-                FaceView(face, host: .still)
-            } else {
-                RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.disabled.opacity(0.4))
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        .faceShadow()
-        .rotationEffect(pressed ? .zero : tilt)
-        .scaleEffect(pressed ? 0.96 : 0.97)
-        .animation(reduceMotion ? nil : .spring(duration: 0.28, bounce: 0.4), value: pressed)
+        FaceTile(face: card.face, size: size)
+            .rotationEffect(pressed ? .zero : tilt)
+            .scaleEffect(pressed ? 0.96 : 0.97)
+            .animation(reduceMotion ? nil : .spring(duration: 0.28, bounce: 0.4), value: pressed)
     }
 }
 

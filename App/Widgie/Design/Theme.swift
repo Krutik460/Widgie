@@ -81,7 +81,8 @@ extension View {
     /// joins them, because the faces nearly match the dusk.
     func faceShadow() -> some View {
         overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Palette.faceEdge, lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: FaceTile.corner, style: .continuous)
+                .strokeBorder(Palette.faceEdge, lineWidth: 0.5)
         }
         .shadow(color: Palette.widgetShadowNear, radius: 3, y: 2)
         .shadow(color: Palette.widgetShadow, radius: 13, y: 14)
