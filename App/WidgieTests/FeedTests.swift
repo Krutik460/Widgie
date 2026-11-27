@@ -30,7 +30,7 @@ import WidgetEngine
 
     @Test func aLastSmallWithoutAPartnerStaysWhereItWouldHaveBeen() {
         #expect(FeedRow.rows([(a, .small), (b, .medium)]) == [.pair(a, nil), .wide(b)])
-        #expect(FeedRow.rows([]) == [])
+        #expect(FeedRow<WidgetID>.rows([]) == [])
     }
 }
 

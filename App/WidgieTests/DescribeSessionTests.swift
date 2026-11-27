@@ -35,6 +35,43 @@ import WidgetEngine
         #expect(String(decoding: saved.json, as: UTF8.self).contains("#1B3A8C"), "the repaired draft was saved")
     }
 
+    @Test func aSessionStartedOnAnUnsavedDraftRefinesItAndSavesItAsANewWidget() async throws {
+        let model = ScriptedModel([counter(background: "#1B3A8C")])
+        let session = DescribeSession(
+            draft: WidgetSource(json: Data(counterDocument().utf8)), model: model,
+            preview: Preview(library: shared.engine))
+        #expect(session.phase == .opening)
+        await session.open()
+        #expect(session.phase == .composing)
+        let draft = try #require(session.draft)
+        #expect(session.editing == nil)
+        #expect(try shared.engine.widgets().isEmpty, "the draft stays out of the library until Save")
+
+        session.send("make it blue")
+        try await until({ session.settled }, "the refine never finished")
+        #expect(session.latest?.result == .accepted)
+        let request = try #require(model.requests.first)
+        #expect(request.current?.contains("#102030") == true, "the first message refines the draft")
+        #expect(session.draft == draft)
+
+        session.save()
+        try await until({ session.settled }, "the save never finished")
+        guard case .saved(let id) = session.phase else {
+            Issue.record("expected the save to land, got \(session.phase)")
+            return
+        }
+        #expect(try shared.engine.widgets().map(\.id) == [id])
+    }
+
+    @Test func aDraftThatDoesNotBuildCannotBeOpened() async throws {
+        let session = DescribeSession(
+            draft: WidgetSource(json: Data(#"{"name": "Counter"}"#.utf8)), model: ScriptedModel([]),
+            preview: Preview(library: shared.engine))
+        await session.open()
+        #expect(session.phase == .failed(.unopened))
+        #expect(session.draft == nil)
+    }
+
     @Test func aCancelAfterTheReplyWasAcceptedRestoresThePreviousDraft() async throws {
         let cancel = CancelAtNextPhase()
         let blue = ScriptedModel.Answer(reply: counter(background: "#1B3A8C").reply) { await cancel.arm() }
