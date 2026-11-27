@@ -226,6 +226,7 @@ struct TemplateSheet: View {
                         prompt: Text(blank.placeholder).foregroundStyle(Palette.secondary)
                     )
                     .font(size: 17, weight: .semibold)
+                    .accessibilityLabel(blank.label)
                     // Cut after the keystroke lands rather than in the binding, because a field whose binding
                     // refuses a character keeps showing it.
                     .onChange(of: trial.values[blank.key]) { _, typed in
