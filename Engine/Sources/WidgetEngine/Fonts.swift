@@ -1,5 +1,8 @@
 import CoreText
 import Foundation
+import os
+
+private let log = Logger(subsystem: "WidgetEngine", category: "fonts")
 
 /// The fonts the engine ships in `Fonts/`, which `cut-bricolage.py` cuts from the OFL variable font. They are
 /// registered for the whole process once, before an engine is made or a named font is drawn, so the app, the
@@ -11,8 +14,14 @@ package enum BundledFonts {
     package static func register() { _ = registered }
 
     private static let registered: Void = {
-        for url in Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? [] {
-            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        let urls = Bundle.module.urls(forResourcesWithExtension: "ttf", subdirectory: nil) ?? []
+        if urls.isEmpty { log.error("no bundled fonts found; named Bricolage text draws in the system font") }
+        for url in urls {
+            var error: Unmanaged<CFError>?
+            guard !CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error) else { continue }
+            let reason = error.map { String(describing: $0.takeRetainedValue()) } ?? "no reason given"
+            log.error(
+                "\(url.lastPathComponent, privacy: .public) did not register: \(reason, privacy: .public)")
         }
     }()
 }
