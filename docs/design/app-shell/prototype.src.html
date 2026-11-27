@@ -347,7 +347,7 @@ svg.i{width:15px;height:15px;flex:none}
 .night .sheet{background:linear-gradient(180deg,#1d3560,#16294b);color:#fff;box-shadow:0 -12px 40px rgba(0,0,0,.4),inset 0 1px 0 rgba(233,242,255,.16)}
 .sheet.show{transform:none;transition:transform .42s var(--spring-ui)}
 .sheet.dragging{transition:none}
-.sheet .keys{position:sticky;bottom:-40px;padding-bottom:4px;background:inherit}
+.sheet .keys{position:sticky;bottom:-40px;padding-bottom:4px}
 .sheet.leaving{transition-duration:.16s}
 .sheet:focus{outline:none}
 .grab{width:38px;height:5px;border-radius:3px;background:currentColor;opacity:.22;margin:0 auto 16px;cursor:grab;touch-action:none;position:relative}
@@ -1270,7 +1270,7 @@ function openSheet(item, from) {
   spotWidgie = box.querySelector(".perch");
   // The sheet starts with the words its tile showed in the pile. A tap here is practice, and Widgie says so once.
   let practiced = false;
-  live(box, () => { hop(spotWidgie, true); if (!practiced && run === sheetRun) { practiced = true; say(b, "That was practice. Yours starts fresh.", { swap: true }); } });
+  live(box, () => { hop(spotWidgie, true); if (!practiced && run === sheetRun) { practiced = true; say(b, "Just practice. Yours starts fresh.", { swap: true }); } });
   if (blank) words(blk, blank.pairs(blank.start));
   if (wide) {
     // A wide tile: Widgie perches on its left, clear of the art on the right, and talks to its right.
