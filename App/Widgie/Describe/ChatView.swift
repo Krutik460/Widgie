@@ -284,11 +284,8 @@ private struct Conversation: View {
     }
 
     private func action(for failure: DescribeSession.Failure) -> (title: String, run: () -> Void) {
-        switch failure {
-        case .gaveUp: ("Say it another way", { session.dismissFailure() })
-        case .unsaved, .unavailable, .unopened: ("OK", { session.dismissFailure() })
-        case .unreachable, .refused, .interrupted, .broken: ("Try again", { chat.retry() })
-        }
+        if failure.retryable { return ("Try again", { chat.retry() }) }
+        return (failure == .gaveUp ? "Say it another way" : "OK", { session.dismissFailure() })
     }
 
     /// The draft with Widgie standing on it, or the sketch Widgie traces while the first build runs. Widgie's foot
