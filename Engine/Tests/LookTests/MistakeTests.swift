@@ -143,7 +143,7 @@ struct Mistake: Sendable, CustomTestStringConvertible {
             #"image at root: no asset "sunset" (assets: photo)"#),
         Mistake(
             "font outside the allowlist", returning: "{ type: 'text', value: 'Hi', fontName: 'Comic Sans' }",
-            #"text at root: "fontName" must be one of Bradley Hand, Noteworthy, Marker Felt, Chalkduster, Snell Roundhand, American Typewriter, Rockwell, DIN Condensed, Avenir Next Condensed, Futura, Copperplate, Didot, not the string "Comic Sans""#
+            #"text at root: "fontName" must be one of Bradley Hand, Noteworthy, Marker Felt, Chalkduster, Snell Roundhand, American Typewriter, Rockwell, DIN Condensed, Avenir Next Condensed, Futura, Copperplate, Didot, Bricolage Grotesque Display, Bricolage Grotesque Key, not the string "Comic Sans""#
         ),
         Mistake(
             "unknown symbol", returning: "{ type: 'symbol', name: 'flame.fil' }",

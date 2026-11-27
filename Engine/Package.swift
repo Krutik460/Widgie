@@ -26,7 +26,12 @@ let package = Package(
             // The vendored sources stay unmodified, so their warnings are silenced here instead of fixed.
             cSettings: [.define("_GNU_SOURCE"), .unsafeFlags(["-w"])]),
         .target(name: "Sandbox", dependencies: ["CQuickJS"]),
-        .target(name: "WidgetEngine", dependencies: ["Spec", "Rows", "Sandbox"]),
+        .target(
+            name: "WidgetEngine", dependencies: ["Spec", "Rows", "Sandbox"], exclude: ["Fonts/cut-bricolage.py"],
+            resources: [
+                .copy("Fonts/BricolageGrotesque-Display.ttf"), .copy("Fonts/BricolageGrotesque-Key.ttf"),
+                .copy("Fonts/OFL.txt"),
+            ]),
         .target(name: "WidgetBuilder", dependencies: ["WidgetEngine", "Spec", "Rows", "Sandbox"]),
         .target(name: "WidgetHosting", dependencies: ["WidgetEngine"]),
         .executableTarget(name: "RenderTool", dependencies: ["WidgetEngine", "WidgetBuilder"]),
