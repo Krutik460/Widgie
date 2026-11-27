@@ -78,7 +78,7 @@ button:focus-visible,input:focus-visible,.namefield:focus-within,[role=tab]:focu
 .phone.night .sky.night{opacity:1}
 .moon{position:absolute;right:28px;top:66px;width:22px;height:22px;opacity:0;transition:opacity .45s;pointer-events:none;z-index:-2;filter:drop-shadow(0 0 14px rgba(233,242,255,.35))}
 .night .moon{opacity:.85}
-.night.thread .moon{opacity:.25}
+.night.lowmoon .moon{opacity:0}
 .clouds{position:absolute;inset:0 0 auto;height:260px;z-index:-2;pointer-events:none;transition:opacity .45s}
 .clouds svg{position:absolute;filter:blur(4px);opacity:.5;animation:drift linear infinite}
 .phone.night .clouds{opacity:0}
@@ -275,11 +275,14 @@ svg.i{width:15px;height:15px;flex:none}
 .night .studio .ghost path{stroke:#e9f2ff}
 .thread.narrow .them:has(+ .studio) .bubble{max-width:184px}
 .studio svg.sk{position:absolute;inset:0;overflow:visible;transition:opacity .2s ease-out}
-.studio .edge{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:trace 1.85s linear var(--delay,0s) forwards}
+.studio .edge{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;animation:trace 1.85s linear var(--delay,0s) forwards,edgeon 0s var(--delay,0s) forwards}
+@keyframes edgeon{to{opacity:1}}
 .studio .part{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:4 5;opacity:0;animation:solid .38s var(--soft) both}
 .night .studio .edge,.night .studio .part{stroke:#e9f2ff}
 @keyframes trace{to{stroke-dashoffset:0}}
-@keyframes solid{0%{opacity:0;transform:scale(.94)}100%{fill:var(--part,currentColor);stroke-dasharray:none;opacity:.35;transform:none}}
+@keyframes solid{0%{opacity:0;transform:scale(.94)}100%{fill:var(--partfill);stroke-dasharray:none;opacity:1;transform:none}}
+.studio{--partfill:color-mix(in oklab,var(--part,#121a2e) 60%,white)}
+.night .studio{--partfill:color-mix(in oklab,var(--part,#e9f2ff) 70%,#0f1a33)}
 .studio .part{transform-box:fill-box;transform-origin:center}
 .studio .art{color:var(--ink)}
 .night .studio .art{color:#e9f2ff}
@@ -294,7 +297,7 @@ svg.i{width:15px;height:15px;flex:none}
 .fadein{animation:fadein .22s ease-out both}
 @keyframes fadein{0%{opacity:0}100%{opacity:1}}
 .after{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:20px;animation:rise .42s var(--spring-ui) both;transition:opacity .18s var(--soft),transform .18s var(--soft)}
-.after.going{opacity:0;transform:translateY(6px);pointer-events:none}
+.after.going{animation:none;opacity:0;transform:translateY(6px);pointer-events:none}
 .after .key{min-width:200px}
 .confetti{position:absolute;inset:0;pointer-events:none;z-index:60;overflow:hidden}
 .confetti i{position:absolute;width:4px;height:15px;border-radius:2px;animation:burst 1.15s forwards}
@@ -359,7 +362,7 @@ svg.i{width:15px;height:15px;flex:none}
 .sheet h3{font-size:34px;padding-right:48px}
 .sheet .line{font:500 15px/1.35 var(--text);color:rgba(18,26,46,.72);margin-top:6px}
 .night .sheet .line{color:rgba(233,242,255,.76)}
-.spot{position:relative;height:206px;display:flex;align-items:flex-end;justify-content:center;margin:12px -22px 0;padding-bottom:18px}
+.spot{position:relative;height:218px;display:flex;align-items:flex-end;justify-content:center;margin:12px -22px 0;padding-bottom:18px}
 .spot::before{content:"";position:absolute;left:50%;bottom:0;width:300px;height:210px;margin-left:-150px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.45),transparent)}
 .night .spot::before{background:radial-gradient(closest-side,rgba(156,195,245,.16),transparent)}
 .spot.wide{height:272px}
@@ -386,6 +389,8 @@ svg.i{width:15px;height:15px;flex:none}
 .toast{position:absolute;left:50%;top:54px;min-width:248px;max-width:362px;transform:translate(-50%,-130px);background:#fff;color:#121a2e;border-radius:18px;box-shadow:var(--lift);padding:8px 16px 8px 8px;font:600 15px var(--text);letter-spacing:-.15px;display:flex;align-items:center;gap:10px;z-index:80;transition:transform .38s var(--spring-ui);white-space:nowrap}
 .night .toast{background:rgba(24,46,84,.96);color:#fff;box-shadow:var(--lift),inset 0 0 0 .5px rgba(255,255,255,.16)}
 .toast.show{transform:translate(-50%,0)}
+.toast.low{top:150px}
+.toast.low:not(.show){transform:translate(-50%,-240px)}
 /* ---------- final pass ---------- */
 .inkface .w-label,.inkface .w-big,.inkface .w-small,.inkface .w-huge{color:#121a2e!important}
 .hearts .w-small{white-space:nowrap;max-width:86%;overflow:hidden;text-overflow:ellipsis}
@@ -422,6 +427,10 @@ svg.i{width:15px;height:15px;flex:none}
 .composer.hidden.to-left{transform:translateX(-14px)}
 .composer.hidden.to-right{transform:translateX(14px)}
 .spot .bubble.down::after{left:var(--tx,26px)}
+.count .ticket .meta{gap:6px}
+.composer:has(input:focus-visible){outline:2.5px solid #121a2e;outline-offset:3px}
+.night .composer:has(input:focus-visible){outline-color:#ffd23c}
+.composer input:focus-visible{outline:none}
 .pile .item{cursor:pointer}
 .pile .item:focus-visible{outline:2.5px solid #121a2e;outline-offset:4px}
 .night .pile .item:focus-visible{outline-color:#ffd23c}
@@ -685,9 +694,13 @@ const NOTES = {
 let lunaFed = false;
 // The greeting is about the widget Widgie stands on.
 function greet() {
-  if (night) return "I'll keep an eye on them tonight.";
   const row = rows(items)[0] || [], it = row[row.length - 1];
   if (!it) return "Tell me a widget.";
+  if (night) {
+    if (it.w === "count") return `12 days until ${it.name.replace(/ trip$/, "")}. Sleep well!`;
+    if (it.w === "hearts") return `Send ${it.who || "Sam"} a goodnight heart?`;
+    return `I'll keep an eye on ${it.name} tonight.`;
+  }
   if (it.w === "luna") return it.fedOnce || (it.name === "Luna" && lunaFed) ? `${it.name}'s had breakfast. Good start!` : it.words ? `${it.name} hasn't been fed yet.` : `Morning! Sam fed ${it.name} 2h ago.`;
   if (it.w === "count") return `12 days until ${it.name.replace(/ trip$/, "")}!`;
   if (it.w === "hearts") return it.who ? `Send ${it.who} a heart?` : "Sam sent you 5 hearts today.";
@@ -806,7 +819,9 @@ function composerMode() {
   const n = $("#p-make [data-new]"); if (n) n.disabled = building || saving;
   const label = draft ? "Ask for a change" : "Describe a widget";
   say_.placeholder = label; say_.setAttribute("aria-label", label);
-  $("#p-make").classList.toggle("drafting", !!draft);
+  $("#p-make").classList.toggle("drafting", !!draft || saving);
+  $("#s-chat").disabled = building || saving;
+  moon();
   phone.classList.toggle("typing", typed && !!draft);
   const save = $("#p-make .after .key"); if (save && !saving) save.disabled = building;
   renderQuick();
@@ -939,6 +954,7 @@ async function ask(idea, text, from) {
   page.innerHTML = `${threadBar()}<div class="thread ${wide ? "" : "narrow"}"><div class="me"></div></div>`;
   page.scrollTop = 0;
   bindBar(page);
+  moon();
   const list = page.querySelector(".thread"), me = list.firstChild;
   me.textContent = text;
   // The idea you tapped becomes your message.
@@ -1151,7 +1167,7 @@ function flyToTab(el, ms = 600) {
 }
 // The Widgets icon takes the tile in with a squish.
 function squishGlyph() { if (!calm) $('[data-tab="widgets"] .glyph').animate([{ scale: 1 }, { scale: .8, offset: .3 }, { scale: 1.08, offset: .7 }, { scale: 1 }], { duration: 380, easing: "ease-out" }); }
-function toast(text) { $("#t-text").textContent = text; drawWidgie($("#t-widgie"), "idle", { eyes: "happy" }); const t = $("#toast"); t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2400); }
+function toast(text) { $("#toast").classList.toggle("low", tab === "make"); $("#t-text").textContent = text; drawWidgie($("#t-widgie"), "idle", { eyes: "happy" }); const t = $("#toast"); t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2400); }
 
 // ---------- Templates: the landing page's widgets, by category ----------
 // Each banner's fill is one color that cross-fades; its light comes from a fixed overlay.
@@ -1282,11 +1298,11 @@ function openSheet(item, from) {
     box.style.transform = "none";
   } else {
     // A small tile: Widgie stands beside it on the spotlight floor, the pair centred, and talks from above.
-    const size = 116, x = W + 50;
+    const size = 102, x = W + 46;
     drawWidgie(spotWidgie, "lean", { mirror: "1" });
     stand(spotWidgie, size, "lean", true, x, H);
-    Object.assign(shadow.style, { left: x - 32 + "px", top: H - 5 + "px", width: "64px" });
-    b.classList.add("down"); Object.assign(b.style, { left: W + 4 + "px", bottom: "120px", top: "auto", maxWidth: "134px" }); b.style.setProperty("--tx", "26px");
+    Object.assign(shadow.style, { left: x - 28 + "px", top: H - 5 + "px", width: "56px" });
+    b.classList.add("down"); Object.assign(b.style, { left: W + 4 + "px", bottom: "134px", top: "auto", maxWidth: "134px" }); b.style.setProperty("--tx", "26px");
     box.style.transform = "translateX(-46px)";
   }
   const sheet = $("#sheet");
@@ -1305,7 +1321,7 @@ function openSheet(item, from) {
     dst.animate([{ transform: `translate(${dx}px,${dy}px) scale(${a.width / bR.width}) rotate(${src.style.getPropertyValue("--rot") || "0deg"})` }, { transform: "none" }], { duration: 420, easing: SPRING });
     from.style.visibility = "hidden";
   }
-  setTimeout(() => { if (run !== sheetRun) return; say(b, HINTS[w] || "It works. Tap it!"); hop(spotWidgie, true); }, calm ? 0 : 440);
+  setTimeout(() => { if (run !== sheetRun || practiced) return; say(b, HINTS[w] || "It works. Tap it!"); hop(spotWidgie, true); }, calm ? 0 : 440);
 }
 $("#s-name").addEventListener("input", () => {
   const blank = BLANKS[sheetItem[0]]; if (!blank) return;
@@ -1414,6 +1430,13 @@ $("#s-add").onclick = (e) => {
   }, calm ? 0 : 200);
 };
 
+// The moon steps out of the way when a page scrolls under it or a Make thread fills the screen.
+function moon() {
+  const page = $(`#p-${tab}`);
+  phone.classList.toggle("lowmoon", !!page && (page.scrollTop > 24 || (tab === "make" && !!page.querySelector(".thread"))));
+}
+for (const k of ORDER) $(`#p-${k}`).addEventListener("scroll", moon, { passive: true });
+
 // ---------- tabs: each page renders once and keeps its state; switching is a quick slide ----------
 function placePill() {
   const t = $(`.tab[data-tab="${tab}"]`), pill = $("#pill");
@@ -1440,6 +1463,9 @@ function go(next, quiet = false) {
   for (const t of $$(".tab")) { const on = t.dataset.tab === next; t.classList.toggle("on", on); if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current"); t.removeAttribute("aria-selected"); }
   placePill();
   keyFace();
+  moon();
+  // A toast that sat low on Make leaves with Make.
+  if (next !== "make" && $("#toast").classList.contains("low")) $("#toast").classList.remove("show");
   if (next === "widgets") {
     unseen = 0; badge();
     if (pending.length && !quiet) { const a = pending; pending = []; $("#toast").classList.remove("show"); land(a); }
