@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import Testing
 import WidgetBuilder
 import WidgetEngine
@@ -136,6 +137,15 @@ import WidgetEngine
         #expect(
             await RenderTool.run([water, "small", tinted.path(percentEncoded: false), "--appearance", "tinted"]) == 0)
         #expect(FileManager.default.fileExists(atPath: tinted.path(percentEncoded: false)))
+        let sized = directory.appending(path: "sized.png")
+        #expect(await RenderTool.run([water, "medium", sized.path(percentEncoded: false), "--size", "358x172"]) == 0)
+        let image = try #require(CGImageSourceCreateWithURL(sized as CFURL, nil))
+        let properties = try #require(CGImageSourceCopyPropertiesAtIndex(image, 0, nil) as? [CFString: Any])
+        #expect(properties[kCGImagePropertyPixelWidth] as? Int == 358 * 3)
+        #expect(properties[kCGImagePropertyPixelHeight] as? Int == 172 * 3)
+        for size in ["358", "358x0", "wide", "358x172x2"] {
+            #expect(await RenderTool.run([water, "medium", sized.path(percentEncoded: false), "--size", size]) == 2)
+        }
         #expect(await RenderTool.run([water, "small", png.path(percentEncoded: false), "--appearance", "clear"]) == 2)
         #expect(await RenderTool.run([water, "large", png.path(percentEncoded: false)]) == 2)
         #expect(await RenderTool.run([water, "small", png.path(percentEncoded: false), "--bogus"]) == 2)
