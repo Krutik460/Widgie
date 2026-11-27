@@ -15,15 +15,12 @@ import WidgetEngine
     private let center = NotificationCenter()
 
     private func pushups() throws -> Template {
-        try #require(Template.catalog().first { $0.id == "pushups" })
+        try Template.bundled("pushups")
     }
 
     /// The feed with pushups in it, a set of ten just tapped at nine, so its face offers the undo.
     private func feedWithATap(_ clock: TestClock) async throws -> Library {
-        guard case .saved = try await shared.engine.build(try pushups().source()) else {
-            Issue.record("pushups did not build")
-            throw Unexpected()
-        }
+        _ = try await shared.engine.saved(try pushups().source())
         let library = Library(engine: shared.engine, clock: clock.clock, center: center)
         await library.reload()
         let face = try #require(library.items.first?.faces[.small])
@@ -123,7 +120,7 @@ import WidgetEngine
         let original: Data
 
         init(_ edit: (inout [String: Any]) -> Void) throws {
-            let source = try #require(Template.catalog().first { $0.id == "pushups" })
+            let source = try Template.bundled("pushups")
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: source.folder, to: root.appending(path: id))
             document = root.appending(path: id).appending(path: "widget.json")

@@ -19,7 +19,7 @@ import WidgetEngine
 
     /// `rows` in the grammar of one `samples` entry, or nil for the template's first sample.
     init(_ id: String, family: Family? = nil, rows: String? = nil, at date: Date) throws {
-        template = try #require(Template.catalog().first { $0.id == id }, "no template \(id)")
+        template = try Template.bundled(id)
         self.family = family ?? template.family
         widget = try engine.stageProved(template.source(), at: date)
         if let rows {

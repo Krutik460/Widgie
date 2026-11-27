@@ -78,7 +78,17 @@ final class SharedStore: Sendable {
     deinit { try? FileManager.default.removeItem(at: directory) }
 
     func build(_ document: String, replacing: WidgetID? = nil) async throws -> WidgetID {
-        let outcome = try await engine.build(WidgetSource(json: Data(document.utf8)), replacing: replacing)
+        try await engine.saved(WidgetSource(json: Data(document.utf8)), replacing: replacing)
+    }
+}
+
+struct Unexpected: Error {}
+
+extension Engine {
+    /// Builds `source`, as a new widget or a new revision of `replacing`, and returns its id. Records an issue and
+    /// throws when it does not save.
+    func saved(_ source: WidgetSource, replacing: WidgetID? = nil) async throws -> WidgetID {
+        let outcome = try await build(source, replacing: replacing)
         guard case .saved(let id) = outcome else {
             Issue.record("expected the widget to save, got \(outcome)")
             throw Unexpected()
@@ -87,7 +97,12 @@ final class SharedStore: Sendable {
     }
 }
 
-struct Unexpected: Error {}
+extension Template {
+    /// The bundled template `id`.
+    static func bundled(_ id: String) throws -> Template {
+        try #require(catalog().first { $0.id == id }, "no template \(id)")
+    }
+}
 
 /// Waits, a few seconds at most, until `condition` holds.
 @MainActor func until(_ condition: () -> Bool, _ comment: Comment) async throws {
