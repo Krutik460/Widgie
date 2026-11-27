@@ -70,7 +70,8 @@ public final class Engine: Sendable {
     /// automation writes the next word a period early) stays hidden until its `at`, so the next such row gets an
     /// entry at its `at` too, and the timeline ends by the one after. `reloadAt` is the earliest of that reload,
     /// the midnight after the next one, five minutes after the next automation run in the phone's current time
-    /// zone, so the pull after a run happens, and the second hidden row's `at`.
+    /// zone, so the pull after a run happens, and the second hidden row's `at`. No 15-minute step is drawn past
+    /// that reload, which draws the face again.
     ///
     /// All entries share one image budget. When a later face's images would pass it, the timeline ends before
     /// that face and reloads at its date, so the next call draws it with a fresh budget. Only a current face
@@ -168,20 +169,21 @@ public final class Engine: Sendable {
                 entries: [first.face],
                 reloadAt: min(today.nextDayStart, clock, automationReload, reveals.first ?? .distantFuture))
         }
-        var clockReload = Date.distantFuture
+        let clockReload =
+            first.readsClock ? date.addingTimeInterval(Self.clockStep * Double(Self.clockSteps)) : .distantFuture
+        let end = min(
+            midnight.nextDayStart, clockReload, automationReload, reveals.dropFirst().first ?? .distantFuture)
         // Each later instant, and whether its face is kept even when it draws what the one before drew.
         var planned: [(instant: Date, kept: Bool)] = []
         if first.readsClock {
             for index in 1...Self.clockSteps {
                 let instant = date.addingTimeInterval(Self.clockStep * Double(index))
-                guard instant < today.nextDayStart else { break }
+                // A step after `end` would only spend the image budget: the reload at `end` draws it again.
+                guard instant < today.nextDayStart, instant <= end else { break }
                 planned.append((instant, false))
             }
-            clockReload = date.addingTimeInterval(Self.clockStep * Double(Self.clockSteps))
         }
         planned.append((today.nextDayStart, true))
-        let end = min(
-            midnight.nextDayStart, clockReload, automationReload, reveals.dropFirst().first ?? .distantFuture)
         if let reveal = reveals.first, reveal <= end {
             planned.removeAll { $0.instant == reveal }
             planned.append((reveal, true))
@@ -318,6 +320,8 @@ public final class Engine: Sendable {
     /// per automation of each live widget, as the revision it draws defines it, with the dataset it writes, plus
     /// this engine's current time zone, which every automation runs in. The digest changes whenever the body
     /// does: after a save, a refinement, a restore, a roll back, a delete, or a move to another time zone.
+    /// Throws when a live widget's drawn revision cannot be read on this device, since the upload replaces every
+    /// automation and leaving that widget's automations out would make the server delete their future rows.
     public func automationPayload() throws(EngineError) -> AutomationPayload {
         let store = try self.store()
         let payload = try attempt { () throws(StoreError) in try store.automationPayload(timeZone: calendar.timeZone) }

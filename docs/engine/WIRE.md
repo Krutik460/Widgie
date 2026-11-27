@@ -4,7 +4,9 @@ How a row change travels between the server and a phone, and the page a pull ret
 
 Format 1. The route carries the version (`/v1/changes`), so a server never sends a phone a change its format cannot read.
 
-The shared vectors are in [`Engine/Vectors/wire.json`](../../Engine/Vectors/wire.json). `Engine/Tests/RowsTests/WireTests.swift` decodes every case and merges the `receive` scenarios into a store, and the Worker's tests check the same file. A change to this format changes this page, the vectors, and both readers together.
+The shared vectors are in [`Engine/Vectors/wire.json`](../../Engine/Vectors/wire.json). `Engine/Tests/RowsTests/WireTests.swift` decodes every case and merges the `receive` scenarios into a store, and the Worker's tests check the same file. A change to this format changes this page, the vectors, and both readers together. A `receive` scenario ends with the rows a list shows after its pages, each with `mine`: whether it counts as the person's, which a row does when a page named the replica that wrote it.
+
+The bad cases (`badStamps`, `badKeys`, `badChanges`, `badPages`) bind every reader of the format: each must be refused. A case's `error` is a fragment of the line the Swift reader refuses it with, so a case cannot pass by failing for another reason; another reader checks that it refuses, in its own words. A bad page given as `text` is raw bytes, for a case a parsed JSON value cannot hold. In phase 3 the Worker only writes pages, and its tests check that what it writes decodes like the good cases. Phase 4 adds a server reader of the phone's changes, which must then refuse every bad case too, including the two that `JSON.parse` lets through: a key twice in one object, which it resolves to the last value, and a number too large for a 64-bit float, which it reads as `Infinity`.
 
 ## Values
 
@@ -18,7 +20,7 @@ The shared vectors are in [`Engine/Vectors/wire.json`](../../Engine/Vectors/wire
 | Day | An integer | `Day`'s index: days since 1970-01-01 in the proleptic Gregorian calendar, from -719162 (0001-01-01) through 2932896 (9999-12-31). A row's `day` and a date cell both use it. |
 | Field | A string | A field id as the document writes it: a lowercase letter, then letters and digits, at most 32 in all. |
 
-Numbers that must be integers (`at`, `day`, a date value, a page id, `nextWrite`) have no fraction. Every object has exactly the keys listed for it: a reader refuses a missing key, an unknown key, or a value of the wrong type. A `null` is a value of the wrong type everywhere except `nextWrite`.
+Numbers that must be integers (`at`, `day`, a date value, a page id, `nextWrite`) have no fraction. Every object has exactly the keys listed for it: a reader refuses a missing key, an unknown key, a key that appears twice, or a value of the wrong type. A `null` is a value of the wrong type everywhere except `nextWrite`. Every number is a finite 64-bit float: a reader refuses one too large for it, like `1e400`, as JSON it cannot read.
 
 ## A change
 
@@ -47,13 +49,13 @@ A cell's `kind` and `value`:
 | `kind` | `value` |
 |---|---|
 | `text` | A string. A reader decodes any length; merging refuses one over 300 UTF-16 units (an emoji counts as 2), the limit a tap obeys. |
-| `number` | A JSON number. |
+| `number` | A JSON number, always finite (see Values). |
 | `bool` | `true` or `false`. |
 | `date` | A day index, as above. |
 
 A change that decodes can still be refused or held when it is merged, and neither stops it decoding:
 
-- **Refused** for good: a text over the limit, or a number that is not finite. The watermark passes it.
+- **Refused** for good: a text over the limit. The watermark passes it. (No decoded number can be refused here, since a number that is not finite never decodes: it refuses its whole page, as below.)
 - **Held**: stamped more than 10 minutes ahead of the phone's clock (`RowStore.clockSkew`). It is neither merged nor clamped, and the phone's clock does not advance past it.
 
 ## A page
@@ -73,7 +75,7 @@ What `GET /v1/changes?after=<watermark>` returns: the account's changes with a s
 | `changes` | Entries of `{ "id", "change" }`: `id` is the change's row id in the server's `changes` table, an integer from 1 through 2^53 - 1, strictly increasing through the page (ids may skip). `change` is one change as above. |
 | `nextWrite` | When the server next expects to write a change for this account, as milliseconds since 1970, or `null` when it expects none. The extension pulls before a render once this has passed. |
 
-A page decodes whole or not at all: one entry that does not decode refuses the page, so nothing of it merges and the watermark stays.
+A page decodes whole or not at all: one entry that does not decode refuses the page, so nothing of it merges and the watermark stays. That includes bytes that are not JSON the reader accepts, such as a number too large for a 64-bit float or a key twice in one object, anywhere in the page.
 
 The phone merges a page in one transaction (`Engine.receive`). It walks the changes in id order and stops at the first held change, merging nothing past it. The watermark becomes `max(old, the id of the last change before the stop)`, so neither the app nor the extension can move it backwards, and the next pull asks again from there. Refused changes count as passed. The replica goes into `mine` in the same transaction. The commit hook runs only when the page changed a row, a cell, or `mine`, so replaying a page reloads nothing.
 

@@ -338,11 +338,15 @@ package final class RowStore: Sendable {
     /// of those bytes. One entry per automation of each live widget, as the revision the widget draws defines it,
     /// with the dataset its `writes` table is bound to, sorted by widget and automation id. Canonical bytes, so
     /// equal payloads have equal digests. `timeZone` is the phone's current zone, which every automation runs in.
+    ///
+    /// Throws when a live widget's drawn revision does not parse, where `widgets()` leaves it out. The upload
+    /// replaces every automation the server holds, and the server tombstones the future rows of one that is
+    /// gone, so a payload that left the widget out would delete its rows. No upload is the safe answer.
     package func automationPayload(timeZone: TimeZone) throws(StoreError) -> (json: Data, digest: Spec.Digest) {
         let json = try read { db in
             var entries: [JSONValue] = []
             let widgets = try Row.fetchAll(db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL ORDER BY w.key")
-                .compactMap { try? StoredWidget(row: $0) }
+                .map(StoredWidget.init(row:))
             for widget in widgets {
                 for automation in widget.spec.automations {
                     guard let dataset = try Rows.dataset(of: widget.key, table: automation.writes.id.raw, db) else {
@@ -415,14 +419,22 @@ package final class RowStore: Sendable {
     /// reveals itself, soonest first: rows written ahead, which every query hides until their `at`. A timeline
     /// draws an entry at the first and ends by the second.
     package func reveals(of widget: WidgetKey, after instant: Date) throws(StoreError) -> [Date] {
-        try read { db in
+        // A bound on `day`, so the partial index `row_live(dataset, day, at)` serves the scan, which it cannot
+        // for a range on `at` alone. A row's day is no earlier than `loggableDays` reaches back from its
+        // writer's day at its `at` (the earliest day `insertOn` logs on), and that writer's day is at least the
+        // UTC day before `instant`'s in every time zone, since UTC offsets run from -12 to +14 hours and the
+        // `at` is later than `instant`. A server row's day is the day of its `at`, well inside the bound.
+        let utcDay = Day(index: Int((instant.timeIntervalSince1970 / 86_400).rounded(.down)))
+        let earliest = Spec.Effect.loggableDays(from: utcDay.adding(-1)).lowerBound
+        return try read { db in
             try Int64.fetchAll(
                 db,
                 sql: """
                     SELECT DISTINCT at FROM row
-                    WHERE dataset IN (SELECT dataset FROM binding WHERE widget = ?) AND deleted IS NULL AND at > ?
+                    WHERE dataset IN (SELECT dataset FROM binding WHERE widget = ?) AND deleted IS NULL
+                    AND day >= ? AND at > ?
                     ORDER BY at LIMIT 2
-                    """, arguments: [widget.raw, milliseconds(instant)]
+                    """, arguments: [widget.raw, earliest.index, milliseconds(instant)]
             ).map(date)
         }
     }
