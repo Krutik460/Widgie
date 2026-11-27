@@ -77,6 +77,12 @@ extension View {
             .shadow(color: Palette.restShadow, radius: 7, y: 4)
     }
 
+    /// The lift under Widgie's speech bubble: a close shadow and a soft one well below it.
+    func bubbleShadow() -> some View {
+        shadow(color: Palette.restShadow.opacity(0.5), radius: 2, y: 2)
+            .shadow(color: Palette.restShadow, radius: 12, y: 10)
+    }
+
     /// The elevation under a widget face: a close shadow and a soft lifted one, no outline. At night a hairline
     /// joins them, because the faces nearly match the dusk.
     func faceShadow() -> some View {
@@ -92,6 +98,16 @@ extension View {
     func liftShadow() -> some View {
         shadow(color: Palette.liftShadow.opacity(0.16), radius: 3, y: 2)
             .shadow(color: Palette.liftShadow, radius: 14, y: 14)
+    }
+
+    /// Reads `words` out to VoiceOver each time they change, as `voice` says, after what it is saying for `.low`.
+    func announces(_ words: String?, voice: Bubble.Voice) -> some View {
+        onChange(of: words, initial: true) { _, words in
+            guard let words, voice != .silent else { return }
+            var line = AttributedString(words)
+            if voice == .low { line.accessibilitySpeechAnnouncementPriority = .low }
+            AccessibilityNotification.Announcement(line).post()
+        }
     }
 
     /// A sheet in the prototype's style: 36-point corners over the light gradient by day and the dusk at night,
@@ -241,24 +257,58 @@ struct SoftCloseButton: View {
     }
 }
 
+/// A small soft key, such as New or Keep editing: 36 points tall in a 44 point target.
+struct MiniButtonStyle: ButtonStyle {
+    var fill = Palette.surface
+    var label = Palette.text
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(size: 14, weight: .semibold, relativeTo: .subheadline)
+            .foregroundStyle(label)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 36)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(fill).restShadow())
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+            .padding(.vertical, -4)
+            .modifier(Squish(pressed: configuration.isPressed, scale: 0.94, dimmed: 0.5))
+    }
+}
+
+/// A mini key's symbol and words, the symbol a little bolder.
+struct MiniLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 6) {
+            configuration.icon.font(.system(size: 13, weight: .bold))
+            configuration.title
+        }
+    }
+}
+
 /// Shrinks a control a little while it is pressed, with a spring back. Still with Reduce Motion.
 struct SquishStyle: ButtonStyle {
     var scale: CGFloat = 0.9
 
     func makeBody(configuration: Configuration) -> some View {
-        SquishBody(configuration: configuration, scale: scale)
+        configuration.label.modifier(Squish(pressed: configuration.isPressed, scale: scale))
     }
 }
 
-private struct SquishBody: View {
-    let configuration: ButtonStyleConfiguration
+/// Shrinks its content to `scale` while `pressed`, with a spring back, and dims it to `dimmed` while disabled.
+/// Still with Reduce Motion.
+struct Squish: ViewModifier {
+    let pressed: Bool
     let scale: CGFloat
+    var dimmed = 1.0
 
+    @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var body: some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1)
-            .animation(.spring(duration: 0.3, bounce: 0.45), value: configuration.isPressed)
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(pressed && !reduceMotion ? scale : 1)
+            .opacity(isEnabled ? 1 : dimmed)
+            .animation(.spring(duration: 0.3, bounce: 0.45), value: pressed)
     }
 }
