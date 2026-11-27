@@ -4,7 +4,9 @@
 // MODEL_URL is any OpenAI-compatible chat completions endpoint: OpenRouter here, or Bedrock Mantle
 // (https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions, with PROVIDER empty). PROVIDER pins one OpenRouter
 // provider: Together serves DeepSeek V4.1 Flash at full precision and does not train on requests. REASONING is
-// "off", "low", "medium", "high", or empty to send nothing.
+// "off", "low", "medium", "high", or empty to send nothing. STRUCTURED_OUTPUT "on" sends an automation run's JSON
+// schema as response_format and requires the provider to honor it; Together lists response_format and
+// structured_outputs for this model on OpenRouter (checked 2026-11-27). Turn it off for an endpoint that does not.
 // App Attest: APP_ID is `<team id>.<bundle id>`, whose SHA-256 every attestation and assertion carries. ATTEST_ENV is
 // the App Attest environment an attestation must name: "development" for Debug builds against dev, "production" for
 // Release builds. ATTESTED_KEY is one SQLite-backed Durable Object per App Attest key (public key, counter, pending
@@ -13,6 +15,12 @@
 // DB is the environment's D1 database (accounts, automations, tasks, changes), its schema in migrations/.
 // PLACEHOLDER database ids: create each database with `npx wrangler d1 create widgie` and
 // `npx wrangler d1 create widgie-dev`, and put the ids they print here before the first deploy.
+// Crons (src/cron.ts, which names the same two strings): every minute the due automation runs are claimed and sent to
+// the RUNS queue; at 03:17 UTC the upkeep parks and deletes idle accounts and deletes old changes. The Worker consumes
+// its own queue: batches of up to 4 runs, at most 5 batches at once, so at most 20 calls reach OpenRouter together. A
+// run that throws is retried twice and then kept in the dead-letter queue; its task is claimed again either way.
+// Create the queues with `npx wrangler queues create widgie-runs`, `widgie-runs-dead`, `widgie-dev-runs`, and
+// `widgie-dev-runs-dead` before the first deploy.
 {
     "$schema": "node_modules/wrangler/config-schema.json",
     "name": "widgie",
@@ -25,6 +33,7 @@
         "MODEL": "deepseek/deepseek-v4.1-flash-1017",
         "PROVIDER": "together",
         "REASONING": "low",
+        "STRUCTURED_OUTPUT": "on",
         "APP_ID": "Z23KXVBB26.dev.krutikpatel.widgie",
         "ATTEST_ENV": "production"
     },
@@ -38,6 +47,20 @@
             "migrations_dir": "migrations"
         }
     ],
+    "triggers": { "crons": ["* * * * *", "17 3 * * *"] },
+    "queues": {
+        "producers": [{ "binding": "RUNS", "queue": "widgie-runs" }],
+        "consumers": [
+            {
+                "queue": "widgie-runs",
+                "max_batch_size": 4,
+                "max_batch_timeout": 5,
+                "max_retries": 2,
+                "max_concurrency": 5,
+                "dead_letter_queue": "widgie-runs-dead"
+            }
+        ]
+    },
     "env": {
         "dev": {
             "name": "widgie-dev",
@@ -47,6 +70,7 @@
                 "MODEL": "deepseek/deepseek-v4.1-flash-1017",
                 "PROVIDER": "together",
                 "REASONING": "low",
+                "STRUCTURED_OUTPUT": "on",
                 "APP_ID": "Z23KXVBB26.dev.krutikpatel.widgie",
                 "ATTEST_ENV": "development"
             },
@@ -59,7 +83,21 @@
                     "database_id": "PLACEHOLDER-run-wrangler-d1-create-widgie-dev",
                     "migrations_dir": "migrations"
                 }
-            ]
+            ],
+            "triggers": { "crons": ["* * * * *", "17 3 * * *"] },
+            "queues": {
+                "producers": [{ "binding": "RUNS", "queue": "widgie-dev-runs" }],
+                "consumers": [
+                    {
+                        "queue": "widgie-dev-runs",
+                        "max_batch_size": 4,
+                        "max_batch_timeout": 5,
+                        "max_retries": 2,
+                        "max_concurrency": 5,
+                        "dead_letter_queue": "widgie-dev-runs-dead"
+                    }
+                ]
+            }
         }
     }
 }

@@ -9,6 +9,9 @@ declare namespace Cloudflare {
         PROVIDER: string;
         /// "off", "low", "medium", "high", or empty to send no reasoning setting.
         REASONING: string;
+        /// "on" sends an automation run's JSON schema as `response_format` and, on OpenRouter, requires the provider
+        /// to honor it; anything else leaves it out (model.ts).
+        STRUCTURED_OUTPUT: string;
         /// `<team id>.<bundle id>`: an attestation's and an assertion's rpIdHash is its SHA-256.
         APP_ID: string;
         /// "development" or "production": the App Attest environment whose AAGUID an attestation must carry.
@@ -21,5 +24,7 @@ declare namespace Cloudflare {
         DEV_REGISTRATION_SECRET?: string;
         /// The environment's accounts, automations, tasks, and changes (migrations/).
         DB: D1Database;
+        /// The automation runs the cron claims, which this Worker also consumes (runner.ts).
+        RUNS: Queue<import("./runner").RunMessage>;
     }
 }

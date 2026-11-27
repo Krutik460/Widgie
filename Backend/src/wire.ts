@@ -155,6 +155,17 @@ export function encodeChange(change: Change): string {
     }
 }
 
+/// One change's bytes on either side of its stamp's digits, for a write whose stamp SQL takes in the same batch:
+/// `head || stamp || tail` is `encodeChange` with that stamp, byte for byte. The stamp is the second-to-last key of
+/// every change, before the replica.
+export function encodeAroundStamp(change: Change): { head: string; tail: string } {
+    const encoded = encodeChange({ ...change, stamp: "0" });
+    const tail = `","replica":${JSON.stringify(change.replica)}}`;
+    const head = encoded.slice(0, encoded.length - tail.length - 1);
+    if (`${head}0${tail}` !== encoded || !head.endsWith(`"stamp":"`)) throw new Error("the stamp is not where it goes");
+    return { head, tail };
+}
+
 /// A page's bytes, from changes already encoded as the `changes` table stores them, so a pull never re-encodes.
 export function encodePage(replica: string, entries: { id: number; change: string }[], nextWrite: number | null) {
     const changes = entries.map((entry) => `{"id":${entry.id},"change":${entry.change}}`).join(",");

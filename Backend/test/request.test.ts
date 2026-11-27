@@ -11,6 +11,7 @@ const openrouter = {
     model: "anthropic/claude-sonnet-5.5",
     provider: "amazon-bedrock",
     reasoning: "",
+    structured: false,
 };
 const mantle = { ...openrouter, model: "moonshotai.kimi-k2.5", provider: "" };
 
@@ -93,6 +94,28 @@ describe("requestBody", () => {
         expect(requestBody({ ...openrouter, reasoning: "off" }, "S", turn).reasoning).toEqual({ enabled: false });
         expect(requestBody({ ...openrouter, reasoning: "low" }, "S", turn).reasoning).toEqual({ effort: "low" });
         expect(requestBody(openrouter, "S", turn)).not.toHaveProperty("reasoning");
+    });
+
+    it("sends a call's schema as structured output, required of the provider, only when the setting is on", () => {
+        const turn = { text: "t" };
+        const schema = { name: "row", schema: { type: "object" } };
+        const on = requestBody({ ...openrouter, structured: true }, "S", turn, { maxTokens: 1_500, schema });
+        expect(on.max_tokens).toBe(1_500);
+        expect(on.response_format).toEqual({
+            type: "json_schema",
+            json_schema: { name: "row", strict: true, schema: { type: "object" } },
+        });
+        expect(on.provider).toEqual({ order: ["amazon-bedrock"], allow_fallbacks: false, require_parameters: true });
+        // Off, the reply is still checked, but the provider is not asked to keep to the schema.
+        const off = requestBody(openrouter, "S", turn, { schema });
+        expect(off).not.toHaveProperty("response_format");
+        expect(off.provider).toEqual({ order: ["amazon-bedrock"], allow_fallbacks: false });
+        // An endpoint that serves the model itself gets the schema with no OpenRouter fields.
+        const mantleOn = requestBody({ ...mantle, structured: true }, "S", turn, { schema });
+        expect(mantleOn).toHaveProperty("response_format");
+        expect(mantleOn).not.toHaveProperty("provider");
+        // A call with no schema, like the build route's, is unchanged by the setting.
+        expect(requestBody({ ...openrouter, structured: true }, "S", turn)).toEqual(requestBody(openrouter, "S", turn));
     });
 
     it("sends a picture as a data URL before the words", () => {

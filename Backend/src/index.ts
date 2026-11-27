@@ -7,7 +7,8 @@
 //
 // Phase 3 (tasks/phase-3-ai-block.md): POST /v1/account registers with an App Attest assertion and answers {token};
 // PUT /v1/automations replaces the account's automations (the payload in docs/engine/WIRE.md) and answers {digest};
-// GET /v1/changes?after=<id> answers a page in the wire format. Those two take `Authorization: Bearer <token>`.
+// GET /v1/changes?after=<id> answers a page in the wire format. Those two take `Authorization: Bearer <token>`. The
+// crons claim due automation runs and run the daily upkeep (cron.ts), and the queue consumer runs them (runner.ts).
 
 import { authenticate, pull, register } from "./accounts";
 import { APPLE_ROOT } from "./apple-root";
@@ -16,8 +17,10 @@ import { Conflict, OverLimit, parsePayload, replaceAutomations } from "./automat
 import { readCapped, TooLarge } from "./body";
 import prompt from "./build-prompt.txt";
 import { fromBase64, sha256, toBase64, toHex } from "./bytes";
-import { callModel, ModelFailure } from "./model";
-import { BadRequest, kindOf, userTurn } from "./request";
+import { scheduled } from "./cron";
+import { callModel, ModelFailure, modelSettings } from "./model";
+import { BadRequest, kindOf, oneLine, userTurn } from "./request";
+import { consume, type RunMessage } from "./runner";
 import { LARGEST_ID } from "./wire";
 
 export { AttestedKey } from "./attested-key";
@@ -58,7 +61,13 @@ export default {
     fetch(request, env) {
         return handle(request, env, { fetch });
     },
-} satisfies ExportedHandler<Env>;
+    scheduled(controller, env) {
+        return scheduled(controller.cron, env, Date.now());
+    },
+    queue(batch, env) {
+        return consume(batch, env, { fetch });
+    },
+} satisfies ExportedHandler<Env, RunMessage>;
 
 type Route = (request: Request, env: Env, deps: Dependencies) => Promise<Response>;
 
@@ -146,16 +155,9 @@ async function reply(request: Request, env: Env, deps: Dependencies): Promise<Re
         throw error;
     }
 
-    const settings = {
-        url: env.MODEL_URL,
-        apiKey: env.MODEL_API_KEY,
-        model: env.MODEL,
-        provider: env.PROVIDER,
-        reasoning: env.REASONING,
-    };
     const called = Date.now();
     try {
-        const result = await callModel(settings, prompt, turn, deps.fetch, deps.deadlineMs);
+        const result = await callModel(modelSettings(env), prompt, turn, deps.fetch, deps.deadlineMs);
         const seconds = Math.round((Date.now() - called) / 100) / 10;
         return out.json(
             200,
@@ -363,11 +365,4 @@ function isChallenge(value: unknown): value is string {
 
 function isJson(request: Request): boolean {
     return (request.headers.get("Content-Type") ?? "").split(";")[0]?.trim() === "application/json";
-}
-
-/// One line of at most 300 characters, as bridge.py's `one_line` makes it, so an echoed key name or a provider's
-/// message can neither break the line nor carry much of a request.
-function oneLine(text: string): string {
-    const line = text.split(/\s+/).filter(Boolean).join(" ");
-    return line.length > 300 ? `${line.slice(0, 299)}…` : line;
 }

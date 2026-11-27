@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { DAY } from "../src/schedule";
-import { DELETE_AFTER, deleteIdle, PARK_AFTER, parkIdle } from "../src/upkeep";
-import { automation, changes, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
+import { DELETE_AFTER, deleteIdle, KEEP_CHANGES, PARK_AFTER, parkIdle, pruneChanges, upkeep } from "../src/upkeep";
+import { automation, changes, DATASET, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
 
 /// An account with an automation, its tasks, and a change, last pulled `idle` before NOW.
 async function idleAccount(idle: number) {
@@ -90,5 +90,82 @@ describe("idle accounts", () => {
         expect(await counts(gone.id)).toEqual({ accounts: 0, automations: 0, tasks: 0, changes: 0 });
         expect(await counts(kept.id)).toEqual({ accounts: 1, automations: 1, tasks: 2, changes: 1 });
         expect((await send(changes(gone.token))).body).toMatchObject({ code: "bad-token" });
+    });
+});
+
+describe("old changes", () => {
+    const OLD = NOW - KEEP_CHANGES - DAY;
+    const OTHER = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d";
+    const ALL = 70 * 2 + 2 + 5 * 2 + 2;
+
+    beforeEach(async () => {
+        await env.DB.prepare("DELETE FROM accounts").run();
+    });
+
+    /// Seventy old rows of one dataset (the first with its tombstone right after it, the second with one written
+    /// last), five old rows of another, and one new row of the first. Every change pulled when `pulled` is true.
+    async function history(pulled: boolean) {
+        const account = await newAccount();
+        const changes: [string, string, string, number][] = [];
+        for (let i = 0; i < 70; i++) {
+            changes.push(["insertRow", DATASET, `r${i}`, OLD], ["setCell", DATASET, `r${i}`, OLD]);
+            if (i === 0) changes.push(["deleteRow", DATASET, "r0", OLD]);
+        }
+        changes.push(["deleteRow", DATASET, "r1", OLD]);
+        for (let i = 0; i < 5; i++) changes.push(["insertRow", OTHER, `o${i}`, OLD], ["setCell", OTHER, `o${i}`, OLD]);
+        changes.push(["insertRow", DATASET, "r70", NOW], ["setCell", DATASET, "r70", NOW]);
+        await env.DB.batch(
+            changes.map(([op, dataset, row, at]) =>
+                env.DB.prepare(
+                    "INSERT INTO changes (account, op, dataset, row_key, change, written_at) VALUES (?, ?, ?, ?, '{}', ?)",
+                ).bind(account.id, op, dataset, row, at),
+            ),
+        );
+        if (pulled) {
+            await env.DB.prepare(
+                "UPDATE accounts SET pulled_after = (SELECT max(id) FROM changes WHERE account = ?1) WHERE id = ?1",
+            )
+                .bind(account.id)
+                .run();
+        }
+        return account;
+    }
+
+    async function left(account: string) {
+        const { results } = await env.DB.prepare("SELECT op, row_key FROM changes WHERE account = ? ORDER BY id")
+            .bind(account)
+            .all<{ op: string; row_key: string }>();
+        return results;
+    }
+
+    it("go once the account's pull has passed them, keeping each dataset's last 60 rows whole", async () => {
+        expect(KEEP_CHANGES).toBe(120 * DAY);
+        const account = await history(true);
+        const unpulled = await history(false);
+        expect(await pruneChanges(env.DB, NOW)).toBe(23);
+        const rows = await left(account.id);
+        // r0 to r10 go with every change, r0's tombstone included; the last 60 rows (r11 to r70) stay whole.
+        const kept = new Set(rows.filter((row) => row.op === "insertRow").map((row) => row.row_key));
+        expect(kept.size).toBe(65);
+        for (let i = 0; i <= 10; i++) expect(kept.has(`r${i}`)).toBe(false);
+        for (let i = 11; i <= 70; i++) expect(kept.has(`r${i}`)).toBe(true);
+        for (let i = 0; i < 5; i++) expect(kept.has(`o${i}`)).toBe(true);
+        expect(rows.filter((row) => row.op === "setCell")).toHaveLength(65);
+        // A tombstone written after its row may outlive it, which still hides the row; never the other way round.
+        expect(rows.filter((row) => row.op === "deleteRow").map((row) => row.row_key)).toEqual(["r1"]);
+        // Nothing goes that a pull has not passed.
+        expect(await left(unpulled.id)).toHaveLength(ALL);
+        expect(await pruneChanges(env.DB, NOW)).toBe(0);
+    });
+
+    it("stay while they are newer than 120 days", async () => {
+        const account = await history(true);
+        expect(await pruneChanges(env.DB, OLD + KEEP_CHANGES)).toBe(0);
+        expect(await left(account.id)).toHaveLength(ALL);
+    });
+
+    it("go in the daily upkeep, after parking and deleting", async () => {
+        await history(true);
+        expect(await upkeep(env.DB, NOW)).toEqual({ parked: 0, deleted: 0, pruned: 23 });
     });
 });
