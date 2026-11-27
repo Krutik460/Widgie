@@ -34,6 +34,27 @@ import WidgetEngine
         }
     }
 
+    /// Each value holds the other blank, so filling one blank after the other expands one of them again in any
+    /// order, which in the look ends a string literal early.
+    @Test func aValueHoldingAnotherBlankIsFilledInAsTypedInOnePass() throws {
+        let document = try JSONSerialization.data(withJSONObject: [
+            "name": "{{pet}} and {{owner}}", "look": "const PET = {{pet}};\nconst OWNER = {{owner}};",
+        ])
+        let blanks = [("pet", "{{owner}}"), ("owner", "+alert(1)+{{pet}}")]
+        for order in [blanks, blanks.reversed()] {
+            for capacity in 1...32 {
+                var values = [String: String](minimumCapacity: capacity)
+                for (key, value) in order { values[key] = value }
+                let filled =
+                    try JSONSerialization.jsonObject(with: Template.fill(document, with: values))
+                    as! [String: Any]
+                #expect(filled["name"] as? String == "{{owner}} and +alert(1)+{{pet}}")
+                #expect(
+                    filled["look"] as? String == "const PET = \"{{owner}}\";\nconst OWNER = \"+alert(1)+{{pet}}\";")
+            }
+        }
+    }
+
     @Test func aBlankWithQuotesStillBuilds() async throws {
         let shared = SharedStore()
         let source = WidgetSource(json: try Template.fill(document(), with: ["pet": #"Lu"na's \ dog"#]))
@@ -121,22 +142,56 @@ import WidgetEngine
 }
 
 @MainActor @Suite struct TemplateTrialTests {
-    @Test func aTapIsPracticeAndATypedNameRebuildsTheFace() async throws {
+    private let shared = SharedStore()
+
+    private func petFed() throws -> TemplateTrial {
         let template = try #require(Template.catalog().first { $0.id == "pet-fed" })
-        let trial = TemplateTrial(template: template, preview: Preview(library: SharedStore().engine))
-        await trial.open()
+        return TemplateTrial(template: template, preview: Preview(library: shared.engine))
+    }
+
+    @Test func aTapIsPracticeOnScratchRowsAndATypedNameRebuildsTheFace() async throws {
+        let trial = try petFed()
+        await trial.fill()
         let draft = try #require(trial.preview.widget)
         trial.greet()
-        #expect(trial.said == template.hint)
+        #expect(trial.said == trial.template.hint)
 
+        // Pet fed paints red until the first feed and amber after it.
+        await trial.preview.select(.empty)
+        func hue() async -> Double? {
+            await trial.preview.engine.faces(for: draft, family: .small, size: Family.small.standardSize, from: .now)
+                .current.traits.hue
+        }
+        let unfed = try #require(await hue())
         let revision = try #require(try trial.preview.engine.history(of: draft).first).id
         trial.tap(Tap(widget: draft.rawValue, revision: revision, action: "feed", row: nil))
         #expect(trial.said == "Just practice. Yours starts fresh.")
+        let fed = try #require(await hue())
+        #expect(abs(unfed - fed) > 20, "the tap wrote a feed to the scratch rows")
 
         trial.values["pet"] = "Mochi"
-        await trial.refill()
+        await trial.fill()
         #expect(trial.said == "Mochi it is.")
         #expect(try trial.preview.engine.widgets().first { $0.id == draft }?.name == "Mochi fed")
         #expect(try trial.choice().name == "Mochi fed")
+        #expect(try shared.engine.widgets().isEmpty, "practice never reaches the shared store")
+    }
+
+    @Test func theFaceEndsOnTheLatestNameHoweverTheBuildsOverlap() async throws {
+        let trial = try petFed()
+        trial.values["pet"] = "Bo"
+        let opening = Task { await trial.fill() }
+        await Task.yield()
+        trial.values["pet"] = "Pip"
+        let typing = Task { await trial.fill() }
+        await Task.yield()
+        trial.values["pet"] = "Mochi"
+        await trial.fill()
+        await opening.value
+        await typing.value
+
+        #expect(trial.preview.widget != nil)
+        #expect(try trial.preview.engine.widgets().map(\.name) == ["Mochi fed"])
+        #expect(trial.said == "Mochi it is.")
     }
 }

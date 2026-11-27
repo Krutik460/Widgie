@@ -145,6 +145,25 @@ final class DescribeSession: Identifiable {
         if case .nothing = origin { phase = .composing } else { phase = .opening }
     }
 
+    /// What putting another widget into Make in this session's place would cost.
+    enum Replacement: Equatable {
+        /// Nothing is lost: the session is empty or its widget is saved.
+        case free
+        /// A draft, or a build or opening under way, would be thrown away.
+        case discards
+        /// A save is under way. It cannot be stopped and would land after a discard, so it has to finish first.
+        case waits
+    }
+
+    var replacement: Replacement {
+        switch phase {
+        case .saved: .free
+        case .saving: .waits
+        case .opening, .building: .discards
+        case .composing, .failed: draft == nil ? .free : .discards
+        }
+    }
+
     var canSend: Bool {
         phase == .composing && pendingPhoto == nil
             && (!words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || picture != nil)

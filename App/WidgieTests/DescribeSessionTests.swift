@@ -195,6 +195,24 @@ import WidgetEngine
         #expect(try shared.engine.widgets().map(\.id) == [id])
     }
 
+    @Test func aTemplateWaitsOutASaveAndOnlyAsksFirstWhenADraftWouldBeLost() async throws {
+        #expect(DescribeSession(model: ScriptedModel([])).replacement == .free)
+
+        let gate = SuspendingGate(comesBack: .whenReleased)
+        defer { Engine.resume() }
+        let session = try await draftedSession(gate: gate)
+        #expect(session.replacement == .discards)
+
+        session.save()
+        try await until({ gate.waiting }, "the save never waited for the app")
+        #expect(session.replacement == .waits)
+
+        gate.release()
+        try await until({ session.settled }, "the save never finished")
+        #expect(try shared.engine.widgets().count == 1)
+        #expect(session.replacement == .free)
+    }
+
     /// A session with an accepted draft, whose Save meets `gate`.
     private func draftedSession(gate: SuspendingGate) async throws -> DescribeSession {
         _ = try shared.engine.widgets()

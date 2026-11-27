@@ -95,8 +95,10 @@ struct Template: Identifiable, Sendable {
     private static func replace(in value: Any, _ values: [String: String], code: Bool) -> Any {
         switch value {
         case let text as String:
-            return values.reduce(text) { text, blank in
-                text.replacingOccurrences(of: "{{\(blank.key)}}", with: code ? literal(blank.value) : blank.value)
+            // One pass over the original text, so a value that holds another blank's `{{key}}` stays as typed.
+            return text.replacing(/\{\{([^{}]+)\}\}/) { match in
+                guard let value = values[String(match.output.1)] else { return String(match.output.0) }
+                return code ? literal(value) : value
             }
         case let list as [Any]:
             return list.map { replace(in: $0, values, code: code) }
