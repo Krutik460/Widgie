@@ -170,18 +170,18 @@ private struct Cast: View {
         ZStack(alignment: .topLeading) {
             switch category {
             case .forTwo:
-                Actor(side: .right, size: 112, foot: 76, happy: true, acting: acting)
-                Actor(side: .left, size: 112, foot: 146, acting: acting)
+                Actor(side: .right, size: 94, foot: 76, happy: true, acting: acting)
+                Actor(side: .left, size: 94, foot: 146, acting: acting)
                 Heartbeat().frame(width: 20, height: 20).position(x: 111, y: 22)
             case .home:
                 Puppy().frame(width: 64, height: 60).position(x: 72, y: 106)
-                Actor(side: .left, size: 134, foot: 138, acting: acting, turn: -6)
+                Actor(side: .left, size: 112, foot: 138, acting: acting, turn: -6)
             case .habits:
-                Actor(side: .right, size: 124, foot: 112, acting: acting, turn: 7)
+                Actor(side: .right, size: 104, foot: 112, acting: acting, turn: 7)
                 Squares(filling: acting).frame(width: 40, height: 40).rotationEffect(.degrees(6))
                     .position(x: 170, y: 104)
             case .goals:
-                Actor(side: .right, size: 124, foot: 116, happy: true, acting: acting)
+                Actor(side: .right, size: 104, foot: 116, happy: true, acting: acting)
                 Medal(swinging: acting).frame(width: 38, height: 50).position(x: 169, y: 95)
             }
         }
@@ -189,7 +189,7 @@ private struct Cast: View {
     }
 }
 
-/// Widgie leaning toward `side`, its foot on the cast's floor at `foot`. As the banner comes on it hops, and
+/// Widgie leaning toward `side`, the sole of its foot on the cast's floor at `foot`. As the banner comes on it hops, and
 /// turns by `turn` degrees toward its prop. Still with Reduce Motion.
 private struct Actor: View {
     let side: Caret.Side
@@ -204,10 +204,10 @@ private struct Actor: View {
 
     var body: some View {
         let pose = Caret.Pose.lean(side)
-        let point = Caret.foot(pose)
+        let sole = Caret.sole(pose)
         HoppingCaret(pose: pose, size: size, happy: happy, turn: turn, cue: cue)
             .position(
-                x: foot + size * (0.5 - point.x), y: Cast.floor + size * (0.5 - point.y)
+                x: foot + size * (0.5 - sole.x), y: Cast.floor + size * (0.5 - sole.y)
             )
             .task {
                 guard acting, !reduceMotion else { return }
