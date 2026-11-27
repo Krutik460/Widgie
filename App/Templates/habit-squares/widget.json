@@ -1,27 +1,93 @@
 {
   "format": 1,
-  "name": "{{habit}}",
+  "name": "Habits",
   "tables": {
     "checkins": {
-      "fields": {}
+      "fields": {
+        "habit": "number"
+      }
     }
   },
   "queries": {
-    "streak": {
-      "streak": "checkins"
+    "days1": {
+      "daily": "checkins",
+      "where": {
+        "habit": 1
+      },
+      "days": 14
     },
-    "today": {
+    "today1": {
       "latest": "checkins",
+      "where": {
+        "habit": 1
+      },
       "window": "today"
     },
-    "days": {
+    "streak1": {
+      "streak": "checkins",
+      "where": {
+        "habit": 1
+      }
+    },
+    "days2": {
       "daily": "checkins",
-      "days": 35
+      "where": {
+        "habit": 2
+      },
+      "days": 14
+    },
+    "today2": {
+      "latest": "checkins",
+      "where": {
+        "habit": 2
+      },
+      "window": "today"
+    },
+    "streak2": {
+      "streak": "checkins",
+      "where": {
+        "habit": 2
+      }
+    },
+    "days3": {
+      "daily": "checkins",
+      "where": {
+        "habit": 3
+      },
+      "days": 14
+    },
+    "today3": {
+      "latest": "checkins",
+      "where": {
+        "habit": 3
+      },
+      "window": "today"
+    },
+    "streak3": {
+      "streak": "checkins",
+      "where": {
+        "habit": 3
+      }
     }
   },
   "actions": {
-    "check": {
-      "insert": "checkins"
+    "check1": {
+      "insert": "checkins",
+      "values": {
+        "habit": 1
+      }
+    },
+    "check2": {
+      "insert": "checkins",
+      "values": {
+        "habit": 2
+      }
+    },
+    "check3": {
+      "insert": "checkins",
+      "values": {
+        "habit": 3
+      }
     },
     "uncheck": {
       "delete": "checkins"
@@ -30,89 +96,190 @@
   "automations": {},
   "assets": {},
   "samples": {
-    "on a roll": {
+    "a good fortnight": {
       "checkins": [
         {
-          "daysAgo": 0
+          "daysAgo": 13,
+          "habit": 1
         },
         {
-          "daysAgo": 1
+          "daysAgo": 11,
+          "habit": 1
         },
         {
-          "daysAgo": 2
+          "daysAgo": 10,
+          "habit": 1
         },
         {
-          "daysAgo": 3
+          "daysAgo": 8,
+          "habit": 1
         },
         {
-          "daysAgo": 4
+          "daysAgo": 6,
+          "habit": 1
         },
         {
-          "daysAgo": 5
+          "daysAgo": 5,
+          "habit": 1
         },
         {
-          "daysAgo": 6
+          "daysAgo": 3,
+          "habit": 1
         },
         {
-          "daysAgo": 7
+          "daysAgo": 2,
+          "habit": 1
         },
         {
-          "daysAgo": 8
+          "daysAgo": 13,
+          "habit": 2
         },
         {
-          "daysAgo": 9
+          "daysAgo": 12,
+          "habit": 2
         },
         {
-          "daysAgo": 10
+          "daysAgo": 11,
+          "habit": 2
         },
         {
-          "daysAgo": 11
+          "daysAgo": 10,
+          "habit": 2
         },
         {
-          "daysAgo": 14
+          "daysAgo": 9,
+          "habit": 2
         },
         {
-          "daysAgo": 15
+          "daysAgo": 7,
+          "habit": 2
         },
         {
-          "daysAgo": 17
+          "daysAgo": 6,
+          "habit": 2
         },
         {
-          "daysAgo": 20
+          "daysAgo": 5,
+          "habit": 2
         },
         {
-          "daysAgo": 26
+          "daysAgo": 4,
+          "habit": 2
+        },
+        {
+          "daysAgo": 3,
+          "habit": 2
+        },
+        {
+          "daysAgo": 2,
+          "habit": 2
+        },
+        {
+          "daysAgo": 1,
+          "habit": 2
+        },
+        {
+          "daysAgo": 12,
+          "habit": 3
+        },
+        {
+          "daysAgo": 11,
+          "habit": 3
+        },
+        {
+          "daysAgo": 9,
+          "habit": 3
+        },
+        {
+          "daysAgo": 8,
+          "habit": 3
+        },
+        {
+          "daysAgo": 7,
+          "habit": 3
+        },
+        {
+          "daysAgo": 5,
+          "habit": 3
+        },
+        {
+          "daysAgo": 4,
+          "habit": 3
+        },
+        {
+          "daysAgo": 3,
+          "habit": 3
+        },
+        {
+          "daysAgo": 1,
+          "habit": 3
         }
       ]
     },
-    "missed today": {
+    "all done today": {
       "checkins": [
         {
-          "daysAgo": 1
+          "daysAgo": 6,
+          "habit": 1
         },
         {
-          "daysAgo": 2
+          "daysAgo": 5,
+          "habit": 1
         },
         {
-          "daysAgo": 3
+          "daysAgo": 4,
+          "habit": 1
         },
         {
-          "daysAgo": 4
+          "daysAgo": 3,
+          "habit": 1
         },
         {
-          "daysAgo": 5
+          "daysAgo": 2,
+          "habit": 1
         },
         {
-          "daysAgo": 8
+          "daysAgo": 1,
+          "habit": 1
         },
         {
-          "daysAgo": 9
+          "daysAgo": 0,
+          "habit": 1
         },
         {
-          "daysAgo": 13
+          "daysAgo": 4,
+          "habit": 2
+        },
+        {
+          "daysAgo": 3,
+          "habit": 2
+        },
+        {
+          "daysAgo": 2,
+          "habit": 2
+        },
+        {
+          "daysAgo": 1,
+          "habit": 2
+        },
+        {
+          "daysAgo": 0,
+          "habit": 2
+        },
+        {
+          "daysAgo": 2,
+          "habit": 3
+        },
+        {
+          "daysAgo": 1,
+          "habit": 3
+        },
+        {
+          "daysAgo": 0,
+          "habit": 3
         }
       ]
     }
   },
-  "look": "// The habit's name, filled in when the template is added.\nconst HABIT = {{habit}};\n\nfunction render(ctx) {\n  const d = ctx.data;\n  const small = ctx.family === 'small';\n  const days = d.days.slice(small ? -28 : -35);\n  const cell = small ? 14 : 18;\n  const gap = small ? 3 : 4;\n\n  // Today is a smaller square inside a ring. The gap between them is what marks it in tinted mode, where\n  // the green fill and a white outline turn the same color and would merge.\n  const dayCell = day => {\n    const fill = day.count > 0 ? '#34C759' : '#FFFFFF1F';\n    if (day.date !== ctx.today.date) {\n      return { type: 'rect', cornerRadius: cell / 4, fill, frame: { width: cell, height: cell } };\n    }\n    return { type: 'zstack', frame: { width: cell, height: cell }, children: [\n      { type: 'rect', cornerRadius: cell / 4, stroke: { color: '#FFFFFF', width: 1.5 } },\n      { type: 'rect', cornerRadius: cell / 8, fill, padding: 3 },\n    ] };\n  };\n\n  const weeks = [];\n  for (let i = 0; i < days.length; i += 7) {\n    weeks.push({ type: 'hstack', spacing: gap, children: days.slice(i, i + 7).map(dayCell) });\n  }\n\n  const check = d.today\n    ? { type: 'button', action: 'uncheck', rowId: d.today.id, children: [\n        { type: 'symbol', name: 'checkmark.circle.fill', size: 30, color: '#34C759' } ] }\n    : { type: 'button', action: 'check', children: [\n        { type: 'symbol', name: 'circle', size: 30, color: '#FFFFFF99' } ] };\n\n  const header = { type: 'vstack', align: 'leading', spacing: 2, children: [\n    { type: 'text', value: HABIT, size: 15, weight: 'bold', color: '#FFFFFF', lineLimit: 1 },\n    { type: 'text', value: d.streak + (d.streak === 1 ? ' day' : ' days'), size: 12,\n      color: '#FFFFFFB3', lineLimit: 1 },\n  ] };\n\n  const grid = { type: 'vstack', spacing: gap, children: weeks };\n  const frame = { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' };\n\n  if (small) {\n    return { type: 'vstack', align: 'leading', spacing: 8, padding: 14, frame, widgetBackground: '#1C1C1E',\n      children: [{ type: 'hstack', children: [header, { type: 'spacer' }, check] }, { type: 'spacer' }, grid] };\n  }\n  return { type: 'hstack', spacing: 16, padding: 14, frame, widgetBackground: '#1C1C1E',\n    children: [\n      { type: 'vstack', align: 'leading', frame: { maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [header, { type: 'spacer' }, check] },\n      { type: 'spacer' },\n      grid,\n    ] };\n}\n"
+  "look": "// The three habits, filled in when the template is added.\nconst HABITS = [{{first}}, {{second}}, {{third}}];\nconst PINE = '#13221a';\nconst MINT = '#dff5e8';\nconst LEAF = '#6fdc9f';\nconst ON = '#2fbf80';\nconst GRID = 'M5 3h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z M15 3h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 '\n  + '2h-4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z M5 13h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z M15 '\n  + '13h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z';\n\nfunction square(on, u) {\n  return { type: 'rect', cornerRadius: 4 * u, fill: on ? ON : '#FFFFFF1A', frame: { width: 15 * u, height: 15 * u } };\n}\n\n// Today's square is the button: it marks the day, or clears it once marked.\nfunction today(n, row, u) {\n  return row\n    ? { type: 'button', action: 'uncheck', rowId: row.id, children: [square(true, u)] }\n    : { type: 'button', action: 'check' + n, children: [square(false, u)] };\n}\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall.\n  const u = ctx.height / 170;\n  const d = ctx.data;\n  const wide = ctx.family === 'medium';\n  const shown = wide ? 14 : 5;\n  const habits = HABITS.map((name, i) => ({ name, n: i + 1, days: d['days' + (i + 1)],\n    today: d['today' + (i + 1)], streak: d['streak' + (i + 1)] }));\n  const best = habits.reduce((a, b) => (b.streak > a.streak ? b : a));\n\n  const row = (habit) => ({ type: 'hstack', spacing: wide ? 0 : 4 * u, children: [\n    { type: 'text', value: habit.name, size: 13 * u, weight: 'bold', color: MINT, lineLimit: 1, minScale: 0.6,\n      frame: { width: (wide ? 70 : 45) * u, height: 16 * u, alignment: 'leading' } },\n    { type: 'hstack', spacing: 3.5 * u, children: habit.days.slice(-shown).map((day, i) => (i === shown - 1\n      ? today(habit.n, habit.today, u)\n      : square(day.count > 0, u))) },\n  ] });\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: PINE,\n    children: [\n      { type: 'vstack', align: 'leading', spacing: 0, padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: GRID, viewBox: [0, 0, 24, 24], fill: LEAF, frame: { width: 15 * u, height: 15 * u } },\n            { type: 'text', value: wide ? 'Last two weeks' : 'Last 5 days', size: 13 * u, weight: 'bold',\n              color: LEAF, lineLimit: 1, minScale: 0.8 },\n            { type: 'spacer', minLength: 0 },\n            { type: 'text', value: 'today', size: 13 * u, weight: 'semibold', color: LEAF, opacity: 0.55 },\n          ] },\n          { type: 'vstack', align: 'leading', spacing: 8 * u, padding: { top: 13.5 * u }, children: habits.map(row) },\n        ] },\n      { type: 'text', accent: true,\n        value: best.streak > 0\n          ? best.name + ': ' + best.streak + (best.streak === 1 ? ' day' : ' days') + ' in a row'\n          : 'Tap today\\'s square when it\\'s done',\n        size: 12.5 * u, weight: 'bold', color: MINT, opacity: 0.7, lineLimit: 1, minScale: 0.6,\n        padding: { leading: 16 * u, trailing: 16 * u, bottom: 17 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomLeading' } },\n    ],\n  };\n}\n"
 }

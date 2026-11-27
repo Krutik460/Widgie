@@ -7,7 +7,8 @@
         "word": "text",
         "kind": "text",
         "definition": "text",
-        "example": "text"
+        "example": "text",
+        "verdict": "text"
       }
     }
   },
@@ -15,12 +16,28 @@
     "word": {
       "latest": "words",
       "window": "all"
+    },
+    "learned": {
+      "count": "words",
+      "where": {
+        "verdict": "know"
+      },
+      "window": "all"
     }
   },
-  "actions": {},
+  "actions": {
+    "know": {
+      "set": "words.verdict",
+      "to": "know"
+    },
+    "again": {
+      "set": "words.verdict",
+      "to": "again"
+    }
+  },
   "automations": {
     "daily": {
-      "prompt": "Pick an interesting, real English word that most adults rarely use. Give its part of speech, a one-sentence definition in plain words, and one example sentence.",
+      "prompt": "Pick a useful Spanish word that a learner at an intermediate level may not know yet, and not one picked before. Give the word, its part of speech, its meaning in a few plain English words starting in lower case, and one short example sentence in Spanish that uses it. Leave verdict empty; the person sets it.",
       "every": "day",
       "at": "06:00",
       "writes": "words"
@@ -28,14 +45,23 @@
   },
   "assets": {},
   "samples": {
-    "first word": {
+    "a month in": {
       "words": [
         {
+          "daysAgo": 1,
+          "word": "aprovechar",
+          "kind": "verb",
+          "definition": "to make the most of",
+          "example": "Hay que aprovechar el sol.",
+          "verdict": "know",
+          "repeat": 48
+        },
+        {
           "daysAgo": 0,
-          "word": "Petrichor",
-          "kind": "noun",
-          "definition": "The pleasant, earthy smell after rain falls on dry ground.",
-          "example": "The petrichor drifted in through the open window."
+          "word": "madrugar",
+          "kind": "verb",
+          "definition": "to get up early",
+          "example": "Mañana tengo que madrugar."
         }
       ]
     },
@@ -43,20 +69,22 @@
       "words": [
         {
           "daysAgo": 1,
-          "word": "Petrichor",
-          "kind": "noun",
-          "definition": "The pleasant, earthy smell after rain falls on dry ground.",
-          "example": "The petrichor drifted in through the open window."
+          "word": "madrugar",
+          "kind": "verb",
+          "definition": "to get up early",
+          "example": "Mañana tengo que madrugar.",
+          "verdict": "know"
         },
         {
           "daysAgo": 0,
-          "word": "Sesquipedalian",
-          "kind": "adjective",
-          "definition": "Given to using long words; also describes a word that has many syllables, like this one.",
-          "example": "His sesquipedalian lectures put half the room to sleep."
+          "word": "desafortunadamente",
+          "kind": "adverb",
+          "definition": "unfortunately, said when something did not go the way anyone hoped",
+          "example": "Desafortunadamente, el tren salió sin nosotros.",
+          "verdict": "again"
         }
       ]
     }
   },
-  "look": "function render(ctx) {\n  const w = ctx.data.word;\n  const medium = ctx.family === 'medium';\n\n  const header = { type: 'hstack', spacing: 4, children: [\n    { type: 'symbol', name: 'book.closed.fill', size: 11, color: '#E0B354' },\n    { type: 'text', value: 'Word of the day', size: 11, weight: 'semibold', color: '#E0B354', lineLimit: 1 },\n    { type: 'spacer' },\n    medium && { type: 'text', value: ctx.today.weekday + ' ' + Number(ctx.today.date.slice(8)),\n      size: 11, color: '#8E8A80' },\n  ] };\n\n  const body = w\n    ? [\n        { type: 'text', value: w.word || '', size: medium ? 26 : 22, weight: 'bold', design: 'serif',\n          color: '#F5F1E8', lineLimit: 1, minScale: 0.5 },\n        { type: 'text', value: w.kind || '', size: 11, italic: true, color: '#B8B2A6', lineLimit: 1 },\n        { type: 'text', value: w.definition || '', size: 12, color: '#E6E1D6', lineLimit: medium ? 2 : 3 },\n        medium && w.example && { type: 'text', value: '\"' + w.example + '\"', size: 11, italic: true,\n          color: '#B8B2A6', lineLimit: 1 },\n      ]\n    : [\n        { type: 'spacer' },\n        { type: 'text', value: 'Your first word', size: medium ? 26 : 22, weight: 'bold', design: 'serif',\n          color: '#F5F1E8', lineLimit: 1, minScale: 0.5 },\n        { type: 'text', value: 'arrives at 6:00 in the morning.', size: 12, color: '#B8B2A6', lineLimit: 2 },\n      ];\n\n  return {\n    type: 'vstack', align: 'leading', spacing: 4, padding: 14,\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n    widgetBackground: '#1F1B16',\n    children: [header].concat(body),\n  };\n}\n"
+  "look": "const TEAL = '#1b3a4b';\nconst FOAM = '#e6f4fb';\nconst SUN = '#ffd23c';\nconst BOOK = 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5';\n\nfunction meaning(word) {\n  const definition = (word.definition || '').trim();\n  const stop = /[.!?]$/.test(definition) ? '' : '.';\n  return definition + stop + (word.example ? ' \"' + word.example + '\"' : '');\n}\n\n// Know it's fill sits twice: solid in the backdrop, which tinted and clear mode remove, and faint in the tree.\n// So in full color it reads as one solid key, and in tinted mode its words still show on the faint one. The\n// backdrop draws the same keys with their words hidden, so both line up.\nfunction keys(word, u, ghost) {\n  const key = (action, label, fill, color) => ({ type: ghost ? 'zstack' : 'button', action: ghost ? null : action,\n    rowId: ghost ? null : word.id, children: [\n      { type: 'hstack', spacing: 4 * u, padding: { vertical: 6 * u, horizontal: 11 * u },\n        background: { type: 'rect', cornerRadius: 10 * u, fill }, children: [\n          word.verdict === action && { type: 'symbol', name: 'checkmark', size: 10 * u, weight: 'heavy', color,\n            opacity: ghost ? 0 : 1 },\n          { type: 'text', value: label, size: 12 * u, weight: 'bold', color, opacity: ghost ? 0 : 1 },\n        ] } ] });\n  return { type: 'hstack', spacing: 7 * u, padding: { leading: 16 * u, bottom: 14 * u },\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomLeading' },\n    children: [\n      key('know', 'Know it', ghost ? SUN : '#ffd23c40', TEAL),\n      key('again', 'Again', ghost ? '#1b3a4b00' : '#FFFFFF21', FOAM),\n    ] };\n}\n\nfunction render(ctx) {\n  // Sizes are in the prototype's units: a widget is 170 of them tall. Bricolage's line is 1.2 times its size, so\n  // the gaps around the word are 0.1 of its size shorter than the prototype's.\n  const u = ctx.height / 170;\n  const d = ctx.data;\n  const word = d.word;\n  const wide = ctx.family === 'medium';\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: { type: 'zstack', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, background: TEAL,\n      children: [word && keys(word, u, true)] },\n    children: [\n      { type: 'vstack', align: 'leading', spacing: 0, padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: BOOK, viewBox: [0, 0, 24, 24], frame: { width: 15 * u, height: 15 * u },\n              stroke: { color: SUN, width: 2.4 * 15 * u / 24 } },\n            { type: 'text', value: 'Palabra del día', size: 13 * u, weight: 'bold', color: SUN, lineLimit: 1,\n              minScale: 0.8 },\n            { type: 'spacer', minLength: 0 },\n            wide && { type: 'text', value: d.learned + ' learned', size: 13 * u, weight: 'semibold', color: SUN,\n              opacity: 0.55, lineLimit: 1 },\n          ] },\n          { type: 'text', value: word ? word.word || '?' : 'pronto', fontName: 'Bricolage Grotesque Display',\n            size: 40 * u, kerning: -1.2 * u, color: SUN, accent: true, lineLimit: 1, minScale: 0.4,\n            padding: { top: 4 * u } },\n          { type: 'text', value: word ? meaning(word) : 'soon. Your first word lands here at 6:00.',\n            size: 12.5 * u, weight: 'semibold', color: FOAM, opacity: 0.8, lineLimit: 2, minScale: 0.8,\n            padding: { top: 1 * u }, frame: { maxWidth: (ctx.width - 32 * u) * 0.92, alignment: 'leading' } },\n        ] },\n      word && keys(word, u, false),\n    ],\n  };\n}\n"
 }

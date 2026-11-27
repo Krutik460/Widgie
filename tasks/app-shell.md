@@ -75,7 +75,7 @@ The Widgets tab and the tab bar as drawn in the prototype, on the current app's 
 **Ground and type**
 
 - [ ] `Sky`: the ground for every screen, replacing the flat color and the dot grid. Day is the prototype's gradient (`#B4D4FB` to `#9CC3F5` to `#8AB6F0`) with two soft clouds drifting high up; night (dark mode) is the dusk gradient (`#14284F` to `#223F72` to `#2B4E82`) with 26 twinkling stars and a crescent moon top right. The moon fades out when the page scrolls past 24 pt. Clouds drift and stars twinkle only without Reduce Motion. Tokens go in `WidgieColors.xcassets` so day and night stay one edit each.
-- [ ] Bricolage Grotesque (OFL) for titles and big numbers. The site ships a 268-glyph Latin subset as woff2, which iOS cannot load and which lacks accented letters. Bundle static TTF instances cut from the full variable font (google/fonts), at the prototype's settings: 96 pt optical size, 92 percent width, Bold and ExtraBold. A `display(size:)` font helper scales with Dynamic Type like `font(size:weight:)`. Its OFL license goes next to it.
+- [ ] Bricolage Grotesque (OFL) for titles and big numbers. The site ships a 268-glyph Latin subset as woff2, which iOS cannot load and which lacks accented letters, so U3 bundled static faces cut from the full variable font (google/fonts) in the engine, which registers them for the whole process: `Bricolage Grotesque Display` (weight 800, 82 percent width, optical size 36, for titles and big numbers) and `Bricolage Grotesque Key` (weight 700, 92 percent width, optical size 18, for keys and bold labels). The app uses those. A `display(size:)` font helper scales with Dynamic Type like `font(size:weight:)`.
 
 **The Widgets header and Widgie**
 
@@ -131,21 +131,23 @@ Decisions (2026-11-26, from the user):
 
 - [x] `Template` data: one folder per template under `App/Templates/<id>/` with `widget.json` (the same format as the fixtures, samples included) and `template.json` (`name`, `line`, `category`, `order`, `family` for its size in the pile, `hint` for Widgie's first line in the sheet, and `blanks: [{key, label, placeholder}]`). Templates ship in release builds, unlike the debug fixtures. The `suggestion` for the chat chips comes with U2, which uses it.
 - [x] Blanks: substitution runs on the decoded document, never on raw text. In `name` and other plain strings, `{{key}}` becomes the value. In `look`, `{{key}}` becomes a complete JSON string literal, quotes included, which is also a valid JS string literal, so templates write `const PET = {{pet}};`. The result then goes through `engine.build`, the same path every widget takes. An empty blank uses its placeholder ("Luna").
-- [x] The six fixtures moved over as the first templates, named as in the prototype: For two "Thinking of you" (blank: who gets the hearts), Home "Pet fed" (blank: the pet's name) and "To-do list", Habits "Habit squares" (blank: the habit) and "Water", Goals "Word of the day". `Engine/Fixtures/` stays as it is, because engine tests read it.
+- [x] The six fixtures moved over as the first templates, named as in the prototype: For two "Thinking of you" (blank: who gets the hearts), Home "Pet fed" (blank: the pet's name) and "Shared groceries", Habits "Habit squares" (blanks: the three habits) and "Water", Goals "Word of the day". `Engine/Fixtures/` stays as it is, because engine tests read it.
+- [x] Every template's face matches its prototype tile, by day and by night: hearts is `two-hearts`, pet fed is `home-luna` (the puppy), shared groceries is `home-groc`, habit squares is `habits-grid`, water is `habits-water` (the bottle), and word of the day is `goals-word`. The user asked for this after the first review: the layout matched the prototype, but the faces were still the old fixtures' designs. Each look is drawn in the prototype's units (a widget is 170 of them tall), so it keeps the tile's proportions at any size. Where a tile shows behaviour the fixture lacked, the template gained it: three habits instead of one, a Spanish word with Know it and Again and a learned count, and groceries that stay in the order they were added. To-do became Shared groceries.
+- [x] The engine bundles Bricolage Grotesque, two static faces cut from the OFL variable font (`Engine/Sources/WidgetEngine/Fonts/`), and registers them for the whole process, so looks name them with `fontName` and the app can use them too.
 - [x] `TemplatesView`, as drawn in the prototype: the eyebrow and title, the category chips (For two, Home, Habits, Goals: no All and no Learning, as in the prototype, with word of the day in Goals), a banner per category where Widgie acts it out, and the pile: the feed's layout with each card tilted, one button with an inert sample face. Faces render from the first sample in the gallery's own scratch engine, at the column size, lazily, once per template.
 - [x] `TemplateSheet`, the native sheet fitted to its content: the live face (taps work on scratch data and Widgie calls them practice), Widgie's bubble starting with the template's hint, the blank fields (a typed name rebuilds the face), Add widget (builds into the library, then switches to Widgets with the new card highlighted), and Change in chat (opens Make with the filled template as the draft, so the first message is a refine; a draft already in Make asks first).
-- [x] The feed's empty state gains Browse templates. The display face is `display(size:)`, the system font at heavy weight until U1b bundles Bricolage.
+- [x] The feed's empty state gains Browse templates. The display face is `display(size:)`, the system font at heavy weight until U1b switches it to the engine's Bricolage.
 - [x] **Check:** every template builds through `engine.build` in an app test, with and without blank values, including a value with quotes and emoji. On the simulator: browse, filter, try, add with a name, and change in chat. Screenshots in light and dark, and at the largest text size.
 
 ### U4. Template content
 
-Taken from the landing page (`Site/public/widgets.js`), grouped by the prototype's four categories. U3 moved the six fixtures over (thinking of you, pet fed, to-do list, habit squares, water, word of the day); these are the rest.
+The prototype's remaining 13 tiles, taken from the landing page (`Site/public/widgets.js`) and grouped by its four categories. U3 made the first six (thinking of you, pet fed, shared groceries, habit squares, water, word of the day). As in U3, every face matches its prototype tile, by day and by night.
 
-- [ ] For two: our moods, today's question, days together, trip countdown.
-- [ ] Home: bins rota, shared groceries, plant care, chores scoreboard, dinner tonight, baby feeds.
-- [ ] Habits: meditate streak, pushups this week.
-- [ ] Goals: savings jar, alcohol-free days.
-- [ ] Each one is written with the dev bridge, checked with `render-tool proof`, and looked at as small and medium PNGs in full color and tinted mode before it is committed. Shared widgets (groceries, hearts) work on one phone until phase 4 sync. Their line says so only if it would otherwise mislead.
+- [ ] For two: mood (our moods), count (trip countdown), days (days together), quest (today's question).
+- [ ] Home: bins (bins night), plant (plant care), dinner (dinner tonight), baby (baby feeds), chores (chores scoreboard).
+- [ ] Habits: streak (meditate), pushups (pushups this week).
+- [ ] Goals: savings (savings jar), sober (days free).
+- [ ] Each one is checked with `render-tool proof` and rendered next to its reference tile, small and medium, light, dark, and tinted, before it is committed. Shared widgets (groceries, hearts) work on one phone until phase 4 sync. Their line says so only if it would otherwise mislead.
 
 ### U5. Polish and the end-to-end check
 

@@ -61,3 +61,9 @@
 **Rule.** "Like the landing page" means its content and character (the widgets, the caret acting things out, the sky), not every surface treatment. In the app, keep surfaces soft: no outlines, no hard offset shadows or lips. Use soft lifted shadows, glass on floating controls, and springy scale on press.
 
 **Rule.** When porting a look from one medium to another (a marketing page to an app), list which traits make it charming and which are just loud, and ask before carrying the loud ones over.
+
+## 2026-11-27. A prototype spec covers the content, not just the frame
+
+**What happened.** U3 matched the prototype's Templates layout, but its six faces were the old fixtures' designs, and I accepted that as U4's job. The user asked for every template to match the prototype too.
+
+**Rule.** When a prototype is the spec, everything a unit puts on screen matches it, content included. Do not ship a screen whose layout matches while its content is a placeholder from another era, and do not file the gap under a later unit.

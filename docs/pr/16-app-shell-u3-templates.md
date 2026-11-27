@@ -4,7 +4,9 @@ Branch `app-shell-u3-templates` into `main`. This is U3 of [tasks/app-shell.md](
 
 ## Core changes
 
-- **Templates.** The six fixtures are bundled templates under [App/Templates/](../../App/Templates/), each a `widget.json` and a `template.json` with its name, line, category, order, size in the pile, Widgie's hint, and its blanks. [Template.swift](../../App/Widgie/Templates/Template.swift) reads the catalog and fills blanks in the decoded document. A blank in `look` is always a whole quoted literal.
+- **Templates.** Six bundled templates under [App/Templates/](../../App/Templates/), each a `widget.json` and a `template.json` with its name, line, category, order, size in the pile, Widgie's hint, and its blanks. [Template.swift](../../App/Widgie/Templates/Template.swift) reads the catalog and fills blanks in the decoded document. A blank in `look` is always a whole quoted literal.
+- **Faces from the prototype.** Each template's face is redrawn to match its prototype tile by day and by night: hearts, Luna the puppy, shared groceries (was the to-do list), habit squares with three habits, water with its bottle, and a Spanish word of the day with Know it and Again.
+- **Bricolage in the engine.** [Fonts/](../../Engine/Sources/WidgetEngine/Fonts/) holds two static Bricolage Grotesque faces, the script that cuts them and the OFL. [Fonts.swift](../../Engine/Sources/WidgetEngine/Fonts.swift) registers them for the whole process, so looks can name them with `fontName` and the app can use them.
 - **The tab.** [TemplatesView.swift](../../App/Widgie/Templates/TemplatesView.swift) is the third tab in [RootView.swift](../../App/Widgie/RootView.swift): the eyebrow and title, the category chips, the banner ([TemplateBanner.swift](../../App/Widgie/Templates/TemplateBanner.swift)), and the tilted pile. [TemplateGallery.swift](../../App/Widgie/Templates/TemplateGallery.swift) draws each sample face once, lazily, at the column size, in a scratch engine of its own.
 - **The sheet.** [TemplateSheet.swift](../../App/Widgie/Templates/TemplateSheet.swift) shows the face live on scratch data with Widgie and its bubble, a field for each blank, Change in chat, and Add widget. [TemplateTrial.swift](../../App/Widgie/Templates/TemplateTrial.swift) owns the scratch face, the typed values, and what Widgie says.
 - **Seams in shared code.** `FeedRow` is generic over its id, so the pile and the feed share one layout rule. `Preview` takes face sizes and gains `adopt(_:replacing:)`. `Library.add` builds a source into the library. `DescribeSession(draft:)` starts on an unsaved draft.
@@ -31,7 +33,7 @@ Files: [TemplatesView.swift](../../App/Widgie/Templates/TemplatesView.swift), [T
 Key decisions:
 
 - **The prototype's four categories,** For two, Home, Habits and Goals, with no All and no Learning. Word of the day sits in Goals, as in the prototype. The plan says so now.
-- **The fixtures map to the prototype's names:** hearts is For two "Thinking of you", dog fed is Home "Pet fed", to-do is Home "To-do list", habit is Habits "Habit squares", water is Habits "Water", and word of the day is Goals "Word of the day". Blanks only where a name belongs: who gets the hearts, the pet, the habit. `Engine/Fixtures/` is untouched, because engine tests read it.
+- **The fixtures map to the prototype's names:** hearts is For two "Thinking of you", dog fed is Home "Pet fed", to-do is Home "Shared groceries", habit is Habits "Habit squares", water is Habits "Water", and word of the day is Goals "Word of the day". Blanks only where a name belongs: who gets the hearts, the pet, the three habits. `Engine/Fixtures/` is untouched, because engine tests read it.
 - **One layout rule for the feed and the pile.** `FeedRow` is generic over its id instead of a second copy for templates.
 - **Tilt as in the prototype:** smalls alternate at 2.5, 2 and 1.5 degrees, wides at 1, and each face rests at 97 percent so a press straightens and squishes it.
 - **Faces are drawn at the column size,** never scaled up, once per template, when its card first appears.
@@ -117,4 +119,34 @@ Files: [tasks/app-shell.md](../../tasks/app-shell.md).
 Key decisions:
 
 - **U3 is checked off** with what it built. The chat chips' `suggestion` field moves to U2, which uses it.
-- **U4 lists only what is left** from the landing page, in the four categories.
+- **U4 lists only what is left:** the prototype's remaining 13 tiles, in the four categories, each checked against its reference tile.
+- **Every face matches its prototype tile, by day and by night,** recorded under U3, and a lesson in [tasks/lessons.md](../../tasks/lessons.md): a prototype spec covers the content, not just the frame.
+
+## 6. Template faces and the engine font
+
+```mermaid
+flowchart TD
+  TPL["App/Templates/<id>/widget.json: look in prototype units, u = ctx.height / 170"] --> BUILD["engine.build"]
+  BUILD --> VAL["TreeParser: fontName must be in Vocabulary.fonts"]
+  VAL -->|"a bundled family"| REG["BundledFonts.register(): once per process"]
+  ENG["Engine.init: app, widget extension"] --> REG
+  REG --> CT["CTFontManagerRegisterFontsForURL, .process, for each ttf in Bundle.module"]
+  VAL --> DRAW["NodeView: Font.custom(family), no weight for a one-face bundled family"]
+  DRAW --> FACE["the face in the pile, the sheet, and on the home screen"]
+  TOOL["render-tool and Engine.proof: no engine instance"] --> VAL
+```
+
+Files: [Fonts.swift](../../Engine/Sources/WidgetEngine/Fonts.swift), [Fonts/cut-bricolage.py](../../Engine/Sources/WidgetEngine/Fonts/cut-bricolage.py), [Vocabulary.swift](../../Engine/Sources/WidgetEngine/Vocabulary.swift), [NodeView.swift](../../Engine/Sources/WidgetEngine/NodeView.swift), [Engine.swift](../../Engine/Sources/WidgetEngine/Engine.swift), [Package.swift](../../Engine/Package.swift), [look.md](../../Engine/Reference/look.md), [build-prompt.txt](../../Backend/src/build-prompt.txt), [MODULES.md](../engine/MODULES.md), [the six templates](../../App/Templates/), [TemplateTests.swift](../../App/WidgieTests/TemplateTests.swift).
+
+Key decisions:
+
+- **Two static faces, not the variable font.** `Bricolage Grotesque Display` (weight 800, 82 percent width, optical size 36) sets big numbers and words. `Bricolage Grotesque Key` (weight 700, 92 percent width, optical size 18) is for keys and bold labels, and U1b uses it for the app. Each is one face, so the renderer passes no weight for them: SwiftUI logs a failure for every weight a family cannot supply.
+- **Registered in two places, both idempotent.** `Engine.init` registers them so the app and the extension can use them from launch. The validator registers them when a look names one, because `Engine.proof` and render-tool draw without an engine. Both run one `static let`.
+- **One copy in the repo.** The fonts are a WidgetEngine resource. Xcode copies the resource bundle into the app and into the widget extension, about 180 KB each.
+- **The model sees the fonts.** `look.md`'s font table and `Vocabulary.fonts` gain both families, a test keeps them equal, and `Backend/scripts/prompt` regenerated the Worker's prompt. `namedFontShipsHere` registers before it checks.
+- **The module check reads only Swift files,** so the cutting script can sit beside the fonts. WidgetEngine may now import CoreText.
+- **Looks are drawn in the prototype's units.** Every size is a multiple of `u = ctx.height / 170`, the prototype's widget height, so a face keeps the tile's proportions in the pile, the sheet and on any phone. Bricolage's line is 1.2 times its size where the prototype's is 1.0, so the gaps around a big number are 0.1 of its size shorter.
+- **Marks are cut out, not drawn on top.** The heart and check keys are discs with the mark cut out by winding, and the puppy's eyes, nose and mouth are cut out of her head, so all of them still show in tinted and clear mode. A key with words on a solid fill (water's +1 glass, Know it) draws the solid fill in `widgetBackground`, which tinted mode removes, under a faint copy in the tree, so its words stay readable when tinted.
+- **Behaviour kept, and added where the tile shows it.** Hearts drops the photo and the unused last-heart query. Pet fed keeps red once 12 hours pass and the undo, which shows top right for an hour after your own feed. Water keeps its undo for ten minutes after a glass. Habit squares tracks three habits (one `checkins` table with a `habit` number) and the footer names the longest streak. Word of the day is Spanish, as on the tile, with `Know it` and `Again` setting a `verdict` and a learned count.
+- **Shared groceries keeps add and toggle and drops remove.** Items stay where they were added and a crossed item keeps its place until open items need it, so nothing needs deleting. Add is a small plus beside the count, the one mark the tile does not have.
+- **Remaining differences from the tiles:** the habit footer says "Read: 7 days in a row" where the tile says "Reading", because it shows the habit's own name. The groceries strike line is SwiftUI's, a little heavier than the browser's. Water's sample glasses are 10 to 14 minutes old, so the pile shows 5 of 8 except in the first quarter hour after midnight.
