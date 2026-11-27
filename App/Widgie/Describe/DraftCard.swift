@@ -20,7 +20,8 @@ struct DraftCard: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let headroom: CGFloat = 112
+    /// The room above the face for Widgie. The sketch draws on the same, so it turns into this card in place.
+    static let headroom: CGFloat = 112
 
     var body: some View {
         let sole = Caret.sole(saved ? .jump : .lean(.left))
@@ -60,7 +61,6 @@ struct Sketch: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let headroom: CGFloat = 112
     private static let pen: CGFloat = 116
     private static let trace: TimeInterval = 2.2
     private static let lap: TimeInterval = 7
@@ -70,7 +70,7 @@ struct Sketch: View {
             let elapsed = reduceMotion ? .infinity : max(0, timeline.date.timeIntervalSince(started))
             drawing(elapsed: elapsed)
         }
-        .frame(width: size.width, height: size.height + Self.headroom, alignment: .topLeading)
+        .frame(width: size.width, height: size.height + DraftCard.headroom, alignment: .topLeading)
         .accessibilityHidden(true)
     }
 
@@ -106,10 +106,10 @@ struct Sketch: View {
                 }
             }
             .frame(width: size.width, height: size.height, alignment: .topLeading)
-            .offset(y: Self.headroom)
+            .offset(y: DraftCard.headroom)
             Caret(pose: .draw(side), size: Self.pen, grounded: false)
                 .position(
-                    x: tip.x + Self.pen * (0.5 - foot.x), y: Self.headroom + tip.y + Self.pen * (0.5 - foot.y))
+                    x: tip.x + Self.pen * (0.5 - foot.x), y: DraftCard.headroom + tip.y + Self.pen * (0.5 - foot.y))
         }
     }
 
