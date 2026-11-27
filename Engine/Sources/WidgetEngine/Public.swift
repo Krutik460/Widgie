@@ -114,6 +114,11 @@ public struct Face: Sendable {
     public var isFallback: Bool {
         if case .fallback = content { true } else { false }
     }
+
+    /// Whether the face draws a button to tap.
+    public var hasButtons: Bool {
+        if case .drawing(let drawing) = content { !drawing.taps.isEmpty } else { false }
+    }
 }
 
 public struct EngineError: Error, Sendable {

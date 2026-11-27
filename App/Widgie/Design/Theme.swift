@@ -3,7 +3,14 @@ import SwiftUI
 /// The Sky tokens (`docs/design/app-feel/directions.md`, round 4). Each is a colorset in
 /// `WidgieColors.xcassets` with a light and a dark value, so changing a token is one edit there.
 enum Palette {
-    static let ground = Color(.widgieGround)
+    static let skyTop = Color(.widgieSkyTop)
+    static let skyMiddle = Color(.widgieSkyMiddle)
+    static let skyBottom = Color(.widgieSkyBottom)
+    static let moon = Color(.widgieMoon)
+    /// Ink in both modes, for words and Widgie on a surface that stays light at night: a bubble, the sun key.
+    static let ink = Color(red: 0x12 / 255, green: 0x1A / 255, blue: 0x2E / 255)
+    /// Widgie's eyes when it is drawn in ink at night.
+    static let inkEye = Color(red: 0xC4 / 255, green: 0xD8 / 255, blue: 0xF3 / 255)
     static let caret = Color(.widgieCaret)
     static let caretEye = Color(.widgieCaretEye)
     static let cheek = Color(.widgieCaretCheek)
@@ -14,8 +21,11 @@ enum Palette {
     static let buttonLabel = Color(.widgieButtonLabel)
     static let outline = Color(.widgieOutline)
     static let disabled = Color(.widgieFillDisabled)
-    static let gridDot = Color(.widgieGridDot)
     static let widgetShadow = Color(.widgieWidgetShadow)
+    static let widgetShadowNear = Color(.widgieWidgetShadowNear)
+    /// A hairline that lifts a face off the dusk at night. Clear by day.
+    static let faceEdge = Color(.widgieFaceEdge)
+    static let liftShadow = Color(.widgieLiftShadow)
     static let chipLabel = Color(.widgieChipLabel)
     /// A soft control resting on the ground: an unchosen category, a quiet key.
     static let surface = Color(.widgieSurface)
@@ -34,6 +44,13 @@ enum Palette {
     static let bubble = Color(.widgieBubble)
     static let restShadow = Color(.widgieRestShadow)
     static let sun = Color(.widgieSun)
+    /// The tab bar's frosted fill, its hairline, the chosen tab's highlight, and an unchosen tab's ink.
+    static let bar = Color(.widgieBar)
+    static let barEdge = Color(.widgieBarEdge)
+    static let tabPill = Color(.widgieTabPill)
+    static let tabIdle = Color(.widgieTabIdle)
+    static let makeKeyFill = Color(.widgieMakeKeyFill)
+    static let badge = Color(.widgieBadge)
 
     static let failureGround = Color(.widgieFailureGround)
     static let failureCaret = Color(.widgieFailureCaret)
@@ -81,21 +98,30 @@ extension View {
             .shadow(color: Palette.restShadow, radius: 7, y: 4)
     }
 
-    /// The page: the ground color under a home-screen dot grid, edge to edge.
-    func ground(_ color: Color = Palette.ground) -> some View {
-        background {
-            ZStack {
-                color
-                DotGrid()
-            }
-            .ignoresSafeArea()
+    /// The elevation under a widget face: a close shadow and a soft lifted one, no outline. At night a hairline
+    /// joins them, because the faces nearly match the dusk.
+    func faceShadow() -> some View {
+        overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Palette.faceEdge, lineWidth: 0.5)
         }
+        .shadow(color: Palette.widgetShadowNear, radius: 3, y: 2)
+        .shadow(color: Palette.widgetShadow, radius: 13, y: 14)
     }
 
-    /// The elevation under a widget face. In dark mode the faces nearly match the ground, so the shadow is
-    /// what lifts them off it.
-    func faceShadow() -> some View {
-        shadow(color: Palette.widgetShadow, radius: 11, y: 9)
+    /// The lift under a control floating over the page, such as the tab bar.
+    func liftShadow() -> some View {
+        shadow(color: Palette.liftShadow.opacity(0.16), radius: 3, y: 2)
+            .shadow(color: Palette.liftShadow, radius: 14, y: 14)
+    }
+
+    /// A sheet in the prototype's style: 36-point corners over the light gradient by day and the dusk at night,
+    /// with the grabber.
+    func sheetStyle() -> some View {
+        presentationDragIndicator(.visible)
+            .presentationCornerRadius(36)
+            .presentationBackground {
+                LinearGradient(colors: [Palette.sheetTop, Palette.sheetBottom], startPoint: .top, endPoint: .bottom)
+            }
     }
 }
 
@@ -113,6 +139,14 @@ private struct ScaledFont: ViewModifier {
     }
 }
 
+/// Bricolage Grotesque, which the engine bundles and registers for the whole process when the library's engine is
+/// made at launch: Display (800 weight, 82 percent width) for titles and big words, and Key (700 weight, 92 percent
+/// width) for keys.
+enum Typeface {
+    static let display = "Bricolage Grotesque Display"
+    static let key = "Bricolage Grotesque Key"
+}
+
 private struct DisplayFont: ViewModifier {
     @ScaledMetric private var size: CGFloat
 
@@ -121,23 +155,19 @@ private struct DisplayFont: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content.font(.system(size: size, weight: .heavy)).tracking(-0.025 * size)
+        content.font(.custom(Typeface.display, fixedSize: size)).tracking(-0.025 * size)
     }
 }
 
-/// Dots on a 24-point grid, like the home screen's icon grid.
-struct DotGrid: View {
-    var body: some View {
-        Canvas { context, size in
-            let dot = Path(ellipseIn: CGRect(x: -1.4, y: -1.4, width: 2.8, height: 2.8))
-            for x in stride(from: 23.5, to: size.width, by: 24) {
-                for y in stride(from: 11.5, to: size.height, by: 24) {
-                    context.fill(dot.offsetBy(dx: x, dy: y), with: .color(Palette.gridDot))
-                }
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+private struct KeyFont: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+
+    init(size: CGFloat) {
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
+    }
+
+    func body(content: Content) -> some View {
+        content.font(.custom(Typeface.key, fixedSize: size)).tracking(-0.01 * size)
     }
 }
 
@@ -313,8 +343,7 @@ private struct KeyButton: View {
     var body: some View {
         let pressed = configuration.isPressed && isEnabled
         configuration.label
-            .font(size: 17, weight: .bold)
-            .tracking(-0.2)
+            .modifier(KeyFont(size: 17))
             .lineLimit(2)
             .multilineTextAlignment(.center)
             .foregroundStyle(prominent ? Palette.keyLabel : Palette.text)

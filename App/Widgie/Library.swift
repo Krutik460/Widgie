@@ -15,6 +15,8 @@ final class Library {
     }
 
     private(set) var items: [Item] = []
+    /// Whether `items` has been read from the store yet.
+    private(set) var loaded = false
     /// The sizes each widget is placed in on the home screen. A widget missing here is not placed.
     private(set) var placed: [WidgetID: Set<Family>] = [:]
     /// The faces' sizes, set from the width of the screen showing them.
@@ -54,13 +56,18 @@ final class Library {
         refresh()
     }
 
-    /// The size a widget is shown in: the size it is placed in, medium if it is placed in both, and otherwise
-    /// every third widget wide, so the feed keeps a rhythm of one wide and a pair of smalls.
+    /// The size a widget is shown in, by its position in `items`, newest first.
     func family(of item: Item, at index: Int) -> Family {
-        let placed = placed[item.id] ?? []
+        Self.family(placed: placed[item.id] ?? [], age: items.count - 1 - index)
+    }
+
+    /// The size it is placed in, medium if it is placed in both, and otherwise every third widget wide, so the feed
+    /// keeps a rhythm of one wide and a pair of smalls. Counted from the oldest (`age` 0), so a new widget never
+    /// changes the size of the ones before it.
+    static func family(placed: Set<Family>, age: Int) -> Family {
         if placed.contains(.medium) { return .medium }
         if placed.contains(.small) { return .small }
-        return index % 3 == 0 ? .medium : .small
+        return age % 3 == 0 ? .medium : .small
     }
 
     /// A reload that finishes after a later one started is stale and is dropped, so it never brings back a
@@ -83,6 +90,7 @@ final class Library {
             if reload == reloads {
                 self.items = items
                 self.placed = placed
+                loaded = true
             }
         } catch {
             message = error.message
@@ -116,16 +124,19 @@ final class Library {
         return try WidgetSource(directory: url)
     }
 
-    /// Builds a bundled fixture through `engine.build`, the path a model-written widget takes.
-    func install(_ fixture: String) {
-        Task {
-            do throws(Rejected) {
-                guard let source = try Self.fixture(fixture) else { return }
-                if case .failure(let unsaved) = await add(source) { message = unsaved.line }
-            } catch {
-                message = error.line
+    /// Builds a bundled fixture through `engine.build`, the path a model-written widget takes. Returns the new
+    /// widget's id.
+    func install(_ fixture: String) async -> WidgetID? {
+        do throws(Rejected) {
+            guard let source = try Self.fixture(fixture) else { return nil }
+            switch await add(source) {
+            case .success(let id): return id
+            case .failure(let unsaved): message = unsaved.line
             }
+        } catch {
+            message = error.line
         }
+        return nil
     }
 
     /// Builds `source` into the library through `engine.build`, the path every widget takes, and draws the feed

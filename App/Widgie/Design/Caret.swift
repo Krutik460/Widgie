@@ -35,6 +35,8 @@ struct Caret: View {
     var squash: CGFloat = 1
     /// Happy eyes and fuller cheeks in any pose, as the jump has.
     var happy = false
+    /// When it last blinked twice on cue, as Widgie does now and then on the feed.
+    var blinked = Date.distantPast
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -42,6 +44,12 @@ struct Caret: View {
     static func foot(_ pose: Pose) -> UnitPoint {
         let curve = Curve(pose)
         return UnitPoint(x: curve.p[0], y: curve.p[1])
+    }
+
+    /// The bottom of the foot's round cap, which reaches below the square: the point that touches the ground.
+    static func sole(_ pose: Pose) -> UnitPoint {
+        let curve = Curve(pose)
+        return UnitPoint(x: curve.p[0], y: curve.p[1] + curve.width / 2)
     }
 
     var body: some View {
@@ -61,9 +69,11 @@ struct Caret: View {
     private var eyes: Pose.Eyes { happy ? .happy : pose.eyes }
 
     /// How open the eyes are: shut for the last 140 ms of every 3.6 seconds, so a still caret, whose time is
-    /// zero, has them open.
+    /// zero, has them open, and shut twice in the 600 ms after a cue.
     private func blink(at time: TimeInterval) -> CGFloat {
         guard eyes == .open else { return 1 }
+        let since = time - blinked.timeIntervalSinceReferenceDate
+        if (0.07..<0.17).contains(since) || (0.31..<0.41).contains(since) { return 0.15 }
         let phase = time.truncatingRemainder(dividingBy: 3.6)
         return phase > 3.6 - 0.14 ? 0.15 : 1
     }
@@ -284,6 +294,9 @@ extension CGPoint {
 struct HoppingCaret: View {
     var pose: Caret.Pose = .idle
     let size: CGFloat
+    var color = Palette.caret
+    var eye = Palette.caretEye
+    var grounded = true
     var happy = false
     var height: CGFloat = 16
     var turn: Double = 0
@@ -300,8 +313,11 @@ struct HoppingCaret: View {
     var body: some View {
         let give = height / 250
         KeyframeAnimator(initialValue: Motion(), trigger: reduceMotion ? 0 : cue) { motion in
-            Caret(pose: pose, size: size, lift: motion.lift, squash: motion.squash, happy: happy)
-                .rotationEffect(.degrees(motion.turn), anchor: Caret.foot(pose))
+            Caret(
+                pose: pose, size: size, color: color, eye: eye, grounded: grounded, lift: motion.lift,
+                squash: motion.squash, happy: happy
+            )
+            .rotationEffect(.degrees(motion.turn), anchor: Caret.foot(pose))
         } keyframes: { _ in
             KeyframeTrack(\.squash) {
                 CubicKeyframe(1 - give, duration: 0.09)

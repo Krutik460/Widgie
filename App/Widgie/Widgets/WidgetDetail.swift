@@ -15,58 +15,43 @@ struct WidgetDetail: View {
     private var placed: Set<Family> { library.placed[id] ?? [] }
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
+        Group {
             if let item {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(item.summary.name)
-                            .font(size: 30, weight: .heavy, relativeTo: .title)
-                            .tracking(-1)
+                            .display(size: 34, relativeTo: .title)
                             .fixedSize(horizontal: false, vertical: true)
+                            .padding(.trailing, 48)
                             .accessibilityAddTraits(.isHeader)
                         Text(status)
                             .font(size: 15, weight: .medium, relativeTo: .subheadline)
                             .foregroundStyle(Palette.secondary)
-                            .padding(.top, 4)
-                        faces(item).padding(.top, 22)
+                            .padding(.top, 6)
+                        faces(item).padding(.top, 24)
                         if placed.isEmpty {
                             howToAdd.padding(.top, 28)
                         }
                     }
                     .padding(.horizontal, WidgetsFeed.margin)
+                    .padding(.top, 34)
                     .padding(.bottom, 16)
                 }
                 .scrollBounceBehavior(.basedOnSize)
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    Button("Change it") { session = DescribeSession(editing: id) }
-                        .buttonStyle(PrimaryButtonStyle())
-                        .padding(.horizontal, WidgetsFeed.margin)
-                        .padding(.top, 28)
-                        .padding(.bottom, 8)
-                        .background {
-                            // What scrolls under the button fades into the ground instead of being cut off.
-                            LinearGradient(
-                                stops: [
-                                    .init(color: Palette.ground.opacity(0), location: 0),
-                                    .init(color: Palette.ground, location: 0.4),
-                                ],
-                                startPoint: .top, endPoint: .bottom
-                            )
-                            .ignoresSafeArea(edges: .bottom)
-                            .allowsHitTesting(false)
-                        }
-                }
+                .safeAreaInset(edge: .bottom, spacing: 0) { keys }
             } else {
                 // Deleted elsewhere, for example from the context menu behind this sheet.
-                Spacer()
+                Color.clear
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topTrailing) {
+            SoftCloseButton { dismiss() }
+                .padding(.top, 24)
+                .padding(.trailing, 14)
+        }
         .foregroundStyle(Palette.text)
-        .presentationBackground { Palette.ground.overlay(DotGrid()) }
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(34)
+        .sheetStyle()
         .confirmationDialog("Delete this widget?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 library.delete(id)
@@ -104,23 +89,28 @@ struct WidgetDetail: View {
         }
     }
 
-    private var topBar: some View {
-        HStack {
-            CloseButton { dismiss() }
-            Spacer()
-            Button {
-                confirmDelete = true
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel("Delete")
-            .disabled(item == nil)
+    /// Delete beside Change it, over a fade so what scrolls under them never collides with them.
+    private var keys: some View {
+        HStack(spacing: 10) {
+            Button("Delete") { confirmDelete = true }
+                .buttonStyle(KeyButtonStyle(prominent: false))
+            Button("Change it") { session = DescribeSession(editing: id) }
+                .buttonStyle(KeyButtonStyle())
         }
-        .padding(.horizontal, WidgetsFeed.margin - 10)
-        .padding(.top, 14)
+        .padding(.horizontal, WidgetsFeed.margin)
+        .padding(.top, 28)
+        .padding(.bottom, 8)
+        .background {
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.sheetBottom.opacity(0), location: 0),
+                    .init(color: Palette.sheetBottom, location: 0.4),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
+        }
     }
 
     /// The wide face, then the small one with the caret leaning toward it.
@@ -149,7 +139,7 @@ struct WidgetDetail: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.buttonFill.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Palette.fieldFill).restShadow())
     }
 
     private func step(_ symbol: String, _ words: String) -> some View {

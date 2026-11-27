@@ -289,7 +289,7 @@ private struct Medal: View {
     private var drawing: some View {
         Canvas { context, size in
             context.scaleBy(x: size.width / 44, y: size.height / 58)
-            let ink = Color(red: 0x12 / 255, green: 0x1A / 255, blue: 0x2E / 255).opacity(0.55)
+            let ink = Palette.ink.opacity(0.55)
             let gold = Color(red: 0xE8 / 255, green: 0xA4 / 255, blue: 0)
             func ribbon(_ points: [CGPoint], _ color: Color) {
                 var path = Path()

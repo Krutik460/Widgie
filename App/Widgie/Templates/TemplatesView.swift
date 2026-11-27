@@ -7,6 +7,7 @@ import WidgetEngine
 struct TemplatesView: View {
     let gallery: TemplateGallery
     let library: Library
+    @Binding var scrolled: CGFloat
     /// A template was added to the library as this widget.
     let added: (WidgetID) -> Void
     /// Change in chat: the filled template and its name.
@@ -50,8 +51,14 @@ struct TemplatesView: View {
             .padding(.top, 8)
             .padding(.bottom, 28)
         }
+        .scrollEdgeEffectStyle(.soft, for: .all)
+        .scrollIndicators(.hidden)
+        .onScrollGeometryChange(for: CGFloat.self) {
+            $0.contentOffset.y + $0.contentInsets.top
+        } action: { _, offset in
+            scrolled = offset
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ground()
         .foregroundStyle(Palette.text)
         .onGeometryChange(for: CGFloat.self) {
             $0.size.width

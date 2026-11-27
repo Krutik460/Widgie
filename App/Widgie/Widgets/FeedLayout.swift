@@ -13,7 +13,18 @@ enum FeedRow<ID: Hashable>: Equatable, Identifiable {
         }
     }
 
-    static func rows(_ shown: [(id: ID, family: Family)]) -> [FeedRow] {
+    /// A `fresh` small widget at the top takes the first row's right side, under Widgie, with the next small as
+    /// its partner.
+    static func rows(_ shown: [(id: ID, family: Family)], fresh: ID? = nil) -> [FeedRow] {
+        guard let newest = shown.first, newest.id == fresh, newest.family == .small else { return flow(shown) }
+        var rest = Array(shown.dropFirst())
+        guard let partner = rest.firstIndex(where: { $0.family == .small }) else {
+            return [.pair(newest.id, nil)] + flow(rest)
+        }
+        return [.pair(rest.remove(at: partner).id, newest.id)] + flow(rest)
+    }
+
+    private static func flow(_ shown: [(id: ID, family: Family)]) -> [FeedRow] {
         var rows: [FeedRow] = []
         /// A small without a partner yet, the row it would have taken, and how many wides it has waited past.
         var waiting: (id: ID, at: Int, passed: Int)?
