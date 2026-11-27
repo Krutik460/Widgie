@@ -88,9 +88,10 @@ struct Sky: View {
     }
 }
 
-extension EnvironmentValues {
-    /// Tells the app's own sky that a full screen cover hides it, or no longer does.
-    @Entry var coverSky: (Bool) -> Void = { _ in }
+/// How many full screen covers hide the app's own sky, each with a sky of its own.
+@MainActor @Observable
+final class SkyCovers {
+    var count = 0
 }
 
 extension View {
@@ -104,12 +105,12 @@ extension View {
 private struct SkyCover: ViewModifier {
     let covers: Bool
 
-    @Environment(\.coverSky) private var cover
+    @Environment(SkyCovers.self) private var skyCovers: SkyCovers?
 
     func body(content: Content) -> some View {
         content
-            .onAppear { if covers { cover(true) } }
-            .onDisappear { if covers { cover(false) } }
+            .onAppear { if covers { skyCovers?.count += 1 } }
+            .onDisappear { if covers { skyCovers?.count -= 1 } }
     }
 }
 

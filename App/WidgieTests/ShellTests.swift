@@ -42,15 +42,12 @@ import WidgetEngine
         #expect(arrivals == before)
     }
 
-    @Test func aTemplateAddedFromTemplatesBadgesAndLandsOnlyWhenWidgetsOpens() {
+    @Test func aWidgetOnItsWayWearsTheNewTagBeforeItCountsOrLands() {
         var arrivals = Arrivals()
-        arrivals.arrive(a, onWidgets: true)
-        arrivals.arrive(b, onWidgets: false)
-        #expect(arrivals.badge == 1)
-        #expect(arrivals.landing == a, "the earlier landing stays; the template waits")
-        arrivals.openWidgets()
+        arrivals.add(a)
+        #expect(arrivals.fresh == a)
         #expect(arrivals.badge == 0)
-        #expect(arrivals.landing == b)
+        #expect(arrivals.landing == nil)
     }
 
     @Test func theNewTagMovesToTheNextWidgetThatArrives() {
@@ -58,6 +55,133 @@ import WidgetEngine
         arrivals.arrive(a, onWidgets: true)
         arrivals.arrive(b, onWidgets: false)
         #expect(arrivals.fresh == b)
+    }
+}
+
+@MainActor @Suite struct TabsTests {
+    private let a = WidgetID(rawValue: "a")
+    private let b = WidgetID(rawValue: "b")
+
+    @Test func aTemplateAddedOnTemplatesWaitsHiddenThroughItsFlightThenCountsWithAToast() async {
+        let tabs = Tabs()
+        tabs.go(.templates)
+        await tabs.take(a, named: "Water") {
+            #expect(tabs.arrivals.fresh == a, "the card waits hidden with the New tag while it flies")
+            #expect(tabs.caught == 0 && tabs.arrivals.badge == 0 && tabs.toast == nil)
+        }
+        #expect(tabs.caught == 1, "the glyph takes it in as the flight ends")
+        #expect(tabs.arrivals.badge == 1 && tabs.arrivals.landing == nil)
+        #expect(tabs.toast?.words == "Water is in your widgets.")
+        #expect(tabs.page == .templates)
+
+        tabs.go(.widgets)
+        #expect(tabs.arrivals.landing == a && tabs.arrivals.badge == 0 && tabs.toast == nil)
+    }
+
+    @Test func switchingToWidgetsMidFlightLandsTheWidgetWhenTheFlightEndsWithNoCountOrToast() async {
+        let tabs = Tabs()
+        tabs.go(.templates)
+        await tabs.take(a, named: "Water") {
+            tabs.go(.widgets)
+            #expect(tabs.arrivals.fresh == a, "the card stays hidden on Widgets until it lands")
+            #expect(tabs.arrivals.landing == nil && tabs.caught == 0, "nothing lands before the flight ends")
+        }
+        #expect(tabs.caught == 1)
+        #expect(tabs.arrivals.landing == a && tabs.arrivals.badge == 0 && tabs.toast == nil)
+    }
+
+    @Test func everyToastIsANewOneSoAnEarlierToastsTimerNeverDismissesIt() async {
+        let tabs = Tabs()
+        tabs.go(.templates)
+        await tabs.take(a, named: "Water") {}
+        let first = tabs.toast
+        tabs.go(.widgets)
+        tabs.go(.templates)
+        await tabs.take(b, named: "Water") {}
+        #expect(first != nil && tabs.toast != nil && tabs.toast != first)
+    }
+
+    @Test func aSaveLandsOnWidgetsAndCountsElsewhere() {
+        let tabs = Tabs()
+        tabs.arrive(a)
+        #expect(tabs.arrivals.landing == a && tabs.arrivals.badge == 0)
+        tabs.go(.make)
+        tabs.arrive(b)
+        #expect(tabs.arrivals.landing == a && tabs.arrivals.badge == 1 && tabs.caught == 0)
+    }
+
+    @Test func eachPageIsBuiltOnItsFirstVisitAndStays() {
+        let tabs = Tabs()
+        #expect(tabs.visited == [.widgets])
+        tabs.go(.templates)
+        tabs.go(.widgets)
+        #expect(tabs.visited == [.widgets, .templates])
+    }
+}
+
+@MainActor @Suite struct FeedWidgieTests {
+    private let greeting = "Morning! Here’s Water."
+
+    @Test func widgieIsQuietUntilItWakesThenGreets() {
+        let widgie = FeedWidgie()
+        #expect(widgie.words(greeting: greeting) == nil)
+        widgie.wake()
+        #expect(widgie.words(greeting: greeting) == greeting)
+    }
+
+    @Test func widgieHopsOnlyBetweenTwoDifferentPerchesAndNotWithReduceMotion() {
+        let widgie = FeedWidgie()
+        #expect(!widgie.hop(to: nil, reduceMotion: false))
+        #expect(!widgie.hop(to: CGPoint(x: 100, y: 102), reduceMotion: false), "the first perch is where it starts")
+        #expect(!widgie.hop(to: CGPoint(x: 100, y: 102), reduceMotion: false))
+        #expect(!widgie.hop(to: CGPoint(x: 200, y: 124), reduceMotion: true))
+        #expect(widgie.hop(to: CGPoint(x: 100, y: 102), reduceMotion: false))
+        #expect(widgie.act.kind == .move(CGSize(width: 100, height: 22)), "it hops from where it last stood")
+    }
+
+    @Test func widgieIsQuietWhileItHopsAndSpeaksOnceItLands() async {
+        let widgie = FeedWidgie()
+        widgie.wake()
+        widgie.hop(to: CGPoint(x: 100, y: 102), reduceMotion: false)
+        widgie.hop(to: CGPoint(x: 200, y: 102), reduceMotion: false)
+        #expect(widgie.words(greeting: greeting) == nil)
+        #expect(await eventually { widgie.words(greeting: greeting) == greeting })
+    }
+
+    @Test func wakingDuringAHopLeavesTheVoiceToTheHop() async {
+        let widgie = FeedWidgie()
+        widgie.hop(to: CGPoint(x: 100, y: 102), reduceMotion: false)
+        widgie.hop(to: CGPoint(x: 200, y: 102), reduceMotion: false)
+        widgie.wake()
+        #expect(widgie.words(greeting: greeting) == nil)
+        #expect(await eventually { widgie.words(greeting: greeting) == greeting })
+    }
+
+    @Test func aLineTakesTheGreetingsPlaceForAWhile() async {
+        let widgie = FeedWidgie()
+        widgie.wake()
+        widgie.say("Water, updated.", for: 0.05)
+        #expect(widgie.words(greeting: greeting) == "Water, updated.")
+        #expect(await eventually { widgie.words(greeting: greeting) == greeting })
+    }
+
+    @Test func voiceOverHearsNothingFromAHiddenPageTheGreetingPolitelyAndAReplyAtOnce() {
+        let widgie = FeedWidgie()
+        widgie.wake()
+        #expect(widgie.voice(active: false) == .silent)
+        #expect(widgie.voice(active: true) == .low)
+        widgie.say("Water, updated.", for: 10)
+        #expect(widgie.voice(active: true) == .normal)
+        #expect(widgie.voice(active: false) == .silent)
+    }
+
+    /// Polls `condition` every 20 ms for up to two seconds.
+    private func eventually(_ condition: () -> Bool) async -> Bool {
+        for _ in 0..<100 {
+            if condition() { return true }
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        return condition()
     }
 }
 

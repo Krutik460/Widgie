@@ -59,7 +59,7 @@ struct PhoneMark: View {
 
 /// A live face and its caption: the name, the New tag on the newest widget, and a mark when it is on the home
 /// screen. A tap anywhere but on the face's own buttons opens the widget with a little squish of the face.
-/// VoiceOver reaches each of the face's buttons, and the caption is the one element that opens the widget.
+/// VoiceOver reads the caption first, the one element that opens the widget, and then each of the face's buttons.
 struct FeedCard: View {
     let item: Library.Item
     let family: Family
@@ -90,9 +90,9 @@ struct FeedCard: View {
         }
         .frame(width: size.width)
         .contentShape(Rectangle())
-        // A tap gesture, not a button around the face, which would fold the face's own buttons into itself for
-        // VoiceOver. A gesture that tracked the press stopped the feed scrolling, the context menu opening, or the
-        // tap, so the squish plays on the tap, and a hold gets the context menu's own lift.
+        // A tap gesture, not a button around the face, which would fold the face's own buttons into one element for
+        // VoiceOver. Nothing tracks the press, since that blocks the feed's scrolling, the context menu or the tap,
+        // so the squish plays on the tap and a hold gets the context menu's own lift.
         .onTapGesture {
             opens += 1
             open()
@@ -129,6 +129,7 @@ struct FeedCard: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(.default, open)
         .accessibilityAction(named: "Change it", change)
+        .accessibilitySortPriority(1)
     }
 
     private var label: String {

@@ -4,11 +4,11 @@ import SwiftUI
 /// it, and Templates. A white highlight springs to the chosen tab. Widgets counts the widgets saved while you were
 /// elsewhere, and its glyph squishes as each one flies into it.
 struct TabBar: View {
-    let page: RootView.Page
+    let page: Tabs.Page
     let unseen: Int
     /// Counts the widgets that flew into the Widgets glyph.
     let caught: Int
-    let pick: (RootView.Page) -> Void
+    let pick: (Tabs.Page) -> Void
     /// Where the Widgets glyph is, in the window, for a widget to fly to.
     let target: (CGRect) -> Void
 
@@ -51,7 +51,7 @@ struct TabBar: View {
     }
 
     private func tab(
-        _ target: RootView.Page, _ title: String, label: String, @ViewBuilder glyph: (Bool) -> some View
+        _ target: Tabs.Page, _ title: String, label: String, @ViewBuilder glyph: (Bool) -> some View
     ) -> some View {
         let chosen = page == target
         return Button {
@@ -97,7 +97,7 @@ struct TabBar: View {
             Color.clear.frame(maxWidth: .infinity)
             HStack(spacing: 0) {
                 Color.clear.frame(width: 7, height: 1)
-                // Only while there is a count: a badge scaled to nothing still reached VoiceOver as "0".
+                // Removed at zero rather than scaled to nothing, which VoiceOver still reads as "0".
                 if unseen > 0 {
                     count.transition(reduceMotion ? .opacity : .scale(scale: 0.001))
                 }

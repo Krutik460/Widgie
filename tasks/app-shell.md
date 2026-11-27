@@ -134,9 +134,17 @@ Decisions from the review (2026-11-27):
 - A card opens on a tap gesture, not a button around the face, because a button folds the face's own buttons into itself for VoiceOver (Undo became a custom action and unlabeled buttons vanished). A gesture that tracked the press stopped the feed scrolling (a SwiftUI long press), the context menu opening, or the tap (a UIKit recognizer), so the squish plays on the tap and a hold gets the context menu's own lift. The caption is the one VoiceOver element that opens the widget, with Change it as an action.
 - Widgie speaks only from the page that shows: the greeting at low priority, replies to a tap or an arrival at once.
 - At the accessibility text sizes each widget takes its own row newest first (`FeedRow.singles`), so Widgie stands on a new small and names the same widget it stands on.
-- Make leaves its composer out while its page is hidden: content in a scroll view's safe area inset escaped the page's `accessibilityHidden`, its own too, and VoiceOver reached Build it from the other tabs. After a switch the app posts a layout change once the switch has applied.
+- Make leaves its composer out once its page has faded out: content in a scroll view's safe area inset escaped the page's `accessibilityHidden`, its own too, and VoiceOver reached Build it from the other tabs. The composer fades with its page rather than vanishing at the tap. After a switch the app posts a layout change once the switch has applied.
 - The sky stops animating under a full screen cover, which never tells the views beneath that they disappeared, and the feed's Widgie and the Make key's Widgie animate only while they show.
 - Tapping the status bar scrolls the visible page to the top with all three pages alive (checked on the simulator).
+- VoiceOver reads a card's name before its face.
+
+Decisions from the second review of Add widget (2026-11-27):
+
+- A widget added from a template wears the New tag and its card waits hidden from the moment the flight starts, so switching to Widgets mid-flight shows no card until it lands. Only the glyph's catch, the count or the landing, and the toast wait for the flight to end, and the page showing then decides between the count and the landing. `Tabs` owns this order, and its tests drive it with the flight as a closure.
+- One landing runs at a time: a newer one cancels the older.
+- The toast names the widget from what the sheet launched, not from the library, and every toast is a new one, so an older toast's timer never dismisses it.
+- The flight's window exists only while something flies.
 
 ### U2. Make as a chat
 

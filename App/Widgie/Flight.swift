@@ -2,8 +2,10 @@ import SwiftUI
 import UIKit
 import WidgetEngine
 
-/// A new widget leaving a sheet for the Widgets tab: the face it shows, and where it starts in the window.
+/// A new widget leaving a sheet for the Widgets tab: its name, the face it shows, and where it starts in the
+/// window.
 struct Launch {
+    let name: String
     let face: Face?
     let from: CGRect
 }
@@ -11,7 +13,7 @@ struct Launch {
 /// What flies over the app, sheets included: confetti thrown up from a tile, and a tile on one smooth arc into the
 /// Widgets tab, shrinking into its glyph. It is drawn in a window of its own above the app's, because a sheet
 /// covers everything in the app's window while it closes. That window takes no touches, is hidden from VoiceOver,
-/// and shows only while something flies.
+/// and exists only while something flies.
 @MainActor @Observable
 final class Flights {
     struct Burst: Identifiable {
@@ -64,8 +66,11 @@ final class Flights {
         window?.isHidden = false
     }
 
+    /// Lets the window go once nothing flies, which also frees the hosting controller that holds this model.
     private func hideWhenStill() {
-        if bursts.isEmpty && flight == nil { window?.isHidden = true }
+        guard bursts.isEmpty && flight == nil else { return }
+        window?.isHidden = true
+        window = nil
     }
 
     private func makeWindow() -> UIWindow? {
