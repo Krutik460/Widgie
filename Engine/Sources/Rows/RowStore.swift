@@ -516,24 +516,81 @@ package final class RowStore: Sendable {
     ///   later.
     /// - `refused`: a text cell longer than a stored text may be, or a number that is not finite, so a peer or
     ///   an automation cannot pass the limits a tap obeys. Dropped for good.
+    ///
+    /// `onCommit` runs only when the batch changed something, so a replay reloads nothing.
     @discardableResult
     package func receive(_ batch: [Stamped], now: Date) throws(StoreError) -> Received {
-        let horizon = milliseconds(now.addingTimeInterval(Self.clockSkew))
+        let horizon = Self.horizon(now)
         var accepted: [Stamped] = []
         var received = Received()
         for item in batch {
-            if item.stamp.milliseconds > horizon {
-                received.held.append(item)
-            } else if case .setCell(_, _, _, let cell) = item.change, !cell.withinLimits {
-                received.refused.append(item)
-            } else {
-                accepted.append(item)
+            switch Self.disposition(of: item, horizon: horizon) {
+            case .held: received.held.append(item)
+            case .refused: received.refused.append(item)
+            case .accepted: accepted.append(item)
             }
         }
         guard !accepted.isEmpty else { return received }
-        try guarded { try database.write { db in try merge(accepted, in: db) } }
-        onCommit?()
+        if try guarded({ try database.write { db in try merge(accepted, in: db) } }) { onCommit?() }
         return received
+    }
+
+    /// A page of the account's changes from the server (docs/engine/WIRE.md), in one transaction: the changes in
+    /// id order up to the first held one, the page's replica into `mine`, and the watermark moved to the id of
+    /// the last change passed, never backwards. A held change stops the page, so it and everything after it
+    /// come back in `held` and the next pull asks for them again. Refused changes count as passed.
+    ///
+    /// `onCommit` runs only when the page changed a row, a cell, or `mine`, so a replay reloads nothing.
+    @discardableResult
+    package func receive(_ page: Page, now: Date) throws(StoreError) -> Received {
+        let horizon = Self.horizon(now)
+        var accepted: [Stamped] = []
+        var received = Received()
+        var passed: Int64?
+        for (index, entry) in page.changes.enumerated() {
+            switch Self.disposition(of: entry.change, horizon: horizon) {
+            case .held:
+                received.held = page.changes[index...].map(\.change)
+            case .refused:
+                received.refused.append(entry.change)
+            case .accepted:
+                accepted.append(entry.change)
+            }
+            guard received.held.isEmpty else { break }
+            passed = entry.id
+        }
+        let changed = try guarded {
+            try database.write { db in
+                let before = db.totalChangesCount
+                try db.execute(sql: "INSERT OR IGNORE INTO mine(replica) VALUES (?)", arguments: [page.replica])
+                let joined = db.totalChangesCount != before
+                let merged = try merge(accepted, in: db)
+                if let passed {
+                    try db.execute(sql: "UPDATE replica SET watermark = max(watermark, ?)", arguments: [passed])
+                }
+                return joined || merged
+            }
+        }
+        if changed { onCommit?() }
+        return received
+    }
+
+    /// The server id of the last change a page passed, or 0 before the first. The next pull asks for the
+    /// changes after it.
+    package func watermark() throws(StoreError) -> Int64 {
+        try read { db in try Int64.fetchOne(db, sql: "SELECT watermark FROM replica") ?? 0 }
+    }
+
+    private enum Disposition {
+        case accepted, held, refused
+    }
+
+    private static func horizon(_ now: Date) -> Int64 { milliseconds(now.addingTimeInterval(clockSkew)) }
+
+    private static func disposition(of item: Stamped, horizon: Int64) -> Disposition {
+        if item.stamp.milliseconds > horizon { return .held }
+        if case .setCell(_, _, _, let cell) = item.change, !cell.withinLimits { return .refused }
+        return .accepted
     }
 
     // MARK: The write funnel

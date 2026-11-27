@@ -44,6 +44,10 @@ extension Spec {
             self.raw = raw
         }
 
+        /// Whether `raw` follows the pattern, for an id that arrives outside a document, such as the field a
+        /// synced cell names. Only parsing makes a `Name`.
+        package static func accepts(_ raw: String) -> Bool { Self(raw) != nil }
+
         package var description: String { raw }
 
         package static func < (a: Self, b: Self) -> Bool { a.raw < b.raw }

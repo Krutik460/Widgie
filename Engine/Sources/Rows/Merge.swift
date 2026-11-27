@@ -91,6 +91,19 @@ private let migrations: [@Sendable (Database) throws -> Void] = [
                 ) WITHOUT ROWID
                 """)
     },
+    // Who counts as the person, and how far the pull has read. Local and never synced. `mine` holds this
+    // install's replica and every replica a pull names (the account's automation replica), and `by me`,
+    // `by others`, and `RowAuthor.me` read it. `watermark` is the server id of the last change a pull passed.
+    { db in
+        try db.execute(
+            sql: """
+                CREATE TABLE mine (
+                  replica TEXT PRIMARY KEY            -- a replica whose rows are the person's own
+                ) WITHOUT ROWID;
+                INSERT INTO mine(replica) SELECT id FROM replica;
+                ALTER TABLE replica ADD COLUMN watermark INTEGER NOT NULL DEFAULT 0;
+                """)
+    },
 ]
 
 /// Brings the file to the current schema. Either process may get here first: the version check and every
@@ -132,7 +145,7 @@ package struct Stamp: Hashable, Comparable, Sendable {
         Stamp(raw: max(last + 1, min(max(milliseconds, 0), Int64.max >> 16) << 16))
     }
 
-    var milliseconds: Int64 { raw >> 16 }
+    package var milliseconds: Int64 { raw >> 16 }
 }
 
 extension Spec.FieldKind {
@@ -297,8 +310,11 @@ private enum SQL {
 }
 
 /// The one write rule. Runs inside the caller's write transaction. Also applies the clock's receive rule,
-/// so a later local write outranks every stamp this store has seen.
-func merge(_ batch: [Stamped], in db: Database) throws {
+/// so a later local write outranks every stamp this store has seen. Returns whether the batch changed any
+/// stored state, which a replay never does: every statement below writes only when its change wins.
+@discardableResult
+func merge(_ batch: [Stamped], in db: Database) throws -> Bool {
+    let before = db.totalChangesCount
     func run(_ sql: String, _ arguments: StatementArguments) throws {
         try db.cachedStatement(sql: sql).execute(arguments: arguments)
     }
@@ -324,9 +340,12 @@ func merge(_ batch: [Stamped], in db: Database) throws {
             try run(SQL.bind, [widget.raw, table, dataset.raw, stamp, replica])
         }
     }
+    // Counted before the clock moves, since the clock's update always counts as a change.
+    let changed = db.totalChangesCount != before
     if let latest = batch.map(\.stamp).max() {
         try run("UPDATE replica SET clock = max(clock, ?)", [latest.raw])
     }
+    return changed
 }
 
 /// This store's replica id and the last stamp it issued or merged.
