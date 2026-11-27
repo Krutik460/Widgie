@@ -261,7 +261,7 @@ Asked for on 2026-11-27: once the five units merged, clean up the code and merge
 
 - [x] `scripts/check` green with no warnings after each pass.
 - [x] Simulator screenshots of the Templates tab against the prototype, all four categories, light and dark, for the look items; the Widgets and Make tabs compared before and after passes A and B, unchanged.
-- [ ] A review guide in `docs/pr/`, a fresh Opus review, fixes, then merge.
+- [x] A review guide in `docs/pr/` (`21-app-shell-cleanup.md`), a fresh Opus review (no blockers; one should-fix and six nits, all fixed), then merge.
 
 Left out on purpose: the badge's spacer stacks (an alignment guide could move it), moving `cut-bricolage.py` out of `Sources/` (PR 16 kept it beside the fonts on purpose), folding `Template.Info`, and renaming blank keys (internal, and the labels already match).
 
