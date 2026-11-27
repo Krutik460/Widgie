@@ -174,11 +174,12 @@ Decisions from the second review of Add widget (2026-11-27):
 
 The prototype's remaining 13 tiles, taken from the landing page (`Site/public/widgets.js`) and grouped by its four categories. U3 made the first six (thinking of you, pet fed, shared groceries, habit squares, water, word of the day). As in U3, every face matches its prototype tile, by day and by night.
 
-- [ ] For two: mood (our moods), count (trip countdown), days (days together), quest (today's question).
-- [ ] Home: bins (bins night), plant (plant care), dinner (dinner tonight), baby (baby feeds), chores (chores scoreboard).
-- [ ] Habits: streak (meditate), pushups (pushups this week).
-- [ ] Goals: savings (savings jar), sober (days free).
-- [ ] Each one is checked with `render-tool proof` and rendered next to its reference tile, small and medium, light, dark, and tinted, before it is committed. Shared widgets (groceries, hearts) work on one phone until phase 4 sync. Their line says so only if it would otherwise mislead.
+- [x] For two: Our moods (a face each, yours steps to the next face on a tap), Trip countdown (the boarding pass is one tap that sets the date and where you fly from), Days together (one tap sets your first date), Today's question (a question a day from a list in the look until the day's automation has written one, and "I answered" for each of you).
+- [x] Home: Bins night (each pass hands the turn to the other), Plant care (red after a week), Dinner tonight (say you'll cook, or swap back), Baby feeds (L, R or the bottle, red after three hours, a dot per feed in the last day, undo for ten minutes), Chores scoreboard (this week's count each, the leader crowned).
+- [x] Habits: Streak (Meditate: the check marks today or takes it back), Pushups (+10 toward 300 this week).
+- [x] Goals: Savings jar (+$50 toward $2,000, with what a week takes to make it by June, undo for ten minutes), Days free (alcohol-free days since a date you set, and the next medal).
+- [x] Each one is checked with `render-tool proof` and rendered next to its reference tile, small and medium, light, dark, and tinted, and at the app's 170 and 354 by 170 sizes, before it is committed. Shared widgets work on one phone until phase 4 sync, so no line promises the other person's side.
+- [x] A sample can give a date as days from the day it is drawn (`{"daysFromToday": 12}`), so the countdown and the anniversaries show the tile's count on any day. `render-tool --size` draws a render at the app's sizes.
 
 ### U5. Polish and the end-to-end check
 

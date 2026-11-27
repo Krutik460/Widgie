@@ -2,7 +2,7 @@
   "name": "Word of the day",
   "line": "Daily words are coming soon",
   "category": "goals",
-  "order": 10,
+  "order": 30,
   "family": "medium",
   "hint": "Daily words are on their way. For now, try Know it and Again.",
   "blanks": []
