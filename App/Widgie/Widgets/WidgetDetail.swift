@@ -33,7 +33,7 @@ struct WidgetDetail: View {
                             howToAdd.padding(.top, 28)
                         }
                     }
-                    .padding(.horizontal, Page.margin)
+                    .padding(.horizontal, Margin.page)
                     .padding(.top, 34)
                     .padding(.bottom, 16)
                 }
@@ -82,7 +82,7 @@ struct WidgetDetail: View {
             Button("Change it") { changing = Chat(.library(id), close: { changing = nil }) }
                 .buttonStyle(KeyButtonStyle())
         }
-        .padding(.horizontal, Page.margin)
+        .padding(.horizontal, Margin.page)
         .padding(.top, 28)
         .padding(.bottom, 8)
         .background {

@@ -234,11 +234,11 @@ Asked for on 2026-11-27: once the five units merged, clean up the code and merge
 **Shared design layer (pass A)**
 
 - [x] One `FaceTile` in `Design/` for the face or its grey placeholder, framed and shadowed, replacing the four copies (feed card, flyer, pile, sheet). One face corner constant.
-- [x] One page margin (20) in `Design/Layout.swift`, replacing three declarations and two literals.
-- [x] `Squish`, `MiniButtonStyle` and `MiniLabelStyle` move to `Theme.swift`, with `SquishBody` built on `Squish`. One `bubbleShadow()` and one polite `announces` modifier shared by Widgie's chat line and the sheet's bubble. One `failureAlert`, one delete confirmation, one `rise(after:)`, one named arrival curve.
+- [x] One page margin (20, `Margin.page`) in `Design/Layout.swift`, replacing three declarations and two literals.
+- [x] `Squish`, `MiniButtonStyle` and `MiniLabelStyle` move to `Theme.swift`, with `SquishStyle` built on `Squish`. One `quietShadow()` (the prototype's `--quiet`) and one polite `announces` modifier with its `Voice`, shared by Widgie's chat line and the sheet's bubble. One `failureAlert`, one delete confirmation (`confirmsDelete`), one `rise(_:after:)` on the feed's spring (the pile's bounce goes from 0.25 to 0.2), one named arrival curve.
 - [x] `Toast` and the banner colors go through `Palette` and colorsets like every other surface.
 - [x] Shell and feed: dead parameters (`coversSky`, `CursorBar.blinking`, `Speech` calendar, `FeedCard.fresh`), the shadowed `target` in `TabBar`, the twice-written 140 point threshold, one `onChange` for Widgie's hop, the plural count line, `Library`/`Preview` sharing the face loop (`Engine.faces(of:sizes:at:)`; `showForm` stays in each, since sharing its one call would add more than it removes), bookkeeping counters out of observation, debug fixtures compiled only in DEBUG, a stale `Caret` comment.
-- [x] Tests: `until` instead of `eventually`, `PreviewTests` on the suite's own store, shared `template(_:)` and saved-build helpers, and Widgets tests together in `FeedTests.swift`.
+- [x] Tests: `until` instead of `eventually`, `PreviewTests` on the suite's own store, shared `Template.bundled(_:)` and saved-build helpers, and Widgets tests together in `FeedTests.swift`.
 
 **Make (pass B)**
 
@@ -253,7 +253,7 @@ Asked for on 2026-11-27: once the five units merged, clean up the code and merge
 - [x] Look comments in the 19 templates stop naming "the prototype", since a look is sent to the model on Change in chat.
 - [x] Pet fed's hint says it stays on this phone for now, as plant care does.
 - [x] The banner's Widgies take the prototype's sizes (94 for the couple, 112 at home, 104 for habits and goals) and stand on the sole of their foot, as the feed's Widgie does, so they stand above the banner's edge with their floor shadows showing, where before they were drawn about 1.2 times larger and sank into the edge. (look, toward the prototype)
-- [x] Our moods keeps the prototype's line, "Share how you're feeling". Its old line, "A face each, on one phone for now", was cut off in the pile, and its hint already says it stays on this phone, as every other shared template's does.
+- [x] Our moods keeps the prototype's line, "Share how you're feeling". Its old line, "A face each, on one phone for now", was cut off in the pile, and its hint already says it stays on this phone, as every other shared template's does. Shared groceries' hint now says so too; its line keeps "Cross it off, on one phone for now", since the prototype's "Cross it off for both" promises sync that comes in phase 4, and it fits in the pile.
 - [x] The pile uses `FeedRow.singles`; `SampleRow.datesFromToday` is set in its initializer; fonts register where they are drawn, not in the parser; a long doc comment rewrapped.
 - [x] Tests: no repeated "me" builds, one face instead of a timeline in the label test, a cached catalog lookup, shared rows-file (`withRows`) and undo-list fixtures, `TemplateBench` renamed `TemplateRig`.
 

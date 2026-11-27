@@ -4,7 +4,7 @@
   "category": "home",
   "order": 30,
   "family": "medium",
-  "hint": "Tap an item to cross it off.",
+  "hint": "Tap an item to cross it off. For now it stays on this phone.",
   "suggestion": {
     "title": "Our grocery list",
     "subtitle": "Cross things off as you shop",

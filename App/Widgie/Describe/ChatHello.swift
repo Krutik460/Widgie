@@ -34,7 +34,8 @@ struct Hello: View {
             }
             .padding(.top, 6)
             Spacer(minLength: 8).frame(maxHeight: 40)
-            // At the accessibility text sizes the bubble takes the row, so its words have room, and Widgie stands under it.
+            // At the accessibility text sizes the bubble takes the row, so its words have room, and Widgie stands
+            // under it.
             if typeSize.isAccessibilitySize {
                 VStack(alignment: .trailing, spacing: 0) {
                     Bubble(words: Self.greeting, tail: .down, voice: pageHidden ? .silent : .low)

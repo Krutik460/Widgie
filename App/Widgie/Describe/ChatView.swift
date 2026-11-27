@@ -110,7 +110,7 @@ private struct Conversation: View {
                     thread
                 }
             }
-            .padding(.horizontal, Page.margin)
+            .padding(.horizontal, Margin.page)
             .padding(.bottom, 12)
             .coordinateSpace(.named(Self.thread))
         }
@@ -150,7 +150,7 @@ private struct Conversation: View {
             $0.size.width
         } action: { width in
             // The faces are drawn at the column's size, which a draft keeps once it is on show.
-            if session.draft == nil { session.preview.sizes = FaceSizes(column: width - 2 * Page.margin) }
+            if session.draft == nil { session.preview.sizes = FaceSizes(column: width - 2 * Margin.page) }
         }
         .onChange(of: scrolled || !session.blank, initial: true) { _, past in pastMoon = past }
         .onChange(of: session.latest?.result) { _, now in react(to: now) }
@@ -194,7 +194,7 @@ private struct Conversation: View {
                 .accessibilityLabel("New widget")
             }
         }
-        .padding(.horizontal, Page.margin)
+        .padding(.horizontal, Margin.page)
         // The prototype's bar row starts 60 points down the screen, 2 above the safe area.
         .padding(.top, -2)
         .padding(.bottom, 10)
@@ -374,11 +374,11 @@ private struct Conversation: View {
                             .buttonStyle(ChangeChipStyle())
                         }
                     }
-                    .padding(.horizontal, Page.margin)
+                    .padding(.horizontal, Margin.page)
                     .padding(.vertical, 4)
                 }
                 .scrollIndicators(.hidden)
-                .padding(.horizontal, -Page.margin)
+                .padding(.horizontal, -Margin.page)
                 .disabled(!session.ready)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Suggested changes")
@@ -394,7 +394,7 @@ private struct Conversation: View {
         } action: { [track] top in
             track.bottom = top
         }
-        .padding(.horizontal, Page.margin)
+        .padding(.horizontal, Margin.page)
         .padding(.top, 8)
         .padding(.bottom, 8)
         .animation(.easeOut(duration: 0.2), value: chips)

@@ -87,6 +87,12 @@ enum Palette {
     static let failureButtonLabel = Color(.widgieFailureButtonLabel)
 }
 
+/// How VoiceOver reads a new line: not at all, as on a page that is not showing, after what it is saying, as for a
+/// greeting, or as a reply to what the person just did.
+enum Voice {
+    case silent, low, normal
+}
+
 extension View {
     /// SF Pro at the mock's point size, scaled with Dynamic Type like `style`.
     func font(size: CGFloat, weight: Font.Weight, relativeTo style: Font.TextStyle = .body) -> some View {
@@ -132,7 +138,7 @@ extension View {
     }
 
     /// Reads `words` out to VoiceOver each time they change, as `voice` says, after what it is saying for `.low`.
-    func announces(_ words: String?, voice: Bubble.Voice) -> some View {
+    func announces(_ words: String?, voice: Voice) -> some View {
         onChange(of: words, initial: true) { _, words in
             guard let words, voice != .silent else { return }
             var line = AttributedString(words)

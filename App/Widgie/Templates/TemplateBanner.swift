@@ -189,8 +189,8 @@ private struct Cast: View {
     }
 }
 
-/// Widgie leaning toward `side`, the sole of its foot on the cast's floor at `foot`. As the banner comes on it hops, and
-/// turns by `turn` degrees toward its prop. Still with Reduce Motion.
+/// Widgie leaning toward `side`, the sole of its foot on the cast's floor at `foot`. As the banner comes on it hops,
+/// and turns by `turn` degrees toward its prop. Still with Reduce Motion.
 private struct Actor: View {
     let side: Caret.Side
     let size: CGFloat

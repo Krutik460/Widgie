@@ -134,7 +134,7 @@ final class FeedWidgie {
 
     /// How VoiceOver reads the bubble: nothing from a page that is not showing, the greeting after whatever it is
     /// saying, and a reply at once.
-    func voice(active: Bool) -> Bubble.Voice {
+    func voice(active: Bool) -> Voice {
         !active ? .silent : said == nil ? .low : .normal
     }
 }

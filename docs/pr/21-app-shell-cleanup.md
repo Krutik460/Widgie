@@ -4,7 +4,7 @@ Branch `app-shell-cleanup` into `main`. This is U6 of [tasks/app-shell.md](../..
 
 ## Core changes
 
-- **One shared design layer.** [Layout.swift](../../App/Widgie/Design/Layout.swift) gains `Page.margin` (20), `FaceTile` (a face or its grey placeholder, framed and shadowed, with `FaceTile.corner`) and `Balanced`. [Theme.swift](../../App/Widgie/Design/Theme.swift) gains `quietShadow`, `announces`, `failureAlert`, `rise(_:after:)`, `Animation.arrival(duration:)`, `Squish`, `MiniButtonStyle`, `MiniLabelStyle` and `IconGrid`. `confirmsDelete` sits in [WidgetDetail.swift](../../App/Widgie/Widgets/WidgetDetail.swift) and `previewForms` in [FormSheet.swift](../../App/Widgie/FormSheet.swift). Each one replaces copies spread across the feed, the detail sheet, the flight, the pile, the template sheet and Make.
+- **One shared design layer.** [Layout.swift](../../App/Widgie/Design/Layout.swift) gains `Margin.page` (20), `FaceTile` (a face or its grey placeholder, framed and shadowed, with `FaceTile.corner`) and `Balanced`. [Theme.swift](../../App/Widgie/Design/Theme.swift) gains `quietShadow`, `announces`, `failureAlert`, `rise(_:after:)`, `Animation.arrival(duration:)`, `Squish`, `MiniButtonStyle`, `MiniLabelStyle` and `IconGrid`. `confirmsDelete` sits in [WidgetDetail.swift](../../App/Widgie/Widgets/WidgetDetail.swift) and `previewForms` in [FormSheet.swift](../../App/Widgie/FormSheet.swift). Each one replaces copies spread across the feed, the detail sheet, the flight, the pile, the template sheet and Make.
 - **Every color goes through `Palette`.** The toast gets five new colorsets in place of its `colorScheme` branches. The banner, square and idea colors move from `Color(.widgie...)` at each use to `Palette` tokens.
 - **Make's 1,333-line `ChatView.swift` is split by responsibility** into [Changes.swift](../../App/Widgie/Describe/Changes.swift), [ChatHello.swift](../../App/Widgie/Describe/ChatHello.swift), [ChatMessages.swift](../../App/Widgie/Describe/ChatMessages.swift), [DraftCard.swift](../../App/Widgie/Describe/DraftCard.swift), [Composer.swift](../../App/Widgie/Describe/Composer.swift) and [Unopened.swift](../../App/Widgie/Describe/Unopened.swift). [ChatView.swift](../../App/Widgie/Describe/ChatView.swift) is now 484 lines. Failure actions read `Failure.retryable`, the first note uses `Speech.landed`, the three messages share one shape and one text style, and a few names are clearer.
 - **The Templates tab moves closer to the prototype (look).** The banner's shadow shows again. The chips draw the prototype's heart, house, leaf and star as shapes. The banner line wraps balanced, as CSS `text-wrap: balance` does. The banner Widgies use the prototype's sizes and stand on the sole of their foot. Our moods keeps the prototype's line.
@@ -16,7 +16,7 @@ Branch `app-shell-cleanup` into `main`. This is U6 of [tasks/app-shell.md](../..
 
 ```mermaid
 flowchart TD
-  ROOT["RootView: tab bar and toast at Page.margin; gallery.fit on width - 2 x Page.margin; page switch on .arrival(0.28)"] --> FEED["WidgetsFeed"]
+  ROOT["RootView: tab bar and toast at Margin.page; gallery.fit on width - 2 x Margin.page; page switch on .arrival(0.28)"] --> FEED["WidgetsFeed"]
   FEED --> ROWS["rows: rise(risen, after: index x 0.05), risen set once on the page's appear"]
   ROWS --> CARD["FeedCard: FaceTile(face, size, host: .app(tap, form)); fresh always passed"]
   FEED --> SETTLE["a new card settles on .arrival(0.26)"]
@@ -24,7 +24,7 @@ flowchart TD
   FEED --> MENU["context menu and the card's Change it: change(id)"]
   FEED --> DEL["confirmsDelete(deleting, in: library)"]
   FEED --> ALERT["failureAlert(library.message, when: shown == nil)"]
-  CARD -->|tap| DETAIL["WidgetDetail: FaceTile x2, Page.margin, confirmsDelete then dismiss, failureAlert"]
+  CARD -->|tap| DETAIL["WidgetDetail: FaceTile x2, Margin.page, confirmsDelete then dismiss, failureAlert"]
   LIB["Library.reload"] --> FACES["Engine.faces(of:sizes:at:): both families and the first change"]
   PREV["Preview.draw"] --> FACES
   FLIGHT["Flyer"] --> TILE["FaceTile(face, size), host .still"]
@@ -38,6 +38,9 @@ Other tidy-ups in this pass: the unused `coversSky(_:)` flag, `CursorBar.blinkin
 Key decisions:
 
 - **`rise(_:after:)` takes a `risen` flag instead of keeping its own state.** The feed owns one `risen` for the page. When a new widget re-pairs rows, it re-creates the card views, and a modifier with its own `@State` would play the rise again. The pile's `PileCard` holds its own `risen`, so each card still rises once when it appears. The pile now uses the feed's spring (bounce 0.2 instead of 0.25).
+- **`announces` and its `Voice` live in Design.** `Voice` (silent, low, normal) used to be `Bubble.Voice` in the template sheet, so the shared layer depended on a Templates type.
+- **The page margin is `Margin.page`,** not `Page.margin`, so it never reads like the tab bar's `Tabs.Page`.
+- **`Balanced` needs text that wraps freely.** With a `lineLimit` or a `minimumScaleFactor` the text never grows taller as it narrows, so the search would shrink it to nothing. Its doc comment says so.
 - **One arrival curve, by name.** The page switch and a card settling into the feed both used `timingCurve(0.22, 0.8, 0.26, 1)`. Each caller still passes its own duration.
 - **`failureAlert` takes a `when` condition.** The feed and the detail sheet both watch `library.message`. The feed's alert yields while a sheet is shown, as its inline condition did before.
 - **`confirmsDelete` presents a `WidgetID?`.** The detail sheet moves from a `Bool` to the same `deleting` binding the feed uses, and the message reads `library.placed[id]`, so both screens say the same thing. `WidgetDetail.deleteMessage` is gone.
@@ -75,7 +78,7 @@ Key decisions:
 
 ```mermaid
 flowchart TD
-  TAB["TemplatesView at Page.margin"] --> CHIPS["CategoryRow: CategoryGlyph(category) at a 15 pt @ScaledMetric"]
+  TAB["TemplatesView at Margin.page"] --> CHIPS["CategoryRow: CategoryGlyph(category) at a 15 pt @ScaledMetric"]
   TAB --> BANNER["TemplateBanner"]
   BANNER --> LINE["Balanced { Text(line).display(27, 1.02) }: the narrowest width that keeps the line count"]
   BANNER --> CLIP["clipShape(28) on the cast and the line, then the background shape with quietShadow outside the clip"]
@@ -98,7 +101,7 @@ Key decisions:
 - **All four chip glyphs are shapes, for consistency (look).** `CategoryGlyph` fills the prototype's heart, house, leaf and star on a 24 unit grid. Not only the glyphs that looked different were converted: all four are, so the row comes from one source at one weight and scale. The leaf's vein winds the other way from the leaf, so the nonzero fill cuts it out with no even-odd rule. `Category.symbol` is gone. The heart that beats over the two Widgies is still an SF Symbol, since it is not a chip.
 - **`Balanced` emulates CSS `text-wrap: balance` (look).** It measures the line count at the offered width, then binary searches (to 0.5 points) for the narrowest width that keeps that count. It reports that width, so placing the text breaks the same lines. Habits now reads "See your / weeks fill up" and Goals "Little wins / add up", as in the prototype. It is a `Layout` around the one `Text`, with no fixed widths for each category.
 - **Banner Widgies stand on `Caret.sole`, like the feed's (look).** `Caret.foot` is the center of the foot's round cap. Anchoring on it sank the cap below the floor and hid the floor shadow under the banner's edge. `Caret.sole` is the bottom of the cap, which is the point the feed's Widgie and Make's draft already stand on. The sizes are the prototype's (94, 112, 104, 104). Before, they were drawn about 1.2 times larger (112, 134, 124, 124).
-- **Our moods' honesty lives in the hint.** Its line goes back to the prototype's "Share how you're feeling". The old "A face each, on one phone for now" was cut off in the pile, and the hint already says "For now it stays on this phone", as every other shared template's hint does. Pet fed's hint gains the same sentence.
+- **Our moods' honesty lives in the hint.** Its line goes back to the prototype's "Share how you're feeling". The old "A face each, on one phone for now" was cut off in the pile, and the hint already says "For now it stays on this phone", as every other shared template's hint does. Pet fed's and Shared groceries' hints gain the same sentence. Groceries keeps its line, "Cross it off, on one phone for now", because the prototype's "Cross it off for both" promises sync, which comes in phase 4.
 - **The look comments stop naming the prototype.** Change in chat sends a look to the model, which has never seen the prototype. Comments now explain sizes in the look's own terms (`u`, 1/170 of the widget's height) and describe drawings directly. Only comments change. No look code changes.
 - **The pile uses `FeedRow.singles`, as the feed does.** At accessibility sizes a small card becomes `.pair(id, nil)` at full width instead of `.wide(id)`. Since a pile card takes the column's width at those sizes anyway, the layout is the same.
 - **The sheet names its 22 point inset** (`TemplateSheet.inset`), and `sizes(width:)` uses it in place of a literal 44.
