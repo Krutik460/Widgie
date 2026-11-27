@@ -37,7 +37,7 @@
         },
         {
           "daysAgo": 0,
-          "by": "{{who}}"
+          "by": "Sam"
         }
       ]
     },
@@ -45,7 +45,7 @@
       "cooks": [
         {
           "daysAgo": 0,
-          "by": "{{who}}"
+          "by": "Sam"
         },
         {
           "daysAgo": 0

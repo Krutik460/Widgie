@@ -37,7 +37,8 @@
     "just watered": {
       "waterings": [
         {
-          "minutesAgo": 3
+          "minutesAgo": 3,
+          "staysToday": true
         },
         {
           "daysAgo": 7,

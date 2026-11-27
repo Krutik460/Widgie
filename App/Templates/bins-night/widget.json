@@ -24,7 +24,7 @@
       "passes": [
         {
           "daysAgo": 14,
-          "by": "{{who}}"
+          "by": "Sam"
         },
         {
           "daysAgo": 7
@@ -35,14 +35,14 @@
       "passes": [
         {
           "daysAgo": 14,
-          "by": "{{who}}"
+          "by": "Sam"
         },
         {
           "daysAgo": 7
         },
         {
           "daysAgo": 0,
-          "by": "{{who}}"
+          "by": "Sam"
         }
       ]
     }

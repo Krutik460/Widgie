@@ -4,7 +4,7 @@
   "category": "for-two",
   "order": 30,
   "family": "medium",
-  "hint": "Tap the ticket to set the date.",
+  "hint": "Tap it to set the date.",
   "blanks": [
     {
       "key": "place",
