@@ -213,8 +213,6 @@ package enum Vocabulary {
             throw Diagnostic(
                 "\"\(name)\" must be one of \(fonts.map(\.name).joined(separator: ", ")), not \(Value.describe(value))")
         }
-        // A static proof draws without an engine, so a look that names a bundled font registers it here.
-        if BundledFonts.families.contains(raw) { BundledFonts.register() }
         return raw
     }
 

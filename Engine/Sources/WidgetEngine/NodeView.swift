@@ -227,13 +227,17 @@ extension TextRun {
     /// break fit.
     fileprivate func text(scale: Double, _ string: String? = nil) -> Text {
         let points = size * scale
-        let font: Font =
-            switch self.font {
-            case .system(let design): .system(size: points, weight: weight.font, design: design.font)
+        let font: Font
+        switch self.font {
+        case .system(let design): font = .system(size: points, weight: weight.font, design: design.font)
+        case .named(let family) where BundledFonts.families.contains(family):
+            // A static proof draws without an engine, so a bundled family registers where it is drawn. Only the
+            // first call in the process does any work.
+            BundledFonts.register()
             // Each bundled family is one face, and SwiftUI logs a failure for every weight it cannot find.
-            case .named(let family) where BundledFonts.families.contains(family): .custom(family, fixedSize: points)
-            case .named(let family): .custom(family, fixedSize: points).weight(weight.font)
-            }
+            font = .custom(family, fixedSize: points)
+        case .named(let family): font = .custom(family, fixedSize: points).weight(weight.font)
+        }
         return Text(string ?? value).font(font).italic(italic).strikethrough(strikethrough)
             .kerning((kerning ?? 0) * scale)
     }
