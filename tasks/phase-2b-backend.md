@@ -184,7 +184,7 @@ One PR per unit (D0's is the device review), each with a fresh subagent review, 
 
 ## Notes for phases 3 and 4
 
-- `AttestedKey` authorizes builds and nothing else. Phase 3's per-account state, push tokens, and the widget extension's timeline pull need an account and a session token of their own, shared through the App Group Keychain.
+- `AttestedKey` authorizes builds and nothing else. Phase 3's per-account state, push tokens, and the widget extension's timeline pull need an account and a session token of their own, shared through the App Group Keychain. Phase 3's P2 (PR 24) adds them: `POST /v1/account` is signed as `/v1/reply` is and checked by the same `verifyAndAdvance`, so a registration advances the key's one counter, and every other phase 3 route takes the account token instead (see "P2 results" in `tasks/phase-3-ai-block.md`).
 - Phase 4 sync sends requests concurrently, which a strictly rising assertion counter would reject. Keep assertions on paid calls and use the session token for sync.
 - APNs needs HTTP/2. Whether a Worker's outbound `fetch` can send a WidgetKit push to APNs is unverified. Spike it before writing the phase 3 plan.
 
