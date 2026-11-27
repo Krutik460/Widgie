@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Spec
 import SwiftUI
@@ -215,6 +216,52 @@ private let everyKind: [(String, String)] = [
         ).get()
         _ = render(drawing, host: host)
         #expect(Set(seen.withLock { $0 }) == ["run undo glass-1", "run drink -", "form add -"])
+    }
+
+    @Test func aButtonsOwnFramePaddingAndLayersTakeTheTap() async throws {
+        let plus = "children: [{ type: 'symbol', name: 'plus', size: 13 }]"
+        let padded = "{ type: 'button', action: 'drink', padding: 8, \(plus) }"
+        let framed =
+            "{ type: 'button', action: 'drink', frame: { width: 30, height: 30 }, background: { type: 'circle', fill: '#FF0000' }, \(plus) }"
+        for tree in [padded, framed] {
+            #expect(try await clicks(tree, rightOfCenter: 12) == 1, "\(tree) takes a click in its padding")
+            #expect(try await clicks(tree, rightOfCenter: 20) == 0, "\(tree) leaves a click past its frame")
+        }
+    }
+
+    /// How many times a click this far right of a small widget's center reaches the button, through a real
+    /// window and the system's hit testing.
+    private func clicks(_ tree: String, rightOfCenter offset: Double) async throws -> Int {
+        let drawing = try await drawing(tree, spec: mistakeSpec)
+        let count = Mutex(0)
+        let host = FaceHost(
+            button: { _, label in
+                AnyView(
+                    Button {
+                        count.withLock { $0 += 1 }
+                    } label: {
+                        label
+                    }.buttonStyle(.plain))
+            },
+            form: { _, label in label }, root: FaceHost.still.root)
+        let window = NSWindow(
+            contentRect: CGRect(origin: .zero, size: size(.small)), styleMask: [.borderless], backing: .buffered,
+            defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: DrawingView(drawing: drawing, host: host))
+        window.orderFront(nil)
+        defer { window.close() }
+        window.contentView?.layoutSubtreeIfNeeded()
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            let event = try #require(
+                NSEvent.mouseEvent(
+                    with: type, location: CGPoint(x: 79 + offset, y: 79), modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
+                    eventNumber: 0, clickCount: 1, pressure: 1))
+            window.sendEvent(event)
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        return count.withLock { $0 }
     }
 
     @Test func theProbeReportsFramesInWidgetSpace() async throws {

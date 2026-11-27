@@ -194,14 +194,9 @@ package enum Vocabulary {
     /// action's id as words ("markFed" reads "Mark fed"), so no button is ever read as blank.
     private static func spokenLabel(_ given: String?, _ children: [Node], _ action: String) -> String {
         if let given = given?.trimmingCharacters(in: .whitespacesAndNewlines), !given.isEmpty { return given }
-        let shown = children.flatMap(\.shownWords).joined(separator: ", ")
-        if !shown.isEmpty { return shown }
-        var words = ""
-        for character in action {
-            if character.isUppercase || (character.isNumber && !(words.last?.isNumber ?? true)) { words.append(" ") }
-            words.append(character)
-        }
-        return words.prefix(1).uppercased() + words.dropFirst().lowercased()
+        let shown = children.flatMap(\.shownWords).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return shown.isEmpty ? readable(action) : shown.joined(separator: ", ")
     }
 
     private static func shapePaint(_ props: Props) throws(Diagnostic) -> ShapePaint {

@@ -104,7 +104,7 @@ struct TemplateBanner: View {
 
     private var line: some View {
         Text(shown.line)
-            .display(size: 27, relativeTo: .title)
+            .display(size: 27, relativeTo: .title, lineHeight: 1.02)
             .foregroundStyle(Color(.widgieBannerText))
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 22)

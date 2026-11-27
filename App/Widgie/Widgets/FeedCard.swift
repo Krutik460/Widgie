@@ -58,8 +58,10 @@ struct PhoneMark: View {
 }
 
 /// A live face and its caption: the name, the New tag on the newest widget, and a mark when it is on the home
-/// screen. A tap anywhere but on the face's own buttons opens the widget with a little squish of the face.
-/// VoiceOver reads the caption first, the one element that opens the widget, and then each of the face's buttons.
+/// screen. A tap on one of the face's own buttons runs it, and a tap anywhere else opens the widget with a little
+/// squish of the face, so where the whole face is one button (a countdown, whose tap sets its date) only the
+/// caption opens it. VoiceOver reads the caption first, the one element that opens the widget, and then each of
+/// the face's buttons.
 struct FeedCard: View {
     let item: Library.Item
     let family: Family

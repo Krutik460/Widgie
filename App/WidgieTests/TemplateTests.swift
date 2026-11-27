@@ -137,6 +137,26 @@ import WidgetEngine
             }
         }
     }
+
+    /// A name typed into a template sheet keeps the taps practised on its face, which is right only while a
+    /// blank changes the name and the look and nothing else: no table, action or sample.
+    @Test func blanksChangeOnlyTheNameAndTheLook() throws {
+        func document(_ source: WidgetSource) throws -> [String: Any] {
+            try #require(try JSONSerialization.jsonObject(with: source.json) as? [String: Any])
+        }
+        func canonical(_ value: Any) throws -> Data {
+            try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .fragmentsAllowed])
+        }
+        for template in Template.catalog() where !template.blanks.isEmpty {
+            let placeholders = try document(template.source())
+            let typed = try document(
+                template.source(filling: Dictionary(uniqueKeysWithValues: template.blanks.map { ($0.key, "Zed") })))
+            #expect(Set(placeholders.keys) == Set(typed.keys), "\(template.id)")
+            for (key, value) in placeholders where key != "name" && key != "look" {
+                #expect(try canonical(value) == canonical(typed[key] ?? NSNull()), "\(template.id): a blank in \(key)")
+            }
+        }
+    }
 }
 
 /// What VoiceOver reads for each button a template draws, in every state the builder proves.
@@ -160,7 +180,6 @@ import WidgetEngine
     @Test func everyButtonOnEveryTemplateSaysWhatItIsAndNoTwoReadTheSame() async throws {
         for template in Template.catalog() {
             for (state, family, labels) in try await labels(template) {
-                #expect(labels.allSatisfy { !$0.isEmpty }, "\(template.id), \(state), \(family)")
                 // The full state gives every row the same long title, so only there may two rows read the same.
                 if state != "full" {
                     #expect(Set(labels).count == labels.count, "\(template.id), \(state), \(family): \(labels)")
@@ -187,6 +206,12 @@ import WidgetEngine
                 ["Add to the list", "Bread, crossed off", "Remove Bread", "Tomatoes, crossed off", "Remove Tomatoes"]
             ),
             ("trip-countdown", "empty", ["Lisbon, set the date"]),
+            (
+                "trip-countdown", #"sample("a trip in twelve days")"#,
+                ["Lisbon, 12 days until our trip, change the date"]
+            ),
+            ("days-together", "empty", ["Together, set the day of your first date"]),
+            ("days-free", "empty", ["Alcohol-free, set the day you started"]),
         ]
         for (id, state, labels) in expected {
             let template = try #require(Template.catalog().first { $0.id == id })

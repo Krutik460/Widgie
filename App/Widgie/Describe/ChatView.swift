@@ -97,8 +97,10 @@ private struct Conversation: View {
         var bottom: CGFloat = 0
         /// The top of Widgie's latest answer.
         var reply: CGFloat = 0
-        /// The draft's top in the thread's own space, which only the messages above it move.
+        /// The draft's top in the thread's own space, which only the messages above it move, and the line Widgie
+        /// opened with when it was measured.
         var draftTop: CGFloat?
+        var opening: String?
         var end: CGFloat = 0
         /// Where a scroll this view started is heading, until it gets there or the person takes over.
         var aim: CGFloat?
@@ -411,11 +413,14 @@ private struct Conversation: View {
         .animation(.easeOut(duration: 0.2), value: session.ready)
     }
 
-    /// Scrolls by as much as the messages above the draft moved it, so the draft stays where it was on screen. Only a
-    /// change holds it: the line Widgie opens an edit with goes in above the card and stays in view.
+    /// Scrolls by as much as the messages above the draft moved it, so the draft stays where it was on screen. The
+    /// line Widgie opens an edit with is not held: it goes in above the card and stays in view.
     private func hold(draftAt top: CGFloat) {
-        defer { track.draftTop = top }
-        guard let was = track.draftTop, abs(top - was) > 0.5, !session.turns.isEmpty else { return }
+        defer {
+            track.draftTop = top
+            track.opening = session.opening
+        }
+        guard let was = track.draftTop, abs(top - was) > 0.5, track.opening == session.opening else { return }
         scroll(to: track.target + top - was)
     }
 

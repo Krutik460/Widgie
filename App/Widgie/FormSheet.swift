@@ -66,6 +66,7 @@ struct FormSheet: View {
                         .font(.headline)
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

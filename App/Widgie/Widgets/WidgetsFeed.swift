@@ -77,7 +77,6 @@ struct WidgetsFeed: View {
             }
             .scrollEdgeEffectStyle(.soft, for: .all)
             .scrollIndicators(.hidden)
-            .refreshable { await library.reload() }
             .onScrollGeometryChange(for: CGFloat.self) {
                 $0.contentOffset.y + $0.contentInsets.top
             } action: { [activity] _, offset in
@@ -150,17 +149,19 @@ struct WidgetsFeed: View {
 
     // MARK: Header
 
-    /// The date, a greeting from the clock, and how many widgets there are and how many are on the home screen.
+    /// The date, a greeting from the clock, and how many widgets there are and how many are on the home screen. The
+    /// prototype places them from the top of the date (the title 24 points down and the count 74), which the gaps
+    /// below give with its 16.25-point date line.
     private func header(_ now: Date) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(now.formatted(.dateTime.weekday(.wide).month(.wide).day()))
                 .font(size: 14, weight: .semibold, relativeTo: .subheadline)
                 .foregroundStyle(Palette.secondary)
             title(Daypart(now).title)
-                .padding(.top, 6)
+                .padding(.top, 7.75)
             if !library.items.isEmpty {
                 CountLine(widgets: library.items.count, placed: library.placedCount)
-                    .padding(.top, 10)
+                    .padding(.top, 10.8)
             }
         }
         .padding(.top, 6)

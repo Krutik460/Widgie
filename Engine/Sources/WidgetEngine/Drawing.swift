@@ -130,7 +130,6 @@ package struct ColorAdjust: Sendable {
     package let contrast: Double?
 }
 
-/// Common props, applied in the fixed order this struct lists them.
 extension Node {
     /// The words this node and everything in it show, in tree order.
     package var shownWords: [String] {
@@ -165,6 +164,7 @@ extension Node {
     }
 }
 
+/// Common props, applied in the fixed order this struct lists them.
 package struct Style: Sendable {
     package var aspectRatio: Double?
     package var padding: Insets?

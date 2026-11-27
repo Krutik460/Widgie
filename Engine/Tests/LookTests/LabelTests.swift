@@ -37,6 +37,19 @@ import WidgetEngine
         #expect(try await labels(tree) == ["Oat, Milk, 2"])
     }
 
+    @Test func blankWordsShownAreLeftOut() async throws {
+        let tree = """
+            { type: 'button', action: 'toggle', rowId: 'item-1', children: [
+              { type: 'text', value: '' }, { type: 'text', value: ' Milk ' }, { type: 'text', value: '  ' }] }
+            """
+        #expect(try await labels(tree) == ["Milk"])
+        #expect(
+            try await labels(
+                "{ type: 'button', action: 'drink', children: [{ type: 'text', value: ' ' }, { type: 'text', value: '' }] }"
+            )
+                == ["Drink"])
+    }
+
     @Test func aButtonThatShowsNoWordsReadsItsAction() async throws {
         #expect(
             try await labels("{ type: 'button', action: 'drink', children: [{ type: 'symbol', name: 'plus' }] }") == [
