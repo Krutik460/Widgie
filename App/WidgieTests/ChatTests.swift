@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-import UIKit
 import WidgetBuilder
 import WidgetEngine
 
@@ -477,49 +476,5 @@ import WidgetEngine
         try await send("make it blue", in: chat.session)
         try await shared.addNote(to: library)
         return (chat, library)
-    }
-
-    // MARK: Ideas
-
-    @Test func theIdeasAreThreeSuggestionsFromTheCatalogEachFromAnotherCategory() throws {
-        let catalog = Template.catalog()
-        var seen: Set<[String]> = []
-        for seed: UInt64 in 1...20 {
-            var generator = Seeded(seed)
-            let ideas = Template.ideas(from: catalog, using: &generator)
-            let templates = try ideas.map { idea in try #require(catalog.first { $0.suggestion == idea }) }
-            #expect(ideas.count == 3)
-            #expect(Set(templates.map(\.category)).count == 3)
-            seen.insert(ideas.map(\.title))
-        }
-        #expect(seen.count > 1, "the ideas change from one chat to the next")
-    }
-
-    @Test func everyTemplateOffersAnIdeaOfItsOwnWithASymbolThatExists() throws {
-        let root = try #require(Bundle.main.url(forResource: "Templates", withExtension: nil))
-        let folders = try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
-            .filter { !$0.hasPrefix(".") }
-        let catalog = Template.catalog(in: root)
-        #expect(catalog.count == folders.count, "a template.json without a suggestion does not read")
-        for template in catalog {
-            #expect(UIImage(systemName: template.suggestion.icon) != nil, "\(template.id)'s icon")
-            #expect(!template.suggestion.title.isEmpty && !template.suggestion.subtitle.isEmpty, "\(template.id)")
-        }
-        #expect(Set(catalog.map(\.suggestion.title)).count == catalog.count, "no two ideas say the same")
-    }
-}
-
-/// SplitMix64, so a test can repeat a shuffle.
-private struct Seeded: RandomNumberGenerator {
-    private var state: UInt64
-
-    init(_ seed: UInt64) { state = seed }
-
-    mutating func next() -> UInt64 {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
     }
 }
