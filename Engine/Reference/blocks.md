@@ -42,7 +42,7 @@ A table is a list of rows. Each field has one kind.
 
 Every row also belongs to a day: the day it was written on, or the day an `insertOn` button gave. That day decides which windows the row falls in, so a table with no fields still counts things: one row per glass of water, one row per check-in.
 
-These field ids are reserved: `at`, `by`, `day`, `daysAgo`, `id`, `minutesAgo`, `newest`, `now`, `oldest`, `repeat`. The app records who wrote each row and when, so never add a field for the time or the person.
+These field ids are reserved: `at`, `by`, `day`, `daysAgo`, `id`, `minutesAgo`, `newest`, `now`, `oldest`, `repeat`, `staysToday`. The app records who wrote each row and when, so never add a field for the time or the person.
 
 ```json
 {
@@ -247,9 +247,10 @@ A sample is example data. The app draws the look with no rows, with each sample,
 
 A sample maps table ids to lists of rows. In a row, `daysAgo` says which day it was written on (0 is today, 1 is yesterday) and `repeat` makes that many identical rows, from 1 to 100. Both may be left out, and then they are 0 and 1. A day with no rows needs no entry. Every other key is a field value. Leave out `id`, `day`, and `at`, because the app makes them.
 
-Two more keys show time and people:
+Three more keys show time and people:
 
 - `minutesAgo` places the row that many minutes before the drawing, up to 10080 (a week), instead of `daysAgo`. Give one or the other. Use it when the look shows `at` or `minutesAgo`.
+- `"staysToday": true`, beside `minutesAgo`, keeps the row on today: that many minutes before the drawing, or as today began if that is later. Without it, a drawing just after midnight puts a row from 30 minutes ago on yesterday. Use it for a row the look counts for today or shows as done today, such as "watered 3 minutes ago".
 - `by` is who wrote the row: another member's name, like `"Sam"`, up to 30 characters, or `"me"`, which is the same as leaving it out. Use it when the look shows `by` or a query reads `where by`, so the samples show the widget shared.
 
 A `date` field's value in a sample is a date like `"2026-11-18"`, or `{ "daysFromToday": 12 }` for the day that many days after the day the sample is drawn, or before it when negative. Use the second form for a date the look counts toward or from, such as a trip or an anniversary, so the sample shows the same count on any day.
@@ -289,6 +290,7 @@ A shared widget's samples, with times and people:
   "tables": { "feeds": { "fields": {} } },
   "samples": {
     "fed by Sam": { "feeds": [{ "minutesAgo": 95, "by": "Sam" }, { "daysAgo": 1 }] },
+    "just fed": { "feeds": [{ "minutesAgo": 3, "staysToday": true }] },
     "overdue": { "feeds": [{ "minutesAgo": 840 }] }
   }
 }

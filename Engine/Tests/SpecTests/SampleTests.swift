@@ -76,6 +76,29 @@ private func rows(
                 == #"sample "trip", items[0]: "items.title" is a text field; give a string, not an object"#)
     }
 
+    @Test func aRowThatStaysTodayIsPlacedByMinutesAndSurvivesTheCanonicalDocument() throws {
+        let spec = try parse(
+            withTables(#""samples": {"just": {"glasses": [{"minutesAgo": 30, "staysToday": true}, {"minutesAgo": 5}]}}"#))
+        let rows = try #require(spec.sample(named: "just")).rows
+        #expect(rows.map(\.minutesAgo) == [30, 5])
+        #expect(rows.map(\.staysToday) == [true, false])
+        #expect(try Spec.parse(spec.encoded()) == spec)
+    }
+
+    @Test func staysTodayIsTrueBesideMinutesAgoAndNothingElse() {
+        let rule =
+            #"sample "just", glasses[0]: "staysToday": true goes with "minutesAgo", like {"minutesAgo": 600, "staysToday": true} for 10 hours ago or as today began if that is later"#
+        for row in [
+            #"{"staysToday": true}"#, #"{"daysAgo": 0, "staysToday": true}"#,
+            #"{"minutesAgo": 30, "staysToday": false}"#, #"{"minutesAgo": 30, "staysToday": "yes"}"#,
+        ] {
+            #expect(rejection(withTables(#""samples": {"just": {"glasses": [\#(row)]}}"#)) == rule, "\(row)")
+        }
+        #expect(
+            rejection(document(#""tables": {"t": {"fields": {"staysToday": "bool"}}}"#))?.contains("is reserved") == true,
+            "a field cannot take the key's name")
+    }
+
     @Test func sampleOverAThousandRowsIsRefused() {
         let entries = Array(repeating: #"{"repeat": 100}"#, count: 11).joined(separator: ", ")
         #expect(

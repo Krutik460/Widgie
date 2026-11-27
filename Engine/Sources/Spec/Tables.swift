@@ -109,11 +109,11 @@ extension Spec {
     }
 
     /// Keys a row already uses for something else: the look receives `id`, `day`, `daysAgo`, `at`,
-    /// `minutesAgo`, and `by`, a sample row uses `daysAgo`, `minutesAgo`, `by`, and `repeat`, `where` reads
+    /// `minutesAgo`, and `by`, a sample row uses `daysAgo`, `minutesAgo`, `staysToday`, `by`, and `repeat`, `where` reads
     /// `by` as the author, and `sort` reads `newest` and `oldest` as orders. `now` is the look's clock key, so a
     /// field of that name would make every look that reads it count as reading the clock.
     static let reservedFieldIDs = [
-        "at", "by", "day", "daysAgo", "id", "minutesAgo", "newest", "now", "oldest", "repeat",
+        "at", "by", "day", "daysAgo", "id", "minutesAgo", "newest", "now", "oldest", "repeat", "staysToday",
     ]
 }
 
