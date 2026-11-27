@@ -173,13 +173,15 @@ Decisions made while building U2 (2026-11-27):
 
 Review fixes (2026-11-27, after rebasing onto U4):
 
-- **A save cannot be replaced or discarded while it runs, its repair turn included.** `Chat.replace` refuses while `replacement` is `.waits`, and a save's repair stays in `.saving`, so a template chosen then waits and Close in the edit cover asks nothing. Only a save that replaces a library widget is proved against stored data, so a repair happens only in the edit cover.
-- **Sending, saving or Try again drops a question still up**, as Keep editing would, as the prototype's `refine` and `saved` remove `.confirm`. The chat's work goes through `Chat.send`, `Chat.save` and `Chat.retry` for that.
+- **A save cannot be replaced or discarded while it runs, its repair turn included.** No question is up while `replacement` is `.waits`, since saving drops it and nothing asks then, and a save's repair stays in `.saving`, so a template chosen then waits and Close in the edit cover asks nothing. Only a save that replaces a library widget is proved against stored data, so a repair happens only in the edit cover.
+- **Sending, saving or Try again drops a question still up**, as Keep editing would, as the prototype's `refine` and `saved` remove `.confirm`. The chat's work goes through `Chat.send`, `Chat.save` and `Chat.retry` for that, and the question goes whenever the work goes ahead, even when the phase stays the same.
 - **`Chat.saved(id)` names the save it follows**, so a template opened during the flight is not wiped when the flight ends.
 - **Saved while on another tab**, nothing bursts or flies, and Make's VoiceOver lines stay quiet off its page, as the feed's do.
 - **On Make the toast sits below the bar** (the prototype's `.toast.low`, 96 points lower) and leaves when you leave Make.
 - **A chip leaves once its change lands**, and a used recolor gives way to "Change the colors", as the prototype's spare chips do. Busy chips dim once, to 0.6.
 - **Widgie jumps on a saved draft** and drops away once the tile lands.
+- **A tap on the draft while a change lands keeps the change.** The draft stays live during a build, so a tap, or a time change that draws it again, can land while `Preview.show` draws the new draft. `show` then draws again, with the tap's row, instead of failing the turn as broken; only a later `show` or a cancel stops it.
+- **A chat closes its cover once**, so the close that follows a save by 700 ms leaves a cover opened after Close in that moment.
 - **A repair that gives up is a save that did not happen** (`.unsaved`, with OK), not "Say it another way".
 - **The empty page stands where the prototype does**: Widgie's foot 72 points from the column's right edge and 206 down on a 100 by 13 radial shadow, and the bubble ending 138 points in, at most 212 wide. iOS keeps a lone last word off its own line, so the greeting breaks after "make" by hand while that line fits.
 
