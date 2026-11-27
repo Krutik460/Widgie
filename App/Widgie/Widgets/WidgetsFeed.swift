@@ -10,6 +10,7 @@ struct WidgetsFeed: View {
 
     @State private var shown: Shown?
     @State private var session: DescribeSession?
+    @State private var deleting: WidgetID?
 
     struct Shown: Identifiable {
         let id: WidgetID
@@ -48,6 +49,15 @@ struct WidgetsFeed: View {
                 library.perform(form.form.tap, input: input)
                 library.form = nil
             }
+        }
+        .confirmationDialog(
+            "Delete this widget?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+            titleVisibility: .visible, presenting: deleting
+        ) { id in
+            Button("Delete", role: .destructive) { library.delete(id) }
+            Button("Keep it", role: .cancel) {}
+        } message: { id in
+            Text(WidgetDetail.deleteMessage(placed: library.placed[id] != nil))
         }
         .alert(
             "Something went wrong", isPresented: .constant(shown == nil && library.message != nil),
@@ -135,7 +145,7 @@ struct WidgetsFeed: View {
             .onTapGesture { shown = Shown(id: id) }
             .contextMenu {
                 Button("Change it", systemImage: "pencil") { session = DescribeSession(editing: id) }
-                Button("Delete", systemImage: "trash", role: .destructive) { library.delete(id) }
+                Button("Delete", systemImage: "trash", role: .destructive) { deleting = id }
             }
             .accessibilityAction(named: "Open") { shown = Shown(id: id) }
             .accessibilityAction(named: "Change it") { session = DescribeSession(editing: id) }

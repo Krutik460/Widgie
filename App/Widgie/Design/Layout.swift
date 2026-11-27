@@ -2,7 +2,8 @@ import SwiftUI
 import WidgetEngine
 import WidgetHosting
 
-/// The describe flow and the library share one column, the medium widget's width, centered on the screen.
+/// The describe flow's column: the medium widget's width, centered on the screen. The feed's empty state uses its
+/// margin.
 enum Column {
     static let width = Family.medium.standardSize.width
     static let margin: CGFloat = 32
