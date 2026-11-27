@@ -141,6 +141,10 @@ Starts with the wire format doc and the vectors file, which P2 also builds on.
 - [ ] Extension memory with several image-heavy widgets on one home screen (owed from phase 1d).
 - [ ] Record results in a phase 3 review in `tasks/todo.md`.
 
+### After phase 3
+
+- [ ] Run the app for the user on the simulator "iPhone 18 Pro Demo" (kept apart from the U1b test simulator, which agent checks reinstall) with the backend hooked up: Make building through the `dev` Worker and word of the day arriving from the scheduler (asked 2026-11-27).
+
 ## Order
 
 P1 starts with the wire format and vectors; once those land, P2 runs alongside the rest of P1. P3 follows P2. P4 follows P1 to P3 on the simulator. P5 runs alongside P3 and P4. P6 needs the phone and comes last. P2 and later build on `phase-2b-b2` (the Worker and App Attest), so B2 merges first: its live checks need the phone, so P2 branches from `phase-2b-b2` and rebases once B2 merges.
