@@ -367,8 +367,7 @@ struct Bubble: View {
                                     .rotationEffect(.degrees(45))
                                     .offset(x: tailOffset.width, y: tailOffset.height)
                             }
-                            .shadow(color: Palette.restShadow.opacity(0.5), radius: 2, y: 2)
-                            .shadow(color: Palette.restShadow, radius: 12, y: 10)
+                            .bubbleShadow()
                     }
                     .id(words)
                     .transition(
@@ -379,12 +378,7 @@ struct Bubble: View {
             }
         }
         .animation(reduceMotion ? .linear(duration: 0.15) : .spring(duration: 0.45, bounce: 0.45), value: words)
-        .onChange(of: words, initial: true) { _, words in
-            guard let words, voice != .silent else { return }
-            var line = AttributedString(words)
-            if voice == .low { line.accessibilitySpeechAnnouncementPriority = .low }
-            AccessibilityNotification.Announcement(line).post()
-        }
+        .announces(words, voice: voice)
     }
 
     private var tailCorner: Alignment {

@@ -756,20 +756,14 @@ private struct WidgieSays: View {
                 style: .continuous
             )
             .fill(Palette.bubble)
-            .shadow(color: Palette.restShadow.opacity(0.5), radius: 2, y: 2)
-            .shadow(color: Palette.restShadow, radius: 12, y: 10)
+            .bubbleShadow()
         }
         .animation(.easeInOut(duration: 0.25), value: words)
         .frame(maxWidth: 262, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Widgie: \(words)")
         .accessibilityAddTraits(working ? .updatesFrequently : [])
-        .onChange(of: words, initial: true) { _, words in
-            guard !pageHidden else { return }
-            var line = AttributedString(words)
-            if voice == .low { line.accessibilitySpeechAnnouncementPriority = .low }
-            AccessibilityNotification.Announcement(line).post()
-        }
+        .announces(words, voice: pageHidden ? .silent : voice)
     }
 }
 
@@ -1216,51 +1210,6 @@ private struct ChangeChipStyle: ButtonStyle {
             .contentShape(Rectangle())
             .padding(.vertical, -5)
             .modifier(Squish(pressed: configuration.isPressed, scale: 0.94, dimmed: 0.6))
-    }
-}
-
-/// A small soft key, such as New or Keep editing: 36 points tall in a 44 point target.
-struct MiniButtonStyle: ButtonStyle {
-    var fill = Palette.surface
-    var label = Palette.text
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(size: 14, weight: .semibold, relativeTo: .subheadline)
-            .foregroundStyle(label)
-            .padding(.horizontal, 12)
-            .frame(minHeight: 36)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(fill).restShadow())
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-            .padding(.vertical, -4)
-            .modifier(Squish(pressed: configuration.isPressed, scale: 0.94))
-    }
-}
-
-private struct MiniLabelStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 6) {
-            configuration.icon.font(.system(size: 13, weight: .bold))
-            configuration.title
-        }
-    }
-}
-
-private struct Squish: ViewModifier {
-    let pressed: Bool
-    let scale: CGFloat
-    /// The opacity while disabled.
-    var dimmed = 0.5
-
-    @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        content
-            .scaleEffect(pressed && !reduceMotion ? scale : 1)
-            .opacity(isEnabled ? 1 : dimmed)
-            .animation(.spring(duration: 0.3, bounce: 0.45), value: pressed)
     }
 }
 
