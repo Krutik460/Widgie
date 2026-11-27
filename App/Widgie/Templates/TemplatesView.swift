@@ -49,7 +49,6 @@ struct TemplatesView: View {
                 .accessibilityLabel(shown.title)
             }
             .padding(.horizontal, Self.margin)
-            .padding(.top, 8)
             .padding(.bottom, 28)
         }
         .scrollEdgeEffectStyle(.soft, for: .all)
