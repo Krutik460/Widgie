@@ -99,9 +99,8 @@ import WidgetEngine
 }
 
 @Suite struct TemplateCatalogTests {
-    /// Every bundled template reads, has every blank its document uses, and builds through `engine.build`, with
-    /// its placeholders, with awkward values, with every blank at its longest, and with every blank "me" or "Me",
-    /// which also proves the face.
+    /// Every bundled template reads, has every blank its document uses, and builds through `engine.build`, which
+    /// proves the face, with its placeholders, with awkward values, and with every blank at its longest.
     @Test func everyBundledTemplateBuildsWithItsPlaceholdersAwkwardValuesAndTheLongestValues() async throws {
         let root = try #require(Bundle.main.url(forResource: "Templates", withExtension: nil))
         let folders = try FileManager.default.contentsOfDirectory(atPath: root.path(percentEncoded: false))
@@ -118,10 +117,7 @@ import WidgetEngine
                         ($0.key, String(repeating: glyph, count: $0.maxLength + 5))
                     })
             }
-            // "me" in any case is how a sample names the person, so a blank must never reach a sample's author.
-            let me = ["me", "Me"].map { word in Dictionary(uniqueKeysWithValues: template.blanks.map { ($0.key, word) })
-            }
-            for values in [[:], awkward] + longest + me {
+            for values in [[:], awkward] + longest {
                 let source = try template.source(filling: values)
                 #expect(
                     !String(decoding: source.json, as: UTF8.self).contains("{{"), "\(template.id) has an unfilled blank"
@@ -137,7 +133,8 @@ import WidgetEngine
     }
 
     /// A name typed into a template sheet keeps the taps practised on its face, which is right only while a
-    /// blank changes the name and the look and nothing else: no table, action or sample.
+    /// blank changes the name and the look and nothing else: no table, action or sample. It also keeps a blank from
+    /// ever reaching a sample's author, where "me" in any case names the person.
     @Test func blanksChangeOnlyTheNameAndTheLook() throws {
         func document(_ source: WidgetSource) throws -> [String: Any] {
             try #require(try JSONSerialization.jsonObject(with: source.json) as? [String: Any])
@@ -191,7 +188,7 @@ import WidgetEngine
         for state in states {
             try engine.load(state, into: id)
             for family in Family.allCases {
-                let face = await engine.faces(for: id, family: family, size: family.standardSize, from: .now).current
+                let face = await engine.face(for: id, family: family, size: family.standardSize, at: .now).current
                 #expect(!face.isFallback, "\(template.id), \(state), \(family) draws its look")
                 found.append(("\(state)", family, face.buttonLabels))
             }
@@ -247,10 +244,7 @@ import WidgetEngine
 @Suite struct TemplateBehaviourTests {
     private func buttons(_ id: String, family: Family = .small, rows: String) async throws -> [String] {
         let template = try Template.bundled(id)
-        let file = FileManager.default.temporaryDirectory.appending(path: "state-\(UUID().uuidString).json")
-        defer { try? FileManager.default.removeItem(at: file) }
-        try Data(rows.utf8).write(to: file)
-        let proof = try await Engine.proof(template.source(), state: .file(file), family: family)
+        let proof = try await withRows(rows) { try await Engine.proof(template.source(), state: $0, family: family) }
         #expect(proof.verdict == nil, "\(id) draws this state")
         return proof.fit.buttons
     }
@@ -388,14 +382,13 @@ import WidgetEngine
 @MainActor @Suite struct TemplateTrialTests {
     private let shared = SharedStore()
 
-    private func petFed() throws -> TemplateTrial {
+    private func petFed(startsEmpty: Bool = false) throws -> TemplateTrial {
         let template = try Template.bundled("pet-fed")
-        return TemplateTrial(template: template, preview: Preview(library: shared.engine))
+        return TemplateTrial(template: template, preview: Preview(library: shared.engine, startsEmpty: startsEmpty))
     }
 
     @Test func aTapIsPracticeOnScratchRowsAndATypedNameRebuildsTheFace() async throws {
-        let template = try Template.bundled("pet-fed")
-        let trial = TemplateTrial(template: template, preview: Preview(library: shared.engine, startsEmpty: true))
+        let trial = try petFed(startsEmpty: true)
         await trial.fill()
         let draft = try #require(trial.preview.widget)
         trial.greet()

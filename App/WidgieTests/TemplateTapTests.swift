@@ -11,12 +11,12 @@ import WidgetEngine
     private let nine = moment(2026, 11, 18, 9)
 
     private func text(_ id: String, rows: String? = nil, at date: Date) async throws -> String {
-        try await TemplateBench(id, rows: rows, at: date).text(at: date)
+        try await TemplateRig(id, rows: rows, at: date).text(at: date)
     }
 
     /// Each template whose tap writes a row, the button, how many minutes its undo lasts, and rows whose newest
     /// is a minute old and Sam's.
-    @Test(arguments: [
+    private nonisolated static let undoable = [
         ("plant-care", "water", 60, #"{"waterings": [{"minutesAgo": 1, "by": "Sam"}]}"#),
         ("pet-fed", "feed", 60, #"{"feeds": [{"minutesAgo": 1, "by": "Sam"}]}"#),
         ("baby-feeds", "left", 10, #"{"feeds": [{"minutesAgo": 1, "side": "Left", "by": "Sam"}]}"#),
@@ -24,32 +24,34 @@ import WidgetEngine
         ("pushups", "ten", 10, #"{"sets": [{"minutesAgo": 1, "reps": 10, "by": "Sam"}]}"#),
         ("chores-scoreboard", "did", 10, #"{"chores": [{"minutesAgo": 1, "by": "Sam"}]}"#),
         ("water", "drink", 10, #"{"glasses": [{"minutesAgo": 1, "by": "Sam"}]}"#),
-    ])
+    ]
+
+    @Test(arguments: undoable)
     func aTapCanBeTakenBackForAWhileButOnlyYourOwn(id: String, action: String, minutes: Int, theirs: String)
         async throws
     {
-        let bench = try TemplateBench(id, rows: "{}", at: nine)
-        let before = await bench.picture(at: nine.adding(minutes: 1))
-        try await bench.tap(action, at: nine)
-        #expect(await bench.actions(at: nine.adding(minutes: minutes - 1)).contains("undo"), "\(id) offers the undo")
+        let rig = try await TemplateRig(id, rows: "{}", at: nine)
+        let before = await rig.picture(at: nine.adding(minutes: 1))
+        try await rig.tap(action, at: nine)
+        #expect(await rig.actions(at: nine.adding(minutes: minutes - 1)).contains("undo"), "\(id) offers the undo")
         #expect(
-            !(await bench.actions(at: nine.adding(minutes: minutes + 1)).contains("undo")),
+            !(await rig.actions(at: nine.adding(minutes: minutes + 1)).contains("undo")),
             "\(id)'s undo lasts \(minutes) minutes")
 
-        try await bench.tap("undo", at: nine.adding(minutes: 1))
-        #expect(await bench.picture(at: nine.adding(minutes: 1)).looksLike(before), "\(id)'s undo takes the tap back")
+        try await rig.tap("undo", at: nine.adding(minutes: 1))
+        #expect(await rig.picture(at: nine.adding(minutes: 1)).looksLike(before), "\(id)'s undo takes the tap back")
 
-        let partner = try TemplateBench(id, rows: theirs, at: nine)
+        let partner = try await TemplateRig(id, rows: theirs, at: nine)
         #expect(!(await partner.actions(at: nine)).contains("undo"), "\(id) cannot take back Sam's row")
     }
 
     /// The pile shows each template's first sample, and none of them offers an undo at any hour, a minute after
     /// midnight included.
     @Test func noUndoShowsInThePileAtAnyHour() async throws {
-        for id in ["plant-care", "pet-fed", "baby-feeds", "savings-jar", "pushups", "chores-scoreboard", "water"] {
+        for (id, _, _, _) in Self.undoable {
             for hour in [0, 9, 12, 23] {
                 let date = moment(2026, 11, 23, hour, hour == 0 ? 1 : 59)
-                let actions = try await TemplateBench(id, at: date).actions(at: date)
+                let actions = try await TemplateRig(id, at: date).actions(at: date)
                 #expect(!actions.contains("undo"), "\(id) offers an undo in the pile at \(hour)")
             }
         }
@@ -67,9 +69,9 @@ import WidgetEngine
                     withJSONObject: (document?["samples"] as? [String: Any])?[sample] ?? [:])
                 let state = String(decoding: rows, as: UTF8.self)
                 for family in Family.allCases {
-                    let atEarly = try await TemplateBench(template.id, family: family, rows: state, at: early)
+                    let atEarly = try await TemplateRig(template.id, family: family, rows: state, at: early)
                         .picture(at: early)
-                    let atNoon = try await TemplateBench(template.id, family: family, rows: state, at: noon)
+                    let atNoon = try await TemplateRig(template.id, family: family, rows: state, at: noon)
                         .picture(at: noon)
                     #expect(atEarly.looksLike(atNoon), "\(template.id) \"\(sample)\" \(family) drifts after midnight")
                 }
@@ -78,28 +80,28 @@ import WidgetEngine
     }
 
     @Test func binsNightPassesTheTurnBackAndForth() async throws {
-        let bench = try TemplateBench("bins-night", rows: "{}", at: nine)
-        let start = await bench.picture(at: nine)
-        let shown = try await bench.text(at: nine)
+        let rig = try await TemplateRig("bins-night", rows: "{}", at: nine)
+        let start = await rig.picture(at: nine)
+        let shown = try await rig.text(at: nine)
         #expect(shown.contains("Sam") && shown.contains("up tonight"), "the turn starts with Sam: \(shown)")
-        try await bench.tap("pass", at: nine)
-        let passed = try await bench.text(at: nine)
+        try await rig.tap("pass", at: nine)
+        let passed = try await rig.text(at: nine)
         #expect(passed.contains("your turn tonight") && !passed.contains("Sam"), "then it is yours: \(passed)")
-        try await bench.tap("pass", at: nine)
-        #expect(await bench.picture(at: nine).looksLike(start), "and Sam's again")
+        try await rig.tap("pass", at: nine)
+        #expect(await rig.picture(at: nine).looksLike(start), "and Sam's again")
     }
 
     /// The scoreboard counts your taps for you and Sam's rows for Sam.
     @Test func aChoreYouTapCountsAsYours() async throws {
-        let bench = try TemplateBench(
+        let rig = try await TemplateRig(
             "chores-scoreboard", rows: #"{"chores": [{"by": "Sam", "repeat": 11}, {"repeat": 9}]}"#, at: nine)
-        try await bench.tap("did", at: nine)
-        let expected = try TemplateBench(
+        try await rig.tap("did", at: nine)
+        let expected = try await TemplateRig(
             "chores-scoreboard",
             rows: #"{"chores": [{"minutesAgo": 60, "by": "Sam", "repeat": 11}, {"minutesAgo": 60, "repeat": 9}, {}]}"#,
             at: nine)
-        #expect(await bench.picture(at: nine).looksLike(await expected.picture(at: nine)), "you 10, Sam 11")
-        let shown = try await bench.text(at: nine)
+        #expect(await rig.picture(at: nine).looksLike(await expected.picture(at: nine)), "you 10, Sam 11")
+        let shown = try await rig.text(at: nine)
         #expect(shown.contains("10") && shown.contains("11") && !shown.contains("9"), "\(shown)")
     }
 
@@ -112,7 +114,7 @@ import WidgetEngine
             (#"{"trips": [{"date": {"daysFromToday": -2}}]}"#, ["Home", "tap to plan the next one"]),
         ]
         for (rows, expected) in cases {
-            let shown = try await TemplateBench("trip-countdown", family: .medium, rows: rows, at: nine).text(at: nine)
+            let shown = try await TemplateRig("trip-countdown", family: .medium, rows: rows, at: nine).text(at: nine)
             for words in expected { #expect(shown.contains(words), "\(rows) shows \(words), not \(shown)") }
         }
     }
@@ -150,14 +152,14 @@ import WidgetEngine
     func aDatedTemplateCountsFromTheDateItSets(
         id: String, action: String, field: String, first: Int, firstShown: String, second: Int, secondShown: String
     ) async throws {
-        let bench = try TemplateBench(id, rows: "{}", at: nine)
-        #expect(await bench.actions(at: nine) == [action])
+        let rig = try await TemplateRig(id, rows: "{}", at: nine)
+        #expect(await rig.actions(at: nine) == [action])
         for (days, shown) in [(first, firstShown), (second, secondShown)] {
             let day = Calendar.autoupdatingCurrent.dateComponents(
                 [.year, .month, .day], from: Calendar.autoupdatingCurrent.date(byAdding: .day, value: days, to: nine)!)
-            try await bench.tap(
+            try await rig.tap(
                 action, at: nine, input: [field: .date(year: day.year!, month: day.month!, day: day.day!)])
-            let text = try await bench.text(at: nine)
+            let text = try await rig.text(at: nine)
             #expect(text.contains(shown), "\(id) set to \(days) days from today shows \(text)")
         }
     }
