@@ -213,12 +213,33 @@ The prototype's remaining 13 tiles, taken from the landing page (`Site/public/wi
 
 ### U5. Polish and the end-to-end check
 
-- [ ] One pass on the simulator over every screen, light and dark, at default and the largest Dynamic Type size, with VoiceOver labels on every control. Fix anything that looks off.
-- [ ] `scripts/check` is green, with no new warnings.
-- [ ] A review guide in `docs/pr/` for each PR.
+- [x] One pass on the simulator over every screen, light and dark, at default and the largest Dynamic Type size, with VoiceOver labels on every control. Fix anything that looks off.
+- [x] `scripts/check` is green, with no new warnings.
+- [x] A review guide in `docs/pr/` for each PR.
+
+Decisions made in U5 (2026-11-27):
+
+- **A face's buttons speak.** A look's `button` takes a `label`. Without one it reads the words its children show, joined with commas, and without words it reads its action's id as words ("markFed" reads "Mark fed"), so no button is ever blank. The label is resolved once, when the tree is validated, and the renderer puts it on the button for the app and the widget extension alike. A label built from a row can be as long as a text, because a long grocery item must not fail the proof. Every icon-only key in the 19 templates says which one it is ("Fed Luna", "Read, today, done"), and the whole-tile buttons (trip, days together, days free) read their number and what a tap does.
+- **A button's whole frame is its target**, not only the pixels drawn in it, so a plus in a 30 point frame takes taps across 30 points.
+- **A name typed into a template sheet keeps the taps tried on it.** Filling a blank changes only the name and the look's constants, never the tables or the samples, so the new revision draws the rows the draft already has.
+- **Confetti leaves with its page.** A tab switch fades out the confetti in the air; a tile in flight still lands in the tab bar, which every page shares.
+- **The feed in the final screenshots holds ten widgets**, the prototype's nine and Word of the day under them, because the size rhythm counts from the oldest widget and only ten put Lisbon, Groceries and Japan fund wide where the prototype has them. Nothing is on the simulator's home screen, so the count line says 0 and no card wears the phone mark.
 
 ## Risks
 
 - **Live faces in a scrolling feed.** Each card is a `FaceView`. Twenty templates means twenty QuickJS renders when the tab opens. Render faces lazily as cards appear, cache them per template, and measure on the simulator.
 - **Small widgets at column width.** A 158 pt face shown at 179 pt is scaled up by 1.13. The engine can render at the column size instead, which keeps it sharp. Use the size parameter, not `scaleEffect`.
 - **Blanks inside look code.** In `look` a blank is always a whole quoted literal, so no value can break out of a string or inject code. A test covers quotes, backslashes, `</script>`, and emoji.
+
+## Review (2026-11-27, after U5)
+
+What shipped across the five units, against the goal of a three-tab app built around Widgie that matches the approved prototype:
+
+- **U1 (PR 15)** made the shell: Widgets, Make and the feed of live faces in layout B, placements read from WidgetKit, and the detail sheet. It also carried the prototype the council and the user signed off.
+- **U3 (PR 16)** added Templates: bundled widgets with blanks filled on the decoded document, the tilted pile by category with Widgie acting out each banner, and the sheet where a tap is practice and Add widget goes straight into the library.
+- **U1b (PR 17)** restyled everything to the prototype: the sky by day and night, Bricolage Grotesque, Widgie standing on the first widget and talking about it, soft cards, the New tag, and a glass tab bar of our own with the Make key and the badge. Add widget flies the tile into the Widgets glyph with a toast.
+- **U4 (PR 18)** brought the other 13 templates, so all 19 match their prototype tiles by day, by night and tinted, with dates and today rows that hold on any day.
+- **U2 (PR 19)** turned Make into the chat: every turn kept, the sketch that becomes the tile, change chips, inline failures and replace prompts, and Save on Add widget's path.
+- **U5 (PR 20)** gave every face button a VoiceOver label from the look language down, fixed the two leftovers (practice taps survive a typed name, confetti leaves with its page), and walked every screen light and dark, at the largest text size and with Reduce Motion, fixing what the walk found. The review guide, `docs/pr/20-app-shell-u5-polish.md`, lists the final side-by-sides with the prototype.
+
+Still open: Widgie's lines name widgets rather than their data until widgets declare a glance line (a later phase), shared widgets work on one phone until phase 4 sync, the feed's pull to refresh control shows in the accessibility tree while the Widgets page is hidden, and page titles sit a few points lower than the prototype's because of Bricolage's line height (both in the U5 guide).
