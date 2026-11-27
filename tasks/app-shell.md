@@ -248,12 +248,12 @@ Asked for on 2026-11-27: once the five units merged, clean up the code and merge
 
 **Templates and the engine (pass C)**
 
-- [ ] The banner's shadow shows again (the clip removed it; the prototype has it). (look, toward the prototype)
-- [ ] The Home and Habits chips draw the prototype's house and leaf, not SF Symbols, and the Habits banner line breaks as the prototype's ("See your / weeks fill up"). (look, toward the prototype)
-- [ ] Look comments in the 19 templates stop naming "the prototype", since a look is sent to the model on Change in chat.
-- [ ] Pet fed's hint says it stays on this phone for now, as plant care does.
-- [ ] The pile uses `FeedRow.singles`; `SampleRow.datesFromToday` is set in its initializer; fonts register where they are drawn, not in the parser; a long doc comment rewrapped.
-- [ ] Tests: no repeated "me" builds, one face instead of a timeline in the label test, a cached catalog lookup, shared rows-file and undo-list fixtures, `TemplateBench` renamed `TemplateRig`.
+- [x] The banner's shadow shows again (the clip removed it; the prototype has it), as the quiet shadow the speech bubbles cast (`quietShadow`, the prototype's `--quiet`). (look, toward the prototype)
+- [x] The chips draw the prototype's heart, house, leaf and star as shapes, not SF Symbols, and the banner line wraps balanced, as the prototype's `text-wrap: balance` does, so Habits reads "See your / weeks fill up" and Goals "Little wins / add up". (look, toward the prototype)
+- [x] Look comments in the 19 templates stop naming "the prototype", since a look is sent to the model on Change in chat.
+- [x] Pet fed's hint says it stays on this phone for now, as plant care does.
+- [x] The pile uses `FeedRow.singles`; `SampleRow.datesFromToday` is set in its initializer; fonts register where they are drawn, not in the parser; a long doc comment rewrapped.
+- [x] Tests: no repeated "me" builds, one face instead of a timeline in the label test, a cached catalog lookup, shared rows-file (`withRows`) and undo-list fixtures, `TemplateBench` renamed `TemplateRig`.
 
 **Checks**
 
