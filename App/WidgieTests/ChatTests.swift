@@ -27,7 +27,7 @@ import WidgetEngine
     }
 
     private func petFed(_ name: String = "Mochi") throws -> WidgetSource {
-        let template = try #require(Template.catalog().first { $0.id == "pet-fed" })
+        let template = try Template.bundled("pet-fed")
         return try template.source(filling: ["pet": name])
     }
 

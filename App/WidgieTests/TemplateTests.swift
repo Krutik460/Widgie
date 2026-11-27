@@ -58,10 +58,7 @@ import WidgetEngine
     @Test func aBlankWithQuotesStillBuilds() async throws {
         let shared = SharedStore()
         let source = WidgetSource(json: try Template.fill(document(), with: ["pet": #"Lu"na's \ dog"#]))
-        guard case .saved(let id) = try await shared.engine.build(source) else {
-            Issue.record("expected the filled template to build")
-            return
-        }
+        let id = try await shared.engine.saved(source)
         #expect(try shared.engine.widgets().first { $0.id == id }?.name == #"Lu"na's \ dog fed"#)
     }
 
@@ -214,7 +211,7 @@ import WidgetEngine
             ("days-free", "empty", ["Alcohol-free, set the day you started"]),
         ]
         for (id, state, labels) in expected {
-            let template = try #require(Template.catalog().first { $0.id == id })
+            let template = try Template.bundled(id)
             let found = try await self.labels(template).first { $0.state == state && $0.family == .small }
             #expect(found?.labels == labels, "\(id), \(state)")
         }
@@ -224,7 +221,7 @@ import WidgetEngine
 /// What a template's face offers to tap in a given state: the action of every button it draws.
 @Suite struct TemplateBehaviourTests {
     private func buttons(_ id: String, family: Family = .small, rows: String) async throws -> [String] {
-        let template = try #require(Template.catalog().first { $0.id == id })
+        let template = try Template.bundled(id)
         let file = FileManager.default.temporaryDirectory.appending(path: "state-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: file) }
         try Data(rows.utf8).write(to: file)
@@ -367,12 +364,12 @@ import WidgetEngine
     private let shared = SharedStore()
 
     private func petFed() throws -> TemplateTrial {
-        let template = try #require(Template.catalog().first { $0.id == "pet-fed" })
+        let template = try Template.bundled("pet-fed")
         return TemplateTrial(template: template, preview: Preview(library: shared.engine))
     }
 
     @Test func aTapIsPracticeOnScratchRowsAndATypedNameRebuildsTheFace() async throws {
-        let template = try #require(Template.catalog().first { $0.id == "pet-fed" })
+        let template = try Template.bundled("pet-fed")
         let trial = TemplateTrial(template: template, preview: Preview(library: shared.engine, startsEmpty: true))
         await trial.fill()
         let draft = try #require(trial.preview.widget)
@@ -402,7 +399,7 @@ import WidgetEngine
     }
 
     @Test func widgieTakesUpTheFieldThatChangedAndNotTheFirstOneFilledIn() async throws {
-        let template = try #require(Template.catalog().first { $0.id == "habit-squares" })
+        let template = try Template.bundled("habit-squares")
         let trial = TemplateTrial(template: template, preview: Preview(library: shared.engine))
         await trial.fill()
         trial.values["first"] = "Swim"
