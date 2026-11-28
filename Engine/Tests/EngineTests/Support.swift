@@ -23,7 +23,7 @@ func instant(_ text: String) -> Date { try! Date(text, strategy: .iso8601) }
 /// Wednesday 2026-11-18, 09:00 UTC.
 let morning = instant("2026-11-18T09:00:00Z")
 
-let fixtureNames = ["dogfed", "habit", "hearts", "todo", "water", "wotd"]
+let fixtureNames = ["dogfed", "habit", "hearts", "learn", "todo", "water", "wotd"]
 
 func fixture(_ name: String) throws -> WidgetSource {
     try WidgetSource(directory: engineDirectory.appending(path: "Fixtures/\(name)"))

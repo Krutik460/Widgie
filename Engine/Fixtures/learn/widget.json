@@ -1,0 +1,90 @@
+{
+  "format": 1,
+  "name": "Word of the day",
+  "tables": {
+    "words": {
+      "fields": {
+        "word": "text",
+        "kind": "text",
+        "definition": "text",
+        "example": "text",
+        "verdict": "text"
+      }
+    }
+  },
+  "queries": {
+    "word": {
+      "latest": "words",
+      "window": "all"
+    },
+    "learned": {
+      "count": "words",
+      "where": {
+        "verdict": "know"
+      },
+      "window": "all"
+    }
+  },
+  "actions": {
+    "know": {
+      "set": "words.verdict",
+      "to": "know"
+    },
+    "again": {
+      "set": "words.verdict",
+      "to": "again"
+    }
+  },
+  "automations": {
+    "daily": {
+      "prompt": "Pick a useful Spanish word that a learner at an intermediate level may not know yet, and not one picked before. Give the word, its part of speech, its meaning in a few plain English words starting in lower case, and one short example sentence in Spanish that uses it. Leave verdict empty; the person sets it.",
+      "every": "day",
+      "at": "06:00",
+      "writes": "words"
+    }
+  },
+  "assets": {},
+  "samples": {
+    "a month in": {
+      "words": [
+        {
+          "daysAgo": 1,
+          "word": "aprovechar",
+          "kind": "verb",
+          "definition": "to make the most of",
+          "example": "Hay que aprovechar el sol.",
+          "verdict": "know",
+          "repeat": 48
+        },
+        {
+          "daysAgo": 0,
+          "word": "madrugar",
+          "kind": "verb",
+          "definition": "to get up early",
+          "example": "Mañana tengo que madrugar."
+        }
+      ]
+    },
+    "long word": {
+      "words": [
+        {
+          "daysAgo": 1,
+          "word": "madrugar",
+          "kind": "verb",
+          "definition": "to get up early",
+          "example": "Mañana tengo que madrugar.",
+          "verdict": "know"
+        },
+        {
+          "daysAgo": 0,
+          "word": "desafortunadamente",
+          "kind": "adverb",
+          "definition": "unfortunately, said when something did not go the way anyone hoped",
+          "example": "Desafortunadamente, el tren salió sin nosotros.",
+          "verdict": "again"
+        }
+      ]
+    }
+  },
+  "look": "const TEAL = '#1b3a4b';\nconst FOAM = '#e6f4fb';\nconst SUN = '#ffd23c';\nconst BOOK = 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5';\n\nfunction meaning(word) {\n  const definition = (word.definition || '').trim();\n  const stop = /[.!?]$/.test(definition) ? '' : '.';\n  return definition + stop + (word.example ? ' \"' + word.example + '\"' : '');\n}\n\n// Know it's fill sits twice: solid in the backdrop, which tinted and clear mode remove, and faint in the tree.\n// So in full color it reads as one solid key, and in tinted mode its words still show on the faint one. The\n// backdrop draws the same keys with their words hidden, so both line up.\nfunction keys(word, u, ghost) {\n  const key = (action, label, fill, color) => ({ type: ghost ? 'zstack' : 'button', action: ghost ? null : action,\n    rowId: ghost ? null : word.id, label: ghost ? null : label + (word.verdict === action ? ', chosen' : ''), children: [\n      { type: 'hstack', spacing: 4 * u, padding: { vertical: 6 * u, horizontal: 11 * u },\n        background: { type: 'rect', cornerRadius: 10 * u, fill }, children: [\n          word.verdict === action && { type: 'symbol', name: 'checkmark', size: 10 * u, weight: 'heavy', color,\n            opacity: ghost ? 0 : 1 },\n          { type: 'text', value: label, size: 12 * u, weight: 'bold', color, opacity: ghost ? 0 : 1 },\n        ] } ] });\n  return { type: 'hstack', spacing: 7 * u, padding: { leading: 16 * u, bottom: 14 * u },\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'bottomLeading' },\n    children: [\n      key('know', 'Know it', ghost ? SUN : '#ffd23c40', TEAL),\n      key('again', 'Again', ghost ? '#1b3a4b00' : '#FFFFFF21', FOAM),\n    ] };\n}\n\nfunction render(ctx) {\n  // Sizes are in units of `u`, 1/170 of the widget's height. Bricolage's line is 1.2 times its size, so the gaps\n  // around the word are 0.1 of its size shorter, as if its line were its size.\n  const u = ctx.height / 170;\n  const d = ctx.data;\n  const word = d.word;\n  const wide = ctx.family === 'medium';\n\n  return {\n    type: 'zstack', align: 'topLeading',\n    frame: { maxWidth: 'infinity', maxHeight: 'infinity' },\n    widgetBackground: { type: 'zstack', frame: { maxWidth: 'infinity', maxHeight: 'infinity' }, background: TEAL,\n      children: [word && keys(word, u, true)] },\n    children: [\n      { type: 'vstack', align: 'leading', spacing: 0, padding: { top: 15 * u, leading: 16 * u, trailing: 16 * u },\n        frame: { maxWidth: 'infinity', maxHeight: 'infinity', alignment: 'topLeading' },\n        children: [\n          { type: 'hstack', spacing: 5 * u, frame: { height: 16 * u }, children: [\n            { type: 'path', d: BOOK, viewBox: [0, 0, 24, 24], frame: { width: 15 * u, height: 15 * u },\n              stroke: { color: SUN, width: 2.4 * 15 * u / 24 } },\n            { type: 'text', value: 'Palabra del día', size: 13 * u, weight: 'bold', color: SUN, lineLimit: 1,\n              minScale: 0.8 },\n            { type: 'spacer', minLength: 0 },\n            wide && { type: 'text', value: d.learned + ' learned', size: 13 * u, weight: 'semibold', color: SUN,\n              opacity: 0.55, lineLimit: 1 },\n          ] },\n          { type: 'text', value: word ? word.word || '?' : 'pronto', fontName: 'Bricolage Grotesque Display',\n            size: 40 * u, kerning: -1.2 * u, color: SUN, accent: true, lineLimit: 1, minScale: 0.4,\n            padding: { top: 4 * u } },\n          { type: 'text', value: word ? meaning(word) : 'soon. Your first word is on its way.',\n            size: 12.5 * u, weight: 'semibold', color: FOAM, opacity: 0.8, lineLimit: 2, minScale: 0.8,\n            padding: { top: 1 * u }, frame: { maxWidth: (ctx.width - 32 * u) * 0.92, alignment: 'leading' } },\n        ] },\n      word && keys(word, u, false),\n    ],\n  };\n}\n"
+}

@@ -485,6 +485,32 @@ The right change adds a table for the new data, points the queries and actions a
 }
 ```
 
+A new topic is not a new meaning. Words are still words, so asked for medical terms instead of Spanish words, a word of the day keeps `words` and its fields and changes only its automation's prompt and the look's words, and the words learned so far still count. The widget gave Spanish words:
+
+```json
+{
+  "tables": { "words": { "fields": { "word": "text", "definition": "text", "verdict": "text" } } },
+  "queries": { "learned": { "count": "words", "where": { "verdict": "know" }, "window": "all" } },
+  "automations": {
+    "daily": { "prompt": "Pick a useful Spanish word not picked before, with its meaning in English.", "every": "day", "at": "06:00", "writes": "words" }
+  }
+}
+```
+
+The right change keeps the table and writes the new topic into the prompt:
+
+```json
+{
+  "tables": { "words": { "fields": { "word": "text", "definition": "text", "verdict": "text" } } },
+  "queries": { "learned": { "count": "words", "where": { "verdict": "know" }, "window": "all" } },
+  "automations": {
+    "daily": { "prompt": "Pick a medical term a nursing student should know, not picked before, with its meaning in plain words.", "every": "day", "at": "06:00", "writes": "words" }
+  }
+}
+```
+
+A new table is right for a topic change only when the person asks to start fresh, such as "start over" or "reset my words": add it, point the queries, actions, and automation at it, and keep `words` with its rows.
+
 
 # Widget look language
 
@@ -1078,6 +1104,7 @@ The person may ask to change a widget they already have, such as "make it blue" 
 - The widget already holds the person's rows, stored under its table ids. Keep every table id, and keep each field's id and kind, so the rows carry over. You may add tables, fields, queries, and actions.
 - To stop showing something, change the look and remove the queries and actions only it used. Keep its table and fields, even when nothing reads them any more.
 - When the change needs data the widget does not keep, add a new table for it. A table's rows mean what the person logged them as, so never give a kept table a new meaning, and never rename a table or field, or change a field's kind, to reuse it. For "track coffee instead of water" in a water tracker that keeps `glasses`, add a `cups` table, point the queries, actions, and samples at `cups`, and change the look's words. Keep `glasses` with its rows, even though nothing reads it. Calling `glasses` coffee would turn every glass of water already logged into a cup of coffee.
+- A new topic for the same kind of item is not new data. For "make it medical terms" in a word of the day that keeps Spanish words in `words`, keep `words` and its fields, write the new topic into the automation's prompt, and change the look's words, so the words learned so far and their count carry over. Add a field when the new items need a detail the table lacks. Add a new table only when the person asks to start fresh, such as "start over" or "reset my words", or when the items become another kind of thing, such as quotes instead of words.
 - A new detail about each row a table already keeps, such as a due date for each to-do, is a new field on that table, not a new table. A new word for the same thing, such as calling to-dos tasks, changes only the look.
 - Reply with the complete changed document, look included, in the same form as a new widget.
 

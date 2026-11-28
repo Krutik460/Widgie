@@ -489,3 +489,30 @@ The right change adds a table for the new data, points the queries and actions a
   "actions": { "drink": { "insert": "cups" } }
 }
 ```
+
+A new topic is not a new meaning. Words are still words, so asked for medical terms instead of Spanish words, a word of the day keeps `words` and its fields and changes only its automation's prompt and the look's words, and the words learned so far still count. The widget gave Spanish words:
+
+```json
+{
+  "tables": { "words": { "fields": { "word": "text", "definition": "text", "verdict": "text" } } },
+  "queries": { "learned": { "count": "words", "where": { "verdict": "know" }, "window": "all" } },
+  "automations": {
+    "daily": { "prompt": "Pick a useful Spanish word not picked before, with its meaning in English.", "every": "day", "at": "06:00", "writes": "words" }
+  }
+}
+```
+
+The right change keeps the table and writes the new topic into the prompt:
+
+<!-- replaces the json block above -->
+```json
+{
+  "tables": { "words": { "fields": { "word": "text", "definition": "text", "verdict": "text" } } },
+  "queries": { "learned": { "count": "words", "where": { "verdict": "know" }, "window": "all" } },
+  "automations": {
+    "daily": { "prompt": "Pick a medical term a nursing student should know, not picked before, with its meaning in plain words.", "every": "day", "at": "06:00", "writes": "words" }
+  }
+}
+```
+
+A new table is right for a topic change only when the person asks to start fresh, such as "start over" or "reset my words": add it, point the queries, actions, and automation at it, and keep `words` with its rows.

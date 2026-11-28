@@ -371,3 +371,75 @@ func dataset(of widget: WidgetID, in engine: Engine) throws -> String {
                 ).utf8))
     }
 }
+
+/// A refine that changes an automation's topic keeps the table, so the words already written, what the person
+/// marked on them, and the dataset the server writes and reads its history from all carry over. A fresh start is a
+/// new table, which starts empty and leaves the old rows bound to the old table.
+@Suite struct TopicChangeTests {
+    let spanish = "Pick a useful Spanish word that a learner at an intermediate level may not know yet"
+
+    /// The Word of the day template with two words written by its automation, the newest marked Know it.
+    @MainActor func learned() async throws -> (Scratch, WidgetID, words: String) {
+        let scratch = Scratch()
+        let id = try await scratch.build(try fixture("learn"))
+        let words = try dataset(of: id, in: scratch.engine)
+        let first = Run(
+            dataset: words, at: instant("2026-11-17T06:00:00Z"), written: instant("2026-11-16T22:00:00Z"),
+            cells: ["word": "hojear", "kind": "verb", "definition": "to leaf through", "example": "Hojeo el libro."])
+        let second = Run(
+            dataset: words, at: instant("2026-11-18T06:00:00Z"), written: instant("2026-11-17T22:00:00Z"),
+            cells: ["word": "atajo", "kind": "noun", "definition": "a shortcut", "example": "Tomamos un atajo."])
+        try scratch.engine.receive(try page(first.changes(from: 1) + second.changes(from: 6)), at: morning)
+        try scratch.engine.perform(try button("know", on: await scratch.face(id)).tap, at: morning)
+        return (scratch, id, words)
+    }
+
+    @Test @MainActor func aNewTopicOnTheSameTableKeepsTheWordsTheirCountAndTheDataset() async throws {
+        let (scratch, id, words) = try await learned()
+        let marked = picture(await scratch.face(id))
+        let source = try fixture("learn")
+        #expect(!marked.looksLike(try await expected(source, rows: "{}")), "the face shows the words")
+        let unmarked =
+            #"{"words": [{"daysAgo": 0, "word": "atajo", "kind": "noun", "definition": "a shortcut", "example": "Tomamos un atajo."}]}"#
+        #expect(!marked.looksLike(try await expected(source, rows: unmarked)), "and the word marked Know it")
+
+        let json = String(decoding: source.json, as: UTF8.self)
+        #expect(json.contains(spanish))
+        let nursing = WidgetSource(
+            json: Data(json.replacing(spanish, with: "Pick a medical term a nursing student should know").utf8))
+        _ = try await scratch.build(nursing, replacing: id)
+
+        #expect(try dataset(of: id, in: scratch.engine) == words, "the server keeps writing the same history")
+        let entry = try #require(try entries(scratch.engine.automationPayload()).first)
+        #expect((entry["prompt"] as? String)?.hasPrefix("Pick a medical term") == true)
+        #expect(picture(await scratch.face(id)).looksLike(marked), "the same word, marked, and the same count")
+    }
+
+    @Test @MainActor func aFreshStartOnANewTableShowsNoneOfTheOldWords() async throws {
+        let (scratch, id, words) = try await learned()
+        var object = try #require(try JSONSerialization.jsonObject(with: try fixture("learn").json) as? [String: Any])
+        var tables = try #require(object["tables"] as? [String: Any])
+        tables["fresh"] = tables["words"]
+        object["tables"] = tables
+        object["queries"] = [
+            "word": ["latest": "fresh", "window": "all"],
+            "learned": ["count": "fresh", "where": ["verdict": "know"], "window": "all"],
+        ]
+        object["actions"] = [
+            "know": ["set": "fresh.verdict", "to": "know"], "again": ["set": "fresh.verdict", "to": "again"],
+        ]
+        var automations = try #require(object["automations"] as? [String: [String: Any]])
+        automations["daily"]?["writes"] = "fresh"
+        object["automations"] = automations
+        var samples = try #require(object["samples"] as? [String: [String: Any]])
+        for name in samples.keys { samples[name] = ["fresh": samples[name]?["words"] ?? []] }
+        object["samples"] = samples
+        let fresh = WidgetSource(json: try JSONSerialization.data(withJSONObject: object))
+        _ = try await scratch.build(fresh, replacing: id)
+
+        let bindings = try scratch.engine.store().bindings(of: try #require(WidgetKey(parsing: id.rawValue)))
+        #expect(bindings["words"]?.raw == words, "the old words stay, bound to the old table")
+        #expect(try dataset(of: id, in: scratch.engine) != words)
+        #expect(picture(await scratch.face(id)).looksLike(try await expected(fresh, rows: "{}")))
+    }
+}
