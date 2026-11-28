@@ -27,6 +27,7 @@ struct RootView: View {
                         PageSwitch(shown: shown == tabs.page, side: shown.rawValue < tabs.page.rawValue ? -1 : 1))
                 }
             }
+            StatusBarSky()
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !(typing && tabs.page == .make) {
