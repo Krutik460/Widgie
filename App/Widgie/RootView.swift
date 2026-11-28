@@ -23,11 +23,13 @@ struct RootView: View {
             Sky(moon: !pastMoon.contains(tabs.page), still: skyCovers.count > 0)
             ForEach(Tabs.Page.allCases, id: \.self) { shown in
                 if tabs.visited.contains(shown) {
-                    content(shown).modifier(
-                        PageSwitch(shown: shown == tabs.page, side: shown.rawValue < tabs.page.rawValue ? -1 : 1))
+                    content(shown)
+                        // Make's bar is its sky behind the status bar.
+                        .overlay { if shown != .make { StatusBarSky() } }
+                        .modifier(
+                            PageSwitch(shown: shown == tabs.page, side: shown.rawValue < tabs.page.rawValue ? -1 : 1))
                 }
             }
-            StatusBarSky()
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !(typing && tabs.page == .make) {
