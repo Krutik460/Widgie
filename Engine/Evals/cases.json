@@ -194,6 +194,26 @@
       "group": "refine",
       "base": "water",
       "request": "change my goal to 10 glasses"
+    },
+    {
+      "id": "refine-nursing",
+      "group": "refine",
+      "base": "learn",
+      "request": "make it medical terms for my nursing exam"
+    },
+    {
+      "id": "refine-italian",
+      "group": "refine",
+      "base": "learn",
+      "request": "change it to Italian cooking words"
+    },
+    {
+      "id": "refine-fresh",
+      "group": "refine",
+      "base": "learn",
+      "request": "start over with new words",
+      "expect_new_table": true,
+      "replaces": "words"
     }
   ]
 }
