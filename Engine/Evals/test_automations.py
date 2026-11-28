@@ -10,7 +10,7 @@ from unittest import mock
 from zoneinfo import ZoneInfo
 
 import automations
-from automations import CASES, Case, case_summary, run_case, run_times, summary_table
+from automations import CASES, Case, RouteNotFound, case_summary, run_case, run_times, summary_table
 
 WORDS = Case(id="words", prompt="A word.", fields={"word": "text", "kind": "text", "rank": "number"}, key="word")
 
@@ -82,6 +82,48 @@ class RunCaseTests(unittest.TestCase):
         summary = case_summary(WORDS, days)
         self.assertEqual((summary["exact_repeats"], summary["near_repeats"], summary["passed"]), (1, 2, False))
 
+    def test_repeats_compare_text_in_one_unicode_form_as_the_worker_does(self):
+        # "Jalapeño" with a precomposed ñ, then with n and a combining tilde: the Worker's NFC makes them one.
+        post, _ = answering([{"word": "Jalape\u00f1o", "kind": "noun", "rank": 1},
+                             {"word": " JALAPEN\u0303O", "kind": "Noun ", "rank": 2}])
+        days = run_case(WORDS, post, runs=2)
+        self.assertEqual((days[1].exact_repeat_of, days[1].near_repeat_of), (1, 1))
+
+    def test_calls_and_usage_add_up_over_every_call_and_repaired_counts_days_with_more_than_one(self):
+        answers = [
+            {"row": {"word": "a", "kind": "noun", "rank": 1}, "outcome": "written", "calls": 1,
+             "usage": {"cost_usd": 0.0001, "input_tokens": 400, "output_tokens": 60}},
+            # A call cut off with no text, then the repair: two calls, both billed.
+            {"row": {"word": "b", "kind": "noun", "rank": 2}, "outcome": "written", "calls": 2,
+             "usage": {"cost_usd": 0.0004, "input_tokens": 800, "output_tokens": 1060}},
+            {"row": None, "outcome": "retry", "reason": "cut", "calls": 2,
+             "usage": {"cost_usd": 0.0006, "input_tokens": 800, "output_tokens": 2000}},
+        ]
+        days = run_case(WORDS, lambda body: answers.pop(0), runs=3)
+        summary = case_summary(WORDS, days)
+        self.assertEqual((summary["calls"], summary["repaired"]), (5, 2))
+        self.assertEqual((summary["input_tokens"], summary["output_tokens"]), (2000, 3120))
+        self.assertAlmostEqual(summary["cost_usd"], 0.0011)
+
+    def test_a_404_on_the_first_day_stops_the_case_and_a_later_one_is_an_error_day(self):
+        def not_found(body):
+            raise RouteNotFound("HTTP 404: not found")
+
+        with self.assertRaises(RouteNotFound):
+            run_case(WORDS, not_found, runs=3)
+        calls = []
+
+        def later(body):
+            calls.append(body)
+            if len(calls) == 2:
+                raise RouteNotFound("HTTP 404: not found")
+            return {"row": {"word": f"w{len(calls)}", "kind": "noun", "rank": 1}, "outcome": "written", "calls": 1,
+                    "usage": {}}
+
+        days = run_case(WORDS, later, runs=3)
+        self.assertEqual([(day.outcome, day.reason) for day in days],
+                         [("written", None), ("error", "HTTP 404"), ("written", None)])
+
     def test_an_empty_text_field_is_invalid_unless_the_prompt_leaves_it_empty(self):
         row = {"word": "a", "kind": " ", "rank": 1}
         days = run_case(WORDS, answering([row])[0], runs=1)
@@ -109,6 +151,39 @@ class RunCaseTests(unittest.TestCase):
         self.assertEqual({body["prompt"] for body in sent[15:]}, {refine.refined})
         self.assertIn("Italian", refine.refined)
         self.assertEqual(len(sent[15]["recent"]), 15)
+
+    def test_a_refine_passes_only_when_its_rows_from_the_switch_leave_the_first_topic(self):
+        refine = next(case for case in CASES if case.id == "refine-cooking")
+        spanish = ["sartén", "cuchara", "olla", "picar", "hervir", "sofreír", "ajo", "cebolla", "aceite", "freír",
+                   "horno", "pimentón", "rallar", "batir", "jamón"]
+        italian = ["mestolo", "soffritto", "tagliere", "mantecare", "pentola", "grattugia", "sbattere", "aglio",
+                   "cipolla", "forno", "padella", "frullare", "rosolare", "guanciale", "basilico"]
+
+        def run(later):
+            post, _ = answering([{"word": word, "definition": "d"} for word in spanish + later])
+            days = run_case(refine, post, runs=30)
+            return days, case_summary(refine, days)
+
+        days, summary = run(italian)
+        self.assertEqual(summary["refine"], {"switch_at": 16, "repeats_earlier_key": [], "earlier_letters": [],
+                                             "passed": True})
+        self.assertTrue(summary["passed"])
+        self.assertIn("| yes | yes |", summary_table([summary]))
+
+        # Day 16 repeats a Spanish word (in another case and form), and day 20 is Spanish by its letters.
+        days, summary = run(["CUCHARA"] + italian[1:4] + ["albóndiga"] + italian[5:])
+        self.assertEqual(summary["refine"], {"switch_at": 16, "repeats_earlier_key": [16], "earlier_letters": [20],
+                                             "passed": False})
+        self.assertFalse(summary["passed"])
+        self.assertIn("| no | no |", summary_table([summary]))
+        section = automations.rows_section(refine, days)
+        self.assertIn("16. CUCHARA / d (repeats day 2)", section)
+        self.assertIn("20. albóndiga / d (a letter of the first topic's language)", section)
+
+        # Without a refine there is nothing to check.
+        plain = case_summary(WORDS, run_case(WORDS, answering([{"word": "a", "kind": "n", "rank": 1}])[0], runs=1))
+        self.assertIsNone(plain["refine"])
+        self.assertIn("| - | yes |", summary_table([plain]))
 
 
 class CaseTests(unittest.TestCase):
@@ -169,17 +244,70 @@ class MainTests(unittest.TestCase):
             self.assertIn("| couple-question | 3 | 3 | 3 | 0 | 0 |", (out / "summary.md").read_text())
 
     def test_a_refused_request_is_not_tried_again(self):
+        for code, error in ((404, RouteNotFound), (400, RuntimeError), (413, RuntimeError)):
+            tries = []
+
+            def urlopen(request, timeout):
+                tries.append(request)
+                raise urllib.error.HTTPError(request.full_url, code, "No", {}, io.BytesIO(b"refused\n"))
+
+            with mock.patch("automations.urllib.request.urlopen", urlopen):
+                with self.assertRaises(error) as caught:
+                    automations.poster("https://dev.example", "s")({"prompt": "p"})
+            self.assertEqual(len(tries), 1, code)
+            self.assertEqual(str(caught.exception), f"HTTP {code}: refused")
+            self.assertEqual(type(caught.exception) is RouteNotFound, code == 404)
+
+    def run_main(self, base_url, urlopen, cases="couple-question,stoic-quote"):
+        """main's exit code, stdout, and stderr, run with `urlopen` as the network and the results in a temporary
+        folder."""
+        with tempfile.TemporaryDirectory() as temp:
+            secret_file = Path(temp) / "secret"
+            secret_file.write_text("s3cret-value\n")
+            out, err = io.StringIO(), io.StringIO()
+            with mock.patch("automations.ARTIFACTS", Path(temp) / "evals"), \
+                    mock.patch("automations.urllib.request.urlopen", urlopen), \
+                    contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                try:
+                    code = automations.main([base_url, str(secret_file), "--cases", cases, "--runs", "30"])
+                except SystemExit as exit:
+                    code = exit.code
+            return code, out.getvalue(), err.getvalue()
+
+    def test_a_404_on_the_first_day_stops_the_run_with_its_own_exit_code(self):
         tries = []
 
         def urlopen(request, timeout):
-            tries.append(request)
+            tries.append(json.loads(request.data))
             raise urllib.error.HTTPError(request.full_url, 404, "Not Found", {}, io.BytesIO(b"not found\n"))
 
-        with mock.patch("automations.urllib.request.urlopen", urlopen):
-            with self.assertRaises(RuntimeError) as caught:
-                automations.poster("https://dev.example", "s")({"prompt": "p"})
-        self.assertEqual(len(tries), 1)
-        self.assertEqual(str(caught.exception), "HTTP 404: not found")
+        code, out, err = self.run_main("https://dev.example", urlopen)
+        self.assertEqual(code, automations.NOT_FOUND_EXIT)
+        self.assertEqual(code, 2)
+        # At most each case's first day, once (a case that had not started yet is cancelled), and nothing after it.
+        self.assertIn(len(tries), (1, 2))
+        self.assertEqual(len({body["prompt"] for body in tries}), len(tries))
+        self.assertEqual({body["runAt"] for body in tries}, {automations.run_times(1)[0]})
+        self.assertIn("Stopped: the first day got HTTP 404: not found.", err)
+        self.assertIn("DEV_REGISTRATION_SECRET", err)
+        self.assertNotIn("s3cret", out + err)
+
+    def test_the_base_url_is_https_or_plain_http_to_a_local_host_only(self):
+        for base, allowed in (("http://dev.example", False), ("http://localhost.example:8787", False),
+                              ("ftp://localhost", False), ("localhost:8787", False), ("https://", False),
+                              ("http://10.0.0.1:8787", False), ("https://dev.example", True),
+                              ("http://localhost:8787", True), ("http://127.0.0.1:8787/", True)):
+            urlopen = mock.MagicMock()
+            urlopen.return_value.__enter__.return_value.read.return_value = json.dumps(
+                {"row": {"question": "Q?"}, "outcome": "written", "calls": 1, "usage": {}}).encode()
+            code, _, err = self.run_main(base, urlopen, cases="couple-question")
+            if allowed:
+                self.assertEqual(urlopen.call_count, 30, base)
+                self.assertTrue(urlopen.call_args.args[0].full_url.endswith("/v1/dev/run"), base)
+            else:
+                self.assertEqual(code, 2, base)
+                self.assertIn("must be an https URL", err, base)
+                self.assertEqual(urlopen.call_count, 0, base)
 
 
 class SummaryTests(unittest.TestCase):

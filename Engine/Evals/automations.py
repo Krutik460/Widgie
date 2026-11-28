@@ -8,19 +8,25 @@ fed back as the newest of the recent rows of the next day, the last 60 as the co
 simulates consecutive days of one widget. A refine case switches to its second prompt halfway, on the same history.
 
 For every case it records each day's row, outcome, refusal reason, model calls, and cost; counts invalid rows,
-exact repeats (every text field the same, ignoring case and surrounding space) and near repeats (the case's key
-field the same); and writes everything to Engine/.artifacts/evals/<name>/, with summary.md and summary.json.
+exact repeats (every text field the same, ignoring case, Unicode normalization, and surrounding space, as the
+Worker compares them) and near repeats (the case's key field the same); checks that a refine left its first topic
+behind; and writes everything to Engine/.artifacts/evals/<name>/, with summary.md and summary.json.
 
     python3 -I Engine/Evals/automations.py <base url> <secret file> [--cases id,id] [--runs 30] [--name NAME]
 
-The secret file holds the dev Worker's DEV_REGISTRATION_SECRET. It is sent in a header and never printed.
+The secret file holds the dev Worker's DEV_REGISTRATION_SECRET. It is sent in a header and never printed, so the
+base URL must be https (plain http only to localhost or 127.0.0.1, for a local `wrangler dev`). A 404 on a case's
+first day means the secret is wrong or the Worker has no dev run route: the run stops there with exit code 2, and
+exit code 1 means a case failed.
 """
 
 import argparse
 import json
 import sys
 import time
+import unicodedata
 import urllib.error
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -44,6 +50,14 @@ USER_AGENT = "widgie-evals/1"
 TIMEOUT_S = 200
 # Tries of one day's request when the Worker itself fails (a network error or a status other than 200).
 TRIES = 3
+# The hosts a base URL may name over plain http: a local `wrangler dev`, where the secret never crosses a network.
+LOCAL_HOSTS = ("localhost", "127.0.0.1")
+# The exit code of a run stopped because its first day got 404 (exit code 1 is a failed case).
+NOT_FOUND_EXIT = 2
+
+
+class RouteNotFound(RuntimeError):
+    """The Worker answered 404: the secret is wrong, or it has no dev run route (not `dev`, or an older deploy)."""
 
 
 @dataclass(frozen=True)
@@ -60,6 +74,9 @@ class Case:
     allowed: tuple = ()
     # Text fields the owner's prompt leaves empty, which a valid row may hold as "".
     may_be_empty: tuple = ()
+    # A refine: letters of the first topic's language that the refined topic's never writes. A refined key with one
+    # is still in the first topic.
+    refined_avoids: str = ""
 
     def prompt_on(self, day: int) -> str:
         return self.refined if self.refined and self.switch_at and day >= self.switch_at else self.prompt
@@ -103,8 +120,9 @@ CASES = [
         key="focus",
         allowed=("push", "pull", "legs"),
     ),
+    # Spanish writes ñ, ü, an acute á, í, ó, ú, and ¿ ¡; Italian writes none of them (its accents are grave, and é).
     Case(id="refine-cooking", prompt=SPANISH, fields={"word": "text", "definition": "text"}, key="word",
-         refined=ITALIAN, switch_at=16),
+         refined=ITALIAN, switch_at=16, refined_avoids="ñüáíóú¿¡"),
 ]
 
 
@@ -141,7 +159,8 @@ def recent_row(case: Case, row: dict) -> dict:
 
 
 def comparable(text: str) -> str:
-    return text.strip().lower()
+    """Text as the Worker's repeat check compares it: trimmed, NFC, lower case (Backend/src/run.ts, comparable)."""
+    return unicodedata.normalize("NFC", text.strip()).lower()
 
 
 def problems_of(case: Case, row: dict) -> list[str]:
@@ -169,6 +188,11 @@ def run_case(case: Case, post, runs: int = RUNS, log=lambda line: None) -> list[
         body = {"prompt": prompt, "fields": case.fields, "timeZone": ZONE, "runAt": run_at, "recent": recent}
         try:
             answer = post(body)
+        except RouteNotFound:
+            # Every later day would get it too, and nothing has run yet.
+            if number == 1:
+                raise
+            day = Day(number, prompt, run_at, "error", None, reason="HTTP 404")
         except Exception as error:
             day = Day(number, prompt, run_at, "error", None, reason=str(error).splitlines()[0][:200])
         else:
@@ -195,8 +219,23 @@ def run_case(case: Case, post, runs: int = RUNS, log=lambda line: None) -> list[
     return days
 
 
+def refine_check(case: Case, days: list[Day]) -> dict | None:
+    """Whether a refine's rows from its switch on are in the new topic: none repeats a key written before the switch,
+    and none holds a letter only the first topic's language writes. None for a case with no refine."""
+    if not case.refined or not case.switch_at:
+        return None
+    keys = {day.day: str(day.row.get(case.key) or "") for day in days if day.row is not None}
+    earlier = {comparable(key) for number, key in keys.items() if number < case.switch_at and key.strip()}
+    after = {number: key for number, key in keys.items() if number >= case.switch_at}
+    repeats = [number for number, key in after.items() if comparable(key) in earlier]
+    letters = [number for number, key in after.items() if any(letter in case.refined_avoids for letter in key.lower())]
+    return {"switch_at": case.switch_at, "repeats_earlier_key": repeats, "earlier_letters": letters,
+            "passed": not repeats and not letters}
+
+
 def case_summary(case: Case, days: list[Day]) -> dict:
     written = [day for day in days if day.row is not None]
+    refine = refine_check(case, days)
     costs = [day.cost_usd for day in days if day.cost_usd is not None]
     reasons: dict = {}
     for day in days:
@@ -217,41 +256,49 @@ def case_summary(case: Case, days: list[Day]) -> dict:
         "reasons": reasons,
         "cost_usd": round(sum(costs), 6) if costs else None,
         "cost_known_for": len(costs),
+        "input_tokens": sum(day.usage.get("input_tokens", 0) for day in days),
         "output_tokens": sum(day.usage.get("output_tokens", 0) for day in days),
+        "refine": refine,
         "passed": len(written) == len(days) and all(not day.problems for day in written)
-        and (bool(case.allowed) or not any(day.near_repeat_of is not None for day in written)),
+        and (bool(case.allowed) or not any(day.near_repeat_of is not None for day in written))
+        and (refine is None or refine["passed"]),
     }
 
 
 def summary_table(summaries: list[dict]) -> str:
-    """A Markdown table: one line per case, then the totals. A category case's repeats are marked as expected."""
+    """A Markdown table: one line per case, then the totals. A category case's repeats are marked as expected, and
+    `new topic` says whether a refine's rows left its first topic (- for a case with no refine)."""
     lines = [
         "| case | runs | written | valid | exact repeats | near repeats | retry | errors | calls | repaired | "
-        "cost (USD) | passed |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "cost (USD) | new topic | passed |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for s in summaries:
         expected = " (expected)" if s["repeats_expected"] else ""
         cost = "?" if s["cost_usd"] is None else f"{s['cost_usd']:.4f}"
+        topic = "-" if s["refine"] is None else ("yes" if s["refine"]["passed"] else "no")
         lines.append(f"| {s['case']} | {s['runs']} | {s['written']} | {s['valid']} | {s['exact_repeats']}{expected} | "
                      f"{s['near_repeats']}{expected} | {s['retry']} | {s['errors']} | {s['calls']} | {s['repaired']} | "
-                     f"{cost} | {'yes' if s['passed'] else 'no'} |")
+                     f"{cost} | {topic} | {'yes' if s['passed'] else 'no'} |")
     total_cost = sum(s["cost_usd"] or 0 for s in summaries)
     lines.append(f"| total | {sum(s['runs'] for s in summaries)} | {sum(s['written'] for s in summaries)} | "
                  f"{sum(s['valid'] for s in summaries)} | | | {sum(s['retry'] for s in summaries)} | "
                  f"{sum(s['errors'] for s in summaries)} | {sum(s['calls'] for s in summaries)} | "
-                 f"{sum(s['repaired'] for s in summaries)} | {total_cost:.4f} | "
+                 f"{sum(s['repaired'] for s in summaries)} | {total_cost:.4f} | | "
                  f"{sum(s['passed'] for s in summaries)}/{len(summaries)} |")
     return "\n".join(lines)
 
 
 def rows_section(case: Case, days: list[Day]) -> str:
-    """Every day's row, to read for topic and quality, with its repeats and problems marked."""
+    """Every day's row, to read for topic and quality, with its repeats, problems, and a refine's misses marked."""
     lines = [f"## {case.id}", ""]
-    if case.refined:
+    refine = refine_check(case, days)
+    if refine is not None:
         lines.append(f"Days {case.switch_at} on run the refined prompt.\n")
     for day in days:
         marks = []
+        if refine is not None and day.day in refine["earlier_letters"]:
+            marks.append("a letter of the first topic's language")
         if day.exact_repeat_of:
             marks.append(f"repeats day {day.exact_repeat_of}")
         elif day.near_repeat_of:
@@ -284,7 +331,9 @@ def poster(base_url: str, secret: str):
                 with error:
                     text = error.read().decode(errors="replace").strip()
                 last = f"HTTP {error.code}: {text[:200]}"
-                if error.code in (400, 404, 413):
+                if error.code == 404:
+                    raise RouteNotFound(last) from None
+                if error.code in (400, 413):
                     break
             except (urllib.error.URLError, TimeoutError, OSError) as error:
                 last = f"request failed: {error}"
@@ -299,9 +348,20 @@ def write_json(path: Path, value) -> None:
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n")
 
 
+def base_url(text: str) -> str:
+    """The Worker's base URL, refused unless it is https or plain http to a local host, since the secret goes in a
+    header."""
+    parts = urllib.parse.urlsplit(text)
+    if parts.hostname and (parts.scheme == "https" or (parts.scheme == "http" and parts.hostname in LOCAL_HOSTS)):
+        return text
+    raise argparse.ArgumentTypeError(f"{text!r} must be an https URL (http only to {' or '.join(LOCAL_HOSTS)}), "
+                                     "since the dev secret goes in a header")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("base_url", help="the dev Worker, such as https://widgie-dev.<account>.workers.dev")
+    parser.add_argument("base_url", type=base_url,
+                        help="the dev Worker, such as https://widgie-dev.<account>.workers.dev")
     parser.add_argument("secret_file", type=Path, help="a file holding DEV_REGISTRATION_SECRET")
     parser.add_argument("--cases", help="comma-separated case ids (default: all)")
     parser.add_argument("--runs", type=int, default=RUNS)
@@ -321,9 +381,16 @@ def main(argv: list[str] | None = None) -> int:
 
     out = ARTIFACTS / args.name
     post = poster(args.base_url, secret)
-    # Cases run side by side, each day of a case after the one before it.
-    with ThreadPoolExecutor(max_workers=len(cases)) as pool:
-        results = list(pool.map(lambda case: run_case(case, post, args.runs, log=print), cases))
+    # Cases run side by side, each day of a case after the one before it. A 404 on a first day stops them all: every
+    # case gets it at once, before any model call.
+    try:
+        with ThreadPoolExecutor(max_workers=len(cases)) as pool:
+            results = list(pool.map(lambda case: run_case(case, post, args.runs, log=print), cases))
+    except RouteNotFound as error:
+        print(f"Stopped: the first day got {error}. Either the secret in {args.secret_file} is not the dev Worker's "
+              f"DEV_REGISTRATION_SECRET, or {args.base_url} has no POST /v1/dev/run (it routes only where ENVIRONMENT "
+              "is dev, from a deploy of phase 3 P5 on).", file=sys.stderr)
+        return NOT_FOUND_EXIT
 
     summaries = []
     for case, days in zip(cases, results):
