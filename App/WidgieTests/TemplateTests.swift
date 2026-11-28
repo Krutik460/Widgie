@@ -275,6 +275,26 @@ import WidgetEngine
                 == ["answer"])
     }
 
+    /// The small Word of the day keeps the meaning up to its first comma or semicolon outside brackets, and all of
+    /// it when nothing comes before the first, so it never cuts inside brackets or shows only a full stop.
+    @Test func theSmallWordOfTheDayCutsTheMeaningOnlyOutsideBrackets() async throws {
+        func small(_ definition: String) async throws -> Data {
+            let rows = #"""
+                {"words": [{"word": "breve", "kind": "adjective", "definition": "\#(definition)",
+                  "example": "Fue un viaje breve."}]}
+                """#
+            let template = try Template.bundled("word-of-the-day")
+            let proof = try await withRows(rows) {
+                try await Engine.proof(template.source(), state: $0, family: .small)
+            }
+            #expect(proof.verdict == nil, "\(definition) draws")
+            return proof.png
+        }
+        #expect(try await small("(of a song, a poem) short; lasting a little") == small("(of a song, a poem) short"))
+        #expect(try await small("short [as in, brief], lasting a little") == small("short [as in, brief]"))
+        #expect(try await small(", of a short visit") != small(""), "the whole meaning, not a full stop")
+    }
+
     @Test func theStreakCheckMarksTodayOrTakesItBack() async throws {
         #expect(try await buttons("streak", rows: #"{"sessions": [{"daysAgo": 1}]}"#) == ["done"])
         #expect(try await buttons("streak", rows: #"{"sessions": [{"daysAgo": 1}, {}]}"#) == ["undo"])
