@@ -88,6 +88,33 @@ struct Sky: View {
     }
 }
 
+/// The sky behind the status bar: the top of the sky, frosted, fading out just below the clock, so a page scrolled
+/// up under the status bar never shows sharp behind it. It sits over every tab page, under Make's own bar.
+struct StatusBarSky: View {
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                Rectangle().fill(.ultraThinMaterial)
+                LinearGradient(
+                    stops: [
+                        .init(color: Palette.skyTop.opacity(0.86), location: 0.48),
+                        .init(color: Palette.skyTop.opacity(0), location: 1),
+                    ], startPoint: .top, endPoint: .bottom)
+            }
+            .mask {
+                LinearGradient(
+                    stops: [.init(color: .black, location: 0.6), .init(color: .clear, location: 1)], startPoint: .top,
+                    endPoint: .bottom)
+            }
+            .frame(height: proxy.safeAreaInsets.top + 4)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .ignoresSafeArea()
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 /// How many full screen covers hide the app's own sky, each with a sky of its own.
 @MainActor @Observable
 final class SkyCovers {
