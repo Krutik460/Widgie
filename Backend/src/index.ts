@@ -9,7 +9,8 @@
 // PUT /v1/automations replaces the account's automations (the payload in docs/engine/WIRE.md) and answers {digest};
 // GET /v1/changes?after=<id> answers a page in the wire format. Those two take `Authorization: Bearer <token>`. The
 // crons claim due automation runs and run the daily upkeep (cron.ts), and the queue consumer runs them (runner.ts).
-// On `dev` only, POST /v1/dev/run runs one automation's model calls for the evals (dev-run.ts).
+// On `dev` only, POST /v1/dev/run runs one automation's model calls for the evals (dev-run.ts); production does not
+// route the path at all.
 
 import { authenticate, pull, register } from "./accounts";
 import { APPLE_ROOT } from "./apple-root";
@@ -73,16 +74,29 @@ const ROUTES = new Map<string, { method: string; route: Route }>([
     ["/v1/account", { method: "POST", route: account }],
     ["/v1/automations", { method: "PUT", route: automations }],
     ["/v1/changes", { method: "GET", route: changes }],
+]);
+
+/// Routed only by `devRoute`.
+const DEV_ROUTES = new Map<string, { method: string; route: Route }>([
     ["/v1/dev/run", { method: "POST", route: devRun }],
 ]);
 
 export async function handle(request: Request, env: Env, deps: Dependencies): Promise<Response> {
     const { pathname } = new URL(request.url);
     if (pathname === "/health" && request.method === "GET") return new Response("ok\n");
-    const found = ROUTES.get(pathname);
+    const found = ROUTES.get(pathname) ?? (await devRoute(request, env, pathname));
     if (!found) return new Response("not found\n", { status: 404 });
     if (request.method !== found.method) return new Response("method not allowed\n", { status: 405 });
     return found.route(request, env, deps);
+}
+
+/// A dev-only route, only where ENVIRONMENT is "dev" and the request carries DEV_REGISTRATION_SECRET in
+/// `X-Widgie-Dev-Secret`. Production never routes the path, and on dev the secret is checked before the method, so
+/// anyone else gets the 404 of an unknown path for every method.
+async function devRoute(request: Request, env: Env, pathname: string) {
+    const found = env.ENVIRONMENT === "dev" ? DEV_ROUTES.get(pathname) : undefined;
+    if (!found || !(await isDevSecret(env, request.headers.get("X-Widgie-Dev-Secret") ?? ""))) return undefined;
+    return found;
 }
 
 /// Answers and logs one line per request: the route, its status and time, and what `fields` adds. Never the words,

@@ -586,15 +586,18 @@ describe("the reply", () => {
         );
         // Thinking that took the whole cap leaves no text at all, which is a cut reply too.
         const empty = await setUp();
-        const thought = model(answer("", 0.0001, "length"), ROW);
-        expect(await run(empty.runNow, thought, NOW)).toBe("written");
+        const thought = model(answer("", 0.0003, "length"), ROW);
+        const thoughtLogs = await runLogs(async () => expect(await run(empty.runNow, thought, NOW)).toBe("written"));
         expect(sentBodies(thought).map((body) => body.max_tokens)).toEqual([1_500, 3_000]);
+        // It is billed, so the log counts it and its usage.
+        expect(thoughtLogs[0]).toMatchObject({ calls: 2, input_tokens: 800, output_tokens: 120, finish: "stop" });
+        expect(thoughtLogs[0]?.cost_usd).toBeCloseTo(0.0004, 12);
 
         const wide = await setUp({ fields: textFields(16) });
         const capped = model(answer('{"t0": "a', 0.0001, "length"));
         const logs = await runLogs(async () => expect(await run(wide.runNow, capped, NOW)).toBe("retry"));
         expect(capped).toHaveBeenCalledTimes(1);
-        expect(logs[0]).toMatchObject({ reason: "cut", finish: "length" });
+        expect(logs[0]).toMatchObject({ reason: "cut", finish: "length", calls: 1, output_tokens: 60 });
     });
 });
 

@@ -124,21 +124,12 @@ function automation(value: unknown): Automation {
     if (!isName(value.automation)) {
         throw new BadRequest('"automation" must be an id: a lowercase letter, then letters and digits, at most 32');
     }
-    if (typeof prompt !== "string" || prompt === "") throw new BadRequest('"prompt" must be a non-empty string');
-    // A string of n UTF-16 units has at most n characters, so only a long one needs counting.
-    const length = prompt.length > LIMITS.prompt ? characters(prompt) : 0;
-    if (length > LIMITS.prompt) {
-        throw new OverLimit(
-            "prompt-too-long",
-            `The prompt of "${value.automation}" is ${length} characters, and the limit is ${LIMITS.prompt}.`,
-            length,
-        );
-    }
+    const checked = promptOf(prompt, value.automation);
     if (!isUuid(dataset)) throw new BadRequest('"dataset" must be a lowercase UUID');
     return {
         widget,
         automation: value.automation,
-        prompt,
+        prompt: checked,
         cadence: cadence(value),
         dataset,
         fields: fieldKinds(fields, value.automation),
@@ -171,7 +162,25 @@ function cadence(value: Record<string, unknown>): Cadence {
     return { every, on: on as Weekday, hour, minute };
 }
 
-function fieldKinds(value: unknown, automation: string): Record<string, Kind> {
+/// The prompt, refused when it is not text, is empty, or is over LIMITS.prompt characters. The dev route checks its
+/// prompt with this too (dev-run.ts).
+export function promptOf(prompt: unknown, automation: string): string {
+    if (typeof prompt !== "string" || prompt === "") throw new BadRequest('"prompt" must be a non-empty string');
+    // A string of n UTF-16 units has at most n characters, so only a long one needs counting.
+    const length = prompt.length > LIMITS.prompt ? characters(prompt) : 0;
+    if (length > LIMITS.prompt) {
+        throw new OverLimit(
+            "prompt-too-long",
+            `The prompt of "${automation}" is ${length} characters, and the limit is ${LIMITS.prompt}.`,
+            length,
+        );
+    }
+    return prompt;
+}
+
+/// The table's fields in id order, as the runner reads them back, refused over LIMITS.fields, with a reserved or
+/// malformed id, or with a kind that is not one of KINDS. The dev route checks its fields with this too (dev-run.ts).
+export function fieldKinds(value: unknown, automation: string): Record<string, Kind> {
     if (!isObject(value)) throw new BadRequest('"fields" must map field ids to kinds, like {"word": "text"}');
     const ids = Object.keys(value).sort();
     if (ids.length > LIMITS.fields) {

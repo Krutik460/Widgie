@@ -42,14 +42,19 @@ export interface ModelReply {
     usage: Usage;
 }
 
-/// A failed call. `reason` is for the log only; the app gets a fixed line. `finish` is why the model stopped when it
-/// answered with no text, such as "length" when thinking took the whole output cap.
+/// A failed call. `reason` is for the log only; the app gets a fixed line. When the model answered with no text,
+/// `reply` is that answer with its text empty: its `finish` says why it stopped, such as "length" when thinking took
+/// the whole output cap, and its usage is what the call cost, since an answer is billed with or without text.
 export class ModelFailure extends Error {
     constructor(
         readonly reason: string,
-        readonly finish: string | null = null,
+        readonly reply: ModelReply | null = null,
     ) {
         super(reason);
+    }
+
+    get finish(): string | null {
+        return this.reply?.finish ?? null;
     }
 }
 
@@ -146,15 +151,13 @@ export async function callModel(
         throw new ModelFailure(`HTTP ${status}: ${body.error?.code ?? "no code"} ${body.error?.message ?? ""}`.trim());
     }
     const choice = body.choices?.[0];
-    const text = choice?.message?.content;
-    const finish = typeof choice?.finish_reason === "string" ? choice.finish_reason : null;
-    if (typeof text !== "string" || text.trim() === "") throw new ModelFailure("the reply held no text", finish);
+    const content = choice?.message?.content;
     const usage = body.usage;
-    return {
-        text,
+    const reply: ModelReply = {
+        text: typeof content === "string" ? content : "",
         model: body.model ?? settings.model,
         provider: body.provider ?? "unknown",
-        finish,
+        finish: typeof choice?.finish_reason === "string" ? choice.finish_reason : null,
         usage: {
             input_tokens: usage?.prompt_tokens ?? 0,
             cached_tokens: usage?.prompt_tokens_details?.cached_tokens ?? 0,
@@ -162,6 +165,8 @@ export async function callModel(
             cost_usd: usage?.cost ?? null,
         },
     };
+    if (reply.text.trim() === "") throw new ModelFailure("the reply held no text", { ...reply, text: "" });
+    return reply;
 }
 
 interface OpenRouterBody {
