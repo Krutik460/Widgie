@@ -268,7 +268,7 @@ import WidgetEngine
         let before = picture(await shared.face(saved, .medium), .medium)
 
         let draft = Engine.scratch(calendar: utc)
-        let id = try #require(try draft.copy(saved, from: shared.engine))
+        let id = try #require(try await draft.copy(saved, from: shared.engine))
         for family in Family.allCases {
             #expect(
                 picture(await face(id, in: draft, family), family).looksLike(
@@ -295,7 +295,7 @@ import WidgetEngine
         try shared.engine.receive(try page(Run(dataset: feeds.raw, at: fed, written: pull).changes(from: 1)), at: pull)
 
         let draft = Engine.scratch(calendar: utc)
-        let id = try #require(try draft.copy(saved, from: shared.engine))
+        let id = try #require(try await draft.copy(saved, from: shared.engine))
         let size = Family.small.standardSize
         let original = await shared.engine.faces(for: saved, family: .small, size: size, from: pull)
         let copied = await draft.faces(for: id, family: .small, size: size, from: pull)
@@ -314,7 +314,7 @@ import WidgetEngine
         let saved = try await shared.build(water)
         for _ in 0..<3 { try shared.engine.perform(try button("drink", on: await shared.face(saved)).tap, at: morning) }
         let draft = Engine.scratch(calendar: utc)
-        let id = try #require(try draft.copy(saved, from: shared.engine))
+        let id = try #require(try await draft.copy(saved, from: shared.engine))
 
         let bluer = WidgetSource(
             json: Data(String(decoding: water.json, as: UTF8.self).replacing("#0B2A3C", with: "#1B3A8C").utf8))
@@ -327,14 +327,102 @@ import WidgetEngine
         }
     }
 
-    @Test func aCopyOfAWidgetTheLibraryDoesNotHaveIsNil() throws {
-        #expect(try Engine.scratch(calendar: utc).copy(WidgetID(rawValue: "nothing"), from: Scratch().engine) == nil)
+    /// Another widget bound to the same dataset writes rows the copied widget reads, so the copy has them too.
+    @Test @MainActor func aCopyReadsTheRowsAnotherWidgetWroteIntoItsDataset() async throws {
+        let shared = Scratch()
+        let source = try fixture("water")
+        let saved = try await shared.build(source)
+        let other = try await shared.build(source)
+        let store = try shared.engine.store()
+        let owner = try #require(WidgetKey(parsing: saved.rawValue))
+        let reader = try #require(WidgetKey(parsing: other.rawValue))
+        let glasses = try #require(try store.widget(owner)?.spec.table(named: "glasses")).id
+        try store.bind(reader, table: glasses, to: try #require(try store.dataset(of: owner, table: glasses)))
+        try shared.engine.perform(try button("drink", on: await shared.face(saved)).tap, at: morning)
+        for _ in 0..<2 { try shared.engine.perform(try button("drink", on: await shared.face(other)).tap, at: morning) }
+
+        let draft = Engine.scratch(calendar: utc)
+        let id = try #require(try await draft.copy(saved, from: shared.engine))
+        let three = #"{"glasses": [{"daysAgo": 0, "repeat": 3}]}"#
+        for family in Family.allCases {
+            #expect(
+                picture(await face(id, in: draft, family), family).looksLike(
+                    try await expected(source, rows: three, family)))
+        }
+    }
+
+    /// A row deleted in the library is not copied, so it never comes back in the draft.
+    @Test @MainActor func aRowDeletedInTheLibraryStaysOutOfTheCopy() async throws {
+        let shared = Scratch()
+        let source = try fixture("water")
+        let saved = try await shared.build(source)
+        for _ in 0..<3 { try shared.engine.perform(try button("drink", on: await shared.face(saved)).tap, at: morning) }
+        try shared.engine.perform(try button("undo", on: await shared.face(saved)).tap, at: morning)
+
+        let draft = Engine.scratch(calendar: utc)
+        let id = try #require(try await draft.copy(saved, from: shared.engine))
+        let two = #"{"glasses": [{"daysAgo": 0, "repeat": 2}]}"#
+        for family in Family.allCases {
+            #expect(
+                picture(await face(id, in: draft, family), family).looksLike(
+                    try await expected(source, rows: two, family)))
+        }
+    }
+
+    /// A restore drops a table a later revision added, but keeps its binding, so a refinement that adds it back
+    /// reads its rows again. The copy keeps that binding and those rows, so the draft shows what Save will.
+    @Test @MainActor func aCopyKeepsTheBindingOfATableARestoreDroppedAndItsRows() async throws {
+        let shared = Scratch()
+        let first = document(look: counterLook())
+        let spilled = document(
+            look: counterLook(
+                "{ type: 'text', value: ctx.data.n + '/' + ctx.data.s, size: 30, color: '#FFFFFF', lineLimit: 1 }",
+                extra: "{ type: 'button', action: 'spill', children: [{ type: 'text', value: 'spill', size: 12 }] },"),
+            tables: ["taps": ["fields": [:] as [String: Any]], "spills": ["fields": [:] as [String: Any]]],
+            queries: ["n": ["count": "taps", "window": "all"], "s": ["count": "spills", "window": "all"]],
+            actions: ["add": ["insert": "taps"], "spill": ["insert": "spills"]])
+        let saved = try await shared.build(first)
+        _ = try await shared.build(spilled, replacing: saved)
+        for _ in 0..<2 { try shared.engine.perform(try button("spill", on: await shared.face(saved)).tap, at: morning) }
+        try shared.engine.restore(saved, to: try #require(try shared.engine.history(of: saved).last))
+        let key = try #require(WidgetKey(parsing: saved.rawValue))
+        let library = try shared.engine.store().bindings(of: key)
+        #expect(library["spills"] != nil)
+
+        let draft = Engine.scratch(calendar: utc)
+        let id = try #require(try await draft.copy(saved, from: shared.engine))
+        let copy = try #require(WidgetKey(parsing: id.rawValue))
+        #expect(try draft.store().bindings(of: copy) == library)
+        #expect(try await build(spilled, in: draft, replacing: id) == id)
+        let two = #"{"spills": [{"daysAgo": 0, "repeat": 2}]}"#
+        #expect(picture(await face(id, in: draft)).looksLike(try await expected(spilled, rows: two)))
+    }
+
+    /// The copy holds the person's dataset keys, so a scratch engine refuses both ways to sync: an automation
+    /// upload from its drafts would replace the person's automations, and a pull would write into the copy.
+    @Test func aScratchEngineNeverSyncs() async throws {
+        let shared = Scratch()
+        let saved = try await shared.build(try fixture("wotd"))
+        let words = try dataset(of: saved, in: shared.engine)
+        let draft = Engine.scratch(calendar: utc)
+        _ = try #require(try await draft.copy(saved, from: shared.engine))
+        let pulled = try page(
+            Run(dataset: words, at: morning, written: morning, cells: ["word": "Petrichor"]).changes(from: 1))
+
+        #expect(throws: EngineError.self) { try draft.automationPayload() }
+        #expect(throws: EngineError.self) { try draft.receive(pulled, at: morning) }
+        #expect(try draft.watermark() == 0)
+    }
+
+    @Test func aCopyOfAWidgetTheLibraryDoesNotHaveIsNil() async throws {
+        let draft = Engine.scratch(calendar: utc)
+        #expect(try await draft.copy(WidgetID(rawValue: "nothing"), from: Scratch().engine) == nil)
     }
 
     @Test func onlyAScratchEngineTakesACopy() async throws {
         let shared = Scratch()
         let saved = try await shared.build(try fixture("water"))
-        #expect(throws: EngineError.self) { try Scratch().engine.copy(saved, from: shared.engine) }
+        await #expect(throws: EngineError.self) { try await Scratch().engine.copy(saved, from: shared.engine) }
     }
 
     private func build(_ source: WidgetSource, in engine: Engine, replacing: WidgetID? = nil) async throws

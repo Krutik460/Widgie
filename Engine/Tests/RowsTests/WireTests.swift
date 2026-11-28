@@ -180,8 +180,7 @@ func refused<T>(_ name: String, _ vector: JSONValue, _ decode: () throws -> T) {
                     ]),
                 ]).encoded(), as: UTF8.self))
         let commits = Mutex(0)
-        let store = try RowStore.open(
-            directory: temporaryDirectory(), onCommit: { commits.withLock { $0 += 1 } }, isScratch: true)
+        let store = try RowStore.inMemory(isScratch: false, onCommit: { commits.withLock { $0 += 1 } })
         let widget = WidgetKey.mint()
         let table = try #require(spec.table(named: "words"))
         let pages = try scenario["steps"].items.map { try Page(json: $0["page"].data) }

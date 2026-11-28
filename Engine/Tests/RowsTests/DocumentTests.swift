@@ -90,8 +90,8 @@ import Testing
     }
 
     @Test func aRefinementOfAReceivedHeadNotProvedHereMustKeepTheFieldsItAdded() throws {
-        let store = try RowStore.scratch()
-        let pad = try RowStore.scratch()
+        let store = try RowStore.inMemory(isScratch: false)
+        let pad = try RowStore.inMemory(isScratch: false)
         let key = WidgetKey.mint()
         let first = try store.save(key, spec: counter(fields: "{}"), assets: [:])
         Thread.sleep(forTimeInterval: 0.01)
@@ -107,8 +107,8 @@ import Testing
     }
 
     @Test func aRefinementMustAgreeOnKindsWithASharersReceivedHeadNotProvedHere() throws {
-        let store = try RowStore.scratch()
-        let pad = try RowStore.scratch()
+        let store = try RowStore.inMemory(isScratch: false)
+        let pad = try RowStore.inMemory(isScratch: false)
         let mine = WidgetKey.mint()
         let theirs = WidgetKey.mint()
         _ = try store.save(mine, spec: counter(fields: "{}"), assets: [:])
@@ -127,8 +127,8 @@ import Testing
     }
 
     @Test func aRefinementMustAgreeOnKindsWithTheRevisionASharerDrawsWhenItsHeadIsNotProvedHere() throws {
-        let store = try RowStore.scratch()
-        let pad = try RowStore.scratch()
+        let store = try RowStore.inMemory(isScratch: false)
+        let pad = try RowStore.inMemory(isScratch: false)
         let mine = WidgetKey.mint()
         let theirs = WidgetKey.mint()
         _ = try store.save(mine, spec: counter(fields: "{}"), assets: [:])

@@ -86,14 +86,18 @@ final class Preview {
     }
 
     /// Copies a library widget into the scratch engine with a copy of its rows and shows it with them, so the draft
-    /// starts as the widget looks now, and refining it never writes the person's rows. Returns the draft's id in the
-    /// scratch engine, or nil, with the reason logged, when the widget is gone or cannot be copied.
+    /// starts as the widget looks now, and refining it never writes the person's rows. The copy runs off the main
+    /// actor, and nothing goes on show until it is whole, so the draft never shows empty first. Returns the draft's
+    /// id in the scratch engine, or nil, with the reason logged, when the widget is gone or cannot be copied.
     func copy(_ saved: WidgetID) async -> WidgetID? {
         do {
-            guard let draft = try engine.copy(saved, from: library) else {
+            let started = ContinuousClock.now
+            guard let draft = try await engine.copy(saved, from: library) else {
                 log.error("copy: \(saved.rawValue, privacy: .public) is no longer in the library")
                 return nil
             }
+            let took = (ContinuousClock.now - started).formatted(.units(fractionalPart: .show(length: 2)))
+            log.info("copy: copied in \(took, privacy: .public)")
             return await show(draft, keepingRows: true) ? draft : nil
         } catch {
             log.error("copy: \(error.message, privacy: .public)")

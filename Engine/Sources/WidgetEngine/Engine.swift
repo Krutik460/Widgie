@@ -292,7 +292,8 @@ public final class Engine: Sendable {
     /// stops at the first change stamped more than 10 minutes ahead of `date`, so that change and the rest come
     /// again in the next pull, and drops for good a cell over the limits a tap obeys; both are logged.
     /// `onCommit` runs only when the page changed a row, a cell, or who counts as the person, so a replayed page
-    /// reloads nothing. Throws only when the store cannot be opened or written.
+    /// reloads nothing. Throws for a scratch engine, which never syncs (its rows may be a copy of the person's under
+    /// their dataset keys), and when the store cannot be opened or written.
     public func receive(_ page: RemotePage, at date: Date = .now) throws(EngineError) {
         let store = try self.store()
         let received = try attempt { () throws(StoreError) in try store.receive(page.page, now: date) }
@@ -319,9 +320,10 @@ public final class Engine: Sendable {
     /// Every automation of the account, as the body of `PUT /v1/automations` (docs/engine/WIRE.md): one entry
     /// per automation of each live widget, as the revision it draws defines it, with the dataset it writes, plus
     /// this engine's current time zone, which every automation runs in. The digest changes whenever the body
-    /// does: after a save, a refinement, a restore, a roll back, a delete, or a move to another time zone.
+    /// does: after a save, a refinement, a restore, a delete, or a move to another time zone.
     /// Throws when a live widget's drawn revision cannot be read on this device, since the upload replaces every
-    /// automation and leaving that widget's automations out would make the server delete their future rows.
+    /// automation and leaving that widget's automations out would make the server delete their future rows. Throws
+    /// for a scratch engine, which never syncs: its widgets are drafts, and their upload would replace the person's.
     public func automationPayload() throws(EngineError) -> AutomationPayload {
         let store = try self.store()
         let payload = try attempt { () throws(StoreError) in try store.automationPayload(timeZone: calendar.timeZone) }

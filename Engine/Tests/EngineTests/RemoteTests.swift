@@ -350,19 +350,6 @@ func dataset(of widget: WidgetID, in engine: Engine) throws -> String {
         #expect(try scratch.engine.automationPayload().digest == empty)
     }
 
-    @Test func theDigestFollowsARollBack() async throws {
-        let root = FileManager.default.temporaryDirectory.appending(path: "payload-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: root) }
-        let scratch = Engine.scratch(under: root, calendar: utc)
-        guard case .saved(let id) = try await scratch.build(try fixture("wotd")) else { throw Unexpected() }
-        let saved = try scratch.automationPayload().digest
-        let checkpoint = try scratch.checkpoint(of: id)
-        _ = try await scratch.build(try refined("wotd"), replacing: id)
-        #expect(try scratch.automationPayload().digest != saved)
-        try scratch.rollBack(to: checkpoint)
-        #expect(try scratch.automationPayload().digest == saved)
-    }
-
     /// Automations follow the phone's current time zone, so moving changes the payload and the app uploads it.
     @Test func theDigestFollowsTheTimeZone() async throws {
         let scratch = Scratch()
