@@ -14,6 +14,16 @@ settings:
     MARKETING_VERSION: "0.1"
     CURRENT_PROJECT_VERSION: "1"
     TARGETED_DEVICE_FAMILY: "1"
+    # The Keychain group the app and the extension share, which holds the account token (Hosting.account). The
+    # entitlements list it, and both Info.plist files name it as WidgieKeychainGroup for the Keychain queries.
+    WIDGIE_KEYCHAIN_GROUP: $(AppIdentifierPrefix)dev.krutikpatel.widgie.shared
+  # The backend the app builds through and both processes reach the account on: the dev Worker in Debug, production
+  # in Release (ModelService.swift, Hosting.account).
+  configs:
+    Debug:
+      WIDGIE_MODEL_SERVICE: https://widgie-dev.krutikpatel-patel.workers.dev
+    Release:
+      WIDGIE_MODEL_SERVICE: https://widgie.krutikpatel-patel.workers.dev
 packages:
   WidgetEngine:
     path: ../Engine
@@ -36,7 +46,7 @@ targets:
         products: [WidgetEngine, WidgetBuilder, WidgetHosting]
       - target: WidgieWidgets
     # Entitlements are two checked-in files, set per configuration below: XcodeGen's `entitlements:` writes one
-    # file, and App Attest's environment differs. Both keep the App Group.
+    # file, and App Attest's environment differs. Both keep the App Group and the shared Keychain group.
     info:
       path: Widgie/Info.plist
       properties:
@@ -45,8 +55,9 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         EngineAppGroup: group.dev.krutikpatel.widgie
         EngineURLScheme: widgie
-        # The backend a phone builds through: the dev Worker in Debug, production in Release (ModelService.swift).
+        # The backend a phone builds through and the account lives on (ModelService.swift, Hosting.account).
         WidgieModelService: $(WIDGIE_MODEL_SERVICE)
+        WidgieKeychainGroup: $(WIDGIE_KEYCHAIN_GROUP)
         # What App Attest puts in this build's attestations, which the Debug capture writes into its fixture: the
         # app id the Worker's APP_ID must equal, and the entitlements file's appattest-environment.
         WidgieAppAttestAppId: $(DEVELOPMENT_TEAM).$(PRODUCT_BUNDLE_IDENTIFIER)
@@ -56,6 +67,10 @@ targets:
             CFBundleURLSchemes: [widgie]
     # Debug only: the dev bridge on the Mac and plain HTTP to it, which the simulator uses because it has no App
     # Attest. A phone uses WidgieModelService over HTTPS, and a Release build keeps App Transport Security whole.
+    # Also Debug only: WidgieDevSecret, the dev Worker's DEV_REGISTRATION_SECRET, with which the simulator registers
+    # its account (Registration.swift), when the build has WIDGIE_DEV_SECRET: from the environment of xcodebuild, or
+    # from App/Secrets.xcconfig (`WIDGIE_DEV_SECRET = ...`), which git ignores and Debug.xcconfig includes. Never
+    # committed, and a Release build has no such key.
     postBuildScripts:
       - name: Debug model bridge
         basedOnDependencyAnalysis: false
@@ -64,12 +79,15 @@ targets:
         script: |
           [ "$CONFIGURATION" = Debug ] || exit 0
           plist="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
-          for key in WidgieModelBridge NSAppTransportSecurity; do
+          for key in WidgieModelBridge NSAppTransportSecurity WidgieDevSecret; do
             /usr/libexec/PlistBuddy -c "Delete :$key" "$plist" 2>/dev/null || true
           done
           /usr/libexec/PlistBuddy -c "Add :WidgieModelBridge string http://127.0.0.1:8787" \
             -c "Add :NSAppTransportSecurity dict" \
             -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$plist"
+          if [ -n "${WIDGIE_DEV_SECRET:-}" ]; then
+            /usr/libexec/PlistBuddy -c "Add :WidgieDevSecret string $WIDGIE_DEV_SECRET" "$plist"
+          fi
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.krutikpatel.widgie
@@ -82,12 +100,12 @@ targets:
         Debug:
           CODE_SIGN_ENTITLEMENTS: Widgie/Widgie-Debug.entitlements
           WIDGIE_APP_ATTEST_ENVIRONMENT: development
-          WIDGIE_MODEL_SERVICE: https://widgie-dev.krutikpatel-patel.workers.dev
         Release:
           CODE_SIGN_ENTITLEMENTS: Widgie/Widgie-Release.entitlements
           WIDGIE_APP_ATTEST_ENVIRONMENT: production
-          WIDGIE_MODEL_SERVICE: https://widgie.krutikpatel-patel.workers.dev
           EXCLUDED_SOURCE_FILE_NAMES: Fixtures
+    configFiles:
+      Debug: Debug.xcconfig
   # Unit tests of the app's view models, hosted in the app so UIKit is there. They use a scripted model and
   # temporary engines, never the bridge or the App Group store.
   WidgieTests:
@@ -112,12 +130,16 @@ targets:
       path: WidgieWidgets/WidgieWidgets.entitlements
       properties:
         com.apple.security.application-groups: [group.dev.krutikpatel.widgie]
+        keychain-access-groups: [$(WIDGIE_KEYCHAIN_GROUP)]
     info:
       path: WidgieWidgets/Info.plist
       properties:
         CFBundleDisplayName: Widgie
         EngineAppGroup: group.dev.krutikpatel.widgie
         EngineURLScheme: widgie
+        # The pull before a render reaches the account here, with the token the app saved in the shared group.
+        WidgieModelService: $(WIDGIE_MODEL_SERVICE)
+        WidgieKeychainGroup: $(WIDGIE_KEYCHAIN_GROUP)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

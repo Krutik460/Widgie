@@ -6,10 +6,14 @@ import WidgetHosting
 @main
 struct WidgieApp: App {
     @Environment(\.scenePhase) private var phase
-    @State private var library = Library()
+    @State private var library: Library
+    @State private var account: AccountSync
 
     init() {
         Engine.removeLeftoverScratch()
+        let library = Library()
+        _library = State(initialValue: library)
+        _account = State(initialValue: AccountSync(pulled: { library.refresh() }))
     }
 
     var body: some Scene {
@@ -20,10 +24,12 @@ struct WidgieApp: App {
         .onChange(of: phase) { _, phase in
             switch phase {
             case .background:
+                account.background()
                 SharedWrites.suspend()
             case .active:
                 SharedWrites.resume()
                 library.refresh()
+                account.foreground()
             default:
                 break
             }

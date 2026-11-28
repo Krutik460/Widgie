@@ -11,5 +11,7 @@ __pycache__/
 App/Widgie.xcodeproj/
 App/Widgie/Info.plist
 App/WidgieWidgets/Info.plist
+# The dev registration secret for Debug simulator builds (App/Debug.xcconfig).
+App/Secrets.xcconfig
 # Wrangler cache when run from the repo root.
 .wrangler/
