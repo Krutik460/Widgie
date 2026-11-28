@@ -223,6 +223,75 @@ describe("replacing all", () => {
     });
 });
 
+describe("an upload of every kind of change at once", () => {
+    it("plans each automation as it would alone, adds tasks in the payload's order, and tombstones in the list's", async () => {
+        const { id, token } = await newAccount();
+        const names = ["kept", "edited", "moved", "dropped", "lost"];
+        // At most four a widget: the fifth on another.
+        const widgetOf = (name: string) => (name === "lost" ? WIDGETS[1] : WIDGET);
+        const first = names.map((name, i) =>
+            automation({ automation: name, at: `0${i + 1}:00`, widget: widgetOf(name) }),
+        );
+        await send(upload(token, payload(first)));
+        const before = await tasks(id);
+        // Parking took the kept automation's schedule; an unchanged automation gets it back.
+        await env.DB.prepare("DELETE FROM tasks WHERE account = ? AND automation = 'kept'").bind(id).run();
+        // The pending run now of the moved automation takes its new version.
+        const rows = {
+            edited: [await writeRow(id, NOW + HOUR, "edited"), await writeRow(id, NOW + DAY, "edited")],
+            moved: [await writeRow(id, NOW + DAY, "moved")],
+            dropped: [await writeRow(id, NOW + 2 * HOUR, "dropped"), await writeRow(id, NOW + DAY, "dropped")],
+            lost: [await writeRow(id, NOW + DAY, "lost", WIDGETS[1])],
+            kept: [await writeRow(id, NOW + DAY, "kept")],
+        };
+
+        const later = NOW + 5 * MINUTE;
+        const second = [
+            automation({ automation: "fresh", at: "09:00" }),
+            automation({ automation: "moved", at: "08:00" }),
+            automation({ automation: "kept", at: "01:00" }),
+            automation({ automation: "edited", at: "02:00", prompt: "Other words." }),
+        ];
+        expect((await send(upload(token, payload(second)), { now: later })).status).toBe(200);
+
+        const after = await tasks(id);
+        const of = (name: string) => after.filter((task) => task.automation === name);
+        const was = (name: string) => before.filter((task) => task.automation === name);
+        expect(after.map((task) => task.automation).sort()).toEqual(
+            ["edited", "edited", "fresh", "fresh", "kept", "moved", "moved"].sort(),
+        );
+        // New and edited: a run now and a schedule, both new.
+        for (const name of ["fresh", "edited"]) {
+            const version = await versionOf(id, name);
+            expect(of(name)[0]).toMatchObject({ once: 1, version, run_at: later, due_at: later, attempts: 0 });
+            expect(of(name)[1]).toMatchObject({ once: 0, version });
+            for (const task of of(name)) expect(was(name).map((b) => b.row_key)).not.toContain(task.row_key);
+        }
+        // Moved: the pending run now kept with the new version, and a new schedule at 08:00 New York.
+        const moved = await versionOf(id, "moved");
+        expect(of("moved")[0]).toEqual({ ...was("moved")[0], version: moved });
+        expect(of("moved")[1]).toMatchObject({ once: 0, version: moved, run_at: Date.parse("2026-11-27T13:00:00Z") });
+        // Kept: its schedule back, at its own next run.
+        expect(of("kept")).toEqual([
+            expect.objectContaining({ once: 0, version: await versionOf(id, "kept"), run_at: was("kept")[1]?.run_at }),
+        ]);
+        // Removed: the automations and their tasks gone.
+        expect(await versionOf(id, "dropped")).toBeUndefined();
+        expect(await versionOf(id, "lost", WIDGETS[1])).toBeUndefined();
+        // Tasks were added in the payload's order, each run now before its schedule.
+        const added = after.filter((task) => !before.some((b) => b.id === task.id && b.row_key === task.row_key));
+        const order = [...added].sort((a, b) => a.id - b.id).map((task) => `${task.automation}/${task.once}`);
+        expect(order).toEqual(["fresh/1", "fresh/0", "moved/0", "kept/0", "edited/1", "edited/0"]);
+        // Tombstones: the changed automations in the payload's order, then the removed ones in the stored order, each
+        // one's rows ahead in id order; never the unchanged automation's.
+        const stored = (await tombstones(id)).map((t) => t.row_key);
+        const removed = ["dropped", "lost"].flatMap((name) => rows[name as "dropped" | "lost"]);
+        expect(stored.slice(0, 3)).toEqual([...rows.moved, ...rows.edited]);
+        expect(stored.slice(3).sort()).toEqual(removed.sort());
+        expect(stored).not.toContain(rows.kept[0]);
+    });
+});
+
 describe("tombstones", () => {
     it("delete the changed automation's rows still ahead, under one new stamp of the account's replica", async () => {
         const { id, token } = await newAccount();
@@ -507,7 +576,8 @@ describe("the changes indexes", () => {
     }
 
     it("serve the tombstones: an automation's rows ahead, and the check for a row already deleted", async () => {
-        const detail = await plan(TOMBSTONES, "account", "replica", NOW, WIDGET, "daily");
+        const listed = JSON.stringify([{ widget: WIDGET, automation: "daily" }]);
+        const detail = await plan(TOMBSTONES, "account", "replica", NOW, listed);
         expect(detail).toMatch(
             /SEARCH inserted USING INDEX changes_inserted \(account=\? AND widget=\? AND automation=\? AND at>\?\)/,
         );

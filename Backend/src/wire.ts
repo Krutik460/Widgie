@@ -4,6 +4,8 @@
 // a TypeScript reader with the refusal vectors. The tests check every good vector in Engine/Vectors/wire.json against
 // this writer byte for byte.
 
+import { toHex } from "./bytes";
+
 export class WireError extends Error {}
 
 /// The largest integer a JSON number holds exactly in JavaScript, 2^53 - 1: the largest change id.
@@ -96,7 +98,7 @@ export function mintRowKey(ms: number): string {
     }
     bytes[6] = 0x70 | ((bytes[6] ?? 0) & 0x0f);
     bytes[8] = 0x80 | ((bytes[8] ?? 0) & 0x3f);
-    const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    const hex = toHex(bytes);
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
@@ -182,7 +184,17 @@ export function encodeAroundStamp(change: Change): { head: string; tail: string 
 /// A page's bytes, from changes already encoded as the `changes` table stores them, so a pull never re-encodes.
 export function encodePage(replica: string, entries: { id: number; change: string }[], nextWrite: number | null) {
     const changes = entries.map((entry) => `{"id":${entry.id},"change":${entry.change}}`).join(",");
-    return `{"replica":${JSON.stringify(replica)},"changes":[${changes}],"nextWrite":${nextWrite ?? "null"}}`;
+    return encodeJoinedPage(replica, changes, nextWrite);
+}
+
+/// SQL for a page's entries joined as `encodePage` joins them, from rows with an `id` and a stored `change`, so a pull
+/// reads its entries from D1 as one string and not as a row each, which costs the Worker less CPU. SQL writes an
+/// integer id in decimal digits, as JavaScript does.
+export const PAGE_ENTRIES_SQL = `group_concat('{"id":' || id || ',"change":' || change || '}', ',' ORDER BY id)`;
+
+/// A page's bytes from its entries already joined, as PAGE_ENTRIES_SQL joins them (null for none).
+export function encodeJoinedPage(replica: string, entries: string | null, nextWrite: number | null) {
+    return `{"replica":${JSON.stringify(replica)},"changes":[${entries ?? ""}],"nextWrite":${nextWrite ?? "null"}}`;
 }
 
 export function isObject(value: unknown): value is Record<string, unknown> {

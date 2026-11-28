@@ -34,9 +34,12 @@ export function toBase64Url(bytes: Uint8Array): string {
     return toBase64(bytes).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
+/// Each byte's two lowercase hex digits, looked up rather than formatted, which costs less of the Worker's CPU.
+const HEX = Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, "0"));
+
 export function toHex(bytes: Uint8Array): string {
     let hex = "";
-    for (const byte of bytes) hex += byte.toString(16).padStart(2, "0");
+    for (const byte of bytes) hex += HEX[byte];
     return hex;
 }
 
