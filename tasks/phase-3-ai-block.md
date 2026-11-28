@@ -220,7 +220,7 @@ Starts with the wire format doc and the vectors file, which P2 also builds on.
 
 **P5 results (2026-11-27, branch `phase-3-p5-content`, stacked on `phase-3-p4-app`).** Nothing is deployed; the eval run above is the user's, after deploying `dev`.
 
-- **Copy for sign-off.** Implemented in place so it can be reviewed in the app; each line waits for the user's yes (the review gate):
+- **Copy for sign-off.** Implemented in place so it can be reviewed in the app, and the user approved every line on 2026-11-28 (the review gate):
   - Word of the day, line (`App/Templates/word-of-the-day/template.json`): "Daily words are coming soon" becomes "A new word every morning".
   - Word of the day, hint (what Widgie says when the template opens): "Daily words are on their way. For now, try Know it and Again." becomes "A new word lands at 6 every morning. Tap Know it or Again."
   - Word of the day, empty face (`widget.json`'s look, under the made-up word "pronto"): "soon. Daily words are on their way." becomes "soon. Your first word is on its way." The face shows only until the first row, which the run now writes within a minute of the upload.
