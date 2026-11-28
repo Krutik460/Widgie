@@ -6,8 +6,10 @@ import Testing
 /// scheduler (`Backend/src/schedule.ts`) checks too, so the phone reloads when the server's row is due. Each case
 /// asks for `runs.count` runs in a row, the first after `after` and each later one after the one before.
 ///
-/// The file is what this engine answers for `scheduleCases`. After changing the cases or the rule, write it again
-/// with `WIDGIE_WRITE_VECTORS=1 swift test --filter ScheduleTests` and check the Worker against it.
+/// The file is what this engine answers for `scheduleCases`, so it depends on the tz database Foundation carries as
+/// well as on the rule: after changing the cases or the rule, or when a new tz database moves a zone's changes, write
+/// it again with `WIDGIE_WRITE_VECTORS=1 swift test --filter ScheduleTests` and check the Worker against it. The
+/// Worker's test names the case and its zone when its own tz data (Intl's) answers differently.
 struct ScheduleTests {
     @Test func theVectorsFileIsWhatThisEngineAnswers() throws {
         let written = try scheduleVectors()
@@ -80,8 +82,9 @@ private struct ScheduleCase {
     }
 }
 
-/// Two daylight saving changes in each of three zones that change their clocks (New York in the north, Santiago and
-/// Lord Howe in the south, Lord Howe by half an hour), plus London, Kolkata's half-hour offset, and UTC.
+/// Two daylight saving changes in each of five zones that change their clocks (New York and St. John's in the north,
+/// Santiago, Lord Howe, and Chatham in the south; Lord Howe by half an hour, St. John's at a negative half-hour
+/// offset, Chatham at a 45-minute one), plus London, Kolkata's half-hour offset, and UTC.
 private let scheduleCases: [ScheduleCase] = {
     func daily(_ hour: Int, _ minute: Int) -> Spec.Schedule.Cadence { .daily(hour: hour, minute: minute) }
     func hourly(_ minute: Int) -> Spec.Schedule.Cadence { .hourly(minute: minute) }
@@ -91,6 +94,8 @@ private let scheduleCases: [ScheduleCase] = {
     let york = "America/New_York"
     let santiago = "America/Santiago"
     let howe = "Australia/Lord_Howe"
+    let johns = "America/St_Johns"
+    let chatham = "Pacific/Chatham"
     return [
         // New York: 02:00 becomes 03:00 on 2026-03-08, and 02:00 becomes 01:00 on 2026-11-01.
         .init("new york daily, a skipped time", york, daily(2, 30), "2026-03-07T12:00:00Z", 3),
@@ -142,6 +147,18 @@ private let scheduleCases: [ScheduleCase] = {
         .init("lord howe hourly over the spring change", howe, hourly(15), "2026-10-03T13:00:00Z", 5),
         .init("lord howe hourly on the hour over the spring change", howe, hourly(0), "2026-10-03T13:00:00Z", 5),
         .init("lord howe, between the two of a repeated time", howe, daily(1, 45), "2026-04-04T15:00:00Z", 1),
+        // St. John's, at -03:30 and -02:30: 02:00 becomes 03:00 on 2026-03-08, and 02:00 becomes 01:00 on 2026-11-01.
+        .init("st john's daily, a skipped time", johns, daily(2, 30), "2026-03-07T12:00:00Z", 3),
+        .init("st john's daily, a repeated time", johns, daily(1, 30), "2026-10-31T12:00:00Z", 3),
+        .init("st john's hourly over the spring change", johns, hourly(15), "2026-03-08T04:00:00Z", 4),
+        .init("st john's hourly over the fall change", johns, hourly(15), "2026-11-01T02:00:00Z", 5),
+        .init("st john's, between the two of a repeated time", johns, daily(1, 30), "2026-11-01T04:30:00Z", 1),
+        // Chatham, at +12:45 and +13:45: 03:45 becomes 02:45 on 2026-04-05, and 02:45 becomes 03:45 on 2026-09-27.
+        .init("chatham daily, a repeated time", chatham, daily(3, 0), "2026-04-03T12:00:00Z", 3),
+        .init("chatham daily, a time the clocks skip", chatham, daily(3, 0), "2026-09-25T12:00:00Z", 3),
+        .init("chatham hourly over the fall change", chatham, hourly(50), "2026-04-04T12:00:00Z", 5),
+        .init("chatham hourly over the spring change", chatham, hourly(0), "2026-09-26T12:00:00Z", 5),
+        .init("chatham, between the two of a repeated time", chatham, daily(3, 0), "2026-04-04T13:45:00Z", 1),
         // London: 01:00 becomes 02:00 on 2026-03-29, and 02:00 becomes 01:00 on 2026-10-25.
         .init("london daily, a skipped time", "Europe/London", daily(1, 0), "2026-03-28T12:00:00Z", 3),
         .init("london daily, a repeated time", "Europe/London", daily(1, 0), "2026-10-24T12:00:00Z", 3),
@@ -174,7 +191,7 @@ private func scheduleVectors() throws -> String {
     return """
         {
           "format": 1,
-          "about": "Schedule.nextRun(after:in:) in Engine/Sources/Spec/Automations.swift, exported by Engine/Tests/SpecTests/ScheduleTests.swift and checked by Backend/test/schedule.test.ts. Each case asks for runs in a row: the first after `after`, each later one after the one before. every, at, and on are the automation payload's spelling.",
+          "about": "Schedule.nextRun(after:in:) in Engine/Sources/Spec/Automations.swift, exported by Engine/Tests/SpecTests/ScheduleTests.swift and checked by Backend/test/schedule.test.ts. Each case asks for runs in a row: the first after `after`, each later one after the one before. every, at, and on are the automation payload's spelling. The runs depend on the tz database: regenerate the file with WIDGIE_WRITE_VECTORS=1 swift test --filter ScheduleTests, and the Worker's test names the zone of any case its Intl answers differently.",
           "cases": [
         \(lines.joined(separator: ",\n"))
           ]

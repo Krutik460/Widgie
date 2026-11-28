@@ -4,6 +4,10 @@
 // called until P3, except the three marked where the server's rule differs from Foundation and the engine now follows
 // the server: two where Foundation skips a run, and a repeated time asked from between its two instants, where
 // Foundation takes the second and the server has already run.
+//
+// The vectors depend on the tz database: the engine's runs come from Foundation's copy and these from Intl's. When a
+// new tz database moves a zone's changes, WIDGIE_WRITE_VECTORS=1 swift test --filter ScheduleTests writes the file
+// again; a case that fails here names its zone, so a runtime whose tz data lags shows which zone diverges.
 
 import { describe, expect, it } from "vitest";
 import vectors from "../../Engine/Vectors/schedule.json";
@@ -22,14 +26,20 @@ import {
 } from "../src/schedule";
 
 describe("the engine's vectors", () => {
-    it("are format 1 and cover two changes in three zones that change their clocks, in both hemispheres", () => {
+    it("are format 1 and cover two changes in five zones that change their clocks, in both hemispheres", () => {
         expect(vectors.format).toBe(1);
         const zones = new Set(vectors.cases.map((item) => item.zone));
-        for (const zone of ["America/New_York", "America/Santiago", "Australia/Lord_Howe"])
+        for (const zone of [
+            "America/New_York",
+            "America/St_Johns",
+            "America/Santiago",
+            "Australia/Lord_Howe",
+            "Pacific/Chatham",
+        ])
             expect(zones).toContain(zone);
     });
 
-    it.each(vectors.cases)("$name", (item) => {
+    it.each(vectors.cases)("$name ($zone)", (item) => {
         const on = "on" in item ? (item.on as Weekday) : null;
         const cadence = cadenceOf({ every: item.every as Cadence["every"], at: item.at, weekday: on });
         let after = Date.parse(item.after);
@@ -38,7 +48,7 @@ describe("the engine's vectors", () => {
             after = nextRun(cadence, item.zone, after);
             found.push(new Date(after).toISOString().replace(".000Z", "Z"));
         }
-        expect(found).toEqual(item.runs);
+        expect(found, `${item.zone} diverges from the engine's tz data`).toEqual(item.runs);
     });
 });
 
