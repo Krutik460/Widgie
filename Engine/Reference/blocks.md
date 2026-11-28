@@ -209,7 +209,7 @@ An `insert` row lands on today. An `insertOn` row lands on the date its button g
 
 An automation runs on the server, never on the phone. Each run asks a model the `prompt` and adds one row to the `writes` table. The model fills that table's fields, so give the table the fields the widget shows.
 
-Each run sees the table's last 60 rows and writes a new item, so a prompt such as "a word not picked before" works. A field that names a kind or a category, such as a word's part of speech, may repeat. The row is written ahead and appears on the widget at the schedule's time, so `at` is when the person sees it.
+Each run sees the last 60 rows its automation wrote and writes a new item, so a prompt such as "a word not picked before" works. A field that names a kind or a category, such as a word's part of speech, may repeat. The row is written ahead and appears on the widget at the schedule's time, so `at` is when the person sees it. A new automation, or one whose prompt or table changes, also runs once right away, so the widget does not wait for the first `at`.
 
 | Key | Holds |
 |---|---|
