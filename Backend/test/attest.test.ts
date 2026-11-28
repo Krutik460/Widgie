@@ -1,7 +1,8 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { MAX_ATTEST_BODY } from "../src/body";
 import { toBase64 } from "../src/bytes";
-import { type Dependencies, type Env, handle, MAX_ATTEST_BODY } from "../src/index";
+import { type Dependencies, type Env, handle } from "../src/index";
 import { attestation, type Chain, chain, newKey, type Party, randomChallenge, Signer } from "./helpers/appattest";
 
 const NOW = new Date("2026-11-23T12:00:00Z");

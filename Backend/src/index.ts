@@ -15,7 +15,7 @@ import { authenticate, pull, register } from "./accounts";
 import { APPLE_ROOT } from "./apple-root";
 import { environmentOf, verifyAttestation } from "./attestation";
 import { Conflict, OverLimit, parsePayload, replaceAutomations } from "./automations";
-import { readCapped, TooLarge } from "./body";
+import { MAX_ATTEST_BODY, MAX_AUTOMATIONS_BODY, MAX_BODY, readCapped, TooLarge } from "./body";
 import prompt from "./build-prompt.txt";
 import { fromBase64, sha256, toBase64, toHex } from "./bytes";
 import { scheduled } from "./cron";
@@ -37,15 +37,8 @@ export interface Dependencies {
     now?: () => Date;
 }
 
-/// Comfortably above a 1080 px JPEG in base64 plus a document, and well inside a Worker's memory.
-export const MAX_BODY = 8 * 1024 * 1024;
-/// Far above an attestation object in base64 (two certificates and a receipt, under 10 KB).
-export const MAX_ATTEST_BODY = 32 * 1024;
 /// Far above an assertion in base64 (a DER signature and 37 bytes of authenticator data, under 200 characters).
 const MAX_ASSERTION = 1024;
-/// Far above what a phone's automations take (16 with 2,000-character prompts and 16 fields each is under 64 KB): a
-/// guard on the Worker's memory, not a usage limit.
-export const MAX_AUTOMATIONS_BODY = 256 * 1024;
 
 export type Code = keyof typeof REFUSALS;
 

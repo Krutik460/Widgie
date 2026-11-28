@@ -1,9 +1,10 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import requests from "../../Engine/Evals/testdata/requests.json";
+import { MAX_BODY } from "../src/body";
 import prompt from "../src/build-prompt.txt";
 import { toBase64 } from "../src/bytes";
-import { type Env, handle, MAX_BODY } from "../src/index";
+import { type Env, handle } from "../src/index";
 import { Signer } from "./helpers/appattest";
 
 const ANSWER = {
