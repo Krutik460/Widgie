@@ -328,11 +328,11 @@ private struct Conversation: View {
         }
     }
 
-    /// Save widget under the draft, or what stopped the save.
+    /// Save widget under the draft once there is something to save, or what stopped the save.
     @ViewBuilder private var after: some View {
         if case .failed(let failure, .save) = session.phase {
             WidgieFailed(failure: failure, action: action(for: failure)).arriving()
-        } else if session.draft != nil {
+        } else if session.changed {
             Button {
                 typing = false
                 chat.save()

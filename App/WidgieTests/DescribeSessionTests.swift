@@ -16,10 +16,11 @@ import WidgetEngine
 
     @Test func aSaveTheSharedStoreRejectsRunsOneRepairTurnAndThenSaves() async throws {
         let library = try await shared.build(counterDocument())
-        let model = ScriptedModel([counter(background: "#1B3A8C", fields: noted)])
+        let model = ScriptedModel([counter(background: "#1B3A8C"), counter(background: "#1B3A8C", fields: noted)])
         let session = DescribeSession(.library(library), model: model, preview: Preview(library: shared.engine))
         await session.open()
         #expect(session.phase == .composing)
+        try await send("make it blue", in: session)
         try await shared.addNote(to: library)
 
         session.save()
@@ -28,11 +29,34 @@ import WidgetEngine
         #expect(session.phase == .saved(library))
         #expect(
             model.requests.map(\.repair?.line) == [
-                "field \"taps.note\" is gone; keep every field id so the stored values carry over"
+                nil, "field \"taps.note\" is gone; keep every field id so the stored values carry over",
             ])
         #expect(try shared.engine.history(of: library).count == 3)
         let saved = try #require(try shared.engine.source(of: library))
         #expect(String(decoding: saved.json, as: UTF8.self).contains("#1B3A8C"), "the repaired draft was saved")
+    }
+
+    /// A library widget opens on its own rows, as the feed and the home screen draw it, and a change keeps them. Save
+    /// waits for a change, since saving the widget as it is would change nothing.
+    @Test func aLibraryWidgetOpensOnItsOwnRowsAndOffersSaveOnlyOnceItChanged() async throws {
+        let library = try await shared.build(tallyDocument())
+        let revision = try #require(try shared.engine.history(of: library).first).id
+        for _ in 0..<3 {
+            try shared.engine.perform(Tap(widget: library.rawValue, revision: revision, action: "add", row: nil))
+        }
+        let session = DescribeSession(
+            .library(library), model: ScriptedModel([tally(size: 32)]), preview: Preview(library: shared.engine))
+        await session.open()
+
+        #expect(paintsRed(session.preview.faces[.small]), "the widget's three rows, not its sample's two")
+        #expect(!session.changed)
+        #expect(!session.save(), "nothing to save yet")
+        #expect(session.phase == .composing)
+
+        try await send("make the number bigger", in: session)
+        #expect(session.latest?.accepted == true)
+        #expect(session.changed)
+        #expect(paintsRed(session.preview.faces[.small]), "the change keeps the widget's rows")
     }
 
     @Test func aSessionStartedOnAnUnsavedDraftRefinesItAndSavesItAsANewWidget() async throws {
@@ -230,8 +254,11 @@ import WidgetEngine
 /// The counter, painted red once it holds more than the two rows of its sample, so a face shows whether a tap
 /// on top of the sample is there. `size` is the number's.
 private func tally(size: Int = 30) -> ScriptedModel.Answer {
-    let document = counterDocument()
+    ScriptedModel.Answer(reply: "```json\n\(tallyDocument(size: size))\n```")
+}
+
+private func tallyDocument(size: Int = 30) -> String {
+    counterDocument()
         .replacing("widgetBackground: '#102030'", with: "widgetBackground: ctx.data.n > 2 ? '#B02020' : '#2050B0'")
         .replacing("size: 30", with: "size: \(size)")
-    return ScriptedModel.Answer(reply: "```json\n\(document)\n```")
 }
