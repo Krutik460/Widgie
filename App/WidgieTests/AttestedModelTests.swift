@@ -4,6 +4,7 @@ import Foundation
 import Synchronization
 import Testing
 import WidgetBuilder
+import WidgetHosting
 
 @testable import Widgie
 
@@ -141,6 +142,27 @@ import WidgetBuilder
         #expect(!service.paths.contains("/v1/reply"))
     }
 
+    @Test func registeringSignsAnEmptyBodyForTheAccountRouteWithTheSameKey() async throws {
+        let (model, _, attestor, service) = make()
+        _ = try await model.reply(to: request)
+        #expect(try await model.registerAccount() == "token-1")
+        let register = try #require(service.requests.last)
+        #expect(register.url?.path() == "/v1/account" && register.httpMethod == "POST")
+        #expect(register.httpBody == Data())
+        #expect(register.value(forHTTPHeaderField: "X-Widgie-Key") == "key-1")
+        #expect(attestor.asserted.last == AttestedModel.clientDataHash(body: Data(), path: "/v1/account"))
+        #expect(attestor.generated == 1, "building and registering share one key")
+    }
+
+    @Test func aKeyTheServerDoesNotKnowIsReplacedWhenRegistering() async throws {
+        let (model, store, attestor, service) = make()
+        _ = try await model.reply(to: request)
+        service.answerReplies(with: [(401, #"{"error":"unknown key","code":"unknown-key"}"#)], times: 1)
+        #expect(try await model.registerAccount() == "token-1")
+        #expect(attestor.generated == 2)
+        #expect(store.load("dev") == StoredKey(keyId: "key-2", attested: true))
+    }
+
     @Test func twoCallsAtOnceAttestOnceAndReachTheServerOneAtATime() async throws {
         let (model, _, attestor, service) = make()
         async let first = model.reply(to: request)
@@ -214,9 +236,9 @@ private final class FakeAttestor: Attestor {
     }
 }
 
-/// The Worker's three routes. Challenges count up, an attestation is taken unless a scripted answer comes first,
-/// and each reply is "reply <n>" unless a scripted answer comes first.
-private final class FakeService: Transport {
+/// The Worker's attest, reply, and account routes. Challenges count up, an attestation is taken unless a scripted
+/// answer comes first, each reply is "reply <n>" and each registration "token-1" unless a scripted answer comes first.
+private final class FakeService: HTTPTransport {
     private struct State {
         var requests: [URLRequest] = []
         var challenges = 0
@@ -248,6 +270,9 @@ private final class FakeService: Transport {
                 return (200, #"{"challenge":"challenge-\#(state.challenges)"}"#)
             case "/v1/attest":
                 return state.attestations.isEmpty ? (204, "") : state.attestations.removeFirst()
+            case "/v1/account":
+                if !state.scripted.isEmpty { return state.scripted.removeFirst() }
+                return (200, #"{"token":"token-1"}"#)
             default:
                 if !state.scripted.isEmpty { return state.scripted.removeFirst() }
                 state.inFlight += 1

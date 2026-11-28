@@ -4,11 +4,13 @@ import Foundation
 import OSLog
 import Security
 import WidgetBuilder
+import WidgetHosting
 
 private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "model")
 
 /// The backend's model service, `POST <base>/v1/reply`, with each request signed by this install's App Attest key.
 /// The wire protocol is "B2 wire protocol" in tasks/phase-2b-backend.md; the Worker in Backend/ checks the same bytes.
+/// The same key registers the account the server runs automations under (`registerAccount`).
 ///
 /// One key per environment. The first call creates and attests it, and every call after signs with it. A key
 /// the phone no longer holds (`DCError.invalidKey`, after a restore or on a pending key) or the server no longer
@@ -33,7 +35,7 @@ actor AttestedModel: WidgetModel {
     private let account: String
     private let store: any KeyStore
     private let attestor: any Attestor
-    private let transport: any Transport
+    private let transport: any HTTPTransport
     private let record: (@Sendable (String, Data) -> Void)?
     /// The attestation in flight, so two calls never attest twice.
     private var attesting: Task<String, any Error>?
@@ -44,7 +46,7 @@ actor AttestedModel: WidgetModel {
     /// capture writes as a test fixture.
     init(
         base: URL, account: String, store: any KeyStore = KeychainStore(), attestor: any Attestor = AppAttestor(),
-        transport: any Transport = URLSessionTransport(), record: (@Sendable (String, Data) -> Void)? = nil
+        transport: any HTTPTransport = URLSessionTransport(), record: (@Sendable (String, Data) -> Void)? = nil
     ) {
         self.base = base
         self.account = account
@@ -56,21 +58,45 @@ actor AttestedModel: WidgetModel {
 
     func reply(to request: ModelRequest) async throws -> String {
         let body = try JSONEncoder().encode(request)
-        let previous = tail
-        let call = Task { () throws -> String in
-            await previous?.value
-            return try await signedReply(body: body)
+        let data = try await inOrder { try await self.signed("/v1/reply", body: body, timeout: 120) }
+        guard let answer = try? JSONDecoder().decode(Answer.self, from: data) else {
+            throw Self.refusal(data, status: 200)
         }
-        tail = Task { _ = try? await call.value }
-        // A cancelled build cancels its call, as URLSession does for the bridge.
+        log.info(
+            "model \(answer.model ?? "-", privacy: .public) in \(answer.seconds ?? 0, privacy: .public) s, \(answer.usage?.summary ?? "no usage", privacy: .public)"
+        )
+        return answer.reply
+    }
+
+    /// A token for the account of this install's key: `POST /v1/account` with an empty body, signed as a reply is.
+    /// The server keeps one account per key, so registering again names the same account with a new token.
+    func registerAccount() async throws -> String {
+        let data = try await inOrder { try await self.signed("/v1/account", body: Data(), timeout: 30) }
+        guard let token = (try? JSONDecoder().decode([String: String].self, from: data))?["token"] else {
+            throw Self.refusal(data, status: 200)
+        }
+        return token
+    }
+
+    /// Runs `call` once the signed call before it finished, so assertions reach the server in counter order. A
+    /// cancelled caller cancels its call, as URLSession does for the bridge.
+    private func inOrder(_ call: @escaping @Sendable () async throws -> Data) async throws -> Data {
+        let previous = tail
+        let task = Task { () throws -> Data in
+            await previous?.value
+            return try await call()
+        }
+        tail = Task { _ = try? await task.value }
         return try await withTaskCancellationHandler {
-            try await call.value
+            try await task.value
         } onCancel: {
-            call.cancel()
+            task.cancel()
         }
     }
 
-    private func signedReply(body: Data) async throws -> String {
+    /// The body of a 200 answer to `body`, posted to `path` and signed with the attested key, which is attested first
+    /// when there is none and replaced once when the phone or the server no longer knows it.
+    private func signed(_ path: String, body: Data, timeout: TimeInterval) async throws -> Data {
         var replaced = false
         while true {
             let keyId: String
@@ -83,14 +109,15 @@ actor AttestedModel: WidgetModel {
             }
             let assertion: Data
             do {
-                assertion = try await attestor.generateAssertion(keyId, clientDataHash: Self.clientDataHash(body: body))
+                assertion = try await attestor.generateAssertion(
+                    keyId, clientDataHash: Self.clientDataHash(body: body, path: path))
             } catch let error as DCError where error.code == .invalidKey && !replaced {
                 log.info("the phone no longer holds the key; attesting a new one")
                 store.delete(account)
                 replaced = true
                 continue
             }
-            var post = URLRequest(url: base.appending(path: "v1/reply"), timeoutInterval: 120)
+            var post = URLRequest(url: base.appending(path: String(path.dropFirst())), timeoutInterval: timeout)
             post.httpMethod = "POST"
             post.setValue("application/json", forHTTPHeaderField: "Content-Type")
             post.setValue(keyId, forHTTPHeaderField: "X-Widgie-Key")
@@ -99,12 +126,7 @@ actor AttestedModel: WidgetModel {
             record?("request.body", body)
             record?("request.assertion", Data(assertion.base64EncodedString().utf8))
             let (data, response) = try await send(post)
-            if response.statusCode == 200, let answer = try? JSONDecoder().decode(Answer.self, from: data) {
-                log.info(
-                    "model \(answer.model ?? "-", privacy: .public) in \(answer.seconds ?? 0, privacy: .public) s, \(answer.usage?.summary ?? "no usage", privacy: .public)"
-                )
-                return answer.reply
-            }
+            if response.statusCode == 200 { return data }
             let refused = Self.refusal(data, status: response.statusCode)
             if refused.code == "unknown-key" && !replaced {
                 log.info("the server does not know the key; attesting a new one")
@@ -202,7 +224,7 @@ actor AttestedModel: WidgetModel {
         }
     }
 
-    /// `SHA256` of the client data `POST\n/v1/reply\n<lowercase hex SHA256 of the body>`.
+    /// `SHA256` of the client data `POST\n<path>\n<lowercase hex SHA256 of the body>`.
     static func clientDataHash(body: Data, method: String = "POST", path: String = "/v1/reply") -> Data {
         let digest = SHA256.hash(data: body).map { String(format: "%02x", $0) }.joined()
         return Data(SHA256.hash(data: Data("\(method)\n\(path)\n\(digest)".utf8)))
@@ -257,10 +279,6 @@ protocol Attestor: Sendable {
     func generateAssertion(_ keyId: String, clientDataHash: Data) async throws -> Data
 }
 
-protocol Transport: Sendable {
-    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse)
-}
-
 /// The key id in the Keychain, on this device only, so a restore to another phone never carries a key it lacks.
 struct KeychainStore: KeyStore {
     private let service = "dev.krutikpatel.widgie.attest"
@@ -305,13 +323,5 @@ struct AppAttestor: Attestor {
 
     func generateAssertion(_ keyId: String, clientDataHash: Data) async throws -> Data {
         try await DCAppAttestService.shared.generateAssertion(keyId, clientDataHash: clientDataHash)
-    }
-}
-
-struct URLSessionTransport: Transport {
-    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
-        return (data, http)
     }
 }

@@ -1,0 +1,7 @@
+// The Widgie target's Debug settings beyond project.yml. The dev registration secret, with which the simulator
+// registers its account against the dev Worker, lives in App/Secrets.xcconfig, which git ignores:
+//
+//     WIDGIE_DEV_SECRET = <the dev Worker's DEV_REGISTRATION_SECRET>
+//
+// Without that file, WIDGIE_DEV_SECRET in the environment of xcodebuild does the same.
+#include? "Secrets.xcconfig"

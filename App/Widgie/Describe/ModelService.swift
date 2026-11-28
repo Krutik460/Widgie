@@ -14,6 +14,17 @@ enum ModelService {
         #if targetEnvironment(simulator)
             return bridge.map { BridgeModel(base: $0) }
         #else
+            return attested
+        #endif
+    }()
+
+    /// A phone's client of the backend, signed with App Attest. Building and registering the account share it, so
+    /// their assertions reach the server in counter order. Nil on the simulator, which cannot attest, and wherever
+    /// App Attest is unsupported.
+    static let attested: AttestedModel? = {
+        #if targetEnvironment(simulator)
+            return nil
+        #else
             guard let service, DCAppAttestService.shared.isSupported else { return nil }
             return AttestedModel(base: service, account: service.host() ?? service.absoluteString)
         #endif
@@ -29,7 +40,8 @@ enum ModelService {
     }
 
     private static let bridge = url(for: "WidgieModelBridge")
-    private static let service = url(for: "WidgieModelService")
+    /// The backend: the dev Worker in Debug, production in Release.
+    static let service = url(for: "WidgieModelService")
 
     private static func url(for key: String) -> URL? {
         (Bundle.main.object(forInfoDictionaryKey: key) as? String).flatMap(URL.init(string:))
