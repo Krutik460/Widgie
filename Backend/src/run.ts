@@ -159,14 +159,19 @@ function dayOfIso(text: string): number | null {
 /// more, because a field that names a category (word of the day's part of speech, a quote's author) repeats on
 /// purpose: refusing it would refuse every word that is a noun, and once each category was used, every reply. The
 /// item itself (the word with its part of speech, the question, the quote with its author) repeating matches two.
-/// The rule can still refuse every reply of a table whose only non-empty text is a category, so the runner checks a
-/// repair's repeats only to log them, and writes it (runner.ts).
+/// A table whose only non-empty text is a category (a workout focus of Push, Pull, or Legs) is not checked at all:
+/// once its recent values already repeat a lot, at most three distinct ones or a quarter of them, refusing a repeat
+/// only pushes the model to stall or invent a value outside the category. A list of items (a word to learn) has a
+/// new value in nearly every row, so it is checked from its fourth row on. The runner still checks a repair's
+/// repeats only to log them, and writes it (runner.ts).
 export function checkRepeats(cells: Record<string, Cell>, recent: RecentRow[]) {
     const texts = Object.entries(cells).flatMap(([id, cell]) =>
         cell.kind === "text" && cell.value !== "" ? [[id, comparable(cell.value)] as const] : [],
     );
     const needed = Math.min(2, texts.length);
     if (needed === 0) return;
+    const only = texts.length === 1 ? texts[0] : undefined;
+    if (only && isCategory(only[0], recent)) return;
     for (const row of recent) {
         const same = texts.filter(([id, value]) => row[id] !== undefined && comparable(row[id]) === value);
         if (same.length >= needed) {
@@ -174,6 +179,13 @@ export function checkRepeats(cells: Record<string, Cell>, recent: RecentRow[]) {
             throw new Refused("repeat", `it repeats a recent row (${shown}); write a different one`);
         }
     }
+}
+
+/// Whether a field's recent values already repeat a lot: at least three of them, and at most three distinct ones or a
+/// quarter of them.
+function isCategory(id: string, recent: RecentRow[]): boolean {
+    const values = recent.flatMap((row) => (row[id] ? [comparable(row[id])] : []));
+    return values.length >= 3 && new Set(values).size <= Math.max(3, values.length / 4);
 }
 
 function comparable(text: string): string {
