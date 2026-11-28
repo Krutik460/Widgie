@@ -143,6 +143,8 @@ Depends on D0 (signing) and B1.
 
 **Usage limits removed (2026-11-27).** The user removed every usage limit for now; they come back later. Gone: the attest rate limit (`ATTEST_LIMIT` in both environments, its check in `attestBody`, `rate-limited`), the daily quota (`QUOTA_PER_DAY`, the quota columns' use and `daily-quota` in `AttestedKey`, whose `verifyAndReserve` is now `verifyAndAdvance`), and in the app the `dailyLimit` failure, its copy, and its 429 mapping. Kept: the body caps (8 MB and 32 KB), input validation, App Attest verification, and the counter, which stops replay. Objects made before keep their unused quota columns, which have defaults, so the new statements work on them.
 
+**Merged as PR 23 on 2026-11-28**, before its phone checks (user's decision): its verifier passes on seven real Apple attestations, and it is the code `dev` runs. The device capture and the live checks stay open for when the phone is connected.
+
 **PR 23 review fixes (2026-11-27).**
 
 - Real Apple attestations in the tests: the seven captures from `devicecheck-appattest` (Apache License 2.0) are in `Backend/test/published/` with the licence text and a note of the source, licence, and changes. `published.test.ts` runs the verifier on each at its capture time with its own app id, environment, and client data hash, checks that Widgie's app id, the other environment, other client data, and a later time each fail, and verifies each assertion. The Widgie device capture stays the final gate.
