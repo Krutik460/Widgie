@@ -178,7 +178,7 @@ export async function runTask(
     const asked = await askRow(settings, fields, task.prompt, day, recent, deps);
     const spent = {
         attempts: task.attempts,
-        ...spending(asked.replies),
+        ...spending(asked),
         seconds: Math.round((Date.now() - called) / 100) / 10,
     };
 
@@ -198,12 +198,14 @@ export async function runTask(
     return log("retry", { ...spent, reason });
 }
 
-/// What a run's model calls came to: the row to write, if any, and every reply, for the log. `reason` is the refusal
-/// code or the model service's one-line failure when there is no row, and "repeat" for a repair written though it
-/// repeats.
+/// What a run's model calls came to: the row to write, if any, how many calls were made, and every answer they got,
+/// for the log. An answer with no text is one of `replies` too, since it is billed; a call that got no answer (a
+/// timeout, an HTTP error) counts in `calls` only. `reason` is the refusal code or the model service's one-line
+/// failure when there is no row, and "repeat" for a repair written though it repeats.
 export interface Asked {
     cells?: Record<string, Cell>;
     reason?: string;
+    calls: number;
     replies: ModelReply[];
 }
 
@@ -220,6 +222,7 @@ export async function askRow(
 ): Promise<Asked> {
     const schema = replySchema(fields);
     const replies: ModelReply[] = [];
+    let calls = 0;
     let maxTokens = runMaxTokens(fields);
     let cells: Record<string, Cell> | undefined;
     let refused: Refused | undefined;
@@ -228,6 +231,7 @@ export async function askRow(
     // The first call, and one repair that names what was wrong with the first reply.
     for (let call = 0; call < 2 && !cells && !failure; call++) {
         const turn = runTurn(fields, ownerPrompt, day, recent, refused?.line);
+        calls++;
         try {
             const reply = await callModel(settings, prompt, turn, deps.fetch, deps.deadlineMs, { maxTokens, schema });
             replies.push(reply);
@@ -247,6 +251,7 @@ export async function askRow(
             }
             cells = row;
         } catch (error) {
+            if (error instanceof ModelFailure && error.reply) replies.push(error.reply);
             if (error instanceof Refused) refused = error;
             else if (error instanceof ModelFailure && error.finish === "length") refused = CUT;
             else if (error instanceof ModelFailure) failure = oneLine(error.reason);
@@ -259,16 +264,17 @@ export async function askRow(
             }
         }
     }
-    return { cells, reason: cells ? (repeated ? "repeat" : undefined) : (failure ?? refused?.code), replies };
+    return { cells, reason: cells ? (repeated ? "repeat" : undefined) : (failure ?? refused?.code), calls, replies };
 }
 
-/// The model, provider, and why it stopped from the last reply, and the usage and cost of all of them.
-export function spending(replies: ModelReply[]) {
+/// The calls made, the model, provider, and why it stopped from the last answer, and the usage and cost of all of
+/// them.
+export function spending({ calls, replies }: Pick<Asked, "calls" | "replies">) {
     const last = replies.at(-1);
     const sum = (pick: (reply: ModelReply) => number) => replies.reduce((total, reply) => total + pick(reply), 0);
     const costs = replies.map((reply) => reply.usage.cost_usd);
     return {
-        calls: replies.length,
+        calls,
         model: last?.model ?? null,
         provider: last?.provider ?? null,
         finish: last?.finish ?? null,
