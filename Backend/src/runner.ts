@@ -174,9 +174,52 @@ export async function runTask(
         (recentKeys?.results ?? []) as { row_key: string }[],
         (recentCells?.results ?? []) as RecentCell[],
     );
+    const called = Date.now();
+    const asked = await askRow(settings, fields, task.prompt, day, recent, deps);
+    const spent = {
+        attempts: task.attempts,
+        ...spending(asked.replies),
+        seconds: Math.round((Date.now() - called) / 100) / 10,
+    };
+
+    const reason = asked.reason;
+    if (asked.cells) {
+        const written = await write(db, task, zone, asked.cells, day, clock());
+        return log(written ? "written" : "stale", { ...spent, ...(reason ? { reason } : {}) });
+    }
+    if (task.attempts >= MAX_ATTEMPTS) {
+        await moveOn(db, task, zone, clock());
+        return log("moved on", { ...spent, reason });
+    }
+    await db
+        .prepare("UPDATE tasks SET due_at = ?, claimed_until = NULL WHERE id = ? AND row_key = ? AND attempts = ?")
+        .bind(clock() + BACKOFF * 2 ** (task.attempts - 1), task.id, task.row_key, task.attempts)
+        .run();
+    return log("retry", { ...spent, reason });
+}
+
+/// What a run's model calls came to: the row to write, if any, and every reply, for the log. `reason` is the refusal
+/// code or the model service's one-line failure when there is no row, and "repeat" for a repair written though it
+/// repeats.
+export interface Asked {
+    cells?: Record<string, Cell>;
+    reason?: string;
+    replies: ModelReply[];
+}
+
+/// Asks the model for one row of a table with `fields` for the owner's prompt, to appear on `day`, given the
+/// dataset's `recent` rows: the first call, and one repair that names what was wrong with the first reply. It reads
+/// nothing and writes nothing, so the consumer and the dev route (dev-run.ts) run the same calls and checks.
+export async function askRow(
+    settings: ModelSettings,
+    fields: Record<string, Kind>,
+    ownerPrompt: string,
+    day: number,
+    recent: RecentRow[],
+    deps: Pick<RunDependencies, "fetch" | "deadlineMs">,
+): Promise<Asked> {
     const schema = replySchema(fields);
     const replies: ModelReply[] = [];
-    const called = Date.now();
     let maxTokens = runMaxTokens(fields);
     let cells: Record<string, Cell> | undefined;
     let refused: Refused | undefined;
@@ -184,7 +227,7 @@ export async function runTask(
     let repeated = false;
     // The first call, and one repair that names what was wrong with the first reply.
     for (let call = 0; call < 2 && !cells && !failure; call++) {
-        const turn = runTurn(fields, task.prompt, day, recent, refused?.line);
+        const turn = runTurn(fields, ownerPrompt, day, recent, refused?.line);
         try {
             const reply = await callModel(settings, prompt, turn, deps.fetch, deps.deadlineMs, { maxTokens, schema });
             replies.push(reply);
@@ -216,30 +259,11 @@ export async function runTask(
             }
         }
     }
-    const spent = {
-        attempts: task.attempts,
-        ...spending(replies),
-        seconds: Math.round((Date.now() - called) / 100) / 10,
-    };
-
-    if (cells) {
-        const written = await write(db, task, zone, cells, day, clock());
-        return log(written ? "written" : "stale", { ...spent, ...(repeated ? { reason: "repeat" } : {}) });
-    }
-    const reason = failure ?? refused?.code;
-    if (task.attempts >= MAX_ATTEMPTS) {
-        await moveOn(db, task, zone, clock());
-        return log("moved on", { ...spent, reason });
-    }
-    await db
-        .prepare("UPDATE tasks SET due_at = ?, claimed_until = NULL WHERE id = ? AND row_key = ? AND attempts = ?")
-        .bind(clock() + BACKOFF * 2 ** (task.attempts - 1), task.id, task.row_key, task.attempts)
-        .run();
-    return log("retry", { ...spent, reason });
+    return { cells, reason: cells ? (repeated ? "repeat" : undefined) : (failure ?? refused?.code), replies };
 }
 
 /// The model, provider, and why it stopped from the last reply, and the usage and cost of all of them.
-function spending(replies: ModelReply[]) {
+export function spending(replies: ModelReply[]) {
     const last = replies.at(-1);
     const sum = (pick: (reply: ModelReply) => number) => replies.reduce((total, reply) => total + pick(reply), 0);
     const costs = replies.map((reply) => reply.usage.cost_usd);
