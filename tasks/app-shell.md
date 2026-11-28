@@ -285,3 +285,13 @@ What shipped across the five units, against the goal of a three-tab app built ar
 A last review round on U5 made a button node's own padding and layers part of its tap target, set display type on the prototype's line height so titles and what follows them line up with the prototype, and removed the feed's pull to refresh.
 
 Still open: Widgie's lines name widgets rather than their data until widgets declare a glance line (a later phase), and shared widgets work on one phone until phase 4 sync.
+
+## Fixes from the phase 3 simulator run (2026-11-28)
+
+Four app shell issues the phase 3 end-to-end run found (`Engine/.artifacts/app-flow/p4-e2e/`), fixed on `app-e2e-fixes` from main. After shots in `Engine/.artifacts/app-flow/e2e-fixes/`.
+
+- [x] **Change it starts from the widget as it is.** The draft copied only the widget's document into the scratch engine and drew it from no rows, so Word of the day showed "pronto" instead of today's word, and every change drew it empty again. The engine gains `copy(_:from:)`: the scratch engine takes the revision the library draws and a copy of every live row its tables read, stamped as their writers stamped them, so rows written ahead still reveal at their time and the automation's rows still count as the person's. Taps write the copy, never the library. A change keeps the rows of the tables that keep their dataset, as saving it over the widget does, and a table it adds starts empty, which is what Save would give it. New widgets and templates start empty after every change, as before.
+- [x] **Save waits for a change.** Changing a library widget offers Save widget only once a change landed, since saving it as it is would change nothing. A new widget or a template offers it as soon as there is a draft, as before.
+- [x] **Make's bar is frosted to its edge.** The bar's sky used to fade out from 70 percent of its height, so a message under the title showed through it. It is now solid frosted sky down to the bar's edge, then fades over 28 points, as the prototype's bar does, and the thread settles the latest exchange, the person's words included, below that fade whenever the end of the thread still fits.
+- [x] **The sky behind the status bar.** Every tab page now scrolls under the prototype's top fade, frosted sky that fades out just below the clock, so a card never sits sharp behind it. Make's own bar draws over it.
+- [x] **Word of the day, small.** The small widget keeps the meaning only, up to its first comma or semicolon, so its two lines end on a whole phrase instead of cutting the example mid-word. The wide one keeps the prototype tile's meaning and example. Every proof state passes.
