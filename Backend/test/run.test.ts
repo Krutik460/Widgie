@@ -93,6 +93,22 @@ describe("the repeat check", () => {
         ).not.toThrow();
     });
 
+    it("does not check a table whose only text is a category, and still checks a list of items", () => {
+        const focus: Record<string, Kind> = { focus: "text" };
+        const done = [{ focus: "Legs" }, { focus: "Pull" }, { focus: "Push" }];
+        // Push, Pull, and Legs are all used: a repeat is the only reply left, so it is not refused.
+        expect(() => checkRepeats(readReply('{"focus": "Push"}', focus), done)).not.toThrow();
+        // Two rows are not enough to call a field a category.
+        expect(refusal(() => checkRepeats(readReply('{"focus": "Push"}', focus), done.slice(1)))?.[0]).toBe("repeat");
+        // A list of words has a new value in nearly every row, so a repeated word is refused.
+        const word: Record<string, Kind> = { word: "text" };
+        const words = ["Sonder", "Dulcet", "Laconic", "Petrichor", "Ephemeral"].map((value) => ({ word: value }));
+        expect(refusal(() => checkRepeats(readReply('{"word": "laconic"}', word), words))?.[0]).toBe("repeat");
+        // Seven colors over forty rows repeat a lot: a category.
+        const colors = Array.from({ length: 40 }, (_, i) => ({ color: `Color ${i % 7}` }));
+        expect(() => checkRepeats(readReply('{"color": "Color 3"}', { color: "text" }), colors)).not.toThrow();
+    });
+
     it("refuses a table's only text when it repeats, and ignores empty text and other kinds", () => {
         const question: Record<string, Kind> = { question: "text" };
         const asked = [{ question: "What made you smile today?" }];
