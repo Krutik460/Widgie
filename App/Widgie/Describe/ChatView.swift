@@ -85,8 +85,8 @@ private struct Conversation: View {
         /// The bottom of the bar and the top of the composer with its chips, between which the thread shows.
         var top: CGFloat = 0
         var bottom: CGFloat = 0
-        /// The top of Widgie's latest answer.
-        var reply: CGFloat = 0
+        /// The top of the latest exchange: the person's latest words, or Widgie's opening line before any.
+        var exchange: CGFloat = 0
         /// The draft's top in the thread's own space, which only the messages above it move, and the line Widgie
         /// opened with when it was measured.
         var draftTop: CGFloat?
@@ -99,6 +99,8 @@ private struct Conversation: View {
     }
 
     nonisolated private static let thread = "thread"
+    /// How far below the bar its frosted sky fades out. The thread starts below it and settles below it.
+    private static let fade: CGFloat = 28
 
     var body: some View {
         ScrollView {
@@ -203,17 +205,21 @@ private struct Conversation: View {
         } action: { [track] bottom in
             track.top = bottom
         }
+        // Frosted sky all the way down to the bar's edge, so the thread blurs out of the way under the title, then a
+        // 28-point fade that lets it come back into view.
         .background {
             ZStack {
                 Rectangle().fill(.ultraThinMaterial)
                 Rectangle().fill(Palette.skyTop.opacity(0.8))
             }
             .mask {
-                LinearGradient(
-                    stops: [.init(color: .black, location: 0.7), .init(color: .clear, location: 1)], startPoint: .top,
-                    endPoint: .bottom)
+                VStack(spacing: 0) {
+                    Rectangle()
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: Self.fade)
+                }
             }
-            .padding(.bottom, -28)
+            .padding(.bottom, -Self.fade)
             .ignoresSafeArea(edges: .top)
         }
     }
@@ -227,19 +233,19 @@ private struct Conversation: View {
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .global).minY
                     } action: { [track] top in
-                        if session.turns.isEmpty { track.reply = top }
+                        if session.turns.isEmpty { track.exchange = top }
                     }
                     .arriving()
             }
             ForEach(session.turns) { turn in
-                YouSaid(turn: turn).arriving()
-                answer(turn)
+                YouSaid(turn: turn)
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .global).minY
                     } action: { [track] top in
-                        if turn.id == session.latest?.id { track.reply = top }
+                        if turn.id == session.latest?.id { track.exchange = top }
                     }
                     .arriving()
+                answer(turn).arriving()
             }
             studio
             after
@@ -256,8 +262,8 @@ private struct Conversation: View {
             // Room to scroll, so a draft can stay where it is while the messages of a change go in above it.
             if session.draft != nil { Color.clear.frame(height: 120) }
         }
-        // The prototype's 8 under the bar and the thread's own 20.
-        .padding(.top, 28)
+        // Clear of the bar's fade, as the prototype's 8 under the bar and the thread's own 20 are.
+        .padding(.top, Self.fade)
         .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.45, bounce: 0.25), value: results)
         .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.4, bounce: 0.2), value: chat.question)
     }
@@ -420,11 +426,12 @@ private struct Conversation: View {
         }
     }
 
-    /// Scrolls only as far as it takes to show Widgie's answer and the end of the thread, Save included, as an
-    /// answer lands. The end wins when both do not fit.
+    /// Scrolls only as far as it takes to show the latest exchange clear of the bar's fade, so no message settles
+    /// half under it, and the end of the thread, Save included, as a message goes in or an answer lands. The end
+    /// wins when both do not fit.
     private func keepInView() {
         let ahead = track.target - track.offset
-        var by = min(0, track.reply - ahead - track.top - 8)
+        var by = min(0, track.exchange - ahead - track.top - Self.fade)
         by = max(by, track.end - ahead + 12 - track.bottom)
         guard abs(by) > 0.5 else { return }
         scroll(to: max(0, track.target + by))
