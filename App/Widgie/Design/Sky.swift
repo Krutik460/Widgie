@@ -88,28 +88,28 @@ struct Sky: View {
     }
 }
 
-/// The sky behind the status bar: the top of the sky, frosted, fading out just below the clock, so a page scrolled
-/// up under the status bar never shows sharp behind it. It sits over every tab page, under Make's own bar.
+/// The sky behind the status bar, as the prototype's top fade draws it: the top of the sky, frosted, 58 points
+/// from the top of the screen and fading out over its lower part, so a page scrolled up under the status bar never
+/// shows sharp behind the clock. Widgets and Templates draw it over their pages. Make draws none, since its own
+/// frosted bar covers the status bar, as the prototype's bar sits over its top fade.
 struct StatusBarSky: View {
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                Rectangle().fill(.ultraThinMaterial)
-                LinearGradient(
-                    stops: [
-                        .init(color: Palette.skyTop.opacity(0.86), location: 0.48),
-                        .init(color: Palette.skyTop.opacity(0), location: 1),
-                    ], startPoint: .top, endPoint: .bottom)
-            }
-            .mask {
-                LinearGradient(
-                    stops: [.init(color: .black, location: 0.6), .init(color: .clear, location: 1)], startPoint: .top,
-                    endPoint: .bottom)
-            }
-            .frame(height: proxy.safeAreaInsets.top + 4)
-            .frame(maxHeight: .infinity, alignment: .top)
-            .ignoresSafeArea()
+        ZStack {
+            Rectangle().fill(.ultraThinMaterial)
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.skyTop.opacity(0.86), location: 0.48),
+                    .init(color: Palette.skyTop.opacity(0), location: 1),
+                ], startPoint: .top, endPoint: .bottom)
         }
+        .mask {
+            LinearGradient(
+                stops: [.init(color: .black, location: 0.6), .init(color: .clear, location: 1)], startPoint: .top,
+                endPoint: .bottom)
+        }
+        .frame(height: 58)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
