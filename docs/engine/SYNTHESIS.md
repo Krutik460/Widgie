@@ -61,5 +61,5 @@ The arena calls for a judge from a different model family. None is available in 
 - QuickJS-ng's speed and memory on a device. Decided: QuickJS-ng replaced JavaScriptCore. Open: the time per step and the memory peak in the 30 MB extension, on an iPhone.
 - Tinted mode. Decided: the look is never told the mode, so one tree works in every mode; the renderer emulates tinted mode (`accent: true`, image `tint`, `{ light, dark }` colors) and the proof draws tinted and dark cells. Clear mode on the simulator draws accent nodes in the same color as the rest, unlike the emulation, so a mark on an accent disc vanishes there; `look.md` teaches a cutout instead. Open: whether a device matches the emulation in tinted mode.
 - How lock screen families reach the look. Only `small` and `medium` exist today.
-- Whether an automation should see its table's recent rows, so word of the day does not repeat.
+- Whether an automation should see its table's recent rows, so word of the day does not repeat. Decided in phase 3: each run reads its dataset's last 60 rows and must not repeat them.
 - Whether the backend should check the block grammar against a schema generated from the Swift types.
