@@ -327,7 +327,7 @@ public final class Engine: Sendable {
     public func automationPayload() throws(EngineError) -> AutomationPayload {
         let store = try self.store()
         let payload = try attempt { () throws(StoreError) in try store.automationPayload(timeZone: calendar.timeZone) }
-        return AutomationPayload(json: payload.json, digest: payload.digest.hex)
+        return AutomationPayload(json: payload.json, digest: payload.digest.hex, automations: payload.count)
     }
 
     /// Every engine in this process but the scratch ones stops writing, and reads still work, so iOS never

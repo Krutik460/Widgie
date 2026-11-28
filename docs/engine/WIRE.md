@@ -72,7 +72,7 @@ What `GET /v1/changes?after=<watermark>` returns: the account's changes with a s
 | Key | Holds |
 |---|---|
 | `replica` | The account's automation replica. The phone adds it to its local `mine` set, so rows the account's automations write count as the person's own. |
-| `changes` | Entries of `{ "id", "change" }`: `id` is the change's row id in the server's `changes` table, an integer from 1 through 2^53 - 1, strictly increasing through the page (ids may skip). `change` is one change as above. |
+| `changes` | Entries of `{ "id", "change" }`: `id` is the change's row id in the server's `changes` table, an integer from 1 through 2^53 - 1, strictly increasing through the page (ids may skip). `change` is one change as above. At most 500 entries: a page that holds 500 may have more after it, so the phone asks again from its new watermark (`RemotePage.limit`). |
 | `nextWrite` | When the server next expects to write a change for this account, as milliseconds since 1970, or `null` when it expects none. Never sooner than five minutes after the pull, so a write that waits does not make every render pull. The extension pulls before a render once this has passed. |
 
 A page decodes whole or not at all: one entry that does not decode refuses the page, so nothing of it merges and the watermark stays. That includes bytes that are not JSON the reader accepts, such as a number too large for a 64-bit float or a key twice in one object, anywhere in the page.

@@ -357,9 +357,11 @@ package final class RowStore: Sendable {
     /// replaces every automation the server holds, and the server tombstones the future rows of one that is
     /// gone, so a payload that left the widget out would delete its rows. No upload is the safe answer. A scratch
     /// store refuses (`syncs`): its widgets are drafts, and their upload would replace the person's automations.
-    package func automationPayload(timeZone: TimeZone) throws(StoreError) -> (json: Data, digest: Spec.Digest) {
+    package func automationPayload(timeZone: TimeZone) throws(StoreError) -> (
+        json: Data, digest: Spec.Digest, count: Int
+    ) {
         try syncs()
-        let json = try read { db in
+        let (json, count) = try read { db in
             var entries: [JSONValue] = []
             let widgets = try Row.fetchAll(db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL ORDER BY w.key")
                 .map(StoredWidget.init(row:))
@@ -380,10 +382,11 @@ package final class RowStore: Sendable {
                     entries.append(.object(entry.merging(automation.schedule.cadence.members) { $1 }))
                 }
             }
-            return JSONValue.object(["timeZone": .string(timeZone.identifier), "automations": .array(entries)])
+            let json = JSONValue.object(["timeZone": .string(timeZone.identifier), "automations": .array(entries)])
                 .encoded()
+            return (json, entries.count)
         }
-        return (json, digest(of: json))
+        return (json, digest(of: json), count)
     }
 
     /// Records this device's proof of a revision: nil when it passed, the rejection line otherwise. Local
