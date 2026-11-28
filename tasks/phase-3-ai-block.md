@@ -199,7 +199,9 @@ Starts with the wire format doc and the vectors file, which P2 also builds on.
 - [x] Word of the day and Today's question become real: their copy drops "coming soon" (through the review gate); Today's question keeps its built-in fallback for before its first row.
 - [x] The build prompt teaches that a run sees its recent rows, so "do not repeat" works, and that the time is when the row appears.
 - [x] Eval cases: topic-specific daily content (nursing terms, Spanish cooking words, a Stoic quote), a refine that changes the topic, a couple's question, and a category-only table, run through a dev-only route on the real run prompt, schema, and model.
-- [ ] 30 consecutive runs of each case against the deployed `dev` Worker, with no repeat and every reply valid.
+- [x] 30 consecutive runs of each case against the deployed `dev` Worker, with no repeat and every reply valid.
+
+**P5 eval results (2026-11-28, `widgie-dev` at the top of the stack).** 180 simulated days, $0.08 in model calls. Nursing terms, Spanish cooking words, Stoic quotes, and couple questions: 30 of 30 valid each, no repeat, every reply right on its first call. The refine case switched from Spanish to Italian on day 16 with no Spanish word after it. The category-only workout focus failed the first run: once Push, Pull, and Legs were used, the repeat check refused every first reply, so each day took two calls, three days ran out of tokens while the model looked for an unused value, and one day invented "Core". The repeat check now skips a table whose only text is a category (P3), and the rerun passed: 30 of 30 valid, no retries, 31 calls instead of 57. Results in `Engine/.artifacts/evals/p5-automations/` and `p5-workout-recheck/`.
 
 **P5 results (2026-11-27, branch `phase-3-p5-content`, stacked on `phase-3-p4-app`).** Nothing is deployed; the eval run above is the user's, after deploying `dev`.
 
