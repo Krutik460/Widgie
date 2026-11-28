@@ -12,7 +12,18 @@ public enum Hosting {
     /// reloads every widget after every write, in the extension too: the reload WidgetKit runs after an
     /// intent covers only the tapped widget, so another widget on the same rows, even the same widget in the
     /// other size, would stay stale until its timeline ran out.
-    public static let engine = Engine(directory: appGroupDirectory(), onCommit: reloadWidgets)
+    public static let engine = Engine(directory: appGroupDirectory(), onCommit: committed)
+
+    /// Posted on `NotificationCenter.default` after every write `engine` commits in this process. The app uploads
+    /// the account's automations when one moved them, whichever write it was.
+    public static let didCommit = Notification.Name("WidgieHostingDidCommit")
+
+    /// This process's account: the Worker named by the `WidgieModelService` Info.plist key, the token in the
+    /// Keychain group named by `WidgieKeychainGroup`, and the account state in the App Group's defaults.
+    public static let account = AccountClient(
+        base: info("WidgieModelService").flatMap(URL.init(string:)), engine: engine,
+        tokens: KeychainTokens(group: info("WidgieKeychainGroup")),
+        state: AccountState(defaults: info("EngineAppGroup").flatMap(UserDefaults.init(suiteName:)) ?? .standard))
 
     /// The link a form button opens: `<scheme>://form?widget=...&revision=...&action=...&row=...`, with the
     /// scheme from the `EngineURLScheme` Info.plist key.
@@ -38,7 +49,9 @@ public enum Hosting {
         return Tap(widget: widget, revision: value("revision"), action: action, row: value("row"))
     }
 
-    private static let scheme = Bundle.main.object(forInfoDictionaryKey: "EngineURLScheme") as? String ?? "engine"
+    private static let scheme = info("EngineURLScheme") ?? "engine"
+
+    private static func info(_ key: String) -> String? { Bundle.main.object(forInfoDictionaryKey: key) as? String }
 }
 
 /// The App Group container named by `EngineAppGroup`. Without one (a misconfigured target, a preview) the
@@ -53,7 +66,10 @@ func appGroupDirectory() -> URL {
     return URL.applicationSupportDirectory.appending(path: "Engine")
 }
 
-private let reloadWidgets: @Sendable () -> Void = { WidgetCenter.shared.reloadAllTimelines() }
+private let committed: @Sendable () -> Void = {
+    WidgetCenter.shared.reloadAllTimelines()
+    NotificationCenter.default.post(name: Hosting.didCommit, object: nil)
+}
 
 /// Lets the app and the extension discover the intent and entity declared in this package: each lists
 /// this in its own `AppIntentsPackage.includedPackages`.
@@ -160,6 +176,9 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: PickWidget, in context: Context) async -> Timeline<Entry> {
+        // Rows the server wrote since the last pull, when one is due, so this render draws them. Bounded at 4 s, and
+        // any failure, or no token before the first unlock, draws what the store holds.
+        await Hosting.account.pullBeforeRender()
         let faces = await Hosting.engine.faces(
             for: configuration.widget?.id, family: Family(context.family), size: context.displaySize, from: .now)
         return Timeline(entries: faces.entries.map { Entry(date: $0.date, face: $0) }, policy: .after(faces.reloadAt))

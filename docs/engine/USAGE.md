@@ -8,7 +8,7 @@ One object, `Engine`, does everything. What a caller can do with it depends on w
 |---|---|---|
 | `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `face(for:family:size:at:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `receive(_:at:)` with `RemotePage`, `watermark()`, `automationPayload()`, `Engine.suspend()`, `Engine.resume()`, `Engine.scratch()`, `Engine.removeLeftoverScratch()`, plus `FaceView`, `FaceHost`, `Face.traits`, and `Face.isFallback` | app, widget extension (through `WidgetHosting`) |
 | `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `stageProved(_:at:)`, `copy(_:from:)`, `checkpoint(of:)` and `rollBack(to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
-| `WidgetHosting` | `Hosting.engine`, `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
+| `WidgetHosting` | `Hosting.engine`, `Hosting.didCommit`, `Hosting.account` (`AccountClient`), `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
 
 The widget extension never imports `WidgetBuilder`, so it cannot build, ingest images, or encode PNGs. That is a link-time fact, not a convention.
 
@@ -27,8 +27,9 @@ import WidgetEngine
 public enum Hosting {
     /// One engine per process. The app and the extension each make their own; both open the same App Group
     /// directory. Every committed write reloads WidgetKit, in the extension too: the reload WidgetKit runs
-    /// after an intent covers only the tapped widget, so another widget on the same rows would stay stale.
-    public static let engine = Engine(directory: appGroupDirectory(), onCommit: reloadWidgets)
+    /// after an intent covers only the tapped widget, so another widget on the same rows would stay stale. It
+    /// also posts `Hosting.didCommit`, on which the app uploads the automations when a write moved them.
+    public static let engine = Engine(directory: appGroupDirectory(), onCommit: committed)
 }
 
 struct Entry: TimelineEntry {
@@ -48,6 +49,7 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: PickWidget, in context: Context) async -> Timeline<Entry> {
+        await Hosting.account.pullBeforeRender()   // rationed, single-flight, at most 4 s; never fails
         let faces = await Hosting.engine.faces(
             for: configuration.widget?.id, family: Family(context.family), size: context.displaySize, from: .now)
         return Timeline(entries: faces.entries.map { Entry(date: $0.date, face: $0) }, policy: .after(faces.reloadAt))
@@ -332,7 +334,18 @@ let body = try await api.get("/v1/changes?after=\(try Hosting.engine.watermark()
 let page = try RemotePage(json: body)          // throws, naming the first problem, when it is not a page
 try Hosting.engine.receive(page)               // one transaction; onCommit only when something changed
 nextPull = page.nextWrite                      // when the server next expects to write
+// ask again while page.count == RemotePage.limit and the watermark moved
 ```
+
+`Hosting.account` (`AccountClient` in `WidgetHosting`) is that code, shared by the app and the extension: the token in the Keychain group both list (`WidgieKeychainGroup`, readable after the first unlock), the extension's state in the App Group's defaults, and the routes of the Worker named by `WidgieModelService`.
+
+```swift
+await Hosting.account.pullBeforeRender()                 // the extension: only when due, at most 4 s, never fails
+await Hosting.account.pull()                             // the app: on foreground and after an upload
+try await Hosting.account.upload(register: register)     // the app: registers on first need, then PUTs if moved
+```
+
+It hides: the fresh-install marker that discards a token an earlier install left in the Keychain, registering on first need through the closure the app passes (App Attest on a phone, the dev secret on a Debug simulator build, both in the app target), the ration (a pull when the last one started over 30 minutes ago or `nextWrite` passed), one pull per process that a second caller joins, a hard deadline that cancels the requests, paging while full pages arrive, 409 sent again, 422 logged and returned, and a token the server no longer knows dropped and registered again. The app's `AccountSync` calls `upload` on every `Hosting.didCommit`, on foreground, and on a time zone or clock change, and pulls every 5 seconds for a minute after an upload that names an automation.
 
 `receive` hides: decoding every change strictly, holding back the first change stamped more than 10 minutes ahead and everything after it for the next pull, refusing cells over the limits a tap obeys, merging the rest by the one LWW rule, adding the page's automation replica to `mine` so its rows count as the person's own, moving the watermark forward only, all in one transaction, and logging what it held or refused. A replayed page changes nothing and reloads nothing. `automationPayload()` hides: walking every live widget's drawn revision, resolving each automation's `writes` table to its dataset, encoding canonically with the phone's current time zone, and hashing. It throws instead of leaving out a widget whose drawn revision this build cannot read, because the upload replaces every automation and the server would delete that widget's future rows; skip the upload and try again later. Both throw on a scratch engine, which never syncs.
 
