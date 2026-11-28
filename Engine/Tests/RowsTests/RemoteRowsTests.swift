@@ -122,7 +122,55 @@ import Testing
         #expect(try bench.store.reveals(of: bench.widget, after: now) == [soon])
     }
 
-    /// A document whose queries count `by me` and `by others`, and read who wrote the latest row.
+    /// A scratch store's copy of a widget counts the row the automation wrote as the person's, as the library
+    /// does once a page named the automation's replica, and a row another member wrote as theirs, by name.
+    @Test func aCopyCountsTheAutomationsRowsAsThePersonsOwn() throws {
+        let noon = "2026-11-18T12:00:00-05:00"
+        let directory = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = try Bench(store: RowStore.open(directory: directory), spec: hearts())
+        let revision = try library.store.save(library.widget, spec: library.spec, assets: [:])
+        try library.tap("send", at: "2026-11-18T08:00:00-05:00")
+        try library.store.receive([
+            Stamped(
+                change: .insertRow(
+                    try #require(RowKey(parsing: "0190a000-0000-7000-8000-000000000001")),
+                    dataset: try dataset(library, "hearts"), day: try day("2026-11-18"),
+                    at: Int64(try instant("2026-11-18T09:00:00-05:00").timeIntervalSince1970 * 1000)),
+                stamp: try stamp("2026-11-18T06:00:00-05:00"), replica: automation)
+        ])
+        try library.store.receive(
+            try Page(json: Data(#"{"replica": "\#(automation)", "changes": [], "nextWrite": null}"#.utf8)),
+            now: try instant(noon))
+        try library.seed("sam", at: noon)
+        #expect(try library.number("mine", at: noon) == 2)
+
+        let scratch = try RowStore.open(directory: temporaryDirectory(), isScratch: true)
+        let draft = try #require(try scratch.copy(library.widget, from: library.store))
+        #expect(try scratch.widget(draft)?.revision == revision, "the revision the library draws, proved here")
+        #expect(try scratch.bindings(of: draft) == library.store.bindings(of: library.widget))
+        let copy = try Bench(store: scratch, spec: library.spec, widget: draft)
+        #expect(try copy.number("mine", at: noon) == 2, "the tap and the automation's row")
+        #expect(try copy.number("theirs", at: noon) == 1)
+        let last = try #require(copy.rows("last", at: noon).first)
+        #expect(!last.by.me && last.by.name == "Sam")
+    }
+
+    @Test func onlyAScratchStoreTakesACopyOfAWidgetTheLibraryHasFromAStoreOnDisk() throws {
+        let library = try Bench(
+            store: RowStore.open(directory: temporaryDirectory(), isScratch: true), spec: hearts())
+        _ = try library.store.save(library.widget, spec: library.spec, assets: [:])
+        let scratch = try RowStore.open(directory: temporaryDirectory(), isScratch: true)
+        #expect(throws: StoreError.self) { try Bench().store.copy(library.widget, from: library.store) }
+        #expect(throws: StoreError.self) { try scratch.copy(library.widget, from: RowStore.scratch()) }
+        #expect(try scratch.copy(.mint(), from: library.store) == nil)
+        try library.store.delete(library.widget)
+        #expect(try scratch.copy(library.widget, from: library.store) == nil)
+        #expect(try scratch.widgets().isEmpty)
+    }
+
+    /// A document whose queries count `by me` and `by others`, and read who wrote the latest row. Its sample has
+    /// one row Sam wrote.
     func hearts() throws -> Spec {
         try parse(
             #"""
@@ -131,7 +179,8 @@ import Testing
              "queries": {"mine": {"count": "hearts", "where": {"by": "me"}, "window": "all"},
                          "theirs": {"count": "hearts", "where": {"by": "others"}, "window": "all"},
                          "last": {"latest": "hearts", "window": "all"}},
-             "actions": {"send": {"insert": "hearts"}}}
+             "actions": {"send": {"insert": "hearts"}},
+             "samples": {"sam": {"hearts": [{"minutesAgo": 30, "by": "Sam"}]}}}
             """#)
     }
 
@@ -201,7 +250,7 @@ import Testing
     /// The upload replaces every automation the server holds, so a live widget this build cannot read stops the
     /// payload instead of being left out, which would make the server delete its future rows.
     @Test func aLiveWidgetThatCannotBeReadStopsThePayload() throws {
-        let store = try RowStore.scratch()
+        let store = try RowStore.inMemory(isScratch: false)
         _ = try store.save(.mint(), spec: fixture("wotd"), assets: [:])
         let zone = try #require(TimeZone(identifier: "America/New_York"))
         let readable = try store.automationPayload(timeZone: zone)

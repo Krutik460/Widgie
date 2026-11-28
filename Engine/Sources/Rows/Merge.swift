@@ -4,7 +4,8 @@ import Spec
 
 // The schema and the single write path. Every local write (`apply`, `seed`, `save`, `bind`, `restore`,
 // `delete`) becomes `[Change]` stamped with the local clock and goes through `merge`. Sync feeds remote
-// changes, stamped by their writers, through the same `merge` (`RowStore.receive`). Each change kind is
+// changes, stamped by their writers, through the same `merge` (`RowStore.receive`), and a scratch store's copy
+// of another store's rows through `mergeLiveRows`, the same rules in SQL. Each change kind is
 // idempotent and commutes with every other change, the same key included, so any delivery order and any number
 // of replays leave the same state.
 
@@ -346,6 +347,39 @@ func merge(_ batch: [Stamped], in db: Database) throws -> Bool {
         try run("UPDATE replica SET clock = max(clock, ?)", [latest.raw])
     }
     return changed
+}
+
+/// `merge` of every live row of each dataset `widget` is bound to in the attached database `schema`, and of
+/// their cells, as their writers stamped them: the rules of `insertRow` and `setCell` (and the clock's receive
+/// rule), run in SQL so a copy of many rows never passes through Swift. Runs inside the caller's write
+/// transaction. Only `RowStore.copy(_:from:)` merges this way.
+func mergeLiveRows(boundTo widget: WidgetKey, from schema: String, in db: Database) throws {
+    let live = """
+        r.dataset IN (SELECT dataset FROM \(schema).binding WHERE widget = ?) AND r.deleted IS NULL AND r.day NOTNULL
+        """
+    // SQLite reads `ON` after a bare `FROM` as a join, so each SELECT keeps a WHERE before its upsert clause.
+    try db.execute(
+        sql: """
+            INSERT INTO main.row(key, dataset, day, at, stamp, replica)
+            SELECT r.key, r.dataset, r.day, r.at, r.stamp, r.replica FROM \(schema).row r WHERE \(live)
+            ON CONFLICT(key, dataset) DO UPDATE SET day = excluded.day, at = excluded.at, stamp = excluded.stamp,
+              replica = excluded.replica
+            WHERE row.day IS NULL
+            """, arguments: [widget.raw])
+    try db.execute(
+        sql: """
+            INSERT INTO main.cell(row, dataset, field, kind, value, stamp, replica)
+            SELECT c.row, c.dataset, c.field, c.kind, c.value, c.stamp, c.replica FROM \(schema).cell c
+            JOIN \(schema).row r ON r.key = c.row AND r.dataset = c.dataset WHERE \(live)
+            ON CONFLICT(row, dataset, field) DO UPDATE SET kind = excluded.kind, value = excluded.value,
+              stamp = excluded.stamp, replica = excluded.replica
+            WHERE (excluded.stamp, excluded.replica) > (cell.stamp, cell.replica)
+            """, arguments: [widget.raw])
+    try db.execute(
+        sql: """
+            UPDATE main.replica SET clock = max(
+              clock, ifnull((SELECT max(stamp) FROM main.row), 0), ifnull((SELECT max(stamp) FROM main.cell), 0))
+            """)
 }
 
 /// This store's replica id and the last stamp it issued or merged.

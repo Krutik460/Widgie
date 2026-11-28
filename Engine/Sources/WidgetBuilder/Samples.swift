@@ -28,26 +28,26 @@ extension Engine {
     }
 
     /// Copies `widget` from `library` into this scratch engine as a new draft that reads the rows it reads there,
-    /// so the draft's face is the widget's face as it is now. The draft is the revision `library` draws, saved
-    /// here without the proof `library` already ran, and its tables read every live row of the datasets they read
-    /// there, kept as their writers stamped them: rows written ahead still reveal at their time, and the person's
-    /// rows still count as the person's. Taps then write the copy, never `library`'s rows. A build that replaces
-    /// the draft keeps a table's rows while the table keeps its dataset, as saving it over the widget in
-    /// `library` would, and a table it adds starts empty.
+    /// so the draft's face is the widget's face as it is now. The draft is the revision `library` draws, taken
+    /// without the proof `library` already ran, and it is bound to every dataset the widget is bound to there, and
+    /// reads their live rows, other widgets' included, kept as their writers stamped them, all read from one
+    /// snapshot of `library` (`RowStore.copy(_:from:)`): rows written ahead still reveal at their time, and the
+    /// person's rows still count as the person's. Taps then write the copy, never `library`'s rows. A build that
+    /// replaces the draft keeps a table's rows while the table keeps its dataset, as saving it over the widget in
+    /// `library` would: a table an earlier revision had, which a restore dropped, comes back with its rows, and a
+    /// new table starts empty. The copy never syncs, since a scratch engine refuses to.
     ///
-    /// Only a scratch engine takes this, as with `load`. Returns nil when `library` has no such widget. Throws for
-    /// any other engine and a store failure.
-    public func copy(_ widget: WidgetID, from library: Engine) throws(EngineError) -> WidgetID? {
+    /// It runs off the caller's actor, since a widget with many rows takes a moment to copy. Only a scratch engine
+    /// takes this, as with `load`. Returns nil when `library` has no such widget. Throws for any other engine, a
+    /// drawn revision this build cannot read, and a store failure.
+    @concurrent public func copy(_ widget: WidgetID, from library: Engine) async throws(EngineError) -> WidgetID? {
         guard isScratch else { throw EngineError(message: "only a scratch engine takes a copy of a widget") }
-        guard let key = WidgetKey(parsing: widget.rawValue), let source = try library.source(of: widget) else {
-            return nil
-        }
+        guard let key = WidgetKey(parsing: widget.rawValue) else { return nil }
         let shared = try library.store()
-        let rows = try attempt { () throws(StoreError) in try shared.rows(of: key) }
         let store = try self.store()
-        let copy = try stage(source)
-        try attempt { () throws(StoreError) in try store.copy(rows, to: copy) }
-        return WidgetID(rawValue: copy.raw)
+        return try attempt { () throws(StoreError) in try store.copy(key, from: shared) }.map {
+            WidgetID(rawValue: $0.raw)
+        }
     }
 
     /// Saves `source` into this store under a new key as it is, without a proof.

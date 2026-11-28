@@ -26,20 +26,24 @@ package final class RowStore: Sendable {
     private let database: any DatabaseWriter
     private let directory: URL
     private let isScratch: Bool
+    /// Whether `directory` goes when the store is released: a scratch store's, and an in-memory store's.
+    private let removesDirectory: Bool
     private let onCommit: (@Sendable () -> Void)?
 
     private init(
-        database: any DatabaseWriter, directory: URL, isScratch: Bool, onCommit: (@Sendable () -> Void)?
+        database: any DatabaseWriter, directory: URL, isScratch: Bool, removesDirectory: Bool,
+        onCommit: (@Sendable () -> Void)?
     ) {
         self.database = database
         self.directory = directory
         self.isScratch = isScratch
+        self.removesDirectory = removesDirectory
         self.onCommit = onCommit
     }
 
     /// The connections close before the files go, because a stored property outlives `deinit`'s body.
     deinit {
-        guard isScratch else { return }
+        guard removesDirectory else { return }
         try? database.close()
         try? FileManager.default.removeItem(at: directory)
     }
@@ -89,20 +93,30 @@ package final class RowStore: Sendable {
             }
             if let coordination { throw coordination }
             guard let pool = try opened?.get() else { throw StoreError(message: "the file coordinator never ran") }
-            return RowStore(database: pool, directory: directory, isScratch: isScratch, onCommit: onCommit)
+            return RowStore(
+                database: pool, directory: directory, isScratch: isScratch, removesDirectory: isScratch,
+                onCommit: onCommit)
         }
     }
 
-    /// An in-memory store with the same schema and write path, and asset files in a temporary directory it
-    /// removes when released. Proofs seed states into one of these.
+    /// An in-memory scratch store with the same schema and write path, and asset files in a temporary directory
+    /// it removes when released. Proofs seed states into one of these.
     package static func scratch() throws(StoreError) -> RowStore {
+        try inMemory(isScratch: true)
+    }
+
+    /// `scratch()`, or with `isScratch` false a replica that syncs as one on disk does, without the file, which
+    /// nothing in this process can suspend: the tests run replicas in these. `onCommit` as `open` takes it.
+    package static func inMemory(isScratch: Bool, onCommit: (@Sendable () -> Void)? = nil) throws(StoreError)
+        -> RowStore
+    {
         try guarded {
             let queue = try DatabaseQueue()
             try migrate(queue)
             return RowStore(
                 database: queue,
                 directory: FileManager.default.temporaryDirectory.appending(path: "rows-\(UUID().uuidString)"),
-                isScratch: true, onCommit: nil)
+                isScratch: isScratch, removesDirectory: true, onCommit: onCommit)
         }
     }
 
@@ -341,8 +355,10 @@ package final class RowStore: Sendable {
     ///
     /// Throws when a live widget's drawn revision does not parse, where `widgets()` leaves it out. The upload
     /// replaces every automation the server holds, and the server tombstones the future rows of one that is
-    /// gone, so a payload that left the widget out would delete its rows. No upload is the safe answer.
+    /// gone, so a payload that left the widget out would delete its rows. No upload is the safe answer. A scratch
+    /// store refuses (`syncs`): its widgets are drafts, and their upload would replace the person's automations.
     package func automationPayload(timeZone: TimeZone) throws(StoreError) -> (json: Data, digest: Spec.Digest) {
+        try syncs()
         let json = try read { db in
             var entries: [JSONValue] = []
             let widgets = try Row.fetchAll(db, sql: "\(StoredWidget.select) WHERE w.deleted IS NULL ORDER BY w.key")
@@ -553,73 +569,80 @@ package final class RowStore: Sendable {
         }
     }
 
-    /// What `key` reads, for a copy in a scratch store: see `WidgetRows`.
-    package func rows(of key: WidgetKey) throws(StoreError) -> WidgetRows {
-        try read { db in
-            let bindings = try Row.fetchAll(
-                db, sql: "SELECT tbl, dataset FROM binding WHERE widget = ?", arguments: [key.raw]
-            ).compactMap { row in DatasetKey(parsing: row["dataset"]).map { (row["tbl"] as String, $0) } }
-            let bound = "SELECT dataset FROM binding WHERE widget = ?"
-            var changes: [Stamped] = []
-            for row in try Row.fetchAll(
-                db,
-                sql: """
-                    SELECT key, dataset, day, at, stamp, replica FROM row
-                    WHERE dataset IN (\(bound)) AND deleted IS NULL AND day NOTNULL
-                    """, arguments: [key.raw])
-            {
-                guard let rowKey = RowKey(parsing: row["key"]), let dataset = DatasetKey(parsing: row["dataset"])
-                else { continue }
-                changes.append(
-                    Stamped(
-                        change: .insertRow(rowKey, dataset: dataset, day: Day(index: row["day"]), at: row["at"]),
-                        stamp: Stamp(raw: row["stamp"]), replica: row["replica"]))
+    /// Copies the live widget `key` from `library` into this scratch store as a new widget and returns its key, or
+    /// nil when `library` has no live widget `key` with a revision proved there. One transaction reads one snapshot
+    /// of `library` and takes, all at once:
+    /// - the revision `key` draws there, as the copy's head, proved here, with its asset files;
+    /// - the dataset each table of `key` is bound to there, the tables a restore dropped included, as
+    ///   `reveals(of:)` and `storedKinds(of:)` read them, so a refinement that brings such a table back reads its
+    ///   rows as it would there;
+    /// - every live row of those datasets, whoever wrote it, with its cells, kept as their writers stamped them
+    ///   (`mergeLiveRows`), so rows written ahead still reveal at their time;
+    /// - the local `member` and `mine` tables, so the copy names the same writers and counts the same rows as the
+    ///   person's.
+    /// The rows go from file to file in SQL, never through Swift, so a widget with many rows copies quickly.
+    ///
+    /// Only a scratch store takes this, because a copy is not a write any replica made, and sync must never push
+    /// it. Throws for any other store, a `library` that is not on disk, a drawn revision that does not parse, and a
+    /// store failure.
+    package func copy(_ key: WidgetKey, from library: RowStore) throws(StoreError) -> WidgetKey? {
+        guard isScratch else { throw StoreError(message: "only a scratch store takes a copy of another's widget") }
+        guard library.database is DatabasePool else { throw StoreError(message: "only a store on disk is copied from") }
+        let path = library.database.path
+        let copy = WidgetKey.mint()
+        let now = Date()
+        let copied = try guarded {
+            try database.writeWithoutTransaction { db in
+                // SQLite attaches only outside a transaction. The attachment ends before the connection serves
+                // anything else.
+                try db.execute(sql: "ATTACH DATABASE ? AS library", arguments: [path])
+                defer { try? db.execute(sql: "DETACH DATABASE library") }
+                var copied = false
+                try db.inTransaction(.immediate) {
+                    guard
+                        let found = try Row.fetchOne(
+                            db, sql: "\(StoredWidget.select(from: "library")) WHERE w.deleted IS NULL AND w.key = ?",
+                            arguments: [key.raw])
+                    else { return .rollback }
+                    let widget = try StoredWidget(row: found)
+                    // Written before the revision that names them commits, as every save does.
+                    for digest in widget.spec.assets.compactMap(\.digest) {
+                        _ = try writeAsset(Data(contentsOf: library.assetURL(digest)))
+                    }
+                    try mergeLiveRows(boundTo: key, from: "library", in: db)
+                    try db.execute(sql: "INSERT OR REPLACE INTO main.member SELECT replica, name FROM library.member")
+                    try db.execute(sql: "INSERT OR IGNORE INTO main.mine SELECT replica FROM library.mine")
+                    let bindings = try Row.fetchAll(
+                        db, sql: "SELECT tbl, dataset FROM library.binding WHERE widget = ?", arguments: [key.raw]
+                    ).compactMap { row in
+                        DatasetKey(parsing: row["dataset"]).map { Change.bind(copy, table: row["tbl"], to: $0) }
+                    }
+                    // Stamped after every row merged above, as a local write is.
+                    let (replica, clock) = try local(db)
+                    let stamp = Stamp.next(after: clock, at: milliseconds(now))
+                    func stamped(_ changes: [Change]) -> [Stamped] {
+                        changes.map { Stamped(change: $0, stamp: stamp, replica: replica) }
+                    }
+                    try mark(widget.revision, verdict: nil, db)
+                    try merge(
+                        stamped(
+                            [
+                                .putRevision(body: found["body"]),
+                                .moveHead(copy, to: widget.revision, createdAt: milliseconds(now)),
+                            ]
+                                + bindings), in: db)
+                    // A table with no dataset there, as a head synced before its binding names, gets one, as a save
+                    // gives it.
+                    try merge(stamped(try newBindings(copy, widget.spec, db)), in: db)
+                    copied = true
+                    return .commit
+                }
+                return copied
             }
-            for row in try Row.fetchAll(
-                db,
-                sql: """
-                    SELECT c.row, c.dataset, c.field, c.kind, c.value, c.stamp, c.replica FROM cell c
-                    JOIN row r ON r.key = c.row AND r.dataset = c.dataset
-                    WHERE r.dataset IN (\(bound)) AND r.deleted IS NULL AND r.day NOTNULL
-                    """, arguments: [key.raw])
-            {
-                guard let rowKey = RowKey(parsing: row["row"]), let dataset = DatasetKey(parsing: row["dataset"]),
-                    let cell = Spec.Cell(row["value"], code: row["kind"])
-                else { continue }
-                changes.append(
-                    Stamped(
-                        change: .setCell(rowKey, dataset: dataset, field: row["field"], cell),
-                        stamp: Stamp(raw: row["stamp"]), replica: row["replica"]))
-            }
-            let members = try Row.fetchAll(db, sql: "SELECT replica, name FROM member").map {
-                ($0["replica"] as String, $0["name"] as String)
-            }
-            return WidgetRows(
-                bindings: Dictionary(bindings) { $1 }, changes: changes,
-                members: Dictionary(members) { $1 }, mine: try String.fetchAll(db, sql: "SELECT replica FROM mine"))
         }
-    }
-
-    /// Takes in `rows` from another store and points each table of `key` that `rows` binds at the same dataset, in
-    /// one transaction, so `key` reads exactly those rows: kept as their writers stamped them, by the same
-    /// members, and the person's where they were the person's there. Only a scratch store takes this, because a
-    /// copy is not a write any replica made, and sync must never push it.
-    package func copy(_ rows: WidgetRows, to key: WidgetKey) throws(StoreError) {
-        guard isScratch else { throw StoreError(message: "only a scratch store takes a copy of another's rows") }
-        try write(at: Date()) { db in
-            try merge(rows.changes, in: db)
-            for (replica, name) in rows.members {
-                try db.execute(
-                    sql: "INSERT OR REPLACE INTO member(replica, name) VALUES (?, ?)", arguments: [replica, name])
-            }
-            for replica in rows.mine {
-                try db.execute(sql: "INSERT OR IGNORE INTO mine(replica) VALUES (?)", arguments: [replica])
-            }
-            // Stamped after everything merged above, so these binds win over the ones the widget's save made.
-            return rows.bindings.isEmpty
-                ? .ignored("the widget reads no tables")
-                : .changes(rows.bindings.map { .bind(key, table: $0.key, to: $0.value) })
-        }
+        guard copied else { return nil }
+        onCommit?()
+        return copy
     }
 
     // MARK: Sync
@@ -627,9 +650,10 @@ package final class RowStore: Sendable {
     /// What sync pushes: every change this replica made after `watermark`, grouped by `Change.scope` and
     /// oldest first within each, so the server routes each dataset's changes to its members and account
     /// changes only to this account's devices. Keys another replica wrote last are left out, since that
-    /// replica pushes them. Proof verdicts are local and never appear.
+    /// replica pushes them. Proof verdicts are local and never appear. A scratch store refuses (`syncs`).
     package func changes(after watermark: Stamp? = nil) throws(StoreError) -> [Scope: [Stamped]] {
-        try read { db in
+        try syncs()
+        return try read { db in
             try Rows.changes(by: local(db).replica, after: watermark ?? Stamp(raw: 0), in: db)
         }
     }
@@ -645,9 +669,11 @@ package final class RowStore: Sendable {
     /// - `refused`: a text cell longer than a stored text may be, or a number that is not finite, so a peer or
     ///   an automation cannot pass the limits a tap obeys. Dropped for good.
     ///
-    /// `onCommit` runs only when the batch changed something, so a replay reloads nothing.
+    /// `onCommit` runs only when the batch changed something, so a replay reloads nothing. A scratch store
+    /// refuses (`syncs`).
     @discardableResult
     package func receive(_ batch: [Stamped], now: Date) throws(StoreError) -> Received {
+        try syncs()
         let horizon = Self.horizon(now)
         var accepted: [Stamped] = []
         var received = Received()
@@ -668,9 +694,11 @@ package final class RowStore: Sendable {
     /// the last change passed, never backwards. A held change stops the page, so it and everything after it
     /// come back in `held` and the next pull asks for them again. Refused changes count as passed.
     ///
-    /// `onCommit` runs only when the page changed a row, a cell, or `mine`, so a replay reloads nothing.
+    /// `onCommit` runs only when the page changed a row, a cell, or `mine`, so a replay reloads nothing. A scratch
+    /// store refuses (`syncs`).
     @discardableResult
     package func receive(_ page: Page, now: Date) throws(StoreError) -> Received {
+        try syncs()
         let horizon = Self.horizon(now)
         var accepted: [Stamped] = []
         var received = Received()
@@ -707,6 +735,13 @@ package final class RowStore: Sendable {
     /// changes after it.
     package func watermark() throws(StoreError) -> Int64 {
         try read { db in try Int64.fetchOne(db, sql: "SELECT watermark FROM replica") ?? 0 }
+    }
+
+    /// Throws for a scratch store. Its rows are a sample's, which the account never had, or a copy of the
+    /// person's (`copy(_:from:)`) under their real dataset keys that no replica wrote, so nothing it holds may
+    /// reach the server, and nothing from the server may land in it.
+    private func syncs() throws(StoreError) {
+        guard !isScratch else { throw StoreError(message: "a scratch store never syncs") }
     }
 
     private enum Disposition {
@@ -987,14 +1022,26 @@ package struct StoredWidget: Sendable {
     package let createdAt: Date
 
     /// The drawn revision of widget `w`, as a scalar subquery. The head is always the newest history entry.
-    fileprivate static let drawn = """
-        (SELECT h.revision FROM history h JOIN proved p ON p.revision = h.revision AND p.verdict IS NULL
+    fileprivate static let drawn = drawn(in: "main")
+
+    fileprivate static let select = select(from: "main")
+
+    /// `drawn` in the database `schema`: `main`, or one attached.
+    private static func drawn(in schema: String) -> String {
+        """
+        (SELECT h.revision FROM \(schema).history h JOIN \(schema).proved p ON p.revision = h.revision AND p.verdict IS NULL
          WHERE h.widget = w.key ORDER BY h.stamp DESC, h.replica DESC LIMIT 1)
         """
+    }
 
-    fileprivate static let select = """
-        SELECT w.key, r.digest, w.created_at, r.body FROM widget w JOIN revision r ON r.digest = \(drawn)
+    /// Every widget `w` of the database `schema` (`main`, or one attached) with its drawn revision, for
+    /// `init(row:)`.
+    fileprivate static func select(from schema: String) -> String {
         """
+        SELECT w.key, r.digest, w.created_at, r.body FROM \(schema).widget w
+        JOIN \(schema).revision r ON r.digest = \(drawn(in: schema))
+        """
+    }
 
     fileprivate init(row: Row) throws {
         guard let key = WidgetKey(parsing: row["key"]), let revision = Spec.Digest(hex: row["digest"]) else {
@@ -1053,17 +1100,6 @@ package struct DayCount: Sendable, Equatable {
         self.count = count
         self.sum = sum
     }
-}
-
-/// What a widget reads, as `RowStore.rows(of:)` takes it out of one store for `copy(_:to:)` to put into another:
-/// the dataset each of its tables is bound to, every live row of those datasets and its cells as the changes that
-/// wrote them, stamped by their writers, and the local `member` and `mine` tables, so the copy names the same
-/// writers and counts the same rows as the person's.
-package struct WidgetRows: Sendable {
-    let bindings: [String: DatasetKey]
-    let changes: [Stamped]
-    let members: [String: String]
-    let mine: [String]
 }
 
 /// What `receive` did not merge.

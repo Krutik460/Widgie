@@ -167,7 +167,7 @@ func submit(_ form: InputForm, values: [String: InputValue]) throws {
 
 Same view, a different host. The app decides what a tap means in its own process.
 
-A draft the person has not saved lives in a scratch engine, never in `Hosting.engine`, so the widget picker cannot list it. `Engine.scratch()` makes one in a new folder of its own under the app's temporary directory. It runs no commit hook, it deletes that folder when it is released, after closing its database, and it keeps writing after `Engine.suspend()`, so a build can finish in the background. `App/Widgie/Preview.swift` owns one per draft. The app calls `Engine.removeLeftoverScratch()` at launch, which deletes the folders an earlier run left behind when it crashed or iOS ended it.
+A draft the person has not saved lives in a scratch engine, never in `Hosting.engine`, so the widget picker cannot list it. `Engine.scratch()` makes one in a new folder of its own under the app's temporary directory. It runs no commit hook, it never syncs (`receive` and `automationPayload()` throw), it deletes that folder when it is released, after closing its database, and it keeps writing after `Engine.suspend()`, so a build can finish in the background. `App/Widgie/Preview.swift` owns one per draft. The app calls `Engine.removeLeftoverScratch()` at launch, which deletes the folders an earlier run left behind when it crashed or iOS ended it.
 
 ```swift
 Engine.removeLeftoverScratch()                        // once, at launch
@@ -208,10 +208,10 @@ let checkpoint = try scratch.checkpoint(of: draft)
 try scratch.rollBack(to: checkpoint)                  // the old head, and the rows the preview showed before
 ```
 
-To refine a library widget, copy it into the scratch engine with `copy(_:from:)`. The copy is the revision the library draws, saved without a second proof, and its tables read a copy of every live row the widget reads, stamped as their writers stamped them, so the draft shows the widget's face as it is now: rows written ahead still reveal at their time, and the automation's rows still count as the person's. Taps write the copy, never the library's rows. A refinement built over the copy keeps a table's rows while the table keeps its dataset, as saving it over the widget does, so draw it as it is, without a `load` over it. Only a scratch engine takes a copy, since sync must never push rows nobody wrote.
+To refine a library widget, copy it into the scratch engine with `copy(_:from:)`. The copy is the revision the library draws, taken without a second proof, bound to every dataset the widget is bound to there (a table a restore dropped included) and holding a copy of every live row of those datasets, other widgets' included, stamped as their writers stamped them, so the draft shows the widget's face as it is now: rows written ahead still reveal at their time, and the automation's rows still count as the person's. All of it comes from one snapshot of the library in one transaction, and the rows go from file to file in SQL, so a widget with 30,000 rows copies in about 0.15 s on a Mac. It runs off the caller's actor. Taps write the copy, never the library's rows. A refinement built over the copy keeps a table's rows while the table keeps its dataset, as saving it over the widget does, so draw it as it is, without a `load` over it. Only a scratch engine takes a copy, and a scratch engine never syncs: `receive` and `automationPayload()` throw there, since its rows carry the person's dataset keys.
 
 ```swift
-guard let draft = try scratch.copy(saved, from: Hosting.engine) else { return }   // nil: no longer in the library
+guard let draft = try await scratch.copy(saved, from: Hosting.engine) else { return }   // nil: no longer in the library
 ```
 
 ```swift
@@ -322,7 +322,7 @@ Until then each widget draws its newest revision that passed its proof here, or 
 The server runs each widget's automations and writes their rows a period ahead. The app uploads the account's automations, and the app and the extension pull what the server wrote. The engine owns both formats ([WIRE.md](WIRE.md)); the caller only moves bytes.
 
 ```swift
-// Upload after any change that can move the payload (save, refine, restore, roll back, delete, bind), and on
+// Upload after any change that can move the payload (save, refine, restore, delete, bind), and on
 // foreground when the digest differs from the last one the server acknowledged. A time zone change moves it too.
 let payload = try Hosting.engine.automationPayload()   // throws while a live widget cannot be read here
 if payload.digest != acknowledged { try await api.put("/v1/automations", body: payload.json) }
@@ -334,7 +334,7 @@ try Hosting.engine.receive(page)               // one transaction; onCommit only
 nextPull = page.nextWrite                      // when the server next expects to write
 ```
 
-`receive` hides: decoding every change strictly, holding back the first change stamped more than 10 minutes ahead and everything after it for the next pull, refusing cells over the limits a tap obeys, merging the rest by the one LWW rule, adding the page's automation replica to `mine` so its rows count as the person's own, moving the watermark forward only, all in one transaction, and logging what it held or refused. A replayed page changes nothing and reloads nothing. `automationPayload()` hides: walking every live widget's drawn revision, resolving each automation's `writes` table to its dataset, encoding canonically with the phone's current time zone, and hashing. It throws instead of leaving out a widget whose drawn revision this build cannot read, because the upload replaces every automation and the server would delete that widget's future rows; skip the upload and try again later.
+`receive` hides: decoding every change strictly, holding back the first change stamped more than 10 minutes ahead and everything after it for the next pull, refusing cells over the limits a tap obeys, merging the rest by the one LWW rule, adding the page's automation replica to `mine` so its rows count as the person's own, moving the watermark forward only, all in one transaction, and logging what it held or refused. A replayed page changes nothing and reloads nothing. `automationPayload()` hides: walking every live widget's drawn revision, resolving each automation's `writes` table to its dataset, encoding canonically with the phone's current time zone, and hashing. It throws instead of leaving out a widget whose drawn revision this build cannot read, because the upload replaces every automation and the server would delete that widget's future rows; skip the upload and try again later. Both throw on a scratch engine, which never syncs.
 
 ## 4. The render tool
 

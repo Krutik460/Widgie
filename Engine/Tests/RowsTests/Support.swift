@@ -141,7 +141,8 @@ func temporaryDirectory() -> URL {
 
 /// One widget in one store, tapped and read the way the engine does: `Today` from an instant and a calendar.
 /// A new widget gets a dataset for each table, as a save does. Passing an existing `widget` binds nothing, so
-/// a second replica of it reads only what sync brings, bindings included.
+/// a second replica of it reads only what sync brings, bindings included. The default store is an in-memory replica,
+/// not a scratch one, since a scratch store never syncs.
 struct Bench {
     let store: RowStore
     let spec: Spec
@@ -151,7 +152,7 @@ struct Bench {
     init(
         store: RowStore? = nil, spec: Spec? = nil, widget: WidgetKey? = nil, calendar: Calendar? = nil
     ) throws {
-        self.store = try store ?? RowStore.scratch()
+        self.store = try store ?? RowStore.inMemory(isScratch: false)
         self.spec = try spec ?? parse(testDocument)
         self.widget = widget ?? .mint()
         self.calendar = try calendar ?? gregorian()

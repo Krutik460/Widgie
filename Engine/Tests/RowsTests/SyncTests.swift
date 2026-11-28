@@ -34,6 +34,29 @@ import Testing
             """#)
     }
 
+    // MARK: Scratch stores
+
+    /// A scratch store holds a sample's rows or a copy of the person's under their real dataset keys, so it hands
+    /// sync nothing and takes nothing from it, on disk or in memory, with rows in it or none.
+    @Test(arguments: [false, true]) func aScratchStoreNeverSyncs(onDisk: Bool) throws {
+        let store = try onDisk ? RowStore.open(directory: temporaryDirectory(), isScratch: true) : RowStore.scratch()
+        let bench = try Bench(store: store)
+        try bench.tap("add", at: noon)
+        let replica = "7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b"
+        let row = Stamped(
+            change: .insertRow(
+                try #require(RowKey(parsing: "0190a000-0000-7000-8000-000000000001")), dataset: try dataset(bench),
+                day: try day("2026-11-18"), at: Int64(try instant(noon).timeIntervalSince1970 * 1000)),
+            stamp: try stamp(noon), replica: replica)
+        let page = try Page(json: Data(#"{"replica": "\#(replica)", "changes": [], "nextWrite": null}"#.utf8))
+
+        #expect(throws: StoreError.self) { try store.changes(after: nil) }
+        #expect(throws: StoreError.self) { try store.receive([row], now: Date()) }
+        #expect(throws: StoreError.self) { try store.receive(page, now: Date()) }
+        #expect(throws: StoreError.self) { try store.automationPayload(timeZone: .gmt) }
+        #expect(try bench.number("milk", at: noon) == 1, "the refused row never landed")
+    }
+
     // MARK: Typed cells
 
     @Test func aBoolReadAsAnotherKindIsBlank() throws {
