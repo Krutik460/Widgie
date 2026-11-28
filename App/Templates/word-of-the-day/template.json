@@ -1,10 +1,10 @@
 {
   "name": "Word of the day",
-  "line": "Daily words are coming soon",
+  "line": "A new word every morning",
   "category": "goals",
   "order": 30,
   "family": "medium",
-  "hint": "Daily words are on their way. For now, try Know it and Again.",
+  "hint": "A new word lands at 6 every morning. Tap Know it or Again.",
   "suggestion": {
     "title": "A Spanish word a day",
     "subtitle": "Learn it, then mark it known",
