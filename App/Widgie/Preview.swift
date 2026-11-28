@@ -8,9 +8,9 @@ import WidgetHosting
 private let log = Logger(subsystem: "dev.krutikpatel.widgie", category: "describe")
 
 /// A draft's live face, drawn from a scratch engine of its own. The draft never reaches the shared store, so
-/// the home screen widget picker cannot list it before Save, and taps write to sample rows, never the
-/// person's. Releasing the preview deletes the draft. While the app is in the foreground it draws the faces again
-/// at the moment they change, such as an undo's window closing.
+/// the home screen widget picker cannot list it before Save, and taps write to scratch rows (a sample's, or a copy
+/// of the rows a library widget reads), never the person's. Releasing the preview deletes the draft. While the app
+/// is in the foreground it draws the faces again at the moment they change, such as an undo's window closing.
 @MainActor @Observable
 final class Preview {
     /// Where the draft lives. The build loop runs on this engine, so every accepted attempt saves only here.
@@ -85,16 +85,16 @@ final class Preview {
         await redraw()
     }
 
-    /// Copies a library widget into the scratch engine and shows it as `show` does, so refining it never shows or
-    /// writes the person's rows. Returns the draft's id in the scratch engine, or nil, with the
-    /// reason logged, when the widget is gone or cannot be copied.
+    /// Copies a library widget into the scratch engine with a copy of its rows and shows it with them, so the draft
+    /// starts as the widget looks now, and refining it never writes the person's rows. Returns the draft's id in the
+    /// scratch engine, or nil, with the reason logged, when the widget is gone or cannot be copied.
     func copy(_ saved: WidgetID) async -> WidgetID? {
         do {
-            guard let source = try library.source(of: saved) else {
+            guard let draft = try engine.copy(saved, from: library) else {
                 log.error("copy: \(saved.rawValue, privacy: .public) is no longer in the library")
                 return nil
             }
-            return await adopt(source)
+            return await show(draft, keepingRows: true) ? draft : nil
         } catch {
             log.error("copy: \(error.message, privacy: .public)")
             return nil

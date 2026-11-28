@@ -7,7 +7,7 @@ One object, `Engine`, does everything. What a caller can do with it depends on w
 | Import | Adds to `Engine` | Who imports it |
 |---|---|---|
 | `WidgetEngine` | `init(directory:calendar:onCommit:)`, `faces(for:family:size:from:)`, `face(for:family:size:at:)`, `perform(_:input:at:)`, `form(for:)`, `widgets()`, `delete(_:)`, `receive(_:at:)` with `RemotePage`, `watermark()`, `automationPayload()`, `Engine.suspend()`, `Engine.resume()`, `Engine.scratch()`, `Engine.removeLeftoverScratch()`, plus `FaceView`, `FaceHost`, `Face.traits`, and `Face.isFallback` | app, widget extension (through `WidgetHosting`) |
-| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `stageProved(_:at:)`, `checkpoint(of:)` and `rollBack(to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
+| `WidgetBuilder` | `build(_:replacing:)`, `build(_:image:replacing:repairing:model:progress:)` and `Engine.maxBuildAttempts`, `source(of:)`, `history(of:)`, `restore(_:to:)`, `samples(of:)`, `load(_:into:at:)`, `stageProved(_:at:)`, `copy(_:from:)`, `checkpoint(of:)` and `rollBack(to:)`, `proveReceived()`, `Engine.proof(_:state:family:...)`, `Engine.proofs(_:at:calendar:)`, plus `BridgeModel` | app, render tool |
 | `WidgetHosting` | `Hosting.engine`, `Hosting.formURL(for:)`, `Hosting.formTap(from:)`, the `RunAction` intent, the widget configuration, `FaceHost.widget` | app, widget extension |
 
 The widget extension never imports `WidgetBuilder`, so it cannot build, ingest images, or encode PNGs. That is a link-time fact, not a convention.
@@ -208,7 +208,11 @@ let checkpoint = try scratch.checkpoint(of: draft)
 try scratch.rollBack(to: checkpoint)                  // the old head, and the rows the preview showed before
 ```
 
-To refine a library widget, build its `source(of:)` into the scratch engine and load a sample. No call copies rows between engines, so the preview never shows the person's rows.
+To refine a library widget, copy it into the scratch engine with `copy(_:from:)`. The copy is the revision the library draws, saved without a second proof, and its tables read a copy of every live row the widget reads, stamped as their writers stamped them, so the draft shows the widget's face as it is now: rows written ahead still reveal at their time, and the automation's rows still count as the person's. Taps write the copy, never the library's rows. A refinement built over the copy keeps a table's rows while the table keeps its dataset, as saving it over the widget does, so draw it as it is, without a `load` over it. Only a scratch engine takes a copy, since sync must never push rows nobody wrote.
+
+```swift
+guard let draft = try scratch.copy(saved, from: Hosting.engine) else { return }   // nil: no longer in the library
+```
 
 ```swift
 let faces = await engine.faces(for: id, family: .small, size: Family.small.standardSize, from: .now)

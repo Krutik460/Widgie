@@ -1,4 +1,5 @@
 import Foundation
+import Rows
 import Testing
 import WidgetBuilder
 import WidgetEngine
@@ -257,6 +258,83 @@ import WidgetEngine
 
     @Test func onlyAScratchEngineStages() throws {
         #expect(throws: EngineError.self) { try Scratch().engine.stageProved(try fixture("water")) }
+    }
+
+    @Test @MainActor func aCopyDrawsTheRowsTheWidgetReadsAndItsTapsStayInTheCopy() async throws {
+        let shared = Scratch()
+        let source = try fixture("water")
+        let saved = try await shared.build(source)
+        for _ in 0..<3 { try shared.engine.perform(try button("drink", on: await shared.face(saved)).tap, at: morning) }
+        let before = picture(await shared.face(saved, .medium), .medium)
+
+        let draft = Engine.scratch(calendar: utc)
+        let id = try #require(try draft.copy(saved, from: shared.engine))
+        for family in Family.allCases {
+            #expect(
+                picture(await face(id, in: draft, family), family).looksLike(
+                    picture(await shared.face(saved, family), family)))
+        }
+
+        try draft.perform(try button("drink", on: await face(id, in: draft)).tap, at: morning)
+        let four = #"{"glasses": [{"daysAgo": 0, "repeat": 4}]}"#
+        #expect(
+            picture(await face(id, in: draft, .medium), .medium).looksLike(
+                try await expected(source, rows: four, .medium)))
+        #expect(
+            picture(await shared.face(saved, .medium), .medium).looksLike(before), "the library's rows are untouched")
+    }
+
+    @Test @MainActor func aCopyKeepsRowsWrittenAheadAndTheAutomationsRowsAsThePersonsOwn() async throws {
+        let shared = Scratch()
+        let source = try fixture("dogfed")
+        let saved = try await shared.build(source)
+        let pull = instant("2026-11-18T13:00:00Z")
+        let fed = instant("2026-11-18T14:00:00Z")
+        let key = try #require(WidgetKey(parsing: saved.rawValue))
+        let feeds = try #require(try shared.engine.store().bindings(of: key)["feeds"])
+        try shared.engine.receive(try page(Run(dataset: feeds.raw, at: fed, written: pull).changes(from: 1)), at: pull)
+
+        let draft = Engine.scratch(calendar: utc)
+        let id = try #require(try draft.copy(saved, from: shared.engine))
+        let size = Family.small.standardSize
+        let original = await shared.engine.faces(for: saved, family: .small, size: size, from: pull)
+        let copied = await draft.faces(for: id, family: .small, size: size, from: pull)
+        #expect(copied.entries.map(\.date) == original.entries.map(\.date))
+        #expect(copied.entries.map(\.date).contains(fed), "the feed written ahead still reveals at its time")
+        for (copy, entry) in zip(copied.entries, original.entries) {
+            #expect(picture(copy).looksLike(picture(entry)))
+        }
+        let revealed = try #require(copied.entries.first { $0.date == fed })
+        #expect(!picture(revealed).looksLike(picture(copied.current)))
+    }
+
+    @Test @MainActor func aRefinementOfACopyKeepsTheRowsOfTheTablesItKeeps() async throws {
+        let shared = Scratch()
+        let water = try fixture("water")
+        let saved = try await shared.build(water)
+        for _ in 0..<3 { try shared.engine.perform(try button("drink", on: await shared.face(saved)).tap, at: morning) }
+        let draft = Engine.scratch(calendar: utc)
+        let id = try #require(try draft.copy(saved, from: shared.engine))
+
+        let bluer = WidgetSource(
+            json: Data(String(decoding: water.json, as: UTF8.self).replacing("#0B2A3C", with: "#1B3A8C").utf8))
+        #expect(try await build(bluer, in: draft, replacing: id) == id)
+        let three = #"{"glasses": [{"daysAgo": 0, "repeat": 3}]}"#
+        for family in Family.allCases {
+            #expect(
+                picture(await face(id, in: draft, family), family).looksLike(
+                    try await expected(bluer, rows: three, family)))
+        }
+    }
+
+    @Test func aCopyOfAWidgetTheLibraryDoesNotHaveIsNil() throws {
+        #expect(try Engine.scratch(calendar: utc).copy(WidgetID(rawValue: "nothing"), from: Scratch().engine) == nil)
+    }
+
+    @Test func onlyAScratchEngineTakesACopy() async throws {
+        let shared = Scratch()
+        let saved = try await shared.build(try fixture("water"))
+        #expect(throws: EngineError.self) { try Scratch().engine.copy(saved, from: shared.engine) }
     }
 
     private func build(_ source: WidgetSource, in engine: Engine, replacing: WidgetID? = nil) async throws

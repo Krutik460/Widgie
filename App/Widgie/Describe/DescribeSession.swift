@@ -174,8 +174,9 @@ final class DescribeSession {
         }
     }
 
-    /// Whether there is work to lose: any draft of a new widget, or an accepted change to a library widget.
-    private var changed: Bool {
+    /// Whether there is work to lose or save: any draft of a new widget, or an accepted change to a library widget.
+    /// Save shows only then, so a library widget is never saved unchanged.
+    var changed: Bool {
         if case .library = origin { acceptedWords != nil } else { draft != nil }
     }
 
@@ -241,7 +242,7 @@ final class DescribeSession {
     }
 
     @discardableResult func save() -> Bool {
-        guard draft != nil, ready else { return false }
+        guard changed, ready else { return false }
         start(.save)
         return true
     }
@@ -399,7 +400,9 @@ final class DescribeSession {
             }
             switch outcome {
             case .accepted(let id, let attempts):
-                if await preview.show(id) {
+                // A library widget's draft reads a copy of its rows, which a change keeps where its tables keep
+                // their data, as the saved widget will. A new widget's draft starts empty after every change.
+                if await preview.show(id, keepingRows: editing != nil) {
                     log.info("accepted in \(attempts) attempts, preview shown at \(seconds(), privacy: .public)")
                     return .accepted
                 }

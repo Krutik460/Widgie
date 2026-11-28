@@ -22,6 +22,36 @@ extension Engine {
     /// whose images do not ingest, and a store failure.
     public func stageProved(_ source: WidgetSource, at date: Date = .now) throws(EngineError) -> WidgetID {
         guard isScratch else { throw EngineError(message: "only a scratch engine stages a widget it has not proved") }
+        let widget = WidgetID(rawValue: try stage(source).raw)
+        if let first = try samples(of: widget).first { try load(.sample(first), into: widget, at: date) }
+        return widget
+    }
+
+    /// Copies `widget` from `library` into this scratch engine as a new draft that reads the rows it reads there,
+    /// so the draft's face is the widget's face as it is now. The draft is the revision `library` draws, saved
+    /// here without the proof `library` already ran, and its tables read every live row of the datasets they read
+    /// there, kept as their writers stamped them: rows written ahead still reveal at their time, and the person's
+    /// rows still count as the person's. Taps then write the copy, never `library`'s rows. A build that replaces
+    /// the draft keeps a table's rows while the table keeps its dataset, as saving it over the widget in
+    /// `library` would, and a table it adds starts empty.
+    ///
+    /// Only a scratch engine takes this, as with `load`. Returns nil when `library` has no such widget. Throws for
+    /// any other engine and a store failure.
+    public func copy(_ widget: WidgetID, from library: Engine) throws(EngineError) -> WidgetID? {
+        guard isScratch else { throw EngineError(message: "only a scratch engine takes a copy of a widget") }
+        guard let key = WidgetKey(parsing: widget.rawValue), let source = try library.source(of: widget) else {
+            return nil
+        }
+        let shared = try library.store()
+        let rows = try attempt { () throws(StoreError) in try shared.rows(of: key) }
+        let store = try self.store()
+        let copy = try stage(source)
+        try attempt { () throws(StoreError) in try store.copy(rows, to: copy) }
+        return WidgetID(rawValue: copy.raw)
+    }
+
+    /// Saves `source` into this store under a new key as it is, without a proof.
+    private func stage(_ source: WidgetSource) throws(EngineError) -> WidgetKey {
         let store = try self.store()
         let spec: Spec
         let images: [Spec.AssetID: Data]
@@ -33,9 +63,7 @@ extension Engine {
         }
         let key = WidgetKey.mint()
         _ = try attempt { () throws(StoreError) in try store.save(key, spec: spec, assets: images) }
-        let widget = WidgetID(rawValue: key.raw)
-        if let first = try samples(of: widget).first { try load(.sample(first), into: widget, at: date) }
-        return widget
+        return key
     }
 
     /// Replaces the widget's rows with the rows of `state`, as of `date`, so a draft shows what it looks

@@ -553,6 +553,75 @@ package final class RowStore: Sendable {
         }
     }
 
+    /// What `key` reads, for a copy in a scratch store: see `WidgetRows`.
+    package func rows(of key: WidgetKey) throws(StoreError) -> WidgetRows {
+        try read { db in
+            let bindings = try Row.fetchAll(
+                db, sql: "SELECT tbl, dataset FROM binding WHERE widget = ?", arguments: [key.raw]
+            ).compactMap { row in DatasetKey(parsing: row["dataset"]).map { (row["tbl"] as String, $0) } }
+            let bound = "SELECT dataset FROM binding WHERE widget = ?"
+            var changes: [Stamped] = []
+            for row in try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT key, dataset, day, at, stamp, replica FROM row
+                    WHERE dataset IN (\(bound)) AND deleted IS NULL AND day NOTNULL
+                    """, arguments: [key.raw])
+            {
+                guard let rowKey = RowKey(parsing: row["key"]), let dataset = DatasetKey(parsing: row["dataset"])
+                else { continue }
+                changes.append(
+                    Stamped(
+                        change: .insertRow(rowKey, dataset: dataset, day: Day(index: row["day"]), at: row["at"]),
+                        stamp: Stamp(raw: row["stamp"]), replica: row["replica"]))
+            }
+            for row in try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT c.row, c.dataset, c.field, c.kind, c.value, c.stamp, c.replica FROM cell c
+                    JOIN row r ON r.key = c.row AND r.dataset = c.dataset
+                    WHERE r.dataset IN (\(bound)) AND r.deleted IS NULL AND r.day NOTNULL
+                    """, arguments: [key.raw])
+            {
+                guard let rowKey = RowKey(parsing: row["row"]), let dataset = DatasetKey(parsing: row["dataset"]),
+                    let cell = Spec.Cell(row["value"], code: row["kind"])
+                else { continue }
+                changes.append(
+                    Stamped(
+                        change: .setCell(rowKey, dataset: dataset, field: row["field"], cell),
+                        stamp: Stamp(raw: row["stamp"]), replica: row["replica"]))
+            }
+            let members = try Row.fetchAll(db, sql: "SELECT replica, name FROM member").map {
+                ($0["replica"] as String, $0["name"] as String)
+            }
+            return WidgetRows(
+                bindings: Dictionary(bindings) { $1 }, changes: changes,
+                members: Dictionary(members) { $1 }, mine: try String.fetchAll(db, sql: "SELECT replica FROM mine"))
+        }
+    }
+
+    /// Takes in `rows` from another store and points each table of `key` that `rows` binds at the same dataset, in
+    /// one transaction, so `key` reads exactly those rows: kept as their writers stamped them, by the same
+    /// members, and the person's where they were the person's there. Only a scratch store takes this, because a
+    /// copy is not a write any replica made, and sync must never push it.
+    package func copy(_ rows: WidgetRows, to key: WidgetKey) throws(StoreError) {
+        guard isScratch else { throw StoreError(message: "only a scratch store takes a copy of another's rows") }
+        try write(at: Date()) { db in
+            try merge(rows.changes, in: db)
+            for (replica, name) in rows.members {
+                try db.execute(
+                    sql: "INSERT OR REPLACE INTO member(replica, name) VALUES (?, ?)", arguments: [replica, name])
+            }
+            for replica in rows.mine {
+                try db.execute(sql: "INSERT OR IGNORE INTO mine(replica) VALUES (?)", arguments: [replica])
+            }
+            // Stamped after everything merged above, so these binds win over the ones the widget's save made.
+            return rows.bindings.isEmpty
+                ? .ignored("the widget reads no tables")
+                : .changes(rows.bindings.map { .bind(key, table: $0.key, to: $0.value) })
+        }
+    }
+
     // MARK: Sync
 
     /// What sync pushes: every change this replica made after `watermark`, grouped by `Change.scope` and
@@ -984,6 +1053,17 @@ package struct DayCount: Sendable, Equatable {
         self.count = count
         self.sum = sum
     }
+}
+
+/// What a widget reads, as `RowStore.rows(of:)` takes it out of one store for `copy(_:to:)` to put into another:
+/// the dataset each of its tables is bound to, every live row of those datasets and its cells as the changes that
+/// wrote them, stamped by their writers, and the local `member` and `mine` tables, so the copy names the same
+/// writers and counts the same rows as the person's.
+package struct WidgetRows: Sendable {
+    let bindings: [String: DatasetKey]
+    let changes: [Stamped]
+    let members: [String: String]
+    let mine: [String]
 }
 
 /// What `receive` did not merge.
