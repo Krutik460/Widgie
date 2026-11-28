@@ -49,7 +49,7 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: PickWidget, in context: Context) async -> Timeline<Entry> {
-        await Hosting.account.pullBeforeRender()   // rationed, single-flight, at most 4 s; never fails
+        await Hosting.account.pullBeforeRender()   // rationed, single-flight pull then upload; 4 s for the network
         let faces = await Hosting.engine.faces(
             for: configuration.widget?.id, family: Family(context.family), size: context.displaySize, from: .now)
         return Timeline(entries: faces.entries.map { Entry(date: $0.date, face: $0) }, policy: .after(faces.reloadAt))
@@ -334,18 +334,18 @@ let body = try await api.get("/v1/changes?after=\(try Hosting.engine.watermark()
 let page = try RemotePage(json: body)          // throws, naming the first problem, when it is not a page
 try Hosting.engine.receive(page)               // one transaction; onCommit only when something changed
 nextPull = page.nextWrite                      // when the server next expects to write
-// ask again while page.count == RemotePage.limit and the watermark moved
+// ask again from the new watermark until a page is empty or leaves the watermark where it was
 ```
 
 `Hosting.account` (`AccountClient` in `WidgetHosting`) is that code, shared by the app and the extension: the token in the Keychain group both list (`WidgieKeychainGroup`, readable after the first unlock), the extension's state in the App Group's defaults, and the routes of the Worker named by `WidgieModelService`.
 
 ```swift
-await Hosting.account.pullBeforeRender()                 // the extension: only when due, at most 4 s, never fails
+await Hosting.account.pullBeforeRender()                 // the extension: when due, pull then upload; never fails
 await Hosting.account.pull()                             // the app: on foreground and after an upload
-try await Hosting.account.upload(register: register)     // the app: registers on first need, then PUTs if moved
+try await Hosting.account.upload(register: register, foreground: true)  // the app: registers on need, PUTs
 ```
 
-It hides: the fresh-install marker that discards a token an earlier install left in the Keychain, registering on first need through the closure the app passes (App Attest on a phone, the dev secret on a Debug simulator build, both in the app target), the ration (a pull when the last one started over 30 minutes ago or `nextWrite` passed), one pull per process that a second caller joins, a hard deadline that cancels the requests, paging while full pages arrive, 409 sent again, 422 logged and returned, and a token the server no longer knows dropped and registered again. The app's `AccountSync` calls `upload` on every `Hosting.didCommit`, on foreground, and on a time zone or clock change, and pulls every 5 seconds for a minute after an upload that names an automation.
+It hides: the fresh-install marker that discards a token an earlier install left in the Keychain; registering on first need through the closure the app passes (App Attest on a phone, the dev secret on a Debug simulator build, both in the app target), and after a failed registration only on a foreground once a doubling wait has passed; the ration (a pull when the last one started over 30 minutes ago, when `nextWrite` passed since it started, or when the clock moved back); one flight per process that a second caller joins; the extension's upload after its pull when the server lacks the payload, never registering, so a zone the phone moved to with the app closed reaches the server; a 4 s deadline that is hard for the network but lets a merge already running finish, so the extension never returns while it holds the write lock; paging until a page is empty; an acknowledgement kept per token, so a lost token is replaced; 409 sent again; a payload refused with 400, 413, 415, or 422 remembered and not sent again until it changes; and a token the server no longer knows dropped, only while it is still the stored one, and registered again. The app's `AccountSync` calls `upload` on every `Hosting.didCommit`, on foreground, and on a time zone or clock change, and pulls every 5 seconds for a minute after an upload that names an automation.
 
 `receive` hides: decoding every change strictly, holding back the first change stamped more than 10 minutes ahead and everything after it for the next pull, refusing cells over the limits a tap obeys, merging the rest by the one LWW rule, adding the page's automation replica to `mine` so its rows count as the person's own, moving the watermark forward only, all in one transaction, and logging what it held or refused. A replayed page changes nothing and reloads nothing. `automationPayload()` hides: walking every live widget's drawn revision, resolving each automation's `writes` table to its dataset, encoding canonically with the phone's current time zone, and hashing. It throws instead of leaving out a widget whose drawn revision this build cannot read, because the upload replaces every automation and the server would delete that widget's future rows; skip the upload and try again later. Both throw on a scratch engine, which never syncs.
 

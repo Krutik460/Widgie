@@ -176,8 +176,13 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: PickWidget, in context: Context) async -> Timeline<Entry> {
-        // Rows the server wrote since the last pull, when one is due, so this render draws them. Bounded at 4 s, and
-        // any failure, or no token before the first unlock, draws what the store holds.
+        // The zone the phone is in now, which Foundation caches until told it moved, for the faces and for the
+        // payload an upload after the pull sends.
+        NSTimeZone.resetSystemTimeZone()
+        // Rows the server wrote since the last pull, when one is due, so this render draws them, then the upload of
+        // the automations when the server lacks them, such as the zone after travel with the app closed. At most
+        // 4 s for the network (a merge already running finishes first), and any failure, or no token before the
+        // first unlock, draws what the store holds.
         await Hosting.account.pullBeforeRender()
         let faces = await Hosting.engine.faces(
             for: configuration.widget?.id, family: Family(context.family), size: context.displaySize, from: .now)
