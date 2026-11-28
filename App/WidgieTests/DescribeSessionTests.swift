@@ -84,6 +84,23 @@ import WidgetEngine
         #expect(try shared.engine.widgets().map(\.id) == [id])
     }
 
+    /// A filled template is not in the library yet, so it is work to save from the moment it opens: Save shows
+    /// before any turn and adds it as it is.
+    @Test func aTemplateSessionOffersSaveBeforeAnyTurn() async throws {
+        let model = ScriptedModel([])
+        let session = DescribeSession(
+            .unsaved(WidgetSource(json: Data(counterDocument().utf8))), model: model,
+            preview: Preview(library: shared.engine))
+        await session.open()
+        #expect(session.turns.isEmpty)
+        #expect(session.changed)
+        #expect(session.save())
+        try await until({ session.settled }, "the save never finished")
+        let id = try session.savedID()
+        #expect(try shared.engine.widgets().map(\.id) == [id])
+        #expect(model.requests.isEmpty, "saved as it is, with no turn")
+    }
+
     @Test func aDraftThatDoesNotBuildCannotBeOpened() async throws {
         let session = DescribeSession(
             .unsaved(WidgetSource(json: Data(#"{"name": "Counter"}"#.utf8))), model: ScriptedModel([]),
