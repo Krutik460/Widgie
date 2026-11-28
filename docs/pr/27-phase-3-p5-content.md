@@ -1,8 +1,8 @@
 # PR 27: Word of the day becomes real, and the build prompt knows runs see their history
 
-Branch `phase-3-p5-content` into `phase-3-p4-app` (PR 26). This is P5 of [tasks/phase-3-ai-block.md](../../tasks/phase-3-ai-block.md) (the P5 checklist at line 183 and its "P5 results" note at line 190). P3 made the Worker run automations and P4 made the app upload them and pull their rows. Here the content catches up: Word of the day stops promising words "soon", the build prompt teaches what a run actually sees and when its row shows, and a dev-only route plus a Python eval run each automation for 30 simulated days on the real run prompt, schema, and model. Nothing is deployed. The 30-day eval run against `dev` (the one unchecked P5 item) is the user's, after deploying `dev` with this branch.
+Branch `phase-3-p5-content` into `phase-3-p4-app` (PR 26). This is P5 of [tasks/phase-3-ai-block.md](../../tasks/phase-3-ai-block.md) (the P5 checklist at line 210 and its "P5 results" note at line 221). P3 made the Worker run automations and P4 made the app upload them and pull their rows. Here the content catches up: Word of the day stops promising words "soon", the build prompt teaches what a run actually sees and when its row shows, and a dev-only route plus a Python eval run each automation for 30 simulated days on the real run prompt, schema, and model. Nothing is deployed. The 30-day eval run against `dev` (the one unchecked P5 item) is the user's, after deploying `dev` with this branch.
 
-Background reading: the plan's "How it works (decided)", especially "Each run sees its recent rows" and "The reply is checked, not trusted", the repeat rule note at line 152 (why a category field may repeat), and PR 25's guide (`docs/pr/25-phase-3-p3-runner.md`, section 2) for the consumer's turn, checks, repair, and log, which this PR moves into `askRow` without changing.
+Background reading: the plan's "How it works (decided)", especially "Each run sees its recent rows" and "The reply is checked, not trusted", the repeat rule note at line 153 (why a category field may repeat), and PR 25's guide (`docs/pr/25-phase-3-p3-runner.md`, section 2) for the consumer's turn, checks, repair, and log, which this PR moves into `askRow` without changing.
 
 **No usage limits for now** (removed by the user on 2026-11-27). The dev route has no quota of its own: it is gated by the dev secret and lives only on `dev`.
 
@@ -32,6 +32,7 @@ Background reading: the plan's "How it works (decided)", especially "Each run se
   ```
 
   Cases run side by side, days in order, 180 requests in all. Read `Engine/.artifacts/evals/p5-automations/summary.md` for the table and every day's row.
+- **A topic change keeps the history (user decision, 2026-11-28).** In the P4 simulator run, "make it medical terms for my nursing exam" reset Word of the day to "0 learned": Sonnet moved the words to a new table `terms`, which the engine rightly bound to a new dataset. The build prompt now says a new topic for the same kind of item keeps the table and its fields ([build-prompt.md:41](../../Engine/Reference/build-prompt.md#L41), with a checked example at [blocks.md:493](../../Engine/Reference/blocks.md#L493)), and only a fresh start or another kind of thing gets a new table. No code change: the engine already keeps every surviving table id's binding. See section 6.
 - **Tests.** New: [dev-run.test.ts](../../Backend/test/dev-run.test.ts) (11 tests, among them 18 malformed bodies), [entry.test.ts](../../Backend/test/entry.test.ts) (1), [test_automations.py](../../Engine/Evals/test_automations.py) (19). Changed: [runner.test.ts:587](../../Backend/test/runner.test.ts#L587) now checks the log counts a cut call with no text and its usage; `attest`, `automations`, and `reply` tests import the body caps from `body.ts`.
 
 ## 1. Opening Word of the day, and its widget before the first row (copy)
@@ -61,7 +62,7 @@ Files:
 - [widget.json:89](../../App/Templates/word-of-the-day/widget.json#L89): the look, a single JSON string. The only change is the empty face's text, `'soon. Your first word is on its way.'`, shown when `d.word` is null. [widget.json:42](../../App/Templates/word-of-the-day/widget.json#L42): the automation's `"at": "06:00"`, which the hint's "at 6" names.
 - [TemplatesView.swift:313](../../App/Widgie/Templates/TemplatesView.swift#L313): where the card shows `template.line`. [TemplateTrial.swift:44](../../App/Widgie/Templates/TemplateTrial.swift#L44): `greet`, which speaks `template.hint`.
 - [automations.ts:469](../../Backend/src/automations.ts#L469): the run-now task (`once: 1, runAt: now, dueAt: now`) that makes the empty face short-lived.
-- [phase-3-ai-block.md:204](../../tasks/phase-3-ai-block.md#L204): the copy for sign-off, as recorded in the plan.
+- [phase-3-ai-block.md:223](../../tasks/phase-3-ai-block.md#L223): the copy for sign-off, as recorded in the plan.
 
 Key decisions:
 
@@ -103,7 +104,7 @@ Files:
 Key decisions:
 
 - **"Rows its automation wrote", not "the table's last 60 rows".** Rows a person adds by tapping do not reach the server in phase 3, so the run cannot see them. The narrower wording is what is true.
-- **Teach the category exception in the build prompt too.** Without it a build model may write "never repeat anything", which the run model would then try to apply to a part of speech or a Push/Pull/Legs focus. The repeat rule (plan line 152) already allows it, so the two prompts now say the same thing.
+- **Teach the category exception in the build prompt too.** Without it a build model may write "never repeat anything", which the run model would then try to apply to a part of speech or a Push/Pull/Legs focus. The repeat rule (plan line 153) already allows it, so the two prompts now say the same thing.
 - **Say that a new automation runs once right away.** The build model otherwise has no way to know the widget fills within a minute of the upload, and no reason not to work around an empty first day. A "new one now" button, which earlier evals saw models try, still cannot exist, and RATIONALE keeps that question open.
 - **The run prompt is not touched.** It already said the first three things, so this PR changes nothing the consumer sends, and the eval measures the run prompt as it was reviewed in P3.
 
@@ -253,7 +254,52 @@ Key decisions:
 - **Run through the Worker, not a local copy.** The model key stays on the server, and the eval exercises the deployed run prompt, schema, structured output, reply checks, repeat rule, and repair. That is what the dev route is for.
 - **History is fed back as the consumer reads it.** Only text values, the last 60, newest first. A day that gets `retry` adds no row, as the consumer would write nothing on that attempt, and the case fails because a real widget would have shown no new word that morning.
 - **Repeats are compared as the Worker compares them.** Trimmed, NFC, lower case, so the eval never flags a repeat the Worker would have let through for a different reason, or misses one it refused.
-- **Near repeat on the key field is the bar.** The Worker's repeat rule misses a two-text-field table where only the key repeats with a reworded definition (plan line 152). The eval measures exactly that gap, and a near repeat fails the case, except in `workout-focus`, where the key is a category and repeats are expected.
+- **Near repeat on the key field is the bar.** The Worker's repeat rule misses a two-text-field table where only the key repeats with a reworded definition (plan line 153). The eval measures exactly that gap, and a near repeat fails the case, except in `workout-focus`, where the key is a category and repeats are expected.
 - **The refine check is automatic, not read by eye.** From day 16 no key written in the Spanish days may come back, and no key may hold ñ, ü, á, í, ó, ú, ¿, or ¡ (Spanish writes them, Italian never does). The result is in `summary.json` (`refine`), the table's `new topic` column, and the marks in `summary.md`.
 - **Fail fast and loudly on a misconfigured run.** A 404 on day 1 means the secret is wrong or the Worker predates this route. Every case would get it, so the run stops with exit code 2 and one line naming both causes, before any model call is spent. 400 and 413 are not retried, since the same body would fail the same way.
 - **The secret never travels in the clear or appears in output.** The base URL must be https, except plain http to `localhost` or `127.0.0.1` for a local `wrangler dev`. A smoke run against a local `wrangler dev --env dev` with a fake model key went end to end (OpenRouter's 401 came back as `retry`, a wrong secret got a 404 that was not retried, and the secret appeared in no output).
+
+## 6. A refine that changes the topic (history and counts carry over)
+
+The person opens Change it on Word of the day and asks for another topic. Whether the words already learned survive depends only on the table id in the model's reply: the engine binds each table id to a dataset, keeps the binding of every id that survives, and mints a dataset for a new id. The app's save goes through the same build, and the upload names the dataset, so the Worker's history and repeat check follow the binding too.
+
+```mermaid
+flowchart TD
+  ASK["person: make it medical terms for my nursing exam"] --> PROMPT["build prompt: refine bullet build-prompt.md:41 and example blocks.md:493"]
+  PROMPT --> KIND{"what did the person ask for?"}
+  KIND -->|"a new topic for the same kind of item (default)"| KEEP["reply keeps table words and its fields, new automation prompt, new look words"]
+  KIND -->|"start over, reset my words"| FRESH["reply adds a new table, points queries, actions, automation at it, keeps words"]
+  KIND -->|"another kind of thing, such as quotes"| OTHER["reply adds a new table, as the coffee rule says"]
+  KEEP --> SAVE["Preview.save: library.build(source, replacing:)"]
+  FRESH --> SAVE
+  OTHER --> SAVE
+  SAVE --> BIND["RowStore newBindings: a dataset only for a table id with no binding"]
+  BIND -->|"words kept"| SAME["same dataset: the words, the Know it marks, N learned stay"]
+  BIND -->|"new table id"| NEW["new empty dataset, 0 learned; old rows stay bound to words, a restore reconnects them"]
+  SAME --> UP["PUT /v1/automations: same dataset key, new prompt"]
+  UP --> RUN["Worker: run now in the new topic, history read by dataset, so no old word repeats"]
+```
+
+Files:
+
+- [build-prompt.md:41](../../Engine/Reference/build-prompt.md#L41): the refine bullet. [blocks.md:493](../../Engine/Reference/blocks.md#L493): the before and after example, checked as a refinement by `ReferenceTests`, and the fresh-start sentence after it. Composed into [build-prompt.txt:488](../../Backend/src/build-prompt.txt#L488) and [:1107](../../Backend/src/build-prompt.txt#L1107).
+- [RowStore.swift:864](../../Engine/Sources/Rows/RowStore.swift#L864): `newBindings`, unchanged. [Preview.swift:127](../../App/Widgie/Preview.swift#L127): `save`, unchanged.
+- [Engine/Fixtures/learn/widget.json](../../Engine/Fixtures/learn/widget.json): a copy of the Word of the day template (with `verdict` and the `learned` count), so the evals refine what people actually get. Added to the fixture lists in [EngineTests/Support.swift:26](../../Engine/Tests/EngineTests/Support.swift#L26) and [SpecTests/Support.swift:8](../../Engine/Tests/SpecTests/Support.swift#L8).
+- [cases.json:199](../../Engine/Evals/cases.json#L199): `refine-nursing` and `refine-italian` (no new table, every table the base read still read) and `refine-fresh` ("start over with new words": a new table that replaces `words`).
+- [RemoteTests.swift:391](../../Engine/Tests/EngineTests/RemoteTests.swift#L391): `TopicChangeTests`. Two automation rows arrive by a pull, the newest is marked Know it, then a new prompt on the same table keeps the payload's dataset and draws the same face (the same word, mark, and count); a fresh start on a new table draws the empty face, with the old dataset still bound to `words`.
+
+Eval results (`run.py`, local Claude Code stand-in, `Engine/.artifacts/evals/`):
+
+| Run | Prompt | Haiku table checks | Sonnet table checks |
+|---|---|---|---|
+| `p5-history-before`, the 3 new cases | before | 3 of 3 | 1 of 3 (nursing to `terms`, Italian to `cucina`) |
+| `p5-history-1`, the whole refine group | after | 16 of 16 (15 first try, 1 repaired once) | 16 of 16 (15 first try, 1 repaired once) |
+| `p5-history-2`, the 3 new cases plus coffee, yoga, quote | after | 6 of 6 | 6 of 6 |
+
+Key decisions:
+
+- **The fix is the prompt, not the engine.** Nothing in code dropped a binding. Carrying rows across a renamed table with the same fields would be a guess the coffee case proves wrong (a `cups` table must not inherit glasses of water), and the table id is how the model says which one it means.
+- **A default, not a lock.** "Start over" still gets a new table, and the old rows stay bound to the old id, so a restore brings them back. The model is free to add a field when the new topic needs a detail the table lacks.
+- **"Change it to a daily quote" still makes a new table.** Quotes are another kind of item, not a new topic for words, and the existing `refine-quote` case keeps expecting it; it passed in both trials.
+- **The fixture is a copy, not a link to the template.** Eval runs are compared across prompt changes, so the base must not move when the template's copy does.
+
