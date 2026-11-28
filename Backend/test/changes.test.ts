@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { NEXT_WRITE_GAP, PAGE_SIZE } from "../src/accounts";
 import { HOUR, MINUTE } from "../src/schedule";
-import { encodeChange, mintRowKey, stampOf } from "../src/wire";
+import { encodeChange, encodePage, mintRowKey, stampOf } from "../src/wire";
 import { automation, changes, DATASET, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
 
 async function replicaOf(account: string): Promise<string> {
@@ -92,6 +92,36 @@ describe("a pull", () => {
         expect(sizes).toEqual([500, 500, 203, 0]);
         const expected = [...Array(600).keys(), ...Array(603).keys()].map((i) => `word ${i}`);
         expect(words).toEqual(expected);
+    });
+
+    it("writes the page SQL joins byte for byte as encodePage writes it from the stored rows", async () => {
+        const { id, token } = await newAccount();
+        const replica = await replicaOf(id);
+        const row = mintRowKey(NOW);
+        const values = ['a "quote" and \\ a backslash', "emoji 👍🏽 and é", "line\nbreak\ttab", "日本語", ""];
+        await env.DB.batch(
+            values.map((value, i) =>
+                env.DB.prepare(
+                    `INSERT INTO changes (account, op, dataset, row_key, widget, automation, at, change, written_at)
+                     VALUES (?, 'setCell', ?, ?, NULL, NULL, NULL, ?, ?)`,
+                ).bind(
+                    id,
+                    DATASET,
+                    row,
+                    encodeChange({
+                        ...{ op: "setCell", row, dataset: DATASET, field: "word", kind: "text", value },
+                        ...{ stamp: stampOf(NOW, i), replica },
+                    }),
+                    NOW,
+                ),
+            ),
+        );
+        const { results } = await env.DB.prepare("SELECT id, change FROM changes WHERE account = ? ORDER BY id")
+            .bind(id)
+            .all<{ id: number; change: string }>();
+        expect(results).toHaveLength(values.length);
+        expect((await send(changes(token))).text).toBe(encodePage(replica, results, null));
+        expect(readPage((await send(changes(token))).text).changes.map(({ change }) => change.value)).toEqual(values);
     });
 
     it("starts after the id it is given, skipping ids that are not the account's", async () => {

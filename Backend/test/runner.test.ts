@@ -3,10 +3,20 @@ import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cadenceOf } from "../src/automations";
 import { CLAIM_MS } from "../src/cron";
-import { RUN_TOKENS } from "../src/run";
+import { RECENT_ROWS, RUN_TOKENS } from "../src/run";
 import { BACKOFF, consume, MAX_ATTEMPTS, RETRY_DELAY_S, type RunMessage } from "../src/runner";
 import { type Cadence, DAY, dayOf, LEADS, leadMs, MINUTE, nextRun } from "../src/schedule";
-import { dayIndex, encodeChange, isName, isRowKey, isUuid, parseStamp, stampOf } from "../src/wire";
+import {
+    type Cell,
+    dayIndex,
+    encodeChange,
+    isName,
+    isRowKey,
+    isUuid,
+    mintRowKey,
+    parseStamp,
+    stampOf,
+} from "../src/wire";
 import { automation, changes, DATASET, type Entry, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
 import { answer, claim, model, run, SETTINGS, sentBodies, userTurnOf } from "./helpers/runs";
 
@@ -118,6 +128,26 @@ function checkWire(change: Record<string, unknown>) {
 }
 
 describe("a run", () => {
+    it("writes every kind of cell, with text carried through SQL byte for byte as the wire encoder writes it", async () => {
+        const fields = { done: "bool", level: "number", note: "text", on: "date", word: "text" };
+        const { account, runNow } = await setUp({ fields });
+        const note =
+            'a "quote", a \\ backslash, \u{1F44D}\u{1F3FD}, e\u0301, \u65E5\u672C\u8A9E,\na new line, \u2028 a line separator';
+        const reply = { on: "2026-11-30", done: true, level: -1.5e-7, note, word: "Petrichor" };
+        expect(await run(runNow, model(reply), NOW + MINUTE)).toBe("written");
+        const { replica } = (await accountRow(account.id)) ?? { replica: "" };
+        const common = { row: runNow.rowKey, dataset: DATASET, stamp: stampOf(NOW + MINUTE, 0), replica };
+        const day = dayOf(NOW, "America/New_York");
+        expect((await stored(account.id)).map((row) => row.change)).toEqual([
+            encodeChange({ ...common, op: "insertRow", day, at: NOW }),
+            encodeChange({ ...common, op: "setCell", field: "done", kind: "bool", value: true }),
+            encodeChange({ ...common, op: "setCell", field: "level", kind: "number", value: -1.5e-7 }),
+            encodeChange({ ...common, op: "setCell", field: "note", kind: "text", value: note }),
+            encodeChange({ ...common, op: "setCell", field: "on", kind: "date", value: dayIndex(2026, 11, 30) }),
+            encodeChange({ ...common, op: "setCell", field: "word", kind: "text", value: "Petrichor" }),
+        ]);
+    });
+
     it("writes the row under the account's replica with one stamp, and the pull returns it in the wire format", async () => {
         const { account, runNow } = await setUp();
         const fetcher = model(ROW);
@@ -391,6 +421,44 @@ describe("the reply", () => {
         expect(userTurnOf(sentBodies(third)[0] ?? {})).toContain(
             `The 2 rows written most recently, newest first. Never repeat one of them:\n${JSON.stringify(NEXT)}\n${JSON.stringify(ROW)}`,
         );
+    });
+
+    it("reads back the newest rows' text only, newest first, leaving out rows with none, a later value winning", async () => {
+        const { account, runNow } = await setUp({ fields: { definition: "text", level: "number", word: "text" } });
+        const replica = "7d9e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a";
+        const insert = (op: string, row: string, change: string) =>
+            env.DB.prepare(
+                `INSERT INTO changes (account, op, dataset, row_key, widget, automation, at, change, written_at)
+                 VALUES (?, ?, ?, ?, NULL, NULL, NULL, ?, ?)`,
+            ).bind(account.id, op, DATASET, row, change, NOW);
+        const statements: D1PreparedStatement[] = [];
+        const expected: Record<string, string>[] = [];
+        const total = RECENT_ROWS + 4;
+        for (let i = 0; i < total; i++) {
+            const row = mintRowKey(NOW - DAY + i);
+            const common = { row, dataset: DATASET, stamp: stampOf(NOW - DAY, i), replica };
+            statements.push(
+                insert("insertRow", row, encodeChange({ ...common, op: "insertRow", day: 20_000, at: NOW })),
+            );
+            const cell = (field: string, cell: Cell) =>
+                insert("setCell", row, encodeChange({ ...common, op: "setCell", field, ...cell }));
+            statements.push(cell("level", { kind: "number", value: i }));
+            // A row with no text is left out.
+            if (i % 5 === 0) continue;
+            const word = `word ${i} "quoted" \\ 👍🏽 é`;
+            // A later value of a field wins.
+            if (i % 7 === 0) statements.push(cell("word", { kind: "text", value: "an earlier word" }));
+            statements.push(cell("word", { kind: "text", value: word }));
+            statements.push(cell("definition", { kind: "text", value: `definition ${i}` }));
+            if (i >= total - RECENT_ROWS) expected.unshift({ word, definition: `definition ${i}` });
+        }
+        await env.DB.batch(statements);
+        const fetcher = model({ ...ROW, level: 1 });
+        expect(await run(runNow, fetcher, NOW)).toBe("written");
+        const list = expected.map((row) => JSON.stringify(row)).join("\n");
+        const turn = userTurnOf(sentBodies(fetcher)[0] ?? {});
+        expect(turn).toContain(`\nThe ${expected.length} rows written most recently, newest first.`);
+        expect(turn.endsWith(`Never repeat one of them:\n${list}`)).toBe(true);
     });
 
     it("reads the recent rows by dataset, so a renamed automation keeps its history", async () => {

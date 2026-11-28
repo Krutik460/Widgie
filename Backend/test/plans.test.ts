@@ -6,7 +6,6 @@ import { expect, it } from "vitest";
 import { CLAIM } from "../src/cron";
 import { LATEST_CELLS, LATEST_ROWS, START } from "../src/runner";
 import { PRUNE_SLICE, SLICES } from "../src/upkeep";
-import { DATASET } from "./helpers/accounts";
 
 async function plan(sql: string, ...values: unknown[]): Promise<string> {
     const { results } = await env.DB.prepare(`EXPLAIN QUERY PLAN ${sql}`)
@@ -36,11 +35,12 @@ it("starts a run by the task's id, and looks for the automation's other tasks by
     expect(detail).not.toMatch(/SCAN/);
 });
 
-it("reads a dataset's recent rows and their cells through changes_dataset", async () => {
+it("reads a dataset's recent rows and their cells through changes_dataset, finding the dataset by the task's id", async () => {
     for (const sql of [LATEST_ROWS, LATEST_CELLS]) {
-        const detail = await plan(sql, "account", DATASET, 60);
-        expect(detail).toMatch(/SEARCH changes USING INDEX changes_dataset \(account=\? AND dataset=\?\)/);
-        expect(detail).not.toMatch(/SCAN/);
+        const detail = await plan(sql, 1, "row", 60);
+        expect(detail).toMatch(/SEARCH t USING INTEGER PRIMARY KEY \(rowid=\?\)/);
+        expect(detail).toMatch(/SEARCH c USING INDEX changes_dataset \(account=\? AND dataset=\?\)/);
+        expect(detail).not.toMatch(/SCAN (c|changes|t|tasks|a|automations)\b/);
     }
 });
 

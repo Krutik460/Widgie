@@ -2,10 +2,10 @@
 // with a new token. The token is `<account id>.<secret>`, the secret 32 random bytes as unpadded base64url; only the
 // secret's SHA-256 is stored, and it is compared in constant time against the row the id names.
 
-import { insertTask, type Stored, scheduleTask } from "./automations";
+import { insertTasks, newTask, type Stored, scheduleTask } from "./automations";
 import { fromBase64, sha256, toBase64Url, toHex } from "./bytes";
 import { HOUR, MINUTE } from "./schedule";
-import { encodePage, isUuid, mintUuid } from "./wire";
+import { encodeJoinedPage, isUuid, mintUuid, PAGE_ENTRIES_SQL } from "./wire";
 
 /// The most changes one pull returns. The phone asks again from the page's last id.
 export const PAGE_SIZE = 500;
@@ -73,7 +73,10 @@ export async function pull(
     if (account.parkedAt !== null) await rearm(db, account, now);
     const [page, next] = await db.batch([
         db
-            .prepare("SELECT id, change FROM changes WHERE account = ? AND id > ? ORDER BY id LIMIT ?")
+            .prepare(
+                `SELECT count(*) AS count, ${PAGE_ENTRIES_SQL} AS entries
+                 FROM (SELECT id, change FROM changes WHERE account = ? AND id > ? ORDER BY id LIMIT ?)`,
+            )
             .bind(account.id, after, PAGE_SIZE),
         // When the server next expects to write: the earliest time a task of the account is due.
         db.prepare("SELECT min(due_at) AS next FROM tasks WHERE account = ?").bind(account.id),
@@ -85,10 +88,14 @@ export async function pull(
             )
             .bind(now, account.id, HOUR, after),
     ]);
-    const entries = (page?.results ?? []) as { id: number; change: string }[];
+    // An aggregate always answers one row.
+    const { count, entries } = (page?.results[0] ?? { count: 0, entries: null }) as {
+        count: number;
+        entries: string | null;
+    };
     const due = (next?.results[0] as { next: number | null } | undefined)?.next ?? null;
     const nextWrite = due === null ? null : Math.max(due, now + NEXT_WRITE_GAP);
-    return { body: encodePage(account.replica, entries, nextWrite), count: entries.length };
+    return { body: encodeJoinedPage(account.replica, entries, nextWrite), count };
 }
 
 /// Gives each automation of a parked account its schedule again from now, and unparks it. A schedule an upload made
@@ -99,11 +106,8 @@ export async function rearm(db: D1Database, account: Account, now: number): Prom
         .bind(account.id)
         .all<Pick<Stored, "widget" | "automation" | "version" | "every" | "at" | "weekday">>();
     const zone = account.timeZone;
-    const statements = zone
-        ? results.map((row) => insertTask(db, account.id, row, scheduleTask(account.id, row, zone, now), true))
-        : [];
-    statements.push(
-        db.prepare("UPDATE accounts SET parked_at = NULL, pulled_at = ? WHERE id = ?").bind(now, account.id),
-    );
-    await db.batch(statements);
+    const tasks = zone ? results.map((row) => newTask(row, scheduleTask(account.id, row, zone, now))) : [];
+    const insert = insertTasks(db, account.id, tasks);
+    const unpark = db.prepare("UPDATE accounts SET parked_at = NULL, pulled_at = ? WHERE id = ?").bind(now, account.id);
+    await db.batch(insert ? [insert, unpark] : [unpark]);
 }

@@ -138,7 +138,9 @@ export async function runTask(
     };
 
     const startedAt = clock();
-    const [start, read] = await db.batch<Task>([
+    // The recent rows are read in the same batch, so a run takes two trips to D1 and not three: each trip costs CPU in
+    // the Worker, which Workers Free caps at 10 ms an invocation. A run that is skipped below reads them for nothing.
+    const [start, read, recentKeys, recentCells] = await db.batch<unknown>([
         db.prepare(START).bind(startedAt + CLAIM_MS, startedAt, message.task, message.rowKey, message.attempts),
         db
             .prepare(
@@ -150,8 +152,10 @@ export async function runTask(
                  WHERE t.id = ? AND t.row_key = ?`,
             )
             .bind(message.task, message.rowKey),
+        db.prepare(LATEST_ROWS).bind(message.task, message.rowKey, RECENT_ROWS),
+        db.prepare(LATEST_CELLS).bind(message.task, message.rowKey, RECENT_ROWS),
     ]);
-    const task = read?.results[0];
+    const task = read?.results[0] as Task | undefined;
     if (!task) return log("skipped", { reason: "gone" });
     // Another delivery of this claim started first, or another task of the automation is running.
     if (start?.meta.changes !== 1) return log("skipped", { reason: "busy" });
@@ -166,7 +170,10 @@ export async function runTask(
 
     const fields = JSON.parse(task.fields) as Record<string, Kind>;
     const day = dayOf(task.run_at, zone);
-    const recent = await recentRows(db, task.account, task.dataset);
+    const recent = recentRows(
+        (recentKeys?.results ?? []) as { row_key: string }[],
+        (recentCells?.results ?? []) as RecentCell[],
+    );
     const schema = replySchema(fields);
     const replies: ModelReply[] = [];
     const called = Date.now();
@@ -249,35 +256,52 @@ function spending(replies: ModelReply[]) {
     };
 }
 
-/// The row keys of a dataset's newest rows, newest first, read through `changes_dataset`.
-export const LATEST_ROWS = `SELECT row_key FROM changes WHERE account = ?1 AND dataset = ?2 AND op = 'insertRow'
-    ORDER BY id DESC LIMIT ?3`;
-/// The cells of those rows, oldest change first, so a later one of a field wins.
-export const LATEST_CELLS = `SELECT row_key, change FROM changes
-    WHERE account = ?1 AND dataset = ?2 AND op = 'setCell' AND row_key IN (${LATEST_ROWS})
-    ORDER BY id`;
+/// The dataset of task ?1 with row key ?2, and the row keys of its newest ?3 rows, newest first, read through
+/// `changes_dataset`. A refine that renames the automation keeps its history, since the rows are read by dataset.
+const LATEST = `WITH task AS (
+        SELECT t.account, a.dataset FROM tasks AS t
+        JOIN automations AS a ON a.account = t.account AND a.widget = t.widget AND a.automation = t.automation
+        WHERE t.id = ?1 AND t.row_key = ?2),
+    latest AS (
+        SELECT c.row_key FROM changes AS c, task
+        WHERE c.account = task.account AND c.dataset = task.dataset AND c.op = 'insertRow'
+        ORDER BY c.id DESC LIMIT ?3)`;
+export const LATEST_ROWS = `${LATEST} SELECT row_key FROM latest`;
+/// The text cells of those rows, oldest change first, so a later one of a field wins. SQL picks out the field and the
+/// value, so the Worker parses no stored change.
+export const LATEST_CELLS = `${LATEST}
+    SELECT c.row_key, json_extract(c.change, '$.field') AS field, json_extract(c.change, '$.value') AS value
+    FROM changes AS c, task
+    WHERE c.account = task.account AND c.dataset = task.dataset AND c.op = 'setCell'
+        AND c.row_key IN (SELECT row_key FROM latest)
+        AND json_extract(c.change, '$.kind') = 'text' AND json_type(c.change, '$.value') = 'text'
+    ORDER BY c.id`;
 
-/// The text values of the dataset's last RECENT_ROWS rows, newest first, read by dataset so a refine that renames the
-/// automation keeps its history. Rows with no text are left out.
-async function recentRows(db: D1Database, account: string, dataset: string): Promise<RecentRow[]> {
-    const [keys, cells] = await db.batch<{ row_key: string; change?: string }>([
-        db.prepare(LATEST_ROWS).bind(account, dataset, RECENT_ROWS),
-        db.prepare(LATEST_CELLS).bind(account, dataset, RECENT_ROWS),
-    ]);
-    const rows = new Map<string, RecentRow>((keys?.results ?? []).map((row) => [row.row_key, {}]));
-    for (const { row_key, change } of cells?.results ?? []) {
-        const parsed = JSON.parse(change ?? "{}") as { field?: string; kind?: string; value?: unknown };
+/// One text cell LATEST_CELLS reads.
+export interface RecentCell {
+    row_key: string;
+    field: string | null;
+    value: string;
+}
+
+/// The text values of the recent rows, newest first, from LATEST_ROWS and LATEST_CELLS. Rows with no text are left
+/// out.
+export function recentRows(keys: { row_key: string }[], cells: RecentCell[]): RecentRow[] {
+    const rows = new Map<string, RecentRow>(keys.map((row) => [row.row_key, {}]));
+    for (const { row_key, field, value } of cells) {
         const row = rows.get(row_key);
-        if (row && parsed.kind === "text" && parsed.field && typeof parsed.value === "string") {
-            row[parsed.field] = parsed.value;
-        }
+        if (row && field) row[field] = value;
     }
     return [...rows.values()].filter((row) => Object.keys(row).length > 0);
 }
 
-/// Each change of the row, written with the stamp the batch's first statement takes.
-const INSERT_CHANGE = `INSERT INTO changes (account, op, dataset, row_key, widget, automation, at, change, written_at)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 || (SELECT CAST(last_stamp AS TEXT) FROM accounts WHERE id = ?1) || ?9, ?10)`;
+/// The row's changes, listed in ?5 as a JSON array of {op, widget, automation, at, head, tail} and written in its order
+/// with the stamp the batch's first statement takes: one statement for all of them, since each statement of a batch
+/// costs the Worker CPU.
+const INSERT_CHANGES = `INSERT INTO changes (account, op, dataset, row_key, widget, automation, at, change, written_at)
+    SELECT ?1, value ->> 'op', ?2, ?3, value ->> 'widget', value ->> 'automation', value ->> 'at',
+        (value ->> 'head') || (SELECT CAST(last_stamp AS TEXT) FROM accounts WHERE id = ?1) || (value ->> 'tail'), ?4
+    FROM json_each(?5) ORDER BY key`;
 
 /// Writes the row and moves the task on, in one batch that writes only while the task still holds the version and
 /// row key it was read with. Answers whether it wrote.
@@ -303,25 +327,25 @@ async function write(
                  WHERE id = ?5`,
             )
             .bind(task.id, task.row_key, task.version, now, task.account),
-        ...changes.map((change) => {
-            const { head, tail } = encodeAroundStamp(change);
-            // widget, automation, and at repeat what an insertRow holds, for the tombstones (automations.ts).
-            const insert = change.op === "insertRow";
-            return db
-                .prepare(INSERT_CHANGE)
-                .bind(
-                    task.account,
-                    change.op,
-                    task.dataset,
-                    task.row_key,
-                    insert ? task.widget : null,
-                    insert ? task.automation : null,
-                    insert ? task.run_at : null,
-                    head,
-                    tail,
-                    now,
-                );
-        }),
+        db.prepare(INSERT_CHANGES).bind(
+            task.account,
+            task.dataset,
+            task.row_key,
+            now,
+            JSON.stringify(
+                changes.map((change) => {
+                    // widget, automation, and at repeat what an insertRow holds, for the tombstones (automations.ts).
+                    const insert = change.op === "insertRow";
+                    return {
+                        op: change.op,
+                        widget: insert ? task.widget : null,
+                        automation: insert ? task.automation : null,
+                        at: insert ? task.run_at : null,
+                        ...encodeAroundStamp(change),
+                    };
+                }),
+            ),
+        ),
         nextRun(db, task, zone, now),
     ];
     try {

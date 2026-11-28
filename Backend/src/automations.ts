@@ -281,20 +281,36 @@ export function scheduleTask(
     return { once: 0, runAt, dueAt, rowKey: mintRowKey(now) };
 }
 
-/// The statement that adds a task; `ifAbsent` keeps a task of that kind the automation already has.
-export function insertTask(
-    db: D1Database,
-    account: string,
+/// A task to add: its automation, the version it runs, and when.
+export interface NewTask {
+    widget: string;
+    automation: string;
+    version: string;
+    once: number;
+    runAt: number;
+    dueAt: number;
+    rowKey: string;
+}
+
+/// Adds the tasks of account ?1 listed in ?2, a JSON array of NewTask, in its order, keeping a task of that kind
+/// (run now or schedule) the automation already has. One statement for any number of tasks, since each statement of a
+/// batch costs the Worker CPU.
+export const INSERT_TASKS = `INSERT OR IGNORE INTO tasks (account, widget, automation, version, once, run_at, row_key, due_at)
+    SELECT ?1, value ->> 'widget', value ->> 'automation', value ->> 'version', value ->> 'once', value ->> 'runAt',
+        value ->> 'rowKey', value ->> 'dueAt'
+    FROM json_each(?2) ORDER BY key`;
+
+/// The statement that adds the tasks, or null when there are none.
+export function insertTasks(db: D1Database, account: string, tasks: NewTask[]): D1PreparedStatement | null {
+    return tasks.length > 0 ? db.prepare(INSERT_TASKS).bind(account, JSON.stringify(tasks)) : null;
+}
+
+/// The task of one kind for an automation.
+export function newTask(
     row: Pick<Stored, "widget" | "automation" | "version">,
     task: { once: number; runAt: number; dueAt: number; rowKey: string },
-    ifAbsent = false,
-): D1PreparedStatement {
-    return db
-        .prepare(
-            `INSERT ${ifAbsent ? "OR IGNORE " : ""}INTO tasks
-                 (account, widget, automation, version, once, run_at, row_key, due_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .bind(account, row.widget, row.automation, row.version, task.once, task.runAt, task.rowKey, task.dueAt);
+): NewTask {
+    return { widget: row.widget, automation: row.automation, version: row.version, ...task };
 }
 
 // --- Replace-all ---
@@ -313,18 +329,47 @@ interface State {
     automations: Stored[];
 }
 
-/// The deleteRow for each row of one automation still ahead with no deleteRow yet, under the stamp the batch took.
-/// The partial indexes `changes_inserted` and `changes_deleted` serve it, so it reads only that automation's rows.
+/// The deleteRow for each row still ahead with no deleteRow yet of each automation listed in ?4 (a JSON array of
+/// {widget, automation}), under the stamp the batch took: the automations in the list's order, each one's rows in id
+/// order. The partial indexes `changes_inserted` and `changes_deleted` serve it, so it reads only those automations'
+/// rows (CROSS JOIN keeps the list outermost, so SQLite reads each automation's rows by key and never all of the
+/// account's). One statement for any number of automations, since each statement of a batch costs the Worker CPU.
 export const TOMBSTONES = `INSERT INTO changes (account, op, dataset, row_key, widget, automation, at, change, written_at)
-    SELECT account, 'deleteRow', dataset, row_key, widget, automation, NULL,
-        json_object('op', 'deleteRow', 'row', row_key, 'dataset', dataset,
+    SELECT inserted.account, 'deleteRow', inserted.dataset, inserted.row_key, inserted.widget, inserted.automation,
+        NULL,
+        json_object('op', 'deleteRow', 'row', inserted.row_key, 'dataset', inserted.dataset,
             'stamp', (SELECT CAST(last_stamp AS TEXT) FROM accounts WHERE id = ?1), 'replica', ?2),
         ?3
-    FROM changes AS inserted
-    WHERE account = ?1 AND widget = ?4 AND automation = ?5 AND op = 'insertRow' AND at > ?3
-        AND NOT EXISTS (SELECT 1 FROM changes
-            WHERE account = ?1 AND op = 'deleteRow' AND row_key = inserted.row_key)
-    ORDER BY id`;
+    FROM json_each(?4) AS listed
+    CROSS JOIN changes AS inserted ON inserted.account = ?1 AND inserted.widget = listed.value ->> 'widget'
+        AND inserted.automation = listed.value ->> 'automation' AND inserted.op = 'insertRow' AND inserted.at > ?3
+    WHERE NOT EXISTS (SELECT 1 FROM changes
+        WHERE account = ?1 AND op = 'deleteRow' AND row_key = inserted.row_key)
+    ORDER BY listed.key, inserted.id`;
+
+/// The automations of account ?1 listed in ?2, a JSON array of {widget, automation}, for a statement's `IN`.
+const LISTED = "(SELECT value ->> 'widget', value ->> 'automation' FROM json_each(?2))";
+
+/// Deletes the listed automations, which deletes their tasks too.
+export const DELETE_AUTOMATIONS = `DELETE FROM automations WHERE account = ?1 AND (widget, automation) IN ${LISTED}`;
+/// Deletes the listed automations' tasks.
+export const DELETE_TASKS = `DELETE FROM tasks WHERE account = ?1 AND (widget, automation) IN ${LISTED}`;
+/// Deletes the listed automations' schedules, keeping a pending run now.
+export const DELETE_SCHEDULES = `${DELETE_TASKS} AND once = 0`;
+/// Gives the listed automations' pending runs now the version each one lists.
+export const RERUN_VERSIONS = `UPDATE tasks SET version = (SELECT value ->> 'version' FROM json_each(?2)
+        WHERE value ->> 'widget' = tasks.widget AND value ->> 'automation' = tasks.automation)
+    WHERE account = ?1 AND once = 1 AND (widget, automation) IN ${LISTED}`;
+
+/// Writes the automations of account ?1 listed in ?2, a JSON array of Stored.
+export const UPSERT_AUTOMATIONS = `INSERT INTO automations
+        (account, widget, automation, version, prompt, every, at, weekday, dataset, fields)
+    SELECT ?1, value ->> 'widget', value ->> 'automation', value ->> 'version', value ->> 'prompt', value ->> 'every',
+        value ->> 'at', value ->> 'weekday', value ->> 'dataset', value ->> 'fields'
+    FROM json_each(?2) WHERE true
+    ON CONFLICT (account, widget, automation) DO UPDATE SET version = excluded.version, prompt = excluded.prompt,
+        every = excluded.every, at = excluded.at, weekday = excluded.weekday, dataset = excluded.dataset,
+        fields = excluded.fields`;
 
 /// Replaces the account's automations with the payload's, in one batch that writes only if the account's revision is
 /// still the one it planned from; otherwise it reads and plans again, up to ATTEMPTS times, then throws Conflict. An
@@ -401,7 +446,23 @@ function replaceStatements(
     ];
 
     const id = account.id;
-    const statements: D1PreparedStatement[] = [
+    // A JSON list of the automations' keys.
+    const keys = (rows: Stored[]) => JSON.stringify(rows.map(({ widget, automation }) => ({ widget, automation })));
+    const content = plans.filter((p) => p.plan === "new" || p.plan === "content").map((p) => p.row);
+    const scheduled = plans.filter((p) => p.plan === "schedule").map((p) => p.row);
+    const changed = plans.filter((p) => p.plan !== "same").map((p) => p.row);
+    // Every automation's tasks in the order the automations come, a run now before its schedule. An unchanged
+    // automation keeps its schedule, or gets it back if parking took it; a changed one's tasks were deleted above, so
+    // keeping a task that is there never applies to it.
+    const tasks: NewTask[] = [];
+    for (const { row, plan } of plans) {
+        if (plan === "new" || plan === "content") {
+            tasks.push(newTask(row, { once: 1, runAt: now, dueAt: now, rowKey: mintRowKey(now) }));
+        }
+        tasks.push(newTask(row, scheduleTask(id, row, timeZone, now)));
+    }
+    // One statement of each kind, whatever the number of automations: each statement of a batch costs the Worker CPU.
+    const statements = [
         // The revision check, and one stamp taken only when it writes changes, in SQL so two writers never share one.
         db
             .prepare(
@@ -411,60 +472,14 @@ function replaceStatements(
                  WHERE id = ?5`,
             )
             .bind(state.revision, timeZone, tombstoned.length > 0 ? 1 : 0, now, id),
+        tombstoned.length > 0 ? db.prepare(TOMBSTONES).bind(id, account.replica, now, keys(tombstoned)) : null,
+        removed.length > 0 ? db.prepare(DELETE_AUTOMATIONS).bind(id, keys(removed)) : null,
+        changed.length > 0 ? db.prepare(UPSERT_AUTOMATIONS).bind(id, JSON.stringify(changed)) : null,
+        content.length > 0 ? db.prepare(DELETE_TASKS).bind(id, keys(content)) : null,
+        // A changed cadence moves only the schedule, and a pending run now takes the new version.
+        scheduled.length > 0 ? db.prepare(DELETE_SCHEDULES).bind(id, keys(scheduled)) : null,
+        scheduled.length > 0 ? db.prepare(RERUN_VERSIONS).bind(id, JSON.stringify(scheduled)) : null,
+        insertTasks(db, id, tasks),
     ];
-    for (const row of tombstoned) {
-        statements.push(db.prepare(TOMBSTONES).bind(id, account.replica, now, row.widget, row.automation));
-    }
-    for (const row of removed) {
-        statements.push(
-            db
-                .prepare("DELETE FROM automations WHERE account = ? AND widget = ? AND automation = ?")
-                .bind(id, row.widget, row.automation),
-        );
-    }
-    for (const { row, plan } of plans) {
-        // An unchanged automation keeps its tasks, or gets its schedule back if parking took it.
-        if (plan === "same") {
-            statements.push(insertTask(db, id, row, scheduleTask(id, row, timeZone, now), true));
-            continue;
-        }
-        statements.push(
-            db
-                .prepare(
-                    `INSERT INTO automations (account, widget, automation, version, prompt, every, at, weekday, dataset, fields)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT (account, widget, automation) DO UPDATE SET version = excluded.version,
-                         prompt = excluded.prompt, every = excluded.every, at = excluded.at,
-                         weekday = excluded.weekday, dataset = excluded.dataset, fields = excluded.fields`,
-                )
-                .bind(
-                    id,
-                    row.widget,
-                    row.automation,
-                    row.version,
-                    row.prompt,
-                    row.every,
-                    row.at,
-                    row.weekday,
-                    row.dataset,
-                    row.fields,
-                ),
-        );
-        const tasks = "DELETE FROM tasks WHERE account = ? AND widget = ? AND automation = ?";
-        if (plan === "schedule") {
-            statements.push(db.prepare(`${tasks} AND once = 0`).bind(id, row.widget, row.automation));
-            statements.push(
-                db
-                    .prepare(
-                        "UPDATE tasks SET version = ? WHERE account = ? AND widget = ? AND automation = ? AND once = 1",
-                    )
-                    .bind(row.version, id, row.widget, row.automation),
-            );
-        } else {
-            statements.push(db.prepare(tasks).bind(id, row.widget, row.automation));
-            statements.push(insertTask(db, id, row, { once: 1, runAt: now, dueAt: now, rowKey: mintRowKey(now) }));
-        }
-        statements.push(insertTask(db, id, row, scheduleTask(id, row, timeZone, now)));
-    }
-    return statements;
+    return statements.filter((statement) => statement !== null);
 }

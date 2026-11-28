@@ -85,8 +85,10 @@ export function canonicalZone(name: unknown): string | null {
         return null;
     }
     try {
-        const canonical = newFormatter(name).resolvedOptions().timeZone;
-        formatter(canonical);
+        // A spelling's formatter formats as its canonical zone's does, so it is kept as that one's if there is none.
+        const found = newFormatter(name);
+        const canonical = found.resolvedOptions().timeZone;
+        if (!formatters.has(canonical)) formatters.set(canonical, found);
         return canonical;
     } catch {
         return null;
@@ -100,8 +102,26 @@ interface Wall {
     second: number;
 }
 
+/// Wall clocks by zone and instant. A run and an upload ask for some instants more than once (a run's day and the
+/// start of its next run's search, the days either side of a daily run's, the upload time for each of its
+/// automations), and each one read costs an Intl call, the dearest thing in a run or an upload on the Worker's CPU.
+/// Cleared when it holds WALLS.
+const walls = new Map<string, Wall>();
+const WALLS = 1_024;
+
 /// The wall clock in `zone` at an instant: the day index and the time of day.
 function wall(ms: number, zone: string): Wall {
+    const key = `${ms} ${zone}`;
+    let found = walls.get(key);
+    if (!found) {
+        found = readWall(ms, zone);
+        if (walls.size >= WALLS) walls.clear();
+        walls.set(key, found);
+    }
+    return found;
+}
+
+function readWall(ms: number, zone: string): Wall {
     const parts: Record<string, string> = {};
     for (const part of formatter(zone).formatToParts(ms)) parts[part.type] = part.value;
     const year = parts.era === "BC" ? 1 - Number(parts.year) : Number(parts.year);
