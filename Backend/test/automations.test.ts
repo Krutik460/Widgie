@@ -1,8 +1,9 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { ATTEMPTS, insertTasks, leadSeed, TOMBSTONES } from "../src/automations";
+import { MAX_AUTOMATIONS_BODY } from "../src/body";
 import { sha256, toHex } from "../src/bytes";
-import { type Env, MAX_AUTOMATIONS_BODY } from "../src/index";
+import type { Env } from "../src/index";
 import { DAY, HOUR, LEADS, leadMs, MINUTE } from "../src/schedule";
 import { encodeChange, isRowKey, mintRowKey, rowKeyMs, stampOf, stampParts } from "../src/wire";
 import { automation, DATASET, NOW, newAccount, payload, send, upload, WIDGET } from "./helpers/accounts";
