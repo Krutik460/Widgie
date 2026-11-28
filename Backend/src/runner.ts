@@ -1,21 +1,29 @@
-// The queue consumer: one automation run per message, which names a task the cron claimed (cron.ts) and the row key
-// it held then. A run reads the task with its automation, reads back the dataset's recent rows, asks the model for
-// one row, checks it (run.ts), and writes it in one D1 batch with the task moved to its next run.
+// The queue consumer: one automation run per message, which names a task the cron claimed (cron.ts), the row key it
+// held then, and the runs it had started. A run starts, reads the task with its automation, reads back the dataset's
+// recent rows, asks the model for one row, checks it (run.ts), and writes it in one D1 batch with the task moved to
+// its next run.
 //
+// - A run starts with one statement that counts the attempt and renews the task's claim for the run, only while the
+//   task still holds the message's row key and attempt count and no other task of its automation holds a live claim.
+//   So of two deliveries of one message, or the messages of two claims (one waited past its claim and the cron claimed
+//   the task again), one runs and the others find the count moved and end without calling the model, and a run now
+//   and a schedule never run side by side. Claims are not attempts: a lost or late message costs none.
 // - The write is guarded by the task's version and row key, read with the task: its first statement takes the
 //   account's stamp only while the task still holds both, and otherwise sets the stamp to NULL, which the NOT NULL
 //   constraint refuses, so D1 rolls the whole batch back. An upload that changed the automation while the model was
-//   answering therefore leaves nothing behind, and two deliveries of one message write the row once.
-// - A message names its task by id and row key. When no task holds both, the run was written already (a replay: the
-//   task moved on to a new row key, or a run now was deleted) or an upload replaced or removed the task (SQLite may
-//   give the replacement the same id, never the same row key): the message is skipped.
-// - A failed run (the model gave no answer, or two replies refused) leaves the claim to expire and pushes `due_at`
-//   back by a gap that doubles with each attempt, so the cron claims it again later. A run that fails its
-//   MAX_ATTEMPTS-th attempt moves the task on to its next run (a run now is deleted), and so does a task claimed more
-//   than MAX_ATTEMPTS times, whatever made its runs stop short.
+//   answering therefore leaves nothing behind, and a run that outlived its claim writes the row at most once with the
+//   run the cron started after it.
+// - When no task holds the message's id and row key, the run was written already (the task moved on to a new row key,
+//   or a run now was deleted) or an upload replaced or removed the task (SQLite may give the replacement the same id,
+//   never the same row key): the message is skipped.
+// - A failed run (the model gave no answer, or the replies were refused) gives its claim back and pushes `due_at` back
+//   by a gap that doubles with each attempt, so the cron claims it again later. A run that fails its MAX_ATTEMPTS-th
+//   attempt moves the task on to its next run (a run now is deleted), and so does a run that starts after
+//   MAX_ATTEMPTS runs that never finished (each threw), without calling the model.
 // - Each run logs one line: the task, its outcome, the model, seconds, usage and cost, never the prompt or the row.
 
 import { scheduleTask } from "./automations";
+import { CLAIM_MS, siblingClaimed } from "./cron";
 import { callModel, ModelFailure, type ModelReply, type ModelSettings, modelSettings } from "./model";
 import { oneLine } from "./request";
 import {
@@ -23,9 +31,10 @@ import {
     RECENT_ROWS,
     type RecentRow,
     Refused,
-    RUN_MAX_TOKENS,
+    RUN_TOKENS,
     readReply,
     replySchema,
+    runMaxTokens,
     runTurn,
 } from "./run";
 import prompt from "./run-prompt.txt";
@@ -37,6 +46,8 @@ export interface RunMessage {
     task: number;
     /// The row key the task held when it was claimed: once the task has moved on, the message is a replay.
     rowKey: string;
+    /// The runs the task had started when it was claimed: once one more has started, the message is a duplicate.
+    attempts: number;
 }
 
 export interface RunDependencies {
@@ -47,9 +58,18 @@ export interface RunDependencies {
 
 /// After this many failed attempts a task moves on to its next run.
 export const MAX_ATTEMPTS = 5;
-/// The gap before a failed run is due again, doubling with each attempt: 15, 30, 60, then 120 minutes. The first is
-/// the claim's own length, so the claim and the gap end together.
+/// The gap from a failed run to its task's next attempt, doubling with each attempt: 15, 30, 60, then 120 minutes.
 export const BACKOFF = 15 * MINUTE;
+/// How long a queue delivery that threw waits before the queue delivers it again.
+export const RETRY_DELAY_S = 60;
+
+/// Starts a run of the task ?3 with row key ?4 and attempt count ?5 at ?2: counts the attempt and claims the task
+/// until ?1 for the run.
+export const START = `UPDATE tasks AS t SET attempts = attempts + 1, claimed_until = ?1
+    WHERE id = ?3 AND row_key = ?4 AND attempts = ?5 AND NOT ${siblingClaimed("?2")}`;
+
+/// The line a repair turn gives for a reply the model was cut off in.
+const CUT = new Refused("cut", "it was cut off before it ended; think briefly and reply with the row only");
 
 export type Outcome = "written" | "stale" | "skipped" | "retry" | "moved on";
 
@@ -75,8 +95,9 @@ interface Task {
 }
 
 /// Runs each message of a batch at once, so `max_batch_size` and `max_concurrency` together bound the calls to the
-/// model service. A run that throws (D1 failing, a bug) is retried by the queue and lands in the dead-letter queue
-/// after `max_retries`; its claim expires either way, so the cron claims the task again.
+/// model service. A run that throws (D1 failing, a bug) is retried by the queue a minute later and lands in the
+/// dead-letter queue after `max_retries`; a retry of a run that had started is a no-op, and its claim expires either
+/// way, so the cron claims the task again.
 export async function consume(batch: MessageBatch<RunMessage>, env: Cloudflare.Env, deps: RunDependencies) {
     const settings = modelSettings(env);
     await Promise.all(
@@ -93,7 +114,7 @@ export async function consume(batch: MessageBatch<RunMessage>, env: Cloudflare.E
                         reason: oneLine(String(error)),
                     }),
                 );
-                message.retry();
+                message.retry({ delaySeconds: RETRY_DELAY_S });
             }
         }),
     );
@@ -116,50 +137,76 @@ export async function runTask(
         return outcome;
     };
 
-    const task = await db
-        .prepare(
-            `SELECT t.id, t.account, t.widget, t.automation, t.version, t.once, t.run_at, t.row_key, t.attempts,
-                 a.prompt, a.every, a.at, a.weekday, a.dataset, a.fields, acc.time_zone, acc.replica
-             FROM tasks AS t
-             JOIN automations AS a ON a.account = t.account AND a.widget = t.widget AND a.automation = t.automation
-             JOIN accounts AS acc ON acc.id = t.account
-             WHERE t.id = ?`,
-        )
-        .bind(message.task)
-        .first<Task>();
-    if (task?.row_key !== message.rowKey) return log("skipped");
-    const zone = task.time_zone;
-    // An account has a zone from its first upload, which is what makes automations and tasks.
-    if (zone === null) throw new Error("the task's account has no time zone");
+    const startedAt = clock();
+    const [start, read] = await db.batch<Task>([
+        db.prepare(START).bind(startedAt + CLAIM_MS, startedAt, message.task, message.rowKey, message.attempts),
+        db
+            .prepare(
+                `SELECT t.id, t.account, t.widget, t.automation, t.version, t.once, t.run_at, t.row_key, t.attempts,
+                     a.prompt, a.every, a.at, a.weekday, a.dataset, a.fields, acc.time_zone, acc.replica
+                 FROM tasks AS t
+                 JOIN automations AS a ON a.account = t.account AND a.widget = t.widget AND a.automation = t.automation
+                 JOIN accounts AS acc ON acc.id = t.account
+                 WHERE t.id = ? AND t.row_key = ?`,
+            )
+            .bind(message.task, message.rowKey),
+    ]);
+    const task = read?.results[0];
+    if (!task) return log("skipped", { reason: "gone" });
+    // Another delivery of this claim started first, or another task of the automation is running.
+    if (start?.meta.changes !== 1) return log("skipped", { reason: "busy" });
     if (task.attempts > MAX_ATTEMPTS) {
-        await moveOn(db, task, zone, clock());
-        return log("moved on", { attempts: task.attempts, reason: "claimed too often" });
+        await moveOn(db, task, task.time_zone, clock());
+        return log("moved on", { attempts: task.attempts, reason: "unfinished runs" });
     }
+    const zone = task.time_zone;
+    // An account has a zone from its first upload, which is what makes automations and tasks. Without one the run
+    // throws, which counts as an attempt, so the task moves on (above) instead of being claimed forever.
+    if (zone === null) throw new Error("the task's account has no time zone");
 
     const fields = JSON.parse(task.fields) as Record<string, Kind>;
     const day = dayOf(task.run_at, zone);
     const recent = await recentRows(db, task.account, task.dataset);
+    const schema = replySchema(fields);
     const replies: ModelReply[] = [];
     const called = Date.now();
+    let maxTokens = runMaxTokens(fields);
     let cells: Record<string, Cell> | undefined;
     let refused: Refused | undefined;
     let failure: string | undefined;
+    let repeated = false;
     // The first call, and one repair that names what was wrong with the first reply.
     for (let call = 0; call < 2 && !cells && !failure; call++) {
         const turn = runTurn(fields, task.prompt, day, recent, refused?.line);
         try {
-            const reply = await callModel(settings, prompt, turn, deps.fetch, deps.deadlineMs, {
-                maxTokens: RUN_MAX_TOKENS,
-                schema: replySchema(fields),
-            });
+            const reply = await callModel(settings, prompt, turn, deps.fetch, deps.deadlineMs, { maxTokens, schema });
             replies.push(reply);
-            const read = readReply(reply.text, fields);
-            checkRepeats(read, recent);
-            cells = read;
+            let row: Record<string, Cell>;
+            try {
+                row = readReply(reply.text, fields);
+            } catch (error) {
+                throw error instanceof Refused && reply.finish === "length" ? CUT : error;
+            }
+            // A repair is written even when it repeats: the repeat rule can refuse every reply of some tables (one
+            // whose only text is a category), and a repeated row beats a widget that stops getting rows.
+            try {
+                checkRepeats(row, recent);
+            } catch (error) {
+                if (!(error instanceof Refused) || call === 0) throw error;
+                repeated = true;
+            }
+            cells = row;
         } catch (error) {
             if (error instanceof Refused) refused = error;
+            else if (error instanceof ModelFailure && error.finish === "length") refused = CUT;
             else if (error instanceof ModelFailure) failure = oneLine(error.reason);
             else throw error;
+            if (refused === CUT) {
+                // A cut reply is asked again only with a larger cap, without which the repair would be cut too.
+                const larger = Math.min(RUN_TOKENS.most, maxTokens * 2);
+                if (larger === maxTokens) break;
+                maxTokens = larger;
+            }
         }
     }
     const spent = {
@@ -168,15 +215,18 @@ export async function runTask(
         seconds: Math.round((Date.now() - called) / 100) / 10,
     };
 
-    if (cells) return log((await write(db, task, zone, cells, day, clock())) ? "written" : "stale", spent);
+    if (cells) {
+        const written = await write(db, task, zone, cells, day, clock());
+        return log(written ? "written" : "stale", { ...spent, ...(repeated ? { reason: "repeat" } : {}) });
+    }
     const reason = failure ?? refused?.code;
     if (task.attempts >= MAX_ATTEMPTS) {
         await moveOn(db, task, zone, clock());
         return log("moved on", { ...spent, reason });
     }
     await db
-        .prepare("UPDATE tasks SET due_at = ? WHERE id = ? AND row_key = ?")
-        .bind(clock() + BACKOFF * 2 ** (task.attempts - 1), task.id, task.row_key)
+        .prepare("UPDATE tasks SET due_at = ?, claimed_until = NULL WHERE id = ? AND row_key = ? AND attempts = ?")
+        .bind(clock() + BACKOFF * 2 ** (task.attempts - 1), task.id, task.row_key, task.attempts)
         .run();
     return log("retry", { ...spent, reason });
 }
@@ -287,16 +337,17 @@ async function write(
     }
 }
 
-/// Moves the task on without writing: after its last attempt, or when it was claimed too often.
-async function moveOn(db: D1Database, task: Task, zone: string, now: number) {
+/// Moves the task on without writing: after its last attempt, or after too many runs that never finished.
+async function moveOn(db: D1Database, task: Task, zone: string | null, now: number) {
     await nextRun(db, task, zone, now).run();
 }
 
 /// The statement that moves a task to its next run, if it still holds the row key it was read with: a run now is
 /// deleted, and the schedule moves to the first run after its own run time, or after now when that has passed, so a
-/// late task skips the runs it missed.
-function nextRun(db: D1Database, task: Task, zone: string, now: number): D1PreparedStatement {
-    if (task.once === 1) {
+/// late task skips the runs it missed. A schedule whose account has no zone has no next run, so it is deleted too;
+/// the account's next upload makes it again.
+function nextRun(db: D1Database, task: Task, zone: string | null, now: number): D1PreparedStatement {
+    if (task.once === 1 || zone === null) {
         return db.prepare("DELETE FROM tasks WHERE id = ? AND row_key = ?").bind(task.id, task.row_key);
     }
     const next = scheduleTask(task.account, task, zone, now, Math.max(task.run_at, now));

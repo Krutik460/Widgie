@@ -133,9 +133,22 @@ export function isoDay(index: number): string {
 
 // --- Changes and pages ---
 
-/// One change as the wire writes it, keys in the order WIRE.md lists them.
+/// One change as the wire writes it, keys in the order WIRE.md lists them. Every string must be well-formed UTF-16:
+/// JSON.stringify writes a lone surrogate as a `\u` escape, which the phone's reader refuses with the whole page, so
+/// one bad cell would stop the account's sync. Text from the model is refused before it gets here (`readReply`); this
+/// is the one place the invariant holds for every change the Worker stores.
 export function encodeChange(change: Change): string {
     const { op, row, dataset, stamp, replica } = change;
+    const texts = [row, dataset, stamp, replica];
+    if (change.op === "setCell") {
+        texts.push(change.field);
+        if (change.kind === "text") texts.push(change.value);
+    }
+    for (const text of texts) {
+        if (!text.isWellFormed()) {
+            throw new WireError("a change's strings must be well-formed UTF-16, with no lone surrogate");
+        }
+    }
     switch (change.op) {
         case "insertRow":
             return JSON.stringify({ op, row, dataset, day: change.day, at: change.at, stamp, replica });

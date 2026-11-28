@@ -34,8 +34,8 @@ export async function claim(now: number): Promise<RunMessage[]> {
     return queue.sent;
 }
 
-/// One OpenRouter answer whose content is `content`, a row as JSON unless it is a string already.
-export function answer(content: unknown, cost = 0.0001) {
+/// One OpenRouter answer whose content is `content`, a row as JSON unless it is a string already, and why it stopped.
+export function answer(content: unknown, cost = 0.0001, finish = "stop") {
     return new Response(
         JSON.stringify({
             model: SETTINGS.model,
@@ -43,7 +43,7 @@ export function answer(content: unknown, cost = 0.0001) {
             choices: [
                 {
                     message: { content: typeof content === "string" ? content : JSON.stringify(content) },
-                    finish_reason: "stop",
+                    finish_reason: finish,
                 },
             ],
             usage: { prompt_tokens: 400, completion_tokens: 60, cost },

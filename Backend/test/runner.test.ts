@@ -3,7 +3,8 @@ import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cadenceOf } from "../src/automations";
 import { CLAIM_MS } from "../src/cron";
-import { BACKOFF, consume, MAX_ATTEMPTS, type RunMessage } from "../src/runner";
+import { RUN_TOKENS } from "../src/run";
+import { BACKOFF, consume, MAX_ATTEMPTS, RETRY_DELAY_S, type RunMessage } from "../src/runner";
 import { type Cadence, DAY, dayOf, LEADS, leadMs, MINUTE, nextRun } from "../src/schedule";
 import { dayIndex, encodeChange, isName, isRowKey, isUuid, parseStamp, stampOf } from "../src/wire";
 import { automation, changes, DATASET, type Entry, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
@@ -30,18 +31,31 @@ interface Task {
     attempts: number;
 }
 
-/// An account with one automation uploaded at `now`, its due tasks claimed, and the claim message of each task.
+/// An account with one automation uploaded at `now`, and the message a claim of each of its tasks would send. The
+/// claims themselves are the cron's (cron.test.ts); a run needs only the message.
 async function setUp(entry: Entry = {}, zone = "America/New_York", now = NOW) {
     const account = await newAccount(now);
     expect((await send(upload(account.token, payload([automation(entry)], zone)), { now })).status).toBe(200);
-    const sent = await claim(now);
-    const message = async (once: number): Promise<RunMessage> => {
-        const task = await taskOf(account.id, once);
-        const found = sent.find((m) => m.task === task?.id);
-        if (!found) throw new Error(`no claim for the task with once = ${once}`);
-        return found;
-    };
-    return { account, now, runNow: await message(1), schedule: await message(0) };
+    return { account, now, runNow: await messageOf(account.id, 1), schedule: await messageOf(account.id, 0) };
+}
+
+/// The message a claim of the account's task with `once` would send now.
+async function messageOf(account: string, once: number): Promise<RunMessage> {
+    const task = await taskOf(account, once);
+    if (!task) throw new Error(`no task with once = ${once}`);
+    return { task: task.id, rowKey: task.row_key, attempts: task.attempts };
+}
+
+/// The log lines of the automation runs while `body` runs.
+async function runLogs(body: () => Promise<unknown>): Promise<Record<string, unknown>[]> {
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((line: string) => lines.push(line));
+    try {
+        await body();
+    } finally {
+        spy.mockRestore();
+    }
+    return lines.map((line) => JSON.parse(line)).filter((line) => line.run === "automation");
 }
 
 async function taskOf(account: string, once: number): Promise<Task | null> {
@@ -202,8 +216,7 @@ describe("a run", () => {
         const york = await setUp({ at: "23:30" }, "America/New_York", Date.parse("2026-10-31T12:00:00Z"));
         expect(await run(york.schedule, model(ROW), york.now)).toBe("written");
         const next = await taskOf(york.account.id, 0);
-        const [message] = (await claim(next?.due_at ?? 0)).filter((m) => m.task === next?.id);
-        expect(await run(message as RunMessage, model(NEXT), next?.due_at ?? 0)).toBe("written");
+        expect(await run(await messageOf(york.account.id, 0), model(NEXT), next?.due_at ?? 0)).toBe("written");
         const days = (await stored(york.account.id))
             .filter((row) => row.op === "insertRow")
             .map((row) => JSON.parse(row.change) as { day: number; at: number });
@@ -238,7 +251,7 @@ describe("a run", () => {
         expect(fetcher).not.toHaveBeenCalled();
     });
 
-    it("writes a replayed message once, also when two deliveries run at once", async () => {
+    it("writes a replayed message once, and runs one of two deliveries at once, without calling the model twice", async () => {
         const first = await setUp();
         const fetcher = model(ROW);
         expect(await run(first.runNow, fetcher, NOW)).toBe("written");
@@ -246,23 +259,89 @@ describe("a run", () => {
         expect(fetcher).toHaveBeenCalledTimes(1);
 
         const second = await setUp();
-        const outcomes = await Promise.all([run(second.runNow, model(ROW), NOW), run(second.runNow, model(NEXT), NOW)]);
-        expect(outcomes.filter((outcome) => outcome === "written")).toHaveLength(1);
-        expect(outcomes.filter((outcome) => outcome !== "written")).toEqual([
-            expect.stringMatching(/^(stale|skipped)$/),
-        ]);
+        const [a, b] = [model(ROW), model(NEXT)];
+        const outcomes = await Promise.all([run(second.runNow, a, NOW), run(second.runNow, b, NOW)]);
+        expect([...outcomes].sort()).toEqual(["skipped", "written"]);
+        expect(a.mock.calls.length + b.mock.calls.length).toBe(1);
         const inserts = (await stored(second.account.id)).filter((row) => row.op === "insertRow");
         expect(inserts).toHaveLength(1);
         expect(await stored(second.account.id)).toHaveLength(3);
     });
+
+    it("ends a delivery of a run that has already started without calling the model", async () => {
+        const { account, runNow } = await setUp();
+        const duplicate = model(NEXT);
+        let during: string | undefined;
+        const fetcher = vi.fn<typeof fetch>(async () => {
+            during = await run(runNow, duplicate, NOW);
+            return answer(ROW);
+        });
+        const logs = await runLogs(async () => expect(await run(runNow, fetcher, NOW)).toBe("written"));
+        expect(during).toBe("skipped");
+        expect(duplicate).not.toHaveBeenCalled();
+        expect(logs.map((line) => [line.outcome, line.reason])).toEqual([
+            ["skipped", "busy"],
+            ["written", undefined],
+        ]);
+        // And so does a late delivery of a run that failed, whose task now counts that attempt.
+        const failing = await setUp();
+        expect(await run(failing.runNow, model(new Response("{}", { status: 500 })), NOW)).toBe("retry");
+        const late = model(ROW);
+        expect(await run(failing.runNow, late, NOW)).toBe("skipped");
+        expect(late).not.toHaveBeenCalled();
+        expect((await stored(account.id)).filter((row) => row.op === "insertRow")).toHaveLength(1);
+    });
+
+    it("counts an attempt when a run starts, not when it is claimed, so a message that waited too long costs none", async () => {
+        const account = await newAccount();
+        expect((await send(upload(account.token, payload([automation()])))).status).toBe(200);
+        // The first message waits past its claim, and the cron claims the task again, twice.
+        const [late] = await claim(NOW);
+        const [again] = await claim(NOW + CLAIM_MS + 1);
+        expect(await claim(NOW + 2 * CLAIM_MS + 2)).toEqual([again]);
+        expect(again).toEqual(late);
+        expect((await taskOf(account.id, 1))?.attempts).toBe(0);
+        // One of them runs; the other then finds the task gone, and never calls the model.
+        const logs = await runLogs(async () => {
+            expect(await run(again as RunMessage, model(ROW), NOW + 2 * CLAIM_MS + 3)).toBe("written");
+            const unused = model(NEXT);
+            expect(await run(late as RunMessage, unused, NOW + 2 * CLAIM_MS + 4)).toBe("skipped");
+            expect(unused).not.toHaveBeenCalled();
+        });
+        expect(logs[0]).toMatchObject({ outcome: "written", attempts: 1 });
+        expect(logs[1]).toMatchObject({ outcome: "skipped", reason: "gone" });
+    });
+
+    // A new or refined automation has a run now and a schedule, both due at once. The cron hands out the run now
+    // first (cron.test.ts); a run checks the same, so the schedule reads the run now's row and does not repeat it.
+    it("runs a new automation's schedule after its run now, with the run now's row among the recent rows", async () => {
+        const account = await newAccount();
+        expect((await send(upload(account.token, payload([automation()])))).status).toBe(200);
+        const first = await claim(NOW);
+        expect(first.map((message) => message.task)).toEqual([(await taskOf(account.id, 1))?.id]);
+        // The schedule does not run beside the run now's live claim, even from a stray message.
+        const stray = model(NEXT);
+        expect(await run(await messageOf(account.id, 0), stray, NOW)).toBe("skipped");
+        expect(stray).not.toHaveBeenCalled();
+
+        expect(await run(first[0] as RunMessage, model(ROW), NOW)).toBe("written");
+        const second = await claim(NOW + MINUTE);
+        expect(second.map((message) => message.task)).toEqual([(await taskOf(account.id, 0))?.id]);
+        const fetcher = model(NEXT);
+        expect(await run(second[0] as RunMessage, fetcher, NOW + MINUTE)).toBe("written");
+        expect(userTurnOf(sentBodies(fetcher)[0] ?? {})).toContain(
+            `The 1 rows written most recently, newest first. Never repeat one of them:\n${JSON.stringify(ROW)}`,
+        );
+    });
 });
 
 describe("the reply", () => {
-    it("is asked for with the table's schema, structured output required of the provider, and 1,500 tokens", async () => {
+    it("is asked for with the table's schema, structured output required of the provider, and its token cap", async () => {
         const { runNow } = await setUp();
         const fetcher = model(ROW);
         await run(runNow, fetcher, NOW);
         const [body] = sentBodies(fetcher);
+        // 1,000 and 250 for each of the two text fields.
         expect(body?.max_tokens).toBe(1_500);
         expect(body?.response_format).toEqual({
             type: "json_schema",
@@ -334,15 +413,64 @@ describe("the reply", () => {
         const fetcher = model({ ...NEXT, kind: "noun" });
         expect(await run(schedule, fetcher, NOW)).toBe("written");
         expect(fetcher).toHaveBeenCalledTimes(1);
-        // The word with its part of speech is the item: a repeat of both is refused.
+        // The word with its part of speech is the item: a repeat of both is refused, and the repair asked for.
         const repeat = await setUp({ fields });
         await run(repeat.runNow, model({ ...ROW, kind: "noun" }), NOW);
-        expect(
-            await run(repeat.schedule, model({ word: "petrichor", kind: "Noun", definition: "Rain smell." }), NOW),
-        ).toBe("retry");
+        const again = model({ word: "petrichor", kind: "Noun", definition: "Rain smell." }, { ...NEXT, kind: "noun" });
+        expect(await run(repeat.schedule, again, NOW)).toBe("written");
+        expect(again).toHaveBeenCalledTimes(2);
+        expect(userTurnOf(sentBodies(again)[1] ?? {})).toContain(
+            "Your last reply was refused: it repeats a recent row",
+        );
     });
 
-    it("leaves a run that is refused twice to be claimed again later, its claim left to expire", async () => {
+    // A table whose only text is a category (a mood of the day) runs out of new values, and the repeat rule would
+    // then refuse every reply; so would a two-text table whose other text is always empty, when its one text repeats.
+    it("writes a repair that repeats, and logs the repeat, so a widget never stops getting rows", async () => {
+        const cases: [Entry, Record<string, unknown>, Record<string, unknown>][] = [
+            [{ fields: { level: "number", mood: "text" } }, { level: 3, mood: "Calm" }, { level: 5, mood: " calm" }],
+            [
+                { fields: { verdict: "text", word: "text" } },
+                { verdict: "", word: "Sonder" },
+                { verdict: "", word: "SONDER" },
+            ],
+        ];
+        for (const [entry, first, repeat] of cases) {
+            const { account, runNow, schedule } = await setUp(entry);
+            expect(await run(runNow, model(first), NOW)).toBe("written");
+            const fetcher = model(repeat);
+            const logs = await runLogs(async () => expect(await run(schedule, fetcher, NOW)).toBe("written"));
+            expect(fetcher).toHaveBeenCalledTimes(2);
+            expect(logs).toEqual([expect.objectContaining({ outcome: "written", calls: 2, reason: "repeat" })]);
+            expect((await stored(account.id)).filter((row) => row.op === "insertRow")).toHaveLength(2);
+        }
+    });
+
+    it("refuses text with half of a surrogate pair, which the phone's reader would refuse with the whole page", async () => {
+        const { account, runNow } = await setUp();
+        // The model's JSON escapes a lone high surrogate; JSON.parse makes it a string the wire must never carry.
+        const broken = '{"definition": "The smell after rain \\ud83d.", "word": "Petrichor"}';
+        const fetcher = model(broken, ROW);
+        expect(await run(runNow, fetcher, NOW)).toBe("written");
+        expect(userTurnOf(sentBodies(fetcher)[1] ?? {})).toContain(
+            'Your last reply was refused: "definition" holds half of a surrogate pair, which is not a character.',
+        );
+        for (const row of await stored(account.id)) {
+            expect(row.change.isWellFormed()).toBe(true);
+            expect(row.change).not.toMatch(/\\ud8/i);
+        }
+        // Twice, and the run is retried, writing nothing.
+        const twice = await setUp();
+        const logs = await runLogs(async () => expect(await run(twice.runNow, model(broken), NOW)).toBe("retry"));
+        expect(logs[0]).toMatchObject({ reason: "unicode" });
+        expect(await stored(twice.account.id)).toEqual([]);
+        // The pull's page stays readable.
+        const page = await send(changes(account.token), { now: NOW });
+        expect(page.text.isWellFormed()).toBe(true);
+        expect(page.text).not.toMatch(/\\ud8/i);
+    });
+
+    it("leaves a run that is refused twice to be claimed again later, giving its claim back", async () => {
         const { account, runNow } = await setUp();
         const fetcher = model({ word: "Petrichor" });
         expect(await run(runNow, fetcher, NOW)).toBe("retry");
@@ -352,7 +480,7 @@ describe("the reply", () => {
         );
         expect(await taskOf(account.id, 1)).toMatchObject({
             due_at: NOW + BACKOFF,
-            claimed_until: NOW + CLAIM_MS,
+            claimed_until: null,
             attempts: 1,
             row_key: runNow.rowKey,
         });
@@ -365,7 +493,52 @@ describe("the reply", () => {
         expect(await run(runNow, fetcher, NOW)).toBe("retry");
         expect(fetcher).toHaveBeenCalledTimes(1);
     });
+
+    it("gets a cap that grows with the table's text fields, up to RUN_TOKENS.most", async () => {
+        const capOf = async (fields: Record<string, string>) => {
+            const { runNow } = await setUp({ fields });
+            const fetcher = model(Object.fromEntries(Object.keys(fields).map((id) => [id, sampleOf(fields[id])])));
+            expect(await run(runNow, fetcher, NOW)).toBe("written");
+            return sentBodies(fetcher)[0]?.max_tokens;
+        };
+        expect(await capOf({ done: "bool", score: "number" })).toBe(RUN_TOKENS.base);
+        expect(await capOf({ score: "number", title: "text" })).toBe(RUN_TOKENS.base + RUN_TOKENS.perText);
+        expect(await capOf(textFields(16))).toBe(RUN_TOKENS.most);
+    });
+
+    // A reply cut off at its cap (thinking took it, or the row was long) is asked again with twice the cap; with no
+    // larger cap to give, the repair would be cut off too, so it is not asked.
+    it("is asked again with a larger cap when the model was cut off, and only then", async () => {
+        const { runNow } = await setUp();
+        const cut = model(answer('{"definition": "The pleasant, ea', 0.0001, "length"), ROW);
+        expect(await run(runNow, cut, NOW)).toBe("written");
+        expect(sentBodies(cut).map((body) => body.max_tokens)).toEqual([1_500, 3_000]);
+        expect(userTurnOf(sentBodies(cut)[1] ?? {})).toContain(
+            "Your last reply was refused: it was cut off before it ended; think briefly and reply with the row only.",
+        );
+        // Thinking that took the whole cap leaves no text at all, which is a cut reply too.
+        const empty = await setUp();
+        const thought = model(answer("", 0.0001, "length"), ROW);
+        expect(await run(empty.runNow, thought, NOW)).toBe("written");
+        expect(sentBodies(thought).map((body) => body.max_tokens)).toEqual([1_500, 3_000]);
+
+        const wide = await setUp({ fields: textFields(16) });
+        const capped = model(answer('{"t0": "a', 0.0001, "length"));
+        const logs = await runLogs(async () => expect(await run(wide.runNow, capped, NOW)).toBe("retry"));
+        expect(capped).toHaveBeenCalledTimes(1);
+        expect(logs[0]).toMatchObject({ reason: "cut", finish: "length" });
+    });
 });
+
+/// `count` text fields, t0 to t<count - 1>.
+function textFields(count: number): Record<string, string> {
+    return Object.fromEntries([...Array(count).keys()].map((i) => [`t${i}`, "text"]));
+}
+
+/// A value of the kind a field names.
+function sampleOf(kind: string | undefined): unknown {
+    return { text: "A line.", number: 1, bool: true, date: "2026-12-01" }[kind ?? "text"];
+}
 
 describe("failures", () => {
     /// Runs the claimed `first` message at `now`, then claims and runs its task again as soon as the cron would, until
@@ -388,6 +561,8 @@ describe("failures", () => {
 
     it("push the task back by a gap that doubles, and five move the schedule to its next run", async () => {
         const { account, schedule, now } = await setUp();
+        // Without its run now, which the cron would hand out before the schedule.
+        await env.DB.prepare("DELETE FROM tasks WHERE account = ? AND once = 1").bind(account.id).run();
         const before = await taskOf(account.id, 0);
         const runs = await failEveryTime(account.id, 0, schedule, now);
         expect(runs.map((r) => r.outcome)).toEqual(["retry", "retry", "retry", "retry", "moved on"]);
@@ -415,15 +590,27 @@ describe("failures", () => {
         expect(await taskOf(account.id, 0)).not.toBeNull();
     });
 
-    it("move on a task claimed more than five times without asking the model", async () => {
+    it("move on a task whose last five runs never finished, without asking the model", async () => {
         const { account, runNow } = await setUp();
-        await env.DB.prepare("UPDATE tasks SET attempts = ? WHERE id = ?")
-            .bind(MAX_ATTEMPTS + 1, runNow.task)
-            .run();
+        await env.DB.prepare("UPDATE tasks SET attempts = ? WHERE id = ?").bind(MAX_ATTEMPTS, runNow.task).run();
         const fetcher = model(ROW);
-        expect(await run(runNow, fetcher, NOW)).toBe("moved on");
+        expect(await run({ ...runNow, attempts: MAX_ATTEMPTS }, fetcher, NOW)).toBe("moved on");
         expect(fetcher).not.toHaveBeenCalled();
         expect(await taskOf(account.id, 1)).toBeNull();
+    });
+
+    // An account always has a zone once it has tasks; if one did not, each run would throw. The attempts are checked
+    // first, so the task moves on (with no zone, a schedule cannot be placed, so it goes) instead of looping.
+    it("move on a task whose account has no zone once its runs keep throwing", async () => {
+        const { account, schedule } = await setUp();
+        await env.DB.prepare("UPDATE accounts SET time_zone = NULL WHERE id = ?").bind(account.id).run();
+        await expect(run(schedule, model(ROW), NOW)).rejects.toThrow("the task's account has no time zone");
+        expect((await taskOf(account.id, 0))?.attempts).toBe(1);
+        await env.DB.prepare("UPDATE tasks SET attempts = ? WHERE id = ?").bind(MAX_ATTEMPTS, schedule.task).run();
+        const fetcher = model(ROW);
+        expect(await run({ ...schedule, attempts: MAX_ATTEMPTS }, fetcher, NOW)).toBe("moved on");
+        expect(fetcher).not.toHaveBeenCalled();
+        expect(await taskOf(account.id, 0)).toBeNull();
     });
 });
 
@@ -460,7 +647,12 @@ describe("the consumer", () => {
         const ctx = createExecutionContext();
         const ok = createMessageBatch<RunMessage>("widgie-runs", [
             { id: "a", timestamp: new Date(NOW), attempts: 1, body: runNow },
-            { id: "b", timestamp: new Date(NOW), attempts: 1, body: { task: 999_999, rowKey: runNow.rowKey } },
+            {
+                id: "b",
+                timestamp: new Date(NOW),
+                attempts: 1,
+                body: { task: 999_999, rowKey: runNow.rowKey, attempts: 0 },
+            },
         ]);
         await consume(ok, env, { fetch: model(ROW), now: () => NOW });
         expect(await getQueueResult(ok, ctx)).toMatchObject({ explicitAcks: ["a", "b"], retryMessages: [] });
@@ -470,7 +662,10 @@ describe("the consumer", () => {
             { id: "c", timestamp: new Date(NOW), attempts: 1, body: schedule },
         ]);
         vi.spyOn(console, "error").mockImplementation(() => {});
+        const retry = vi.spyOn(broken.messages[0] as Message<RunMessage>, "retry");
         await consume(broken, env, { fetch: model(ROW), now: () => NOW });
         expect(await getQueueResult(broken, ctx)).toMatchObject({ explicitAcks: [], retryMessages: [{ msgId: "c" }] });
+        // A minute later, not at once.
+        expect(retry).toHaveBeenCalledWith({ delaySeconds: RETRY_DELAY_S });
     });
 });

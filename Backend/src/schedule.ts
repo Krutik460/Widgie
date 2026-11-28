@@ -1,10 +1,10 @@
-// When an automation runs, in the phone's time zone, by the rules of `Schedule.nextRun(after:)` in
-// Engine/Sources/Spec/Automations.swift: the Gregorian calendar, Foundation's `.nextTime` matching. A daily or weekly
-// time that a daylight saving change skips runs at the moment the clocks change (02:30 runs at 03:00). A time that
-// happens twice runs once, at the first: a day whose first instant is at or before `after` has had its run. Foundation
-// differs there, taking the second when asked from between the two; P3 aligns the engine to the server. An hourly run
-// is at every instant whose wall clock shows its minute, so the repeated hour runs twice and a skipped hour not at all.
-// Time zones come from Intl, which carries the same tz database Foundation reads.
+// When an automation runs, in the phone's time zone, on the Gregorian calendar. The engine's
+// `Schedule.nextRun(after:in:)` (Engine/Sources/Spec/Automations.swift) is a port of this file, and the vectors it
+// exports (Engine/Vectors/schedule.json) are checked here too. A daily or weekly time that a daylight saving change
+// skips runs at the moment the clocks change (02:30 runs at 03:00). A time that happens twice runs once, at the
+// first: a day whose first instant is at or before `after` has had its run. An hourly run is at every instant whose
+// wall clock shows its minute, so the repeated hour runs twice and a skipped hour not at all. Time zones come from
+// Intl, whose tz database can differ from the one Foundation reads on a phone until both carry the same release.
 
 import { dayIndex } from "./wire";
 

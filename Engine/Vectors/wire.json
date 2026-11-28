@@ -1363,6 +1363,11 @@
       "name": "a key twice in one object, which JSON.parse resolves to the last",
       "text": "{\"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\", \"changes\": [{\"id\": 1, \"change\": {\"op\": \"insertRow\", \"row\": \"01a1e7e0-5080-7005-a17c-3e9d2b04f6a8\", \"dataset\": \"3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f\", \"day\": 20776, \"at\": 1795086000000, \"stamp\": \"117635678208000000\", \"stamp\": \"117635678208000001\", \"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\"}}], \"nextWrite\": null}",
       "error": "the key \"stamp\" appears twice in one object"
+    },
+    {
+      "name": "a text with half of a surrogate pair, which JSON.stringify writes for a lone surrogate",
+      "text": "{\"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\", \"changes\": [{\"id\": 1, \"change\": {\"op\": \"setCell\", \"row\": \"01a1e7e0-5080-7005-a17c-3e9d2b04f6a8\", \"dataset\": \"3f6c1d2e-8b4a-4c9e-9d7f-2a1b3c4d5e6f\", \"field\": \"word\", \"kind\": \"text\", \"value\": \"rain \\ud83d.\", \"stamp\": \"117635678208000000\", \"replica\": \"7d9e4c1a-2b3f-4a5d-8e6f-1c2d3e4f5a6b\"}}], \"nextWrite\": null}",
+      "error": "a \\u escape is half of a surrogate pair"
     }
   ],
   "receive": [

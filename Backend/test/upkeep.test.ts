@@ -100,7 +100,12 @@ describe("old changes", () => {
 
     beforeEach(async () => {
         await env.DB.prepare("DELETE FROM accounts").run();
+        await env.DB.prepare("UPDATE upkeep SET prune_from = 0").run();
     });
+
+    async function place() {
+        return (await env.DB.prepare("SELECT prune_from FROM upkeep").first<{ prune_from: number }>())?.prune_from;
+    }
 
     /// Seventy old rows of one dataset (the first with its tombstone right after it, the second with one written
     /// last), five old rows of another, and one new row of the first. Every change pulled when `pulled` is true.
@@ -167,5 +172,47 @@ describe("old changes", () => {
     it("go in the daily upkeep, after parking and deleting", async () => {
         await history(true);
         expect(await upkeep(env.DB, NOW)).toEqual({ parked: 0, deleted: 0, pruned: 23 });
+    });
+
+    // At scale one upkeep cannot read every old change within Workers Free's 50 queries; it reads a few slices and
+    // the next one goes on from there.
+    it("go a few slices a day, each upkeep going on where the last stopped, the same as all at once", async () => {
+        const account = await history(true);
+        const unpulled = await history(false);
+        const { results } = await env.DB.prepare("SELECT id FROM changes ORDER BY id").all<{ id: number }>();
+        const ids = results.map((row) => row.id);
+        // Ten changes a run, in two slices of five.
+        const small = { rows: 5, slices: 2 };
+        const pruned: number[] = [];
+        const places: (number | undefined)[] = [];
+        for (let day = 0; places.at(-1) !== 0 && day < 40; day++) {
+            pruned.push(await pruneChanges(env.DB, NOW + day * DAY, small));
+            places.push(await place());
+        }
+        // The pass goes ten changes a run through both histories (308 changes) and ends at the end of the table.
+        expect(places).toEqual([...[...Array(30).keys()].map((i) => ids[10 * (i + 1)]), 0]);
+        // r0 to r10 and r0's tombstone are the first 23 changes.
+        expect(pruned.slice(0, 4)).toEqual([10, 10, 3, 0]);
+        expect(pruned.reduce((total, n) => total + n, 0)).toBe(23);
+        expect(await left(account.id)).toHaveLength(ALL - 23);
+        expect(await left(unpulled.id)).toHaveLength(ALL);
+        // The next pass starts from the first change again and finds nothing more.
+        expect(await pruneChanges(env.DB, NOW + 40 * DAY, small)).toBe(0);
+        expect(await place()).toBe(ids[33]);
+    });
+
+    it("ends a pass at the first change too new to go, and starts the next from the first change", async () => {
+        const account = await history(true);
+        // A pass that starts past the old changes ends at once.
+        const { results } = await env.DB.prepare("SELECT id FROM changes WHERE written_at = ? ORDER BY id")
+            .bind(NOW)
+            .all<{ id: number }>();
+        await env.DB.prepare("UPDATE upkeep SET prune_from = ?")
+            .bind(results[0]?.id ?? 0)
+            .run();
+        expect(await pruneChanges(env.DB, NOW)).toBe(0);
+        expect(await place()).toBe(0);
+        expect(await pruneChanges(env.DB, NOW)).toBe(23);
+        expect(await left(account.id)).toHaveLength(ALL - 23);
     });
 });

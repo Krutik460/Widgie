@@ -1,4 +1,4 @@
--- Phase 3: accounts, their automations, the tasks that run them, and the changes a pull returns.
+-- Phase 3: accounts, their automations, the tasks that run them, the changes a pull returns, and the upkeep's place.
 -- Times are milliseconds since 1970-01-01T00:00:00Z. D1 enforces foreign keys, so deleting an account deletes the rest.
 
 -- One per App Attest key, or per dev registration (attest_key NULL). The token is `<id>.<secret>`; only the SHA-256
@@ -40,7 +40,9 @@ CREATE TABLE automations (
 
 -- One run of an automation. once = 0 is the automation's schedule, which moves on to its next run after each run;
 -- once = 1 is a run now, deleted after it runs. run_at is the row's `at`, row_key the row's UUIDv7, minted with the
--- task so a replayed write lands on the same row. The cron claims a task when due_at has passed and no claim is live.
+-- task so a replayed write lands on the same row. The cron claims a task when due_at has passed and no claim is live;
+-- claimed_until keeps it from other claims while its message waits and its run runs. attempts counts the runs that
+-- started since the task last moved on.
 CREATE TABLE tasks (
     id INTEGER PRIMARY KEY,
     account TEXT NOT NULL,
@@ -81,3 +83,11 @@ CREATE INDEX changes_account ON changes (account, id);
 CREATE INDEX changes_inserted ON changes (account, widget, automation, at) WHERE op = 'insertRow';
 CREATE INDEX changes_deleted ON changes (account, row_key) WHERE op = 'deleteRow';
 CREATE INDEX changes_dataset ON changes (account, dataset, id);
+
+-- The daily upkeep's place in `changes` (upkeep.ts): the id its next prune starts from. One row.
+CREATE TABLE upkeep (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    prune_from INTEGER NOT NULL
+) STRICT;
+
+INSERT INTO upkeep (id, prune_from) VALUES (1, 0);

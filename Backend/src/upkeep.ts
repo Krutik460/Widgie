@@ -10,8 +10,10 @@ export const PARK_AFTER = 30 * DAY;
 export const DELETE_AFTER = 90 * DAY;
 /// Changes older than this that the account's last pull has passed are deleted, except a dataset's recent rows.
 export const KEEP_CHANGES = 120 * DAY;
-/// Deletes per D1 batch, each for one dataset of one account.
-const PRUNE_BATCH = 50;
+/// How much of `changes` one upkeep reads: slices of `rows` changes in id order, at most `slices` of them, one
+/// statement each. With parking and deleting, a run makes at most 5 + slices queries, well within Workers Free's 50,
+/// and each statement reads a bounded number of rows however large the table grows.
+export const PRUNE = { rows: 10_000, slices: 20 } as const;
 
 /// Runs the daily upkeep at `now`, and answers what it did.
 export async function upkeep(db: D1Database, now: number) {
@@ -39,21 +41,31 @@ export async function deleteIdle(db: D1Database, now: number): Promise<number> {
     return result.meta.changes;
 }
 
-/// The first change written at or after a time: the ones below it are older. It reads the table in id order and stops
-/// there, so it reads only the old changes.
-export const FIRST_KEPT = "SELECT id FROM changes WHERE written_at >= ? ORDER BY id LIMIT 1";
-/// Each dataset of each account with old changes its last pull has passed. NOT INDEXED keeps SQLite to the id range
-/// of the old changes, where it would otherwise read all of `changes_dataset` for the DISTINCT.
-export const OLD_DATASETS = `SELECT DISTINCT c.account, c.dataset
-    FROM changes AS c NOT INDEXED JOIN accounts AS a ON a.id = c.account
-    WHERE c.id < ? AND c.id <= a.pulled_after`;
-/// One dataset's old, pulled changes below its RECENT_ROWS-th newest insertRow, read through `changes_dataset`. A
-/// dataset with fewer rows has no such insertRow, and the comparison with NULL keeps them all.
-export const PRUNE = `DELETE FROM changes
-    WHERE account = ?1 AND dataset = ?2 AND id < ?3
-        AND id <= (SELECT pulled_after FROM accounts WHERE id = ?1)
-        AND id < (SELECT id FROM changes WHERE account = ?1 AND dataset = ?2 AND op = 'insertRow'
-            ORDER BY id DESC LIMIT 1 OFFSET ?4)`;
+/// Where the next prune's slices start: the first change at or after the upkeep's place (`upkeep.prune_from`), then
+/// every ?1-th change of the next ?2, each with its write time. Read by id, so it reads only those changes.
+export const SLICES = `SELECT id, written_at FROM (
+        SELECT id, written_at, row_number() OVER (ORDER BY id) AS n FROM (
+            SELECT id, written_at FROM changes WHERE id >= (SELECT prune_from FROM upkeep WHERE id = 1)
+            ORDER BY id LIMIT ?2))
+    WHERE (n - 1) % ?1 = 0
+    ORDER BY id`;
+
+/// One slice's deletes: its changes (ids ?1 up to ?2) written before ?3 that their account's last pull has passed,
+/// below the RECENT_ROWS-th newest insertRow (OFFSET ?4) of their dataset. A dataset with fewer rows has no such
+/// insertRow, and the 0 keeps all of it. The slice's datasets are read by id, the limit of each is worked out once
+/// (`below`, through the accounts' key and `changes_dataset`), and the deletes read each account's part of the slice
+/// through `changes_account`.
+export const PRUNE_SLICE = `WITH datasets AS MATERIALIZED (
+        SELECT DISTINCT account, dataset FROM changes WHERE id >= ?1 AND id < ?2 AND written_at < ?3),
+    limits AS MATERIALIZED (
+        SELECT d.account, d.dataset, min(
+            (SELECT pulled_after + 1 FROM accounts WHERE id = d.account),
+            coalesce((SELECT id FROM changes WHERE account = d.account AND dataset = d.dataset AND op = 'insertRow'
+                ORDER BY id DESC LIMIT 1 OFFSET ?4), 0)) AS below
+        FROM datasets AS d)
+    DELETE FROM changes WHERE id IN (
+        SELECT c.id FROM changes AS c JOIN limits AS l ON l.account = c.account AND l.dataset = c.dataset
+        WHERE c.id >= ?1 AND c.id < ?2 AND c.written_at < ?3 AND c.id < l.below)`;
 
 /// Deletes the changes written more than `KEEP_CHANGES` ago that the account's last pull has passed
 /// (`accounts.pulled_after`), except those of each dataset's last RECENT_ROWS rows, which the next run reads back for
@@ -64,26 +76,37 @@ export const PRUNE = `DELETE FROM changes
 /// insertRow's: a kept row keeps every change, and a deleted row's tombstone outlives its insertRow or goes with it,
 /// never the other way round, so a phone that pulls from the start never sees a row its tombstone should hide.
 ///
-/// "Written more than KEEP_CHANGES ago" is read as an id below the first change written since, since ids and write
-/// times rise together; that way only the old changes are read, not the whole table.
-export async function pruneChanges(db: D1Database, now: number): Promise<number> {
-    const first = await db
-        .prepare(FIRST_KEPT)
-        .bind(now - KEEP_CHANGES)
-        .first<number>("id");
-    const before = first ?? Number.MAX_SAFE_INTEGER;
-    const { results: datasets } = await db
-        .prepare(OLD_DATASETS)
-        .bind(before)
-        .all<{ account: string; dataset: string }>();
+/// Each run reads at most `PRUNE.slices` slices of `PRUNE.rows` changes from the upkeep's place, and moves the place
+/// past them. Ids and write times rise together, so a slice that starts at a change newer than KEEP_CHANGES has
+/// nothing old after it: the run stops there and the next one starts again from the first change, as it does at the
+/// end of the table. A pass over the old changes therefore spans as many days as it needs, and changes it kept (a
+/// dataset's last rows, or ones a pull had not passed) are looked at again on the next pass.
+export async function pruneChanges(
+    db: D1Database,
+    now: number,
+    prune: { rows: number; slices: number } = PRUNE,
+): Promise<number> {
+    const old = now - KEEP_CHANGES;
+    const { results: starts } = await db
+        .prepare(SLICES)
+        .bind(prune.rows, prune.rows * prune.slices + 1)
+        .all<{ id: number; written_at: number }>();
+    // The slices that start at an old change. The pass is done when a slice would start at a new change, or the
+    // table ends within this run's slices.
+    const firstNew = starts.findIndex((start) => start.written_at >= old);
+    const count = Math.min(firstNew === -1 ? starts.length : firstNew, prune.slices);
+    const done = firstNew !== -1 || starts.length <= prune.slices;
     let pruned = 0;
-    for (let start = 0; start < datasets.length; start += PRUNE_BATCH) {
-        const results = await db.batch(
-            datasets
-                .slice(start, start + PRUNE_BATCH)
-                .map(({ account, dataset }) => db.prepare(PRUNE).bind(account, dataset, before, RECENT_ROWS - 1)),
-        );
-        pruned += results.reduce((total, result) => total + result.meta.changes, 0);
+    for (let i = 0; i < count; i++) {
+        const from = starts[i]?.id ?? 0;
+        const to = starts[i + 1]?.id ?? Number.MAX_SAFE_INTEGER;
+        const result = await db
+            .prepare(PRUNE_SLICE)
+            .bind(from, to, old, RECENT_ROWS - 1)
+            .run();
+        pruned += result.meta.changes;
     }
+    const next = done ? 0 : (starts[prune.slices]?.id ?? 0);
+    await db.prepare("UPDATE upkeep SET prune_from = ? WHERE id = 1").bind(next).run();
     return pruned;
 }
