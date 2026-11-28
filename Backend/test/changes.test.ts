@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { NEXT_WRITE_GAP, PAGE_SIZE } from "../src/accounts";
+import { TEXT_LIMIT } from "../src/run";
 import { HOUR, MINUTE } from "../src/schedule";
 import { encodeChange, encodePage, mintRowKey, stampOf } from "../src/wire";
 import { automation, changes, DATASET, NOW, newAccount, payload, send, upload } from "./helpers/accounts";
@@ -249,4 +250,21 @@ describe("a pull", () => {
             .first();
         expect(after).toEqual(before);
     });
+});
+
+it("keeps the largest page under D1's 2,000,000 byte limit on the one value SQL builds it as", () => {
+    // The longest change: a text cell of TEXT_LIMIT control characters, each written as six bytes (\u0001), with the
+    // longest field id, stamp, and page id.
+    const change = encodeChange({
+        op: "setCell",
+        row: "01a1e7e0-5080-7005-a17c-3e9d2b04f6a8",
+        dataset: DATASET,
+        field: `f${"0".repeat(31)}`,
+        kind: "text",
+        value: "\u0001".repeat(TEXT_LIMIT),
+        stamp: "9223372036854775807",
+        replica: DATASET,
+    });
+    const entry = `{"id":${Number.MAX_SAFE_INTEGER},"change":${change}},`;
+    expect(entry.length * PAGE_SIZE).toBeLessThan(2_000_000);
 });

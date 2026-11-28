@@ -9,6 +9,12 @@ import { encodeJoinedPage, isUuid, mintUuid, PAGE_ENTRIES_SQL } from "./wire";
 
 /// The most changes one pull returns. The phone asks again from the page's last id.
 export const PAGE_SIZE = 500;
+
+/// One page of an account's changes after a watermark, as its count and its entries joined in SQL. SQL builds the page
+/// as one value, so a page must stay under D1's 2,000,000 byte limit on a string: a test ties PAGE_SIZE and the text
+/// limit to it.
+export const PAGE = `SELECT count(*) AS count, ${PAGE_ENTRIES_SQL} AS entries
+    FROM (SELECT id, change FROM changes WHERE account = ? AND id > ? ORDER BY id LIMIT ?)`;
 /// The soonest `nextWrite` a pull names, so a task waiting for the cron does not make the extension pull at every render.
 export const NEXT_WRITE_GAP = 5 * MINUTE;
 
@@ -72,12 +78,7 @@ export async function pull(
 ): Promise<{ body: string; count: number }> {
     if (account.parkedAt !== null) await rearm(db, account, now);
     const [page, next] = await db.batch([
-        db
-            .prepare(
-                `SELECT count(*) AS count, ${PAGE_ENTRIES_SQL} AS entries
-                 FROM (SELECT id, change FROM changes WHERE account = ? AND id > ? ORDER BY id LIMIT ?)`,
-            )
-            .bind(account.id, after, PAGE_SIZE),
+        db.prepare(PAGE).bind(account.id, after, PAGE_SIZE),
         // When the server next expects to write: the earliest time a task of the account is due.
         db.prepare("SELECT min(due_at) AS next FROM tasks WHERE account = ?").bind(account.id),
         db
