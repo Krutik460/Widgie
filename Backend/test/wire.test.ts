@@ -91,6 +91,27 @@ describe("changes", () => {
         const { head, tail } = encodeAroundStamp(change);
         expect(`${head}${change.stamp}${tail}`).toBe(JSON.stringify(wire));
     });
+
+    // JSON.stringify would write a lone surrogate as "\ud83d", which the phone's reader refuses with its whole page.
+    it("refuses a string that is not well-formed UTF-16, in a text cell or anywhere else", () => {
+        const common = {
+            row: "019a1f2e-8c3b-7d4e-9f50-6a7b8c9d0e1f",
+            dataset: "4f6c2a1e-3b5d-4e7f-8a9b-0c1d2e3f4a5b",
+            stamp: "1",
+            replica: "7d9e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a",
+        };
+        const cell = { ...common, op: "setCell", field: "word", kind: "text" } as const;
+        expect(encodeChange({ ...cell, value: "a😀b" })).toContain('"value":"a😀b"');
+        for (const change of [
+            { ...cell, value: "a\ud83db" },
+            { ...cell, value: "\udc00" },
+            { ...common, op: "deleteRow", dataset: "\ud800" },
+            { ...common, op: "insertRow", day: 1, at: 1, replica: "x\udfff" },
+        ] as Change[]) {
+            expect(() => encodeChange(change)).toThrow(WireError);
+            expect(() => encodeAroundStamp(change)).toThrow(WireError);
+        }
+    });
 });
 
 describe("pages", () => {

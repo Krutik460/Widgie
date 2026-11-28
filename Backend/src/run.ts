@@ -10,19 +10,27 @@ import { type Cell, dayIndex, isoDay, type Kind } from "./wire";
 /// How many of a dataset's rows a run reads back: the model is told not to repeat them, and a reply that does is
 /// refused. The daily cleanup keeps at least this many rows of each dataset.
 export const RECENT_ROWS = 60;
-/// A run's output cap: one row of at most 16 short fields, and room for low-effort thinking.
-export const RUN_MAX_TOKENS = 1_500;
+/// A run's output cap: room for low-effort thinking and the JSON around the row, and more for each text field, whose
+/// 300 UTF-16 units can take as many tokens in a script with few letters per token. A reply cut off at its cap is
+/// asked again with twice the cap, up to `most`.
+export const RUN_TOKENS = { base: 1_000, perText: 250, most: 4_000 } as const;
 /// The longest text a cell holds, in UTF-16 units, as WIRE.md and a tap's limit say (an emoji counts as 2).
 export const TEXT_LIMIT = 300;
 
 /// A recent row's text values by field id, which is what the repeat check and the model see.
 export type RecentRow = Record<string, string>;
 
-/// A reply the reader or the repeat check refused: `line` goes back to the model in the repair turn, and `code`,
-/// which names no content, goes to the log.
+/// The output cap of a run's first call: `RUN_TOKENS.base` and `perText` for each text field, at most `most`.
+export function runMaxTokens(fields: Record<string, Kind>): number {
+    const texts = Object.values(fields).filter((kind) => kind === "text").length;
+    return Math.min(RUN_TOKENS.most, RUN_TOKENS.base + RUN_TOKENS.perText * texts);
+}
+
+/// A reply the reader or the repeat check refused, or one the model was cut off in (`cut`): `line` goes back to the
+/// model in the repair turn, and `code`, which names no content, goes to the log.
 export class Refused extends Error {
     constructor(
-        readonly code: "json" | "missing" | "kind" | "long" | "date" | "repeat",
+        readonly code: "json" | "missing" | "kind" | "long" | "unicode" | "date" | "repeat" | "cut",
         readonly line: string,
     ) {
         super(line);
@@ -83,8 +91,9 @@ export function replySchema(fields: Record<string, Kind>): { name: string; schem
 
 /// The cells a reply holds, by field id, in the table's field order. Refused when it is not one JSON object (a code
 /// fence around it is read past, for a model that adds one without structured output), when a field is missing, of
-/// another kind, a number that is not finite, a text over TEXT_LIMIT, or a date that is not a real day. Text is
-/// trimmed. Keys the table does not have are left out.
+/// another kind, a number that is not finite, a text over TEXT_LIMIT or with a lone surrogate (JSON's `\ud83d`
+/// escape parses to one, and the phone's reader refuses it), or a date that is not a real day. Text is trimmed. Keys
+/// the table does not have are left out.
 export function readReply(text: string, fields: Record<string, Kind>): Record<string, Cell> {
     const fenced = /^\s*```(?:json)?\s*\n([\s\S]*?)\n\s*```\s*$/.exec(text);
     let value: unknown;
@@ -110,6 +119,9 @@ function cell(id: string, kind: Kind, value: unknown): Cell {
         case "text": {
             if (typeof value !== "string") throw new Refused("kind", `"${id}" must be text`);
             const text = value.trim();
+            if (!text.isWellFormed()) {
+                throw new Refused("unicode", `"${id}" holds half of a surrogate pair, which is not a character`);
+            }
             if (text.length > TEXT_LIMIT) {
                 throw new Refused("long", `"${id}" is ${text.length} characters long, and the limit is ${TEXT_LIMIT}`);
             }
@@ -147,6 +159,8 @@ function dayOfIso(text: string): number | null {
 /// more, because a field that names a category (word of the day's part of speech, a quote's author) repeats on
 /// purpose: refusing it would refuse every word that is a noun, and once each category was used, every reply. The
 /// item itself (the word with its part of speech, the question, the quote with its author) repeating matches two.
+/// The rule can still refuse every reply of a table whose only non-empty text is a category, so the runner checks a
+/// repair's repeats only to log them, and writes it (runner.ts).
 export function checkRepeats(cells: Record<string, Cell>, recent: RecentRow[]) {
     const texts = Object.entries(cells).flatMap(([id, cell]) =>
         cell.kind === "text" && cell.value !== "" ? [[id, comparable(cell.value)] as const] : [],

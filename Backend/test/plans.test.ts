@@ -4,8 +4,8 @@
 import { env } from "cloudflare:workers";
 import { expect, it } from "vitest";
 import { CLAIM } from "../src/cron";
-import { LATEST_CELLS, LATEST_ROWS } from "../src/runner";
-import { FIRST_KEPT, OLD_DATASETS, PRUNE } from "../src/upkeep";
+import { LATEST_CELLS, LATEST_ROWS, START } from "../src/runner";
+import { PRUNE_SLICE, SLICES } from "../src/upkeep";
 import { DATASET } from "./helpers/accounts";
 
 async function plan(sql: string, ...values: unknown[]): Promise<string> {
@@ -15,10 +15,24 @@ async function plan(sql: string, ...values: unknown[]): Promise<string> {
     return results.map((row) => row.detail).join("\n");
 }
 
-it("claims through tasks_due", async () => {
+/// The tasks of one automation, read by the task table's unique key.
+const SIBLINGS = /SEARCH other USING INDEX sqlite_autoindex_tasks_1 \(account=\? AND widget=\? AND automation=\?\)/;
+
+it("claims through tasks_due, and looks for the automation's other tasks by its key", async () => {
     const detail = await plan(CLAIM, 1, 1, 100);
-    expect(detail).toMatch(/SEARCH tasks USING INDEX tasks_due \(due_at<\?\)/);
+    expect(detail).toMatch(/SEARCH t USING INDEX tasks_due \(due_at<\?\)/);
     expect(detail).toMatch(/SEARCH tasks USING INTEGER PRIMARY KEY \(rowid=\?\)/);
+    expect(detail).toMatch(SIBLINGS);
+    expect(detail).toMatch(
+        /SEARCH other USING INDEX sqlite_autoindex_tasks_1 \(account=\? AND widget=\? AND automation=\? AND once=\?\)/,
+    );
+    expect(detail).not.toMatch(/SCAN/);
+});
+
+it("starts a run by the task's id, and looks for the automation's other tasks by its key", async () => {
+    const detail = await plan(START, 1, 1, 1, "row", 0);
+    expect(detail).toMatch(/SEARCH t USING INTEGER PRIMARY KEY \(rowid=\?\)/);
+    expect(detail).toMatch(SIBLINGS);
     expect(detail).not.toMatch(/SCAN/);
 });
 
@@ -30,16 +44,23 @@ it("reads a dataset's recent rows and their cells through changes_dataset", asyn
     }
 });
 
-it("prunes by id range: the old changes in id order, and each dataset through changes_dataset", async () => {
-    // Read in id order and stopped at the first change new enough, with no sort.
-    const first = await plan(FIRST_KEPT, 1);
-    expect(first).toBe("SCAN changes");
-    const datasets = await plan(OLD_DATASETS, 1);
-    expect(datasets).toMatch(/SEARCH c USING INTEGER PRIMARY KEY \(rowid<\?\)/);
-    expect(datasets).not.toMatch(/SCAN/);
-    const prune = await plan(PRUNE, "account", DATASET, 1, 59);
-    expect(prune).toMatch(
-        /SEARCH changes USING COVERING INDEX changes_dataset \(account=\? AND dataset=\? AND id<\?\)/,
-    );
-    expect(prune).not.toMatch(/SCAN/);
+it("prunes by id range: the slices in id order, and each slice's datasets through changes_dataset", async () => {
+    // Read from the upkeep's place by id; the window and the outer query read only what the inner one kept.
+    const slices = await plan(SLICES, 10_000, 200_001);
+    expect(slices).toMatch(/SEARCH changes USING INTEGER PRIMARY KEY \(rowid>\?\)/);
+    expect(slices).toMatch(/SEARCH upkeep USING INTEGER PRIMARY KEY \(rowid=\?\)/);
+    expect(slices).not.toMatch(/SCAN (changes|upkeep)\b/);
+
+    const prune = await plan(PRUNE_SLICE, 1, 10_001, 1, 59);
+    // The slice's datasets, read by id.
+    expect(prune).toMatch(/SEARCH changes USING INTEGER PRIMARY KEY \(rowid>\? AND rowid<\?\)/);
+    // Each dataset's limit: its account's watermark by key, its 60th newest row through changes_dataset.
+    expect(prune).toMatch(/SEARCH accounts USING INDEX sqlite_autoindex_accounts_1 \(id=\?\)/);
+    expect(prune).toMatch(/SEARCH changes USING INDEX changes_dataset \(account=\? AND dataset=\?\)/);
+    // The deletes: each account's part of the slice, by its id range.
+    expect(prune).toMatch(/SEARCH c USING INDEX changes_account \(account=\? AND id>\? AND id<\?\)/);
+    // Only the materialized datasets and limits are scanned, never a table.
+    for (const line of prune.split("\n").filter((line) => line.includes("SCAN"))) {
+        expect(line).toMatch(/^SCAN (d|l)$/);
+    }
 });

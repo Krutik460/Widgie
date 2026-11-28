@@ -42,9 +42,13 @@ export interface ModelReply {
     usage: Usage;
 }
 
-/// A failed call. `reason` is for the log only; the app gets a fixed line.
+/// A failed call. `reason` is for the log only; the app gets a fixed line. `finish` is why the model stopped when it
+/// answered with no text, such as "length" when thinking took the whole output cap.
 export class ModelFailure extends Error {
-    constructor(readonly reason: string) {
+    constructor(
+        readonly reason: string,
+        readonly finish: string | null = null,
+    ) {
         super(reason);
     }
 }
@@ -143,13 +147,14 @@ export async function callModel(
     }
     const choice = body.choices?.[0];
     const text = choice?.message?.content;
-    if (typeof text !== "string" || text.trim() === "") throw new ModelFailure("the reply held no text");
+    const finish = typeof choice?.finish_reason === "string" ? choice.finish_reason : null;
+    if (typeof text !== "string" || text.trim() === "") throw new ModelFailure("the reply held no text", finish);
     const usage = body.usage;
     return {
         text,
         model: body.model ?? settings.model,
         provider: body.provider ?? "unknown",
-        finish: typeof choice?.finish_reason === "string" ? choice.finish_reason : null,
+        finish,
         usage: {
             input_tokens: usage?.prompt_tokens ?? 0,
             cached_tokens: usage?.prompt_tokens_details?.cached_tokens ?? 0,

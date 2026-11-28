@@ -17,8 +17,9 @@
 // `npx wrangler d1 create widgie-dev`, and put the ids they print here before the first deploy.
 // Crons (src/cron.ts, which names the same two strings): every minute the due automation runs are claimed and sent to
 // the RUNS queue; at 03:17 UTC the upkeep parks and deletes idle accounts and deletes old changes. The Worker consumes
-// its own queue: batches of up to 4 runs, at most 5 batches at once, so at most 20 calls reach OpenRouter together. A
-// run that throws is retried twice and then kept in the dead-letter queue; its task is claimed again either way.
+// its own queue one run per batch, so each run has its own invocation and CPU budget (10 ms on Workers Free), at most
+// 20 at once, so at most 20 calls reach OpenRouter together. A run that throws is retried twice, a minute apart, and
+// then kept in the dead-letter queue; its task is claimed again either way.
 // Create the queues with `npx wrangler queues create widgie-runs`, `widgie-runs-dead`, `widgie-dev-runs`, and
 // `widgie-dev-runs-dead` before the first deploy.
 {
@@ -53,10 +54,10 @@
         "consumers": [
             {
                 "queue": "widgie-runs",
-                "max_batch_size": 4,
+                "max_batch_size": 1,
                 "max_batch_timeout": 5,
                 "max_retries": 2,
-                "max_concurrency": 5,
+                "max_concurrency": 20,
                 "dead_letter_queue": "widgie-runs-dead"
             }
         ]
@@ -90,10 +91,10 @@
                 "consumers": [
                     {
                         "queue": "widgie-dev-runs",
-                        "max_batch_size": 4,
+                        "max_batch_size": 1,
                         "max_batch_timeout": 5,
                         "max_retries": 2,
-                        "max_concurrency": 5,
+                        "max_concurrency": 20,
                         "dead_letter_queue": "widgie-dev-runs-dead"
                     }
                 ]
