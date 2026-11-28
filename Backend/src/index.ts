@@ -9,6 +9,7 @@
 // PUT /v1/automations replaces the account's automations (the payload in docs/engine/WIRE.md) and answers {digest};
 // GET /v1/changes?after=<id> answers a page in the wire format. Those two take `Authorization: Bearer <token>`. The
 // crons claim due automation runs and run the daily upkeep (cron.ts), and the queue consumer runs them (runner.ts).
+// On `dev` only, POST /v1/dev/run runs one automation's model calls for the evals (dev-run.ts).
 
 import { authenticate, pull, register } from "./accounts";
 import { APPLE_ROOT } from "./apple-root";
@@ -18,6 +19,7 @@ import { readCapped, TooLarge } from "./body";
 import prompt from "./build-prompt.txt";
 import { fromBase64, sha256, toBase64, toHex } from "./bytes";
 import { scheduled } from "./cron";
+import { devRun, isDevSecret } from "./dev-run";
 import { callModel, ModelFailure, modelSettings } from "./model";
 import { BadRequest, kindOf, oneLine, userTurn } from "./request";
 import { consume, type RunMessage } from "./runner";
@@ -78,6 +80,7 @@ const ROUTES = new Map<string, { method: string; route: Route }>([
     ["/v1/account", { method: "POST", route: account }],
     ["/v1/automations", { method: "PUT", route: automations }],
     ["/v1/changes", { method: "GET", route: changes }],
+    ["/v1/dev/run", { method: "POST", route: devRun }],
 ]);
 
 export async function handle(request: Request, env: Env, deps: Dependencies): Promise<Response> {
@@ -223,7 +226,7 @@ async function account(request: Request, env: Env, deps: Dependencies): Promise<
     const devSecret = request.headers.get("X-Widgie-Dev-Secret");
     if (devSecret !== null) {
         via = "dev";
-        if (!(await devRegistration(env, devSecret))) return out.refuse("bad-dev-secret");
+        if (!(await isDevSecret(env, devSecret))) return out.refuse("bad-dev-secret");
         if (!(await isEmpty(request))) return out.json(413, { error: "the body must be empty" });
         return out.json(200, { token: await register(env.DB, null, now) });
     }
@@ -238,13 +241,6 @@ async function account(request: Request, env: Env, deps: Dependencies): Promise<
     const refused = await env.ATTESTED_KEY.getByName(keyId).verifyAndAdvance(await sha256(clientData), assertion);
     if (refused) return out.refuse(refused);
     return out.json(200, { token: await register(env.DB, keyId, now) });
-}
-
-/// Whether this environment takes dev registrations and `given` is its secret, compared in constant time.
-async function devRegistration(env: Env, given: string): Promise<boolean> {
-    const secret = env.DEV_REGISTRATION_SECRET ?? "";
-    if (env.ENVIRONMENT !== "dev" || secret === "") return false;
-    return crypto.subtle.timingSafeEqual(await sha256(given), await sha256(secret));
 }
 
 async function isEmpty(request: Request): Promise<boolean> {
