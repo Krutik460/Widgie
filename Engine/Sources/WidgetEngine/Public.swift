@@ -146,11 +146,9 @@ public struct RemotePage: Sendable {
     /// When the server next expects to write a change for this account, or nil when it expects none.
     public var nextWrite: Date? { page.nextWrite }
 
-    /// How many changes the page carries. A page holding `RemotePage.limit` may have more after it.
+    /// How many changes the page carries. An empty page is the end of the account's changes; the phone never
+    /// assumes the server's page size (docs/engine/WIRE.md).
     public var count: Int { page.changes.count }
-
-    /// The most changes the server puts in one page (docs/engine/WIRE.md).
-    public static let limit = 500
 }
 
 /// The body of `PUT /v1/automations` and its SHA-256 (docs/engine/WIRE.md).

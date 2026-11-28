@@ -35,7 +35,7 @@ import WidgetHosting
         try await rig.uploads(5, "a delete")
 
         rig.center.post(name: Hosting.didCommit, object: nil)
-        await rig.settle()
+        await rig.sync.settled()
         #expect(rig.server.puts.count == 5, "a commit that moves nothing, such as a tap, sends nothing")
         #expect(rig.server.puts.last?.httpBody == (try rig.engine.automationPayload().json))
         #expect(rig.registered == 1)
@@ -48,8 +48,8 @@ import WidgetHosting
         let rig = SyncRig()
         rig.server.offline = true
         _ = try await rig.engine.saved(try Template.bundled("word-of-the-day").source())
-        try await until({ rig.server.puts.count == 1 }, "the save never tried to upload")
-        await rig.settle()
+        await rig.sync.settled()
+        #expect(rig.server.puts.count == 1, "the save tried to upload")
         rig.server.offline = false
         rig.center.post(name: name, object: nil)
         try await rig.uploads(2, "the change")
@@ -59,19 +59,44 @@ import WidgetHosting
         let rig = SyncRig()
         rig.server.offline = true
         _ = try await rig.engine.saved(try Template.bundled("word-of-the-day").source())
-        try await until({ rig.server.puts.count == 1 }, "the save never tried to upload")
-        await rig.settle()
+        await rig.sync.settled()
+        #expect(rig.server.puts.count == 1, "the save tried to upload")
         #expect(rig.state.acknowledged == nil)
 
         rig.server.offline = false
         rig.sync.foreground()
         try await rig.uploads(2, "the foreground")
-        #expect(rig.state.acknowledged == (try rig.engine.automationPayload().digest))
+        #expect(rig.server.pulls == 1)
 
         rig.sync.foreground()
-        await rig.settle()
+        await rig.sync.settled()
         #expect(rig.server.puts.count == 2, "a foreground with the digest acknowledged sends nothing")
-        try await until({ rig.server.pulls == 2 }, "each foreground pulls")
+        #expect(rig.server.pulls == 2, "each foreground pulls")
+    }
+
+    /// After a failed registration, a change does not register again, and a foreground does only once the wait
+    /// has passed, so a failing `/v1/account` never makes a new App Attest key at every commit.
+    @Test func aFailedRegistrationIsTriedAgainOnlyOnAForegroundAfterItsWait() async throws {
+        let rig = SyncRig()
+        rig.registrationFails = true
+        _ = try await rig.engine.saved(try Template.bundled("word-of-the-day").source())
+        await rig.sync.settled()
+        #expect(rig.registered == 1)
+
+        _ = try await rig.engine.saved(try Template.bundled("word-of-the-day").source())
+        rig.sync.foreground()
+        await rig.sync.settled()
+        #expect(rig.registered == 1, "a change and a foreground within the wait")
+
+        rig.clock.move(to: rig.clock.now.addingTimeInterval(61))
+        rig.registrationFails = false
+        rig.center.post(name: .NSSystemTimeZoneDidChange, object: nil)
+        await rig.sync.settled()
+        #expect(rig.registered == 1, "a change after the wait")
+
+        rig.sync.foreground()
+        try await rig.uploads(1, "the foreground after the wait")
+        #expect(rig.registered == 2)
     }
 
     @Test func anUploadThatNamesAnAutomationPullsEveryFiveSecondsForAMinute() async throws {
@@ -93,8 +118,15 @@ import WidgetHosting
         try await until({ gate.waiting }, "the poll never started")
         rig.sync.background()
         gate.open()
-        await rig.settle()
+        await rig.sync.settled()
         #expect(rig.server.pulls == 0)
+    }
+
+    /// The app hosting these tests makes no sync of its own, which would reach the dev Worker.
+    @Test func theAppHostingTheTestsKnowsItAndStartsNoSync() {
+        #expect(AccountSync.hostedByTests())
+        #expect(!AccountSync.hostedByTests([:]))
+        #expect(!AccountSync.hostedByTests(["HOME": "/"]))
     }
 }
 
@@ -145,33 +177,65 @@ import WidgetHosting
         let service = "dev.krutikpatel.widgie.tests.\(UUID().uuidString)"
         let tokens = KeychainTokens(group: group, service: service)
         defer { tokens.delete() }
-        tokens.save("token-1")
-        tokens.save("token-2")
-        #expect(tokens.load() == "token-2")
+        #expect(try tokens.load() == nil)
+        try tokens.save("token-1")
+        try tokens.save("token-2")
+        #expect(try tokens.load() == "token-2", "a save updates the one item")
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
-            kSecReturnAttributes as String: true,
+            kSecReturnAttributes as String: true, kSecMatchLimit as String: kSecMatchLimitAll,
         ]
-        var item: CFTypeRef?
-        #expect(SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess)
-        let attributes = try #require(item as? [String: Any])
+        var items: CFTypeRef?
+        #expect(SecItemCopyMatching(query as CFDictionary, &items) == errSecSuccess)
+        let found = try #require(items as? [[String: Any]])
+        #expect(found.count == 1)
+        let attributes = try #require(found.first)
         #expect(attributes[kSecAttrAccessGroup as String] as? String == group)
         #expect(attributes[kSecAttrAccessible as String] as? String == kSecAttrAccessibleAfterFirstUnlock as String)
+        let fingerprint = try #require(attributes[kSecAttrGeneric as String] as? Data)
+        let hex = SHA256.hash(data: Data("token-2".utf8)).map { String(format: "%02x", $0) }.joined()
+        #expect(fingerprint == Data(hex.utf8), "the token's fingerprint")
 
+        tokens.delete("token-1")
+        #expect(try tokens.load() == "token-2", "forgetting a token another save replaced leaves the newer one")
+        tokens.delete("token-2")
+        #expect(try tokens.load() == nil)
+
+        try tokens.save("token-3")
         tokens.delete()
-        #expect(tokens.load() == nil)
+        #expect(try tokens.load() == nil)
+    }
+
+    /// An item an earlier build saved, with no fingerprint, is still forgotten, and only for its own token.
+    @Test func aTokenSavedWithoutAFingerprintIsForgottenByComparing() throws {
+        let group = try #require(Bundle.main.object(forInfoDictionaryKey: "WidgieKeychainGroup") as? String)
+        let service = "dev.krutikpatel.widgie.tests.\(UUID().uuidString)"
+        let tokens = KeychainTokens(group: group, service: service)
+        defer { tokens.delete() }
+        let item: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
+            kSecAttrAccount as String: "token", kSecAttrAccessGroup as String: group,
+            kSecValueData as String: Data("old".utf8),
+        ]
+        #expect(SecItemAdd(item as CFDictionary, nil) == errSecSuccess)
+        tokens.delete("other")
+        #expect(try tokens.load() == "old")
+        tokens.delete("old")
+        #expect(try tokens.load() == nil)
     }
 }
 
 // MARK: The rig
 
-/// A store whose commits post `Hosting.didCommit`, an account client on it with an in-memory token and defaults of
-/// its own, and the sync under test. Polls are off unless asked for; when on, each wait returns at once.
+/// A store whose commits post `Hosting.didCommit`, an account client on it with an in-memory token, defaults of its
+/// own, and a clock the test moves, and the sync under test. Polls are off unless asked for; when on, each wait
+/// returns at once.
 @MainActor final class SyncRig {
     let directory = FileManager.default.temporaryDirectory.appending(path: "sync-tests-\(UUID().uuidString)")
     let center = NotificationCenter()
     let server = FakeWorker()
+    let clock = TestClock(Date())
     let engine: Engine
     let state: AccountState
     let sync: AccountSync
@@ -182,14 +246,19 @@ import WidgetHosting
         let center = center
         engine = Engine(directory: directory, onCommit: { center.post(name: Hosting.didCommit, object: nil) })
         state = AccountState(defaults: UserDefaults(suiteName: suite)!)
+        let clock = clock
         let client = AccountClient(
             base: URL(string: "https://worker.test")!, engine: engine, tokens: MemoryTokens(), state: state,
-            transport: server)
+            transport: server, now: { clock.now })
         let counts = counts
         sync = AccountSync(
             account: client,
             register: {
-                counts.value.withLock { $0.registered += 1 }
+                let fails = counts.value.withLock { counts in
+                    counts.registered += 1
+                    return counts.registrationFails
+                }
+                if fails { throw URLError(.cannotConnectToHost) }
                 return "token-1"
             }, center: center,
             sleep: { duration in
@@ -207,24 +276,21 @@ import WidgetHosting
 
     var registered: Int { counts.value.withLock { $0.registered } }
     var sleeps: [Duration] { counts.value.withLock { $0.sleeps } }
+    var registrationFails: Bool {
+        get { counts.value.withLock { $0.registrationFails } }
+        set { counts.value.withLock { $0.registrationFails = newValue } }
+    }
 
     private final class Counts: Sendable {
-        let value = Mutex((registered: 0, sleeps: [Duration]()))
+        let value = Mutex((registered: 0, sleeps: [Duration](), registrationFails: false))
     }
 
-    /// Waits for the `count`th upload, and for the sync to settle after it.
+    /// Waits for the sync to settle after the `count`th upload. A post waits for the observers on the main queue,
+    /// so by the time a commit or a post returns, the upload it started is running.
     func uploads(_ count: Int, _ change: String) async throws {
-        try await until({ server.puts.count >= count }, "\(change) did not upload")
-        await settle()
-        #expect(server.puts.count == count, "\(change) uploaded once")
-        #expect(state.acknowledged == (try engine.automationPayload().digest), "\(change) was acknowledged")
-    }
-
-    /// Lets the commits posted so far arrive, then waits for what they started.
-    func settle() async {
-        await Task.yield()
-        try? await Task.sleep(for: .milliseconds(20))
         await sync.settled()
+        #expect(server.puts.count == count, "\(change) uploaded once")
+        #expect(state.acknowledged?.digest == (try engine.automationPayload().digest), "\(change) was acknowledged")
     }
 
     /// `id`'s source with another prompt for its automation.
@@ -243,6 +309,7 @@ private final class MemoryTokens: TokenStore {
     func load() -> String? { token.withLock { $0 } }
     func save(_ token: String) { self.token.withLock { $0 = token } }
     func delete() { token.withLock { $0 = nil } }
+    func delete(_ token: String) { self.token.withLock { if $0 == token { $0 = nil } } }
 }
 
 /// The Worker's account routes: registration answers `dev-token`, an upload answers the digest of what it received,

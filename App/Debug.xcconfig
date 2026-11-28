@@ -3,5 +3,7 @@
 //
 //     WIDGIE_DEV_SECRET = <the dev Worker's DEV_REGISTRATION_SECRET>
 //
-// Without that file, WIDGIE_DEV_SECRET in the environment of xcodebuild does the same.
+// In an xcconfig value, `//` starts a comment and cuts the value there, so use a secret without it, such as hex
+// (`openssl rand -hex 32`). Only a Debug build for the simulator carries the secret (project.yml). Without that
+// file, WIDGIE_DEV_SECRET in the environment of xcodebuild does the same.
 #include? "Secrets.xcconfig"

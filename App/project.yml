@@ -67,13 +67,15 @@ targets:
             CFBundleURLSchemes: [widgie]
     # Debug only: the dev bridge on the Mac and plain HTTP to it, which the simulator uses because it has no App
     # Attest. A phone uses WidgieModelService over HTTPS, and a Release build keeps App Transport Security whole.
-    # Also Debug only: WidgieDevSecret, the dev Worker's DEV_REGISTRATION_SECRET, with which the simulator registers
-    # its account (Registration.swift), when the build has WIDGIE_DEV_SECRET: from the environment of xcodebuild, or
-    # from App/Secrets.xcconfig (`WIDGIE_DEV_SECRET = ...`), which git ignores and Debug.xcconfig includes. Never
-    # committed, and a Release build has no such key.
+    # Also only in a Debug build for the simulator: WidgieDevSecret, the dev Worker's DEV_REGISTRATION_SECRET, with
+    # which the simulator registers its account (Registration.swift), when the build has WIDGIE_DEV_SECRET: from the
+    # environment of xcodebuild, or from App/Secrets.xcconfig (`WIDGIE_DEV_SECRET = ...`), which git ignores and
+    # Debug.xcconfig includes. Never committed; a Release build and a build for a phone have no such key. The script
+    # keeps its environment out of the build log, which would print the secret.
     postBuildScripts:
       - name: Debug model bridge
         basedOnDependencyAnalysis: false
+        showEnvVars: false
         # Names the processed Info.plist so the build edits it after writing it, not before.
         inputFiles: [$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)]
         script: |
@@ -85,8 +87,8 @@ targets:
           /usr/libexec/PlistBuddy -c "Add :WidgieModelBridge string http://127.0.0.1:8787" \
             -c "Add :NSAppTransportSecurity dict" \
             -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$plist"
-          if [ -n "${WIDGIE_DEV_SECRET:-}" ]; then
-            /usr/libexec/PlistBuddy -c "Add :WidgieDevSecret string $WIDGIE_DEV_SECRET" "$plist"
+          if [ "$PLATFORM_NAME" = iphonesimulator ] && [ -n "${WIDGIE_DEV_SECRET:-}" ]; then
+            /usr/libexec/PlistBuddy -c "Add :WidgieDevSecret string \"$WIDGIE_DEV_SECRET\"" "$plist"
           fi
     settings:
       base:

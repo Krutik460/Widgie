@@ -39,7 +39,7 @@ enum Registration: Sendable {
     }()
 
     /// `register` on this build's path, or nil when it has none.
-    static var configuredRegister: (@Sendable () async throws -> String)? {
+    static var configuredRegister: AccountClient.Register? {
         guard let configured else { return nil }
         return { try await configured.register() }
     }
