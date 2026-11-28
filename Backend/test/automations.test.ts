@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { ATTEMPTS, leadSeed, TOMBSTONES } from "../src/automations";
+import { ATTEMPTS, insertTasks, leadSeed, TOMBSTONES } from "../src/automations";
 import { sha256, toHex } from "../src/bytes";
 import { type Env, MAX_AUTOMATIONS_BODY } from "../src/index";
 import { DAY, HOUR, LEADS, leadMs, MINUTE } from "../src/schedule";
@@ -593,5 +593,21 @@ describe("the changes indexes", () => {
         );
         expect(detail).toMatch(/SEARCH changes USING INDEX changes_dataset \(account=\? AND dataset=\?\)/);
         expect(detail).not.toMatch(/TEMP B-TREE/);
+    });
+});
+
+describe("adding tasks", () => {
+    it("skips only a kind of task the automation already has, and fails on a task that breaks a rule", async () => {
+        const { id, token } = await newAccount();
+        expect((await send(upload(token, payload([automation()])))).status).toBe(200);
+        const version = (await versionOf(id)) ?? "";
+        const task = { widget: WIDGET, automation: "daily", version, runAt: NOW, dueAt: NOW, rowKey: mintRowKey(NOW) };
+        const before = await tasks(id);
+        // The schedule is there already, so a second one is skipped.
+        await insertTasks(env.DB, id, [{ ...task, once: 0 }])?.run();
+        expect(await tasks(id)).toEqual(before);
+        // A task outside the CHECK on `once` fails instead of being dropped without a word.
+        await expect(insertTasks(env.DB, id, [{ ...task, once: 5 }])?.run()).rejects.toThrow();
+        expect(await tasks(id)).toEqual(before);
     });
 });

@@ -294,11 +294,14 @@ export interface NewTask {
 
 /// Adds the tasks of account ?1 listed in ?2, a JSON array of NewTask, in its order, keeping a task of that kind
 /// (run now or schedule) the automation already has. One statement for any number of tasks, since each statement of a
-/// batch costs the Worker CPU.
-export const INSERT_TASKS = `INSERT OR IGNORE INTO tasks (account, widget, automation, version, once, run_at, row_key, due_at)
+/// batch costs the Worker CPU. Only that one conflict is skipped: `INSERT OR IGNORE` would also drop a task that breaks
+/// a NOT NULL or CHECK rule, saving an automation that never runs, where this statement fails the batch instead.
+/// `WHERE true` keeps SQLite from reading `ON CONFLICT` as part of the select's join.
+export const INSERT_TASKS = `INSERT INTO tasks (account, widget, automation, version, once, run_at, row_key, due_at)
     SELECT ?1, value ->> 'widget', value ->> 'automation', value ->> 'version', value ->> 'once', value ->> 'runAt',
         value ->> 'rowKey', value ->> 'dueAt'
-    FROM json_each(?2) ORDER BY key`;
+    FROM json_each(?2) WHERE true ORDER BY key
+    ON CONFLICT (account, widget, automation, once) DO NOTHING`;
 
 /// The statement that adds the tasks, or null when there are none.
 export function insertTasks(db: D1Database, account: string, tasks: NewTask[]): D1PreparedStatement | null {

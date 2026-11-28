@@ -3,6 +3,8 @@
 
 import { env } from "cloudflare:workers";
 import { expect, it } from "vitest";
+import { PAGE } from "../src/accounts";
+import { DELETE_AUTOMATIONS, DELETE_SCHEDULES, DELETE_TASKS, RERUN_VERSIONS } from "../src/automations";
 import { CLAIM } from "../src/cron";
 import { LATEST_CELLS, LATEST_ROWS, START } from "../src/runner";
 import { PRUNE_SLICE, SLICES } from "../src/upkeep";
@@ -63,4 +65,33 @@ it("prunes by id range: the slices in id order, and each slice's datasets throug
     for (const line of prune.split("\n").filter((line) => line.includes("SCAN"))) {
         expect(line).toMatch(/^SCAN (d|l)$/);
     }
+});
+
+/// No line of a plan scans a table that grows with every account; scanning the JSON list a statement is given is fine.
+function scansNoTable(detail: string) {
+    for (const line of detail.split("\n").filter((line) => line.includes("SCAN"))) {
+        expect(line).not.toMatch(/\b(tasks|automations|changes|accounts)\b/);
+    }
+}
+
+it("an upload deletes and re-versions the listed automations and their tasks through their unique keys", async () => {
+    const list = JSON.stringify([{ widget: "w", automation: "a", version: "v" }]);
+    const automations = await plan(DELETE_AUTOMATIONS, "acc", list);
+    expect(automations).toMatch(
+        /USING (COVERING )?INDEX sqlite_autoindex_automations_1 \(account=\? AND widget=\? AND automation=\?\)/,
+    );
+    scansNoTable(automations);
+    for (const sql of [DELETE_TASKS, DELETE_SCHEDULES, RERUN_VERSIONS]) {
+        const detail = await plan(sql, "acc", list);
+        expect(detail).toMatch(
+            /USING (COVERING )?INDEX sqlite_autoindex_tasks_1 \(account=\? AND widget=\? AND automation=\?/,
+        );
+        scansNoTable(detail);
+    }
+});
+
+it("a pull reads its page through changes_account by the watermark", async () => {
+    const detail = await plan(PAGE, "acc", 0, 500);
+    expect(detail).toMatch(/USING (COVERING )?INDEX changes_account \(account=\? AND id>\?\)/);
+    scansNoTable(detail);
 });
